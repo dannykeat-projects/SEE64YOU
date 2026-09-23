@@ -27,6 +27,7 @@ typedef struct {
 void s64_standalone_session_clear(S64StandaloneSession* session);
 
 /* Shared by standalone publisher operations; not UI commands. */
+S64StandaloneResult s64_standalone_map_http(S64HttpResult result);
 S64StandaloneResult s64_standalone_validate_transport(
     const char* url,
     uint8_t allow_insecure_http
