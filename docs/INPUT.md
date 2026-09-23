@@ -11,9 +11,12 @@ USB keyboards presented to C64 software may ultimately have the same ambiguity b
 For that reason the reliable baseline is **MARK mode**:
 
 - F1: toggle MARK mode;
+- F2: find next;
 - cursor keys while MARK is active: extend/shrink the selection;
 - F3: copy;
+- F4: find previous;
 - F5: cut;
+- F6: open Replace (UI still being completed);
 - F7: paste;
 - F8: exit during early development.
 
@@ -35,11 +38,12 @@ The input layer uses this state alongside buffered keyboard characters. Where fi
 - Ctrl+V: Paste
 - Ctrl+S: Save
 - Ctrl+F: Find
+- Ctrl+G: Go to line
 - Ctrl+H: Replace
 - Ctrl+Z: Undo
 - Ctrl+Y: Redo
 
-Save/find/replace/undo/redo are currently normalized commands awaiting their implementation layers.
+Find and Go to line now have working prompt flows. Save, Replace UI, Undo and Redo remain normalized commands awaiting their implementation layers.
 
 ## Validation rule
 
