@@ -65,7 +65,7 @@ php -S 127.0.0.1:8080 -t site
 
 Then open `http://127.0.0.1:8080/`.
 
-For publishing/API access, copy `site/config.example.php` to `site/config.php` and set a password hash and random secret as documented in that file.
+For publishing/API access, open `http://127.0.0.1:8080/setup.php` and complete the one-time setup form. It creates `config.php` with a password hash and random token-signing secret. Manual setup using `config.example.php` remains available.
 
 ## Philosophy
 
