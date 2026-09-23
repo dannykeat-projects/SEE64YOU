@@ -1,6 +1,7 @@
 #include <conio.h>
 #include "editor.h"
 #include "ui.h"
+#include "platform/uci.h"
 
 #define KEY_RUNSTOP     0x03u
 #define KEY_ENTER       0x0du
@@ -12,6 +13,7 @@
 #define KEY_F8          0x8cu
 
 static S64Editor editor;
+static S64UciCapabilities uci_capabilities;
 
 static unsigned char is_printable(unsigned char key)
 {
@@ -25,6 +27,8 @@ int main(void)
 
     s64_editor_init(&editor);
     s64_ui_init();
+    s64_uci_probe_capabilities(&uci_capabilities);
+    s64_ui_set_http_ready(uci_capabilities.http_target);
     s64_ui_render(&editor);
 
     while (running) {
