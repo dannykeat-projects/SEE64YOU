@@ -69,7 +69,7 @@ The client document representation owns only bounded metadata and a pointer to t
 
 ### C64U transport security
 
-Do not infer TLS support from the HTTP target accepting an `https://` resource string. In the upstream 1541 Ultimate source inspected during development (commit `ef9937a73c7db391d5434bfda08e96216d7099cc`), `HttpHeaderSlot` recognises `https://` and selects port 443, but `HttpTarget::cmd_exchange` passes the host/port to `HttpRequest::connect_to_server`, which opens a normal `AF_INET/SOCK_STREAM` socket and sends the HTTP request directly. No TLS handshake is performed in that path.
+Do not infer TLS support from the HTTP target accepting an `https://` resource string. This was rechecked against current upstream `master` during development: `HttpHeaderSlot` recognises `https://`, sets port 443 and records a `secure` flag, but `HttpTarget::cmd_exchange` still passes only host/port to `HttpRequest::connect_to_server`. That function opens a normal `AF_INET/SOCK_STREAM` socket and `send_request` writes the HTTP request bytes directly. No TLS handshake is present in that path.
 
 Accordingly:
 - See64You rejects `https://` direct-login attempts as unsupported instead of silently sending plaintext to port 443;
