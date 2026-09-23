@@ -118,6 +118,18 @@ int main(void)
 
     s64_http_init(&http, mock_execute);
 
+    require(
+        strcmp(
+            s64_standalone_result_message(S64_STANDALONE_TRANSPORT_ERROR),
+            "Network/UCI error"
+        ) == 0,
+        "transport error has short UI message"
+    );
+    require(
+        strlen(s64_standalone_result_message(S64_STANDALONE_TLS_UNSUPPORTED)) < 40u,
+        "publisher error messages fit C64 status line"
+    );
+
     command_count = 0u;
     result = s64_standalone_login(
         &http,
