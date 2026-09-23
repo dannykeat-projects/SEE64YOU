@@ -50,6 +50,18 @@ try {
         respond(['ok' => false, 'error' => 'unauthorized'], 401);
     }
 
+    if ($action === 'settings') {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+            respond(['ok' => true, 'settings' => $settings->publicValues()]);
+        }
+
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            respond(['ok' => false, 'error' => 'method_not_allowed'], 405);
+        }
+
+        respond(['ok' => true, 'settings' => $settings->update(input_data())]);
+    }
+
     if ($action === 'list') {
         $type = (string)($_GET['type'] ?? '');
         respond(['ok' => true, 'documents' => $documents->list($type, false)]);
