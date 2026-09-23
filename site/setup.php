@@ -2,10 +2,11 @@
 declare(strict_types=1);
 
 $configPath = __DIR__ . '/config.php';
+$setupMarker = __DIR__ . '/ENABLE_SETUP';
 
-if (is_file($configPath)) {
+if (is_file($configPath) || !is_file($setupMarker)) {
     http_response_code(404);
-    echo '<!doctype html><html><body><h1>See64You</h1><p>This site is already configured.</p></body></html>';
+    echo '<!doctype html><html><body><h1>See64You</h1><p>Setup is not available.</p></body></html>';
     exit;
 }
 
@@ -48,6 +49,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             @unlink($temporary);
             $error = 'Could not write config.php. Check folder permissions.';
         } else {
+            @unlink($setupMarker);
             $complete = true;
         }
     }
