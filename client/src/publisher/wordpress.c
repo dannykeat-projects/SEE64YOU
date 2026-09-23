@@ -367,6 +367,10 @@ const char* s64_wordpress_result_message(S64WordPressResult result)
             return "See64You plugin not found";
         case S64_WORDPRESS_NOT_FOUND:
             return "WordPress document not found";
+        case S64_WORDPRESS_DOCUMENT_REJECTED:
+            return "WordPress rejected document";
+        case S64_WORDPRESS_SLUG_CONFLICT:
+            return "WordPress slug already used";
         case S64_WORDPRESS_INCOMPATIBLE_DOCUMENT:
             return "Document exceeds C64 limits";
         case S64_WORDPRESS_INSECURE_TRANSPORT:
