@@ -36,7 +36,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [ ] Implement C64U HTTP transport behind the publisher interface (bounded UCI executor and streaming HTTP-target layer implemented/host-tested; publisher wiring pending).
 - [x] Add bounded UCI/HTTP-target capability probe from the published interface.
 - [ ] Verify current C64U UCI HTTP behaviour on target hardware.
-- [ ] Standalone login from C64U and token handling.
+- [ ] Standalone login from C64U and token handling (bounded login/session logic implemented and host-tested; UI and target-hardware validation pending).
 - [ ] List/open/create/update/delete standalone pages.
 - [ ] List/open/create/update/delete standalone posts.
 - [ ] WordPress Application Password configuration and connection test.
