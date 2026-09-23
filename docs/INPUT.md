@@ -16,7 +16,7 @@ For that reason the reliable baseline is **MARK mode**:
 - F3: copy;
 - F4: find previous;
 - F5: cut;
-- F6: open Replace (UI still being completed);
+- F6: Replace / Replace All;
 - F7: paste;
 - F8: exit during early development.
 
@@ -43,7 +43,7 @@ The input layer uses this state alongside buffered keyboard characters. Where fi
 - Ctrl+Z: Undo
 - Ctrl+Y: Redo
 
-Find and Go to line now have working prompt flows. Save, Replace UI, Undo and Redo remain normalized commands awaiting their implementation layers.
+Find, Replace and Go to line now have working prompt flows. Save, Undo and Redo remain normalized commands awaiting their implementation layers.
 
 ## Validation rule
 
