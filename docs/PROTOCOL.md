@@ -11,7 +11,7 @@ Standalone:
 Fields:
 - `password`
 
-Success returns JSON containing a bearer token and expiry. Subsequent protected calls send:
+Success returns JSON containing a bearer token and expiry. The C64U standalone publisher stores the returned token and expiry only; it does not retain the submitted password. Subsequent protected calls send:
 
 `Authorization: Bearer <token>`
 
