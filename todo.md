@@ -11,15 +11,15 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] Add authenticated standalone publishing API.
 - [x] Add WordPress plugin scaffold using WordPress-native authentication.
 - [ ] Compile and run the C64 client under VICE; fix any cc65/keyboard incompatibilities found.
-- [ ] Run the standalone site locally and exercise all API operations end-to-end.
+- [x] Run the standalone site locally and exercise all API operations end-to-end.
 - [ ] Install the WordPress plugin on a test WordPress instance and exercise REST operations.
 
 ## P0 - Editor essentials
 
 - [ ] Incremental screen redraw rather than whole-editor redraw after each input.
-- [ ] Accurate vertical cursor movement preserving preferred column.
+- [x] Accurate vertical cursor movement preserving preferred column.
 - [ ] Word wrap toggle.
-- [x] Home-to-line-start editor command.\n- [ ] End and Page Up/Page Down.
+- [x] Home, End, Page Up/Page Down and word-navigation editor commands.
 - [x] Selection model and visible selection.
 - [x] Cut/copy/paste using an application clipboard.
 - [ ] Undo/redo transaction history.
