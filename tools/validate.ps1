@@ -17,7 +17,7 @@ $Cl65 = Get-Command cl65 -ErrorAction SilentlyContinue
 if ($Cl65) {
     Write-Host "== cc65 C64 build =="
     New-Item -ItemType Directory -Force client/build | Out-Null
-    & cl65 -t c64 -Oirs -I client/src -o client/build/see64you.prg client/src/main.c client/src/buffer.c client/src/editor.c client/src/ui.c
+    & cl65 -t c64 -Oirs -I client/src -o client/build/see64you.prg client/src/main.c client/src/buffer.c client/src/editor.c client/src/ui.c client/src/platform/uci.c
     if ($LASTEXITCODE -ne 0) { throw "C64 build failed" }
 } else {
     Write-Host "SKIP cc65 build (cl65 not found)"
