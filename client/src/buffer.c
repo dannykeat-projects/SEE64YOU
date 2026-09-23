@@ -82,3 +82,23 @@ int s64_buffer_delete(S64Buffer* buffer)
     ++buffer->gap_end;
     return 1;
 }
+
+int s64_buffer_delete_range(S64Buffer* buffer, unsigned int start, unsigned int end)
+{
+    unsigned int length = s64_buffer_length(buffer);
+
+    if (start > end || end > length) {
+        return 0;
+    }
+
+    if (start == end) {
+        return 1;
+    }
+
+    if (!s64_buffer_move_cursor(buffer, start)) {
+        return 0;
+    }
+
+    buffer->gap_end = (unsigned int)(buffer->gap_end + (end - start));
+    return 1;
+}
