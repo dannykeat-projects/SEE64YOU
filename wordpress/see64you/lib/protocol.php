@@ -4,6 +4,28 @@ declare(strict_types=1);
 const SEE64YOU_WIRE_MIME = 'application/x-see64you';
 const SEE64YOU_SOURCE_CHUNK_BYTES = 180;
 
+function see64you_parse_int32(string $value): int
+{
+    if (preg_match('/^[+-]?\d+$/', $value) !== 1) {
+        throw new InvalidArgumentException('invalid_wire_document');
+    }
+
+    $negative = str_starts_with($value, '-');
+    $digits = ltrim($value, '+-');
+    $digits = ltrim($digits, '0');
+    if ($digits === '') {
+        return 0;
+    }
+
+    $limit = $negative ? '2147483648' : '2147483647';
+    if (strlen($digits) > strlen($limit)
+        || (strlen($digits) === strlen($limit) && strcmp($digits, $limit) > 0)) {
+        throw new InvalidArgumentException('invalid_wire_document');
+    }
+
+    return (int)$value;
+}
+
 function see64you_wire_parse(string $source): array
 {
     $source = str_replace(["\r\n", "\r"], "\n", $source);
@@ -41,9 +63,7 @@ function see64you_wire_parse(string $source): array
         }
     }
 
-    if (!preg_match('/^[+-]?\d+$/', $headers['order'])) {
-        throw new InvalidArgumentException('invalid_wire_document');
-    }
+    $order = see64you_parse_int32($headers['order']);
 
     return [
         'type' => $headers['type'],
@@ -51,7 +71,7 @@ function see64you_wire_parse(string $source): array
         'title' => $headers['title'],
         'status' => $headers['status'],
         'date' => $headers['date'],
-        'order' => (int)$headers['order'],
+        'order' => $order,
         'body' => $body,
     ];
 }
