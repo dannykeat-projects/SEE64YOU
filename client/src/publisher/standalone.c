@@ -168,6 +168,27 @@ static uint8_t s64_standalone_parse_expiry(const char* json, uint32_t* expires)
     return 1u;
 }
 
+static uint8_t s64_ascii_equal_ci(char left, char right)
+{
+    if (left >= 'A' && left <= 'Z') left = (char)(left + ('a' - 'A'));
+    if (right >= 'A' && right <= 'Z') right = (char)(right + ('a' - 'A'));
+    return left == right;
+}
+
+static uint8_t s64_url_has_https_scheme(const char* url)
+{
+    static const char scheme[] = "https://";
+    uint8_t i;
+
+    if (url == 0) return 0u;
+    for (i = 0u; i < (uint8_t)(sizeof(scheme) - 1u); ++i) {
+        if (url[i] == '\0' || !s64_ascii_equal_ci(url[i], scheme[i])) {
+            return 0u;
+        }
+    }
+    return 1u;
+}
+
 S64StandaloneResult s64_standalone_validate_transport(
     const char* url,
     uint8_t allow_insecure_http
@@ -176,7 +197,7 @@ S64StandaloneResult s64_standalone_validate_transport(
     if (url == 0 || url[0] == '\0') {
         return S64_STANDALONE_INVALID_ARGUMENT;
     }
-    if (strncmp(url, "https://", 8u) == 0) {
+    if (s64_url_has_https_scheme(url)) {
         return S64_STANDALONE_TLS_UNSUPPORTED;
     }
     return allow_insecure_http
