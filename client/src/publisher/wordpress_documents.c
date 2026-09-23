@@ -29,8 +29,10 @@ static S64WordPressResult map_status(uint16_t status)
     if (status >= 200u && status < 300u) return S64_WORDPRESS_OK;
     if (status == 401u) return S64_WORDPRESS_AUTH_FAILED;
     if (status == 403u) return S64_WORDPRESS_PERMISSION_DENIED;
+    if (status == 400u) return S64_WORDPRESS_DOCUMENT_REJECTED;
     if (status == 404u) return S64_WORDPRESS_NOT_FOUND;
-    if (status == 422u) return S64_WORDPRESS_INCOMPATIBLE_DOCUMENT;
+    if (status == 409u) return S64_WORDPRESS_SLUG_CONFLICT;
+    if (status == 413u || status == 422u) return S64_WORDPRESS_INCOMPATIBLE_DOCUMENT;
     if (status == 0u) return S64_WORDPRESS_PROTOCOL_ERROR;
     return S64_WORDPRESS_SERVER_ERROR;
 }
