@@ -65,7 +65,17 @@ HTTP handles survive a C64 reset in the Ultimate firmware, so the publishing ses
 
 The first standalone publisher operation is login. It lets the firmware build a URL-encoded `password` body, accepts the raw JSON response into a small bounded scratch buffer, stores only the returned bearer token and expiry, and frees request handles on success or failure. The normal site password is never retained in the session structure.
 
-Target hardware still needs to validate the exact firmware behaviour and keyboard/network integration. No transport is required for local document editing.
+### C64U transport security
+
+Do not infer TLS support from the HTTP target accepting an `https://` resource string. In the upstream 1541 Ultimate source inspected during development (commit `ef9937a73c7db391d5434bfda08e96216d7099cc`), `HttpHeaderSlot` recognises `https://` and selects port 443, but `HttpTarget::cmd_exchange` passes the host/port to `HttpRequest::connect_to_server`, which opens a normal `AF_INET/SOCK_STREAM` socket and sends the HTTP request directly. No TLS handshake is performed in that path.
+
+Accordingly:
+- See64You rejects `https://` direct-login attempts as unsupported instead of silently sending plaintext to port 443;
+- plaintext `http://` or bare-host login is disabled unless the caller explicitly opts into insecure transport;
+- insecure direct login is intended only for controlled trusted-LAN testing or a local compatibility relay;
+- secure remote publishing needs a trusted local relay that terminates HTTPS, or future C64U firmware whose TLS behaviour has been verified on target hardware.
+
+Target hardware still needs to validate the exact UCI behaviour and keyboard/network integration. No transport is required for local document editing.
 
 ## Standalone web backend
 
@@ -87,4 +97,4 @@ The WordPress plugin exposes a deliberately small document API. WordPress remain
 
 The C64 client cannot make an untrusted server safe. Backends therefore validate document type, slug and authentication independently.
 
-Standalone-site login returns a short-lived signed token. Production publishing should use HTTPS because possession of a valid token grants publishing access until expiry.
+Standalone-site login returns a short-lived signed token. Ordinary web clients should use HTTPS. On the C64U path, credentials or bearer tokens must not cross an untrusted network until TLS is provided by verified firmware or a trusted relay.
