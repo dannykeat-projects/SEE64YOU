@@ -6,6 +6,7 @@
 #include "platform/http.h"
 
 #define S64_STANDALONE_TOKEN_CAPACITY 112u
+#define S64_STANDALONE_RELAY_KEY_CAPACITY 65u
 
 typedef enum {
     S64_STANDALONE_OK = 0,
@@ -27,11 +28,22 @@ typedef struct {
 void s64_standalone_session_clear(S64StandaloneSession* session);
 const char* s64_standalone_result_message(S64StandaloneResult result);
 
+/*
+ * Configure the optional trusted-LAN relay key. Pass NULL or an empty string
+ * to disable relay authentication. Non-empty keys must be exactly 64 hex
+ * characters (32 random bytes).
+ */
+int s64_standalone_set_relay_key(const char* relay_key);
+
 /* Shared by standalone publisher operations; not UI commands. */
 S64StandaloneResult s64_standalone_map_http(S64HttpResult result);
 S64StandaloneResult s64_standalone_validate_transport(
     const char* url,
     uint8_t allow_insecure_http
+);
+S64StandaloneResult s64_standalone_add_relay_header(
+    S64HttpTransport* http,
+    uint8_t header_handle
 );
 S64StandaloneResult s64_standalone_add_authorization(
     S64HttpTransport* http,
