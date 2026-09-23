@@ -86,6 +86,32 @@ if (($d["document"]["body"] ?? "") !== "Hello **C64U** <script>bad()</script>") 
 if (($d["document"]["status"] ?? "") !== "draft") exit(1);
 '
 
+WIRE=$(curl -fsS -H "$AUTH" "$BASE/api.php?action=get&type=post&slug=api-test&format=s64")
+printf '%s' "$WIRE" | grep -q '^SEE64YOU/1'
+printf '%s' "$WIRE" | grep -q '^Slug: api-test'
+printf '%s' "$WIRE" | grep -q 'Hello \*\*C64U\*\* <script>bad()</script>'
+
+WIRE_BODY=$(cat <<'WIRE_EOF'
+SEE64YOU/1
+Type: post
+Slug: wire-test
+Title: Wire Test
+Status: draft
+Date: 2026-09-23T20:10:00+10:00
+Order: 0
+
+A body sent without JSON escaping.
+Second line.
+WIRE_EOF
+)
+WIRE_REPLY=$(printf '%s' "$WIRE_BODY" | curl -fsS -X POST -H "$AUTH" \
+    -H 'Content-Type: application/x-see64you' \
+    --data-binary @- \
+    "$BASE/api.php?action=save&format=s64")
+printf '%s' "$WIRE_REPLY" | grep -q '^SEE64YOU/1'
+printf '%s' "$WIRE_REPLY" | grep -q '^Slug: wire-test'
+printf '%s' "$WIRE_REPLY" | grep -q 'Second line.'
+
 CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/post.php?slug=api-test")
 [ "$CODE" = "404" ]
 
@@ -126,6 +152,11 @@ if (array_key_exists("password_hash", $s) || array_key_exists("token_secret", $s
 curl -fsS -X POST -H "$AUTH" \
     --data-urlencode "type=post" \
     --data-urlencode "slug=api-test" \
+    "$BASE/api.php?action=delete" >/dev/null
+
+curl -fsS -X POST -H "$AUTH" \
+    --data-urlencode "type=post" \
+    --data-urlencode "slug=wire-test" \
     "$BASE/api.php?action=delete" >/dev/null
 
 CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/post.php?slug=api-test")
