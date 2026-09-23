@@ -193,7 +193,7 @@ static uint8_t collect_text(
     return 1u;
 }
 
-static uint16_t http_status(const char* header)
+uint16_t s64_wordpress_http_status(const char* header)
 {
     const char* cursor = header;
 
@@ -241,7 +241,7 @@ static uint8_t response_ok(const char* text)
     return 0u;
 }
 
-static S64WordPressResult map_http(S64HttpResult result)
+S64WordPressResult s64_wordpress_map_http(S64HttpResult result)
 {
     switch (result) {
         case S64_HTTP_OK:
@@ -277,7 +277,7 @@ static uint8_t url_has_https_scheme(const char* url)
     return 1u;
 }
 
-static S64WordPressResult validate_transport(
+S64WordPressResult s64_wordpress_validate_transport(
     const char* url,
     uint8_t allow_insecure_http
 )
@@ -343,11 +343,11 @@ S64WordPressResult s64_wordpress_add_authorization(
 
     result = s64_relay_add_header(http, header_handle);
     if (result != S64_HTTP_OK) {
-        return map_http(result);
+        return s64_wordpress_map_http(result);
     }
 
     result = s64_http_header_add(http, header_handle, session->authorization);
-    return map_http(result);
+    return s64_wordpress_map_http(result);
 }
 
 const char* s64_wordpress_result_message(S64WordPressResult result)
@@ -365,6 +365,10 @@ const char* s64_wordpress_result_message(S64WordPressResult result)
             return "WordPress edit denied";
         case S64_WORDPRESS_PLUGIN_UNAVAILABLE:
             return "See64You plugin not found";
+        case S64_WORDPRESS_NOT_FOUND:
+            return "WordPress document not found";
+        case S64_WORDPRESS_INCOMPATIBLE_DOCUMENT:
+            return "Document exceeds C64 limits";
         case S64_WORDPRESS_INSECURE_TRANSPORT:
             return "Plain HTTP not enabled";
         case S64_WORDPRESS_TLS_UNSUPPORTED:
@@ -397,14 +401,14 @@ S64WordPressResult s64_wordpress_test_connection(
         return S64_WORDPRESS_INVALID_ARGUMENT;
     }
 
-    result = validate_transport(connection_url, allow_insecure_http);
+    result = s64_wordpress_validate_transport(connection_url, allow_insecure_http);
     if (result != S64_WORDPRESS_OK) {
         return result;
     }
 
     http_result = s64_http_free_all(http);
     if (http_result != S64_HTTP_OK) {
-        return map_http(http_result);
+        return s64_wordpress_map_http(http_result);
     }
 
     http_result = s64_http_header_create(
@@ -414,7 +418,7 @@ S64WordPressResult s64_wordpress_test_connection(
         &header_handle
     );
     if (http_result != S64_HTTP_OK) {
-        return map_http(http_result);
+        return s64_wordpress_map_http(http_result);
     }
     header_created = 1u;
 
@@ -441,7 +445,7 @@ S64WordPressResult s64_wordpress_test_connection(
         0
     );
     if (http_result != S64_HTTP_OK) {
-        result = map_http(http_result);
+        result = s64_wordpress_map_http(http_result);
         goto cleanup;
     }
     if (sink.overflow) {
@@ -449,7 +453,7 @@ S64WordPressResult s64_wordpress_test_connection(
         goto cleanup;
     }
 
-    status_code = http_status(response_header);
+    status_code = s64_wordpress_http_status(response_header);
     if (status_code == 401u) {
         result = S64_WORDPRESS_AUTH_FAILED;
     } else if (status_code == 403u) {
