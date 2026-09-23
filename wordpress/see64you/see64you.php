@@ -135,7 +135,8 @@ function see64you_input_type(array $input): ?string
 
 function see64you_c64_metadata_compatible(array $document): bool
 {
-    return strlen((string)($document['slug'] ?? '')) <= 64
+    return in_array((string)($document['wordpress_status'] ?? ''), ['publish', 'draft'], true)
+        && strlen((string)($document['slug'] ?? '')) <= 64
         && preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', (string)($document['slug'] ?? '')) === 1
         && strlen((string)($document['title'] ?? '')) <= 80
         && strlen((string)($document['date'] ?? '')) <= 40
@@ -317,6 +318,7 @@ function see64you_list_documents(WP_REST_Request $request): WP_REST_Response|WP_
     ];
 
     if ((string)$request->get_param('managed') === '1') {
+        $args['post_status'] = ['publish', 'draft'];
         $args['meta_query'] = [[
             'key' => SEE64YOU_META_MANAGED,
             'value' => '1',
