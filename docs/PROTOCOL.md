@@ -27,7 +27,7 @@ For real remote publishing, use the trusted local relay in `relay/` or future fi
 
 This key authenticates access to the relay only; it does not replace the standalone bearer token or WordPress Authorization header and is never forwarded to the upstream site.
 
-WordPress uses WordPress-native REST authentication. Application Passwords are the preferred initial mechanism.
+WordPress uses WordPress-native REST authentication. Application Passwords are the preferred initial mechanism. The C64U client accepts the WordPress username plus an Application Password, strips the display-only spaces from the Application Password, and stores only the resulting Basic Authorization header for the active session. A protected `GET /wp-json/see64you/v1/connection` endpoint verifies both authentication and edit capability before document operations are enabled.
 
 ## Operations
 
