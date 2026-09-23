@@ -293,7 +293,7 @@ function see64you_document_response(WP_Post $post): array
         'id_text' => (string)$post->ID,
         'type' => $post->post_type === 'page' ? 'page' : 'post',
         'slug' => $post->post_name,
-        'title' => get_the_title($post),
+        'title' => $post->post_title,
         'status' => see64you_status_from_wordpress($post->post_status),
         'wordpress_status' => $post->post_status,
         'date' => get_post_time(DATE_ATOM, false, $post),
