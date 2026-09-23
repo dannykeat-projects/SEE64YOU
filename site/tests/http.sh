@@ -112,6 +112,18 @@ printf '%s' "$WIRE_REPLY" | grep -q '^SEE64YOU/1'
 printf '%s' "$WIRE_REPLY" | grep -q '^Slug: wire-test'
 printf '%s' "$WIRE_REPLY" | grep -q 'Second line.'
 
+ACK_REPLY=$(printf '%s' "$WIRE_BODY" | curl -fsS -X POST -H "$AUTH" \
+    -H 'Content-Type: application/x-see64you' \
+    --data-binary @- \
+    "$BASE/api.php?action=save&ack=1")
+printf '%s' "$ACK_REPLY" | php -r '
+$d=json_decode(stream_get_contents(STDIN),true);
+if (!is_array($d) || !($d["ok"] ?? false)) exit(1);
+if (($d["slug"] ?? "") !== "wire-test") exit(1);
+if (($d["status"] ?? "") !== "draft") exit(1);
+if (array_key_exists("document", $d) || array_key_exists("body", $d)) exit(1);
+'
+
 CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/post.php?slug=api-test")
 [ "$CODE" = "404" ]
 
