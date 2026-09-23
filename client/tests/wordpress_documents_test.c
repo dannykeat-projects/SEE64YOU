@@ -416,6 +416,48 @@ int main(void)
     require(result == S64_WORDPRESS_OK, "WordPress update succeeds");
     require(last_header_verb == (unsigned char)S64_HTTP_PATCH, "update uses PATCH");
 
+    reset_mock(SCENARIO_SAVE, "HTTP/1.1 409 Conflict\r\nContent-Type: application/json\r\n");
+    result = s64_wordpress_save_document(
+        &http,
+        "http://example.test/wp-json/see64you/v1/documents?ack=1",
+        1u,
+        &session,
+        &document,
+        0u,
+        id,
+        (uint16_t)sizeof(id)
+    );
+    require(result == S64_WORDPRESS_SLUG_CONFLICT, "slug conflict mapped distinctly");
+    require(id[0] == '\0', "slug conflict clears returned id");
+
+    reset_mock(SCENARIO_SAVE, "HTTP/1.1 413 Payload Too Large\r\nContent-Type: application/json\r\n");
+    result = s64_wordpress_save_document(
+        &http,
+        "http://example.test/wp-json/see64you/v1/documents?ack=1",
+        1u,
+        &session,
+        &document,
+        0u,
+        id,
+        (uint16_t)sizeof(id)
+    );
+    require(result == S64_WORDPRESS_INCOMPATIBLE_DOCUMENT, "oversized document mapped distinctly");
+    require(id[0] == '\0', "oversized response clears returned id");
+
+    reset_mock(SCENARIO_SAVE, "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n");
+    result = s64_wordpress_save_document(
+        &http,
+        "http://example.test/wp-json/see64you/v1/documents?ack=1",
+        1u,
+        &session,
+        &document,
+        0u,
+        id,
+        (uint16_t)sizeof(id)
+    );
+    require(result == S64_WORDPRESS_DOCUMENT_REJECTED, "bad document mapped distinctly");
+    require(id[0] == '\0', "rejected document clears returned id");
+
     reset_mock(SCENARIO_DELETE, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n");
     result = s64_wordpress_delete_document(
         &http,
