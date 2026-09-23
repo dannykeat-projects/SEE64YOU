@@ -27,6 +27,24 @@ WordPress uses WordPress-native REST authentication. Application Passwords are t
 
 Unauthenticated. Returns backend/protocol information without secrets.
 
+### Settings
+
+`GET api.php?action=settings`
+
+Returns the editable public site settings after authentication.
+
+`POST api.php?action=settings`
+
+Accepts any supported subset of:
+- `site_title`
+- `theme`: `plain`, `simple` or `c64`
+- `text_color`
+- `background_color`
+- `link_color`
+- `visited_color`
+
+Colours use six-digit CSS hex form such as `#a5a5ff`. Authentication secrets are never accepted or returned by this operation.
+
 ### List
 
 `GET api.php?action=list&type=page`
