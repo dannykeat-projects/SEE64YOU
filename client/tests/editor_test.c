@@ -78,6 +78,34 @@ int main(void)
     require(s64_editor_backspace(&editor), "backspace removes selection");
     require_text(&editor, "", "selection deletion");
 
+    s64_editor_init(&editor);
+    insert_text(&editor, "12345\nx\nABCDE");
+    s64_editor_home(&editor);
+    s64_editor_right(&editor);
+    s64_editor_right(&editor);
+    s64_editor_right(&editor);
+    s64_editor_right(&editor);
+    require(editor.column == 5u, "fixture column");
+    s64_editor_up(&editor);
+    require(editor.column == 2u, "short line clamps vertical column");
+    s64_editor_up(&editor);
+    require(editor.column == 5u, "vertical movement restores preferred column");
+    s64_editor_down(&editor);
+    s64_editor_down(&editor);
+    require(editor.column == 5u, "preferred column survives repeated vertical movement");
+    s64_editor_end(&editor);
+    require(editor.column == 6u, "end moves to line end");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "one two  three");
+    s64_editor_home(&editor);
+    s64_editor_word_right(&editor);
+    require(s64_buffer_cursor(&editor.buffer) == 4u, "word right skips first word and separator");
+    s64_editor_word_right(&editor);
+    require(s64_buffer_cursor(&editor.buffer) == 9u, "word right skips repeated separators");
+    s64_editor_word_left(&editor);
+    require(s64_buffer_cursor(&editor.buffer) == 4u, "word left returns to previous word");
+
     puts("editor tests passed");
     return 0;
 }
