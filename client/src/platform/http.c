@@ -7,8 +7,10 @@
 #define S64_HTTP_CMD_HEADER_ADD      0x13u
 #define S64_HTTP_CMD_BODY_CREATE     0x21u
 #define S64_HTTP_CMD_BODY_FREE       0x22u
+#define S64_HTTP_CMD_BODY_QUERY      0x2Au
 #define S64_HTTP_CMD_BODY_ADD_STRING 0x25u
 #define S64_HTTP_CMD_BODY_ADD_BINARY 0x2Cu
+#define S64_HTTP_CMD_EXCHANGE_OBJECT 0x31u
 #define S64_HTTP_CMD_EXCHANGE_RAW    0x32u
 
 #define S64_HTTP_SMALL_STATUS_CAPACITY 32u
@@ -19,6 +21,101 @@ typedef struct {
     uint8_t value;
     uint16_t count;
 } S64HttpHandleSink;
+
+typedef struct {
+    uint8_t values[2];
+    uint16_t count;
+} S64HttpPairSink;
+
+typedef struct {
+    char* value;
+    uint16_t capacity;
+    uint16_t total;
+    uint16_t received;
+    uint16_t expected;
+    uint8_t invalid;
+} S64HttpStringQuerySink;
+
+typedef struct {
+    uint8_t bytes[5];
+    uint16_t count;
+    uint8_t invalid;
+} S64HttpIntegerQuerySink;
+
+
+static uint8_t s64_http_capture_pair(
+    const uint8_t* data,
+    uint16_t length,
+    void* context
+)
+{
+    S64HttpPairSink* sink = (S64HttpPairSink*)context;
+    uint16_t i;
+
+    for (i = 0u; i < length; ++i) {
+        if (sink->count < 2u) {
+            sink->values[sink->count] = data[i];
+        }
+        ++sink->count;
+    }
+    return 1u;
+}
+
+static uint8_t s64_http_capture_string_query(
+    const uint8_t* data,
+    uint16_t length,
+    void* context
+)
+{
+    S64HttpStringQuerySink* sink = (S64HttpStringQuerySink*)context;
+    uint16_t i;
+
+    for (i = 0u; i < length; ++i) {
+        uint8_t byte = data[i];
+
+        if (sink->total == 0u) {
+            if (byte != 0x03u) {
+                sink->invalid = 1u;
+            }
+        } else if (sink->total == 1u) {
+            sink->expected = byte;
+            if ((uint16_t)(sink->expected + 1u) > sink->capacity) {
+                sink->invalid = 1u;
+            }
+        } else {
+            if (sink->received < sink->expected
+                && sink->received + 1u < sink->capacity
+                && sink->value != 0) {
+                sink->value[sink->received] = (char)byte;
+            } else {
+                sink->invalid = 1u;
+            }
+            ++sink->received;
+        }
+        ++sink->total;
+    }
+    return 1u;
+}
+
+static uint8_t s64_http_capture_integer_query(
+    const uint8_t* data,
+    uint16_t length,
+    void* context
+)
+{
+    S64HttpIntegerQuerySink* sink = (S64HttpIntegerQuerySink*)context;
+    uint16_t i;
+
+    for (i = 0u; i < length; ++i) {
+        if (sink->count < 5u) {
+            sink->bytes[sink->count] = data[i];
+        } else {
+            sink->invalid = 1u;
+        }
+        ++sink->count;
+    }
+    return 1u;
+}
 
 static uint8_t s64_http_capture_handle(
     const uint8_t* data,
@@ -365,6 +462,192 @@ S64HttpResult s64_http_body_free(S64HttpTransport* transport, uint8_t handle)
     part.data = command;
     part.length = (uint16_t)sizeof(command);
     return s64_http_run_status_command(transport, &part, 1u);
+}
+
+
+S64HttpResult s64_http_body_query_string(
+    S64HttpTransport* transport,
+    uint8_t handle,
+    const char* path,
+    char* value,
+    uint16_t value_capacity
+)
+{
+    uint8_t prefix[3];
+    uint16_t path_length;
+    S64UciCommandPart parts[2];
+    S64UciReply reply;
+    S64UciResult execute_result;
+    S64HttpStringQuerySink sink;
+    char status[S64_HTTP_SMALL_STATUS_CAPACITY];
+
+    if (transport == 0 || transport->execute == 0
+        || value == 0 || value_capacity == 0u
+        || !s64_http_string_length(
+            path,
+            (uint16_t)(S64_UCI_COMMAND_CAPACITY - sizeof(prefix)),
+            &path_length
+        )
+        || path_length == 0u) {
+        return S64_HTTP_INVALID_ARGUMENT;
+    }
+
+    prefix[0] = S64_HTTP_TARGET;
+    prefix[1] = S64_HTTP_CMD_BODY_QUERY;
+    prefix[2] = handle;
+
+    parts[0].data = prefix;
+    parts[0].length = (uint16_t)sizeof(prefix);
+    parts[1].data = (const uint8_t*)path;
+    parts[1].length = path_length;
+
+    sink.value = value;
+    sink.capacity = value_capacity;
+    sink.total = 0u;
+    sink.received = 0u;
+    sink.expected = 0u;
+    sink.invalid = 0u;
+    value[0] = '\0';
+
+    reply.data_sink = s64_http_capture_string_query;
+    reply.data_context = &sink;
+    reply.status = status;
+    reply.status_capacity = (uint16_t)sizeof(status);
+    reply.status_length = 0u;
+
+    execute_result = transport->execute(parts, 2u, &reply);
+    if (execute_result != S64_UCI_OK) {
+        return s64_http_map_transport(execute_result);
+    }
+    if (!s64_http_status_ok(status, reply.status_length)) {
+        return S64_HTTP_TARGET_ERROR;
+    }
+    if (sink.invalid || sink.total < 2u || sink.received != sink.expected) {
+        return S64_HTTP_TRANSPORT_ERROR;
+    }
+
+    value[sink.expected] = '\0';
+    return S64_HTTP_OK;
+}
+
+S64HttpResult s64_http_body_query_integer(
+    S64HttpTransport* transport,
+    uint8_t handle,
+    const char* path,
+    int32_t* value
+)
+{
+    uint8_t prefix[3];
+    uint16_t path_length;
+    S64UciCommandPart parts[2];
+    S64UciReply reply;
+    S64UciResult execute_result;
+    S64HttpIntegerQuerySink sink;
+    char status[S64_HTTP_SMALL_STATUS_CAPACITY];
+    uint32_t raw;
+
+    if (transport == 0 || transport->execute == 0 || value == 0
+        || !s64_http_string_length(
+            path,
+            (uint16_t)(S64_UCI_COMMAND_CAPACITY - sizeof(prefix)),
+            &path_length
+        )
+        || path_length == 0u) {
+        return S64_HTTP_INVALID_ARGUMENT;
+    }
+
+    prefix[0] = S64_HTTP_TARGET;
+    prefix[1] = S64_HTTP_CMD_BODY_QUERY;
+    prefix[2] = handle;
+
+    parts[0].data = prefix;
+    parts[0].length = (uint16_t)sizeof(prefix);
+    parts[1].data = (const uint8_t*)path;
+    parts[1].length = path_length;
+
+    sink.count = 0u;
+    sink.invalid = 0u;
+
+    reply.data_sink = s64_http_capture_integer_query;
+    reply.data_context = &sink;
+    reply.status = status;
+    reply.status_capacity = (uint16_t)sizeof(status);
+    reply.status_length = 0u;
+
+    execute_result = transport->execute(parts, 2u, &reply);
+    if (execute_result != S64_UCI_OK) {
+        return s64_http_map_transport(execute_result);
+    }
+    if (!s64_http_status_ok(status, reply.status_length)) {
+        return S64_HTTP_TARGET_ERROR;
+    }
+    if (sink.invalid || sink.count != 5u || sink.bytes[0] != 0x01u) {
+        return S64_HTTP_TRANSPORT_ERROR;
+    }
+
+    raw = (uint32_t)sink.bytes[1]
+        | ((uint32_t)sink.bytes[2] << 8)
+        | ((uint32_t)sink.bytes[3] << 16)
+        | ((uint32_t)sink.bytes[4] << 24);
+    *value = (int32_t)raw;
+    return S64_HTTP_OK;
+}
+
+S64HttpResult s64_http_exchange_object(
+    S64HttpTransport* transport,
+    uint8_t header_handle,
+    uint8_t body_handle,
+    uint8_t* response_header_handle,
+    uint8_t* response_body_handle,
+    char* response_header,
+    uint16_t response_header_capacity,
+    uint16_t* response_header_length
+)
+{
+    uint8_t command[4];
+    S64UciCommandPart part;
+    S64UciReply reply;
+    S64UciResult result;
+    S64HttpPairSink sink;
+
+    if (transport == 0 || transport->execute == 0
+        || response_header_handle == 0 || response_body_handle == 0
+        || (response_header_capacity != 0u && response_header == 0)) {
+        return S64_HTTP_INVALID_ARGUMENT;
+    }
+
+    command[0] = S64_HTTP_TARGET;
+    command[1] = S64_HTTP_CMD_EXCHANGE_OBJECT;
+    command[2] = header_handle;
+    command[3] = body_handle;
+
+    part.data = command;
+    part.length = (uint16_t)sizeof(command);
+
+    sink.count = 0u;
+    sink.values[0] = 0u;
+    sink.values[1] = 0u;
+
+    reply.data_sink = s64_http_capture_pair;
+    reply.data_context = &sink;
+    reply.status = response_header;
+    reply.status_capacity = response_header_capacity;
+    reply.status_length = 0u;
+
+    result = transport->execute(&part, 1u, &reply);
+    if (response_header_length != 0) {
+        *response_header_length = reply.status_length;
+    }
+    if (result != S64_UCI_OK) {
+        return s64_http_map_transport(result);
+    }
+    if (sink.count != 2u) {
+        return S64_HTTP_TRANSPORT_ERROR;
+    }
+
+    *response_header_handle = sink.values[0];
+    *response_body_handle = sink.values[1];
+    return S64_HTTP_OK;
 }
 
 S64HttpResult s64_http_exchange_raw(
