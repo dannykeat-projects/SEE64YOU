@@ -20,5 +20,6 @@ int s64_buffer_move_cursor(S64Buffer* buffer, unsigned int position);
 int s64_buffer_insert(S64Buffer* buffer, unsigned char value);
 int s64_buffer_backspace(S64Buffer* buffer);
 int s64_buffer_delete(S64Buffer* buffer);
+int s64_buffer_delete_range(S64Buffer* buffer, unsigned int start, unsigned int end);
 
 #endif
