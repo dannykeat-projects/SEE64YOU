@@ -111,6 +111,10 @@ The WordPress plugin exposes a deliberately small document API. WordPress remain
 
 The C64 client uses a WordPress Application Password rather than the user's normal account password. Configuration converts `username:application-password` directly into a bounded Basic Authorization header without retaining a separate plaintext credential pair. The plugin's authenticated `/connection` endpoint is used as the initial capability/permission test. Remote WordPress access should use the trusted-LAN relay until direct C64U TLS is verified.
 
+WordPress document operations deliberately avoid returning an entire 8 KiB source body as one structured string. Lists are queried one item at a time. Open returns source as base64 strings representing 180 raw source bytes each; the client validates the advertised chunk count/length and decodes directly into the existing gap buffer. Create/update use the same streamed `application/x-see64you` wire representation as the standalone backend, while compact acknowledgements return only bounded identifiers/status. Updating a published document with status `draft` is the unpublish operation.
+
+The adapter filters list results through WordPress's per-post `edit_post` capability rather than relying only on broad post-type capabilities. Managed C64 lists also omit documents that have become incompatible with current C64 metadata/body limits. Canonical slugs are never silently changed for WordPress uniqueness: a collision is returned to the editor instead.
+
 ## Security boundaries
 
 The C64 client cannot make an untrusted server safe. Backends therefore validate document type, slug and authentication independently.
