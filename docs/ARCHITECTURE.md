@@ -65,6 +65,8 @@ HTTP handles survive a C64 reset in the Ultimate firmware, so the publishing ses
 
 The first standalone publisher operation is login. It lets the firmware build a URL-encoded `password` body, accepts the raw JSON response into a small bounded scratch buffer, stores only the returned bearer token and expiry, and frees request handles on success or failure. The normal site password is never retained in the session structure.
 
+The client document representation owns only bounded metadata and a pointer to the existing gap buffer. Its wire serializer emits metadata and body incrementally, so publishing an 8 KiB document does not require a second 8 KiB body allocation. Standalone Save uses that serializer with the compact `ack=1` API response; Delete uses the firmware's URL-encoded body builder. Both reuse the same bearer-auth and transport-safety path as login.
+
 ### C64U transport security
 
 Do not infer TLS support from the HTTP target accepting an `https://` resource string. In the upstream 1541 Ultimate source inspected during development (commit `ef9937a73c7db391d5434bfda08e96216d7099cc`), `HttpHeaderSlot` recognises `https://` and selects port 443, but `HttpTarget::cmd_exchange` passes the host/port to `HttpRequest::connect_to_server`, which opens a normal `AF_INET/SOCK_STREAM` socket and sends the HTTP request directly. No TLS handshake is performed in that path.
