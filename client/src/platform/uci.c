@@ -136,7 +136,7 @@ static uint8_t s64_uci_flush_data(
     uint8_t* consumer_failed
 )
 {
-    if (length == 0u || reply == 0 || reply->data_sink == 0) {
+    if (length == 0u || reply == 0 || reply->data_sink == 0 || *consumer_failed) {
         return 1u;
     }
 
