@@ -128,7 +128,7 @@ static S64WordPressResult query_summary(
 
 #define QUERY_SUMMARY_STRING(field, destination) \
     do { \
-        written = sprintf(query_path, "documents%%%u/" field, index); \
+        written = sprintf(query_path, "documents%%%u/" field, (unsigned int)index); \
         if (written <= 0 || written >= (int)sizeof(query_path)) \
             return S64_WORDPRESS_PROTOCOL_ERROR; \
         result = query_string( \
@@ -163,7 +163,7 @@ static S64WordPressResult query_summary(
 
     QUERY_SUMMARY_STRING("date", summary_scratch.date);
 
-    written = sprintf(query_path, "documents%%%u/order", index);
+    written = sprintf(query_path, "documents%%%u/order", (unsigned int)index);
     if (written <= 0 || written >= (int)sizeof(query_path)) {
         return S64_WORDPRESS_PROTOCOL_ERROR;
     }
@@ -401,6 +401,7 @@ S64WordPressResult s64_wordpress_list_documents(
     result = S64_WORDPRESS_OK;
 
 cleanup:
+    if (delivered_count != 0) *delivered_count = delivered;
     if (response_created) {
         (void)s64_http_body_free(http, response_body_handle);
         (void)s64_http_header_free(http, response_header_handle);
@@ -502,7 +503,7 @@ S64WordPressResult s64_wordpress_open_document(
     }
 
     for (index = 0u; index < (uint16_t)source_count; ++index) {
-        written = sprintf(query_path, "document/source_chunks%%%u", index);
+        written = sprintf(query_path, "document/source_chunks%%%u", (unsigned int)index);
         if (written <= 0 || written >= (int)sizeof(query_path)) {
             result = S64_WORDPRESS_PROTOCOL_ERROR;
             goto cleanup;
