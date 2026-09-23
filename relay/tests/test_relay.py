@@ -66,6 +66,7 @@ class RelayConfigTests(unittest.TestCase):
         bad_values = [
             "https://example.test/site/../admin/",
             "https://example.test/site/%2e%2e/admin/",
+            "https://example.test/site/%252e%252e/admin/",
             "https://example.test/site/%5cadmin/",
         ]
         for value in bad_values:
@@ -137,6 +138,7 @@ class RelayPolicyTests(unittest.TestCase):
         for path in [
             "/wp-json/see64you/../users",
             "/wp-json/see64you/%2e%2e/users",
+            "/wp-json/see64you/%252e%252e/users",
             "/wp-json/see64you/%5c..%5cusers",
         ]:
             with self.subTest(path=path):
