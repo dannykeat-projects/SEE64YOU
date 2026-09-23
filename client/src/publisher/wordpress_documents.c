@@ -397,7 +397,6 @@ S64WordPressResult s64_wordpress_list_documents(
         if (!sink(&summary_scratch, index, sink_context)) break;
     }
 
-    if (delivered_count != 0) *delivered_count = delivered;
     result = S64_WORDPRESS_OK;
 
 cleanup:
