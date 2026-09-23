@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "publisher/standalone.h"
+#include "publisher/relay.h"
 
 #define MOCK_MAX_COMMAND 896u
 
@@ -132,14 +133,14 @@ int main(void)
 
     s64_http_init(&http, mock_execute);
 
-    require(!s64_standalone_set_relay_key("short"), "reject short relay key");
+    require(!s64_relay_set_key("short"), "reject short relay key");
     require(
-        !s64_standalone_set_relay_key(
+        !s64_relay_set_key(
             "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
         ),
         "reject non-hex relay key"
     );
-    require(s64_standalone_set_relay_key(NULL), "clear relay key");
+    require(s64_relay_set_key(NULL), "clear relay key");
 
     require(
         strcmp(
@@ -177,7 +178,7 @@ int main(void)
     command_count = 0u;
     relay_headers = 0u;
     require(
-        s64_standalone_set_relay_key(
+        s64_relay_set_key(
             "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
         ),
         "accept 64-hex relay key"
@@ -199,7 +200,7 @@ int main(void)
     require(relay_headers == 1u, "login sends relay authentication");
     require(command_count == 8u, "relay login includes relay header command");
 
-    require(s64_standalone_set_relay_key(NULL), "disable relay key");
+    require(s64_relay_set_key(NULL), "disable relay key");
     command_count = 0u;
     relay_headers = 0u;
     exchange_status = "HTTP/1.1 401 Unauthorized\r\nContent-Type: application/json\r\n";
