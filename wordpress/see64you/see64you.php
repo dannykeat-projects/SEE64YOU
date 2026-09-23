@@ -292,7 +292,7 @@ function see64you_save_document(WP_REST_Request $request): WP_REST_Response|WP_E
         return $savedId;
     }
 
-    update_post_meta($savedId, SEE64YOU_META_SOURCE, $source);
+    update_post_meta($savedId, SEE64YOU_META_SOURCE, wp_slash($source));
     update_post_meta($savedId, SEE64YOU_META_MANAGED, true);
 
     $post = get_post($savedId);
