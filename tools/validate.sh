@@ -20,6 +20,13 @@ else
     echo "SKIP HTTP API tests (curl not found)"
 fi
 
+if command -v python3 >/dev/null 2>&1; then
+    echo "== Secure relay tests =="
+    python3 -m unittest discover -s relay/tests -p 'test_*.py'
+else
+    echo "SKIP secure relay tests (python3 not found)"
+fi
+
 echo "== Host gap-buffer tests =="
 TMP_BIN=$(mktemp)
 trap 'rm -f "$TMP_BIN"' EXIT
