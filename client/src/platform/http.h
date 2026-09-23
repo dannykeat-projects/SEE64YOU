@@ -59,6 +59,12 @@ S64HttpResult s64_http_body_create(
     S64HttpBodyFormat format,
     uint8_t* handle
 );
+S64HttpResult s64_http_body_add_string(
+    S64HttpTransport* transport,
+    uint8_t handle,
+    const char* key,
+    const char* value
+);
 S64HttpResult s64_http_body_add_binary(
     S64HttpTransport* transport,
     uint8_t handle,

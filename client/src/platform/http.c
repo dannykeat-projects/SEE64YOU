@@ -7,6 +7,7 @@
 #define S64_HTTP_CMD_HEADER_ADD      0x13u
 #define S64_HTTP_CMD_BODY_CREATE     0x21u
 #define S64_HTTP_CMD_BODY_FREE       0x22u
+#define S64_HTTP_CMD_BODY_ADD_STRING 0x25u
 #define S64_HTTP_CMD_BODY_ADD_BINARY 0x2Cu
 #define S64_HTTP_CMD_EXCHANGE_RAW    0x32u
 
@@ -264,6 +265,43 @@ S64HttpResult s64_http_body_create(
     part.data = command;
     part.length = (uint16_t)sizeof(command);
     return s64_http_create_handle(transport, &part, 1u, handle);
+}
+
+S64HttpResult s64_http_body_add_string(
+    S64HttpTransport* transport,
+    uint8_t handle,
+    const char* key,
+    const char* value
+)
+{
+    uint8_t prefix[4];
+    uint8_t value_length_byte;
+    uint16_t key_length;
+    uint16_t value_length;
+    S64UciCommandPart parts[4];
+
+    if (!s64_http_string_length(key, 255u, &key_length)
+        || key_length == 0u
+        || !s64_http_string_length(value, 255u, &value_length)) {
+        return S64_HTTP_INVALID_ARGUMENT;
+    }
+
+    prefix[0] = S64_HTTP_TARGET;
+    prefix[1] = S64_HTTP_CMD_BODY_ADD_STRING;
+    prefix[2] = handle;
+    prefix[3] = (uint8_t)key_length;
+    value_length_byte = (uint8_t)value_length;
+
+    parts[0].data = prefix;
+    parts[0].length = (uint16_t)sizeof(prefix);
+    parts[1].data = (const uint8_t*)key;
+    parts[1].length = key_length;
+    parts[2].data = &value_length_byte;
+    parts[2].length = 1u;
+    parts[3].data = (const uint8_t*)value;
+    parts[3].length = value_length;
+
+    return s64_http_run_status_command(transport, parts, 4u);
 }
 
 S64HttpResult s64_http_body_add_binary(
