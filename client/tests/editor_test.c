@@ -97,6 +97,23 @@ int main(void)
     require(editor.column == 6u, "end moves to line end");
 
     s64_editor_init(&editor);
+    insert_text(&editor, "abcdef\nx\nabcdef");
+    s64_editor_up(&editor);
+    require(editor.column == 2u, "vertical fixture reaches short line");
+    require(s64_editor_backspace(&editor), "backspace edits short line");
+    s64_editor_up(&editor);
+    require(editor.column == 1u, "backspace resets preferred vertical column");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "abcdef\nx\nabcdef");
+    s64_editor_up(&editor);
+    clipboard.data[0] = 'Z';
+    clipboard.length = 1u;
+    require(s64_editor_paste(&editor, &clipboard), "paste into short line");
+    s64_editor_up(&editor);
+    require(editor.column == 3u, "paste resets preferred vertical column");
+
+    s64_editor_init(&editor);
     insert_text(&editor, "one two  three");
     s64_editor_home(&editor);
     s64_editor_word_right(&editor);

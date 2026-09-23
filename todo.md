@@ -34,7 +34,8 @@ This is the authoritative project work queue. Keep completed work concise and mo
 ## P0 - Publishing
 
 - [ ] Implement C64U HTTP transport behind the publisher interface.
-- [x] Add bounded UCI/HTTP-target capability probe from the published interface.\n- [ ] Verify current C64U UCI HTTP behaviour on target hardware.
+- [x] Add bounded UCI/HTTP-target capability probe from the published interface.
+- [ ] Verify current C64U UCI HTTP behaviour on target hardware.
 - [ ] Standalone login from C64U and token handling.
 - [ ] List/open/create/update/delete standalone pages.
 - [ ] List/open/create/update/delete standalone posts.

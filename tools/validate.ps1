@@ -13,6 +13,34 @@ Write-Host "== Standalone backend tests =="
 & php site/tests/run.php
 if ($LASTEXITCODE -ne 0) { throw "Standalone backend tests failed" }
 
+$HostCc = @("cc", "gcc", "clang") |
+    ForEach-Object { Get-Command $_ -ErrorAction SilentlyContinue } |
+    Select-Object -First 1
+
+if ($HostCc) {
+    $TestDir = Join-Path ([System.IO.Path]::GetTempPath()) ("see64you-tests-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force $TestDir | Out-Null
+    try {
+        Write-Host "== Host buffer tests =="
+        $BufferTest = Join-Path $TestDir "buffer_test.exe"
+        & $HostCc.Path -std=c99 -Wall -Wextra -Iclient/src client/tests/buffer_test.c client/src/buffer.c -o $BufferTest
+        if ($LASTEXITCODE -ne 0) { throw "Host buffer test build failed" }
+        & $BufferTest
+        if ($LASTEXITCODE -ne 0) { throw "Host buffer tests failed" }
+
+        Write-Host "== Host editor tests =="
+        $EditorTest = Join-Path $TestDir "editor_test.exe"
+        & $HostCc.Path -std=c99 -Wall -Wextra -Iclient/src client/tests/editor_test.c client/src/buffer.c client/src/clipboard.c client/src/editor.c -o $EditorTest
+        if ($LASTEXITCODE -ne 0) { throw "Host editor test build failed" }
+        & $EditorTest
+        if ($LASTEXITCODE -ne 0) { throw "Host editor tests failed" }
+    } finally {
+        Remove-Item -Recurse -Force $TestDir -ErrorAction SilentlyContinue
+    }
+} else {
+    Write-Host "SKIP host C tests (cc/gcc/clang not found)"
+}
+
 $Cl65 = Get-Command cl65 -ErrorAction SilentlyContinue
 if ($Cl65) {
     Write-Host "== cc65 C64 build =="

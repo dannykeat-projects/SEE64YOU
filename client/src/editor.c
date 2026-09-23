@@ -216,6 +216,7 @@ int s64_editor_backspace(S64Editor* editor)
     if (changed) {
         editor->dirty = 1u;
         editor->selection_anchor = s64_buffer_cursor(&editor->buffer);
+        reset_preferred_column(editor);
         s64_editor_recalculate_position(editor);
         s64_editor_ensure_cursor_visible(editor);
     }
@@ -234,6 +235,7 @@ int s64_editor_delete(S64Editor* editor)
     if (changed) {
         editor->dirty = 1u;
         editor->selection_anchor = s64_buffer_cursor(&editor->buffer);
+        reset_preferred_column(editor);
         s64_editor_recalculate_position(editor);
     }
     return changed;
@@ -426,6 +428,7 @@ void s64_editor_select_all(S64Editor* editor)
 {
     editor->selection_anchor = 0u;
     s64_buffer_move_cursor(&editor->buffer, s64_buffer_length(&editor->buffer));
+    reset_preferred_column(editor);
     editor->selection_valid = s64_buffer_length(&editor->buffer) != 0u;
     editor->mark_mode = 0u;
     s64_editor_recalculate_position(editor);
@@ -496,6 +499,7 @@ int s64_editor_paste(S64Editor* editor, const S64Clipboard* clipboard)
     editor->selection_anchor = s64_buffer_cursor(&editor->buffer);
     editor->selection_valid = 0u;
     editor->mark_mode = 0u;
+    reset_preferred_column(editor);
     s64_editor_recalculate_position(editor);
     s64_editor_ensure_cursor_visible(editor);
     return 1;
