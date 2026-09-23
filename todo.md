@@ -41,7 +41,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [ ] List/open/create/update/delete standalone pages (create/update/delete core implemented through shared document operations; list/open pending).
 - [ ] List/open/create/update/delete standalone posts (create/update/delete core implemented through shared document operations; list/open pending).
 - [ ] WordPress Application Password configuration and connection test (plugin connection endpoint, bounded C64 credential session and host regression tests implemented; WordPress-instance and C64U validation pending).
-- [ ] Publish/update/unpublish WordPress pages and posts.
+- [ ] List/open/publish/update/unpublish/delete WordPress pages and posts (C64-safe plugin protocol and bounded client CRUD core implemented with regression tests; real WordPress-instance, C64U and UI validation pending).
 - [ ] Friendly error mapping for network, auth and server failures (short C64-facing result messages implemented; UI wiring pending).
 
 ## P1 - Document format
