@@ -9,6 +9,7 @@
 static const char* exchange_status;
 static const char* exchange_body;
 static unsigned int command_count;
+static unsigned int relay_headers;
 static unsigned char last_command[MOCK_MAX_COMMAND];
 static unsigned int last_command_length;
 
@@ -79,6 +80,15 @@ static S64UciResult mock_execute(
         return S64_UCI_OK;
     }
 
+    if (opcode == 0x13u) {
+        mock_reply_status(reply, "000 OK");
+        if (last_command_length > 3u
+            && memcmp(last_command + 3u, "X-See64You-Relay-Key: ", 24u) == 0) {
+            ++relay_headers;
+        }
+        return S64_UCI_OK;
+    }
+
     if (opcode == 0x25u) {
         mock_reply_status(reply, "000 OK");
         require(last_command_length >= 13u, "password field command length");
@@ -118,6 +128,15 @@ int main(void)
 
     s64_http_init(&http, mock_execute);
 
+    require(!s64_standalone_set_relay_key("short"), "reject short relay key");
+    require(
+        !s64_standalone_set_relay_key(
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+        ),
+        "reject non-hex relay key"
+    );
+    require(s64_standalone_set_relay_key(NULL), "clear relay key");
+
     require(
         strcmp(
             s64_standalone_result_message(S64_STANDALONE_TRANSPORT_ERROR),
@@ -152,6 +171,13 @@ int main(void)
     require(command_count == 0u, "unsupported TLS login sends nothing");
 
     command_count = 0u;
+    relay_headers = 0u;
+    require(
+        s64_standalone_set_relay_key(
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        ),
+        "accept 64-hex relay key"
+    );
     exchange_status = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n";
     snprintf(response, sizeof(response), "{\"ok\":true,\"token\":\"%s\",\"expires\":1790199999}", token);
     exchange_body = response;
@@ -166,9 +192,12 @@ int main(void)
     require(result == S64_STANDALONE_OK, "login succeeds");
     require(strcmp(session.token, token) == 0, "token captured exactly");
     require(session.expires == 1790199999u, "expiry captured");
-    require(command_count == 7u, "login creates, exchanges and frees resources");
+    require(relay_headers == 1u, "login sends relay authentication");
+    require(command_count == 8u, "relay login includes relay header command");
 
+    require(s64_standalone_set_relay_key(NULL), "disable relay key");
     command_count = 0u;
+    relay_headers = 0u;
     exchange_status = "HTTP/1.1 401 Unauthorized\r\nContent-Type: application/json\r\n";
     exchange_body = "{\"ok\":false,\"error\":\"invalid_credentials\"}";
     result = s64_standalone_login(
