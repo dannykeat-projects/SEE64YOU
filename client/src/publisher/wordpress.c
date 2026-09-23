@@ -291,12 +291,15 @@ int s64_wordpress_session_configure(
     const char* application_password
 )
 {
-    if (session == 0 || !username_valid(username)
-        || !application_password_valid(application_password)) {
+    if (session == 0) {
         return 0;
     }
 
     s64_wordpress_session_clear(session);
+    if (!username_valid(username)
+        || !application_password_valid(application_password)) {
+        return 0;
+    }
     if (!encode_authorization(session, username, application_password)) {
         s64_wordpress_session_clear(session);
         return 0;
