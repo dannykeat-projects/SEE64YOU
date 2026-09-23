@@ -19,6 +19,7 @@ static S64InputType s64_control_command(unsigned char key)
         case 0x01u: return S64_INPUT_SELECT_ALL; /* Ctrl+A */
         case 0x03u: return S64_INPUT_COPY;       /* Ctrl+C */
         case 0x06u: return S64_INPUT_FIND;       /* Ctrl+F */
+        case 0x07u: return S64_INPUT_GOTO_LINE;  /* Ctrl+G */
         case 0x08u: return S64_INPUT_REPLACE;    /* Ctrl+H */
         case 0x13u: return S64_INPUT_SAVE;        /* Ctrl+S */
         case 0x16u: return S64_INPUT_PASTE;       /* Ctrl+V */
@@ -108,11 +109,20 @@ void s64_input_read(S64InputEvent* event)
         case CH_F1:
             event->type = S64_INPUT_TOGGLE_MARK;
             return;
+        case CH_F2:
+            event->type = S64_INPUT_FIND_NEXT;
+            return;
         case CH_F3:
             event->type = S64_INPUT_COPY;
             return;
+        case CH_F4:
+            event->type = S64_INPUT_FIND_PREVIOUS;
+            return;
         case CH_F5:
             event->type = S64_INPUT_CUT;
+            return;
+        case CH_F6:
+            event->type = S64_INPUT_REPLACE;
             return;
         case CH_F7:
             event->type = S64_INPUT_PASTE;
