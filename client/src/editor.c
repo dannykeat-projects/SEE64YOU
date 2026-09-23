@@ -37,6 +37,121 @@ static void reset_preferred_column(S64Editor* editor)
     editor->preferred_column_valid = 0u;
 }
 
+static int text_length(const char* text, unsigned int* length)
+{
+    unsigned int i = 0u;
+
+    while (text[i] != '\0') {
+        if (i >= S64_BUFFER_CAPACITY) {
+            return 0;
+        }
+        ++i;
+    }
+
+    *length = i;
+    return 1;
+}
+
+static unsigned char matches_at(
+    const S64Buffer* buffer,
+    unsigned int position,
+    const char* query,
+    unsigned int query_length
+)
+{
+    unsigned int i;
+    unsigned int length = s64_buffer_length(buffer);
+
+    if (query_length == 0u || position > length || query_length > length - position) {
+        return 0u;
+    }
+
+    for (i = 0u; i < query_length; ++i) {
+        if (s64_buffer_char_at(buffer, position + i) != (unsigned char)query[i]) {
+            return 0u;
+        }
+    }
+
+    return 1u;
+}
+
+static int find_forward_position(
+    const S64Buffer* buffer,
+    const char* query,
+    unsigned int query_length,
+    unsigned int start,
+    unsigned int* found
+)
+{
+    unsigned int position;
+    unsigned int length = s64_buffer_length(buffer);
+    unsigned int last;
+
+    if (query_length == 0u || query_length > length) {
+        return 0;
+    }
+
+    last = length - query_length;
+    if (start > last) {
+        return 0;
+    }
+
+    for (position = start; position <= last; ++position) {
+        if (matches_at(buffer, position, query, query_length)) {
+            *found = position;
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static int find_backward_position(
+    const S64Buffer* buffer,
+    const char* query,
+    unsigned int query_length,
+    unsigned int before,
+    unsigned int* found
+)
+{
+    unsigned int position;
+    unsigned int length = s64_buffer_length(buffer);
+
+    if (query_length == 0u || query_length > length || before < query_length) {
+        return 0;
+    }
+
+    position = before - query_length;
+    if (position > length - query_length) {
+        position = length - query_length;
+    }
+
+    for (;;) {
+        if (matches_at(buffer, position, query, query_length)) {
+            *found = position;
+            return 1;
+        }
+        if (position == 0u) {
+            break;
+        }
+        --position;
+    }
+
+    return 0;
+}
+
+static void select_range(S64Editor* editor, unsigned int start, unsigned int length)
+{
+    editor->selection_anchor = start;
+    s64_buffer_move_cursor(&editor->buffer, start + length);
+    editor->selection_valid = length != 0u;
+    editor->mark_mode = 0u;
+    reset_preferred_column(editor);
+    s64_editor_recalculate_position(editor);
+    s64_editor_ensure_cursor_visible(editor);
+}
+
+
 static unsigned int preferred_column(S64Editor* editor, unsigned int cursor, unsigned int start)
 {
     if (!editor->preferred_column_valid) {
@@ -403,6 +518,185 @@ void s64_editor_word_right(S64Editor* editor)
     update_selection_after_move(editor);
     s64_editor_recalculate_position(editor);
     s64_editor_ensure_cursor_visible(editor);
+}
+
+int s64_editor_go_to_line(S64Editor* editor, unsigned int line_number)
+{
+    unsigned int i;
+    unsigned int current_line = 1u;
+    unsigned int length = s64_buffer_length(&editor->buffer);
+
+    if (line_number == 0u) {
+        return 0;
+    }
+
+    if (line_number == 1u) {
+        s64_buffer_move_cursor(&editor->buffer, 0u);
+    } else {
+        for (i = 0u; i < length; ++i) {
+            if (s64_buffer_char_at(&editor->buffer, i) == '\n') {
+                ++current_line;
+                if (current_line == line_number) {
+                    s64_buffer_move_cursor(&editor->buffer, i + 1u);
+                    break;
+                }
+            }
+        }
+
+        if (current_line != line_number) {
+            return 0;
+        }
+    }
+
+    reset_preferred_column(editor);
+    update_selection_after_move(editor);
+    s64_editor_recalculate_position(editor);
+    s64_editor_ensure_cursor_visible(editor);
+    return 1;
+}
+
+int s64_editor_find_next(S64Editor* editor, const char* query, unsigned char wrap)
+{
+    unsigned int query_length;
+    unsigned int start;
+    unsigned int found;
+
+    if (!text_length(query, &query_length) || query_length == 0u) {
+        return 0;
+    }
+
+    start = s64_editor_has_selection(editor)
+        ? s64_editor_selection_end(editor)
+        : s64_buffer_cursor(&editor->buffer);
+
+    if (!find_forward_position(&editor->buffer, query, query_length, start, &found)) {
+        if (!wrap || start == 0u
+            || !find_forward_position(&editor->buffer, query, query_length, 0u, &found)) {
+            return 0;
+        }
+    }
+
+    select_range(editor, found, query_length);
+    return 1;
+}
+
+int s64_editor_find_previous(S64Editor* editor, const char* query, unsigned char wrap)
+{
+    unsigned int query_length;
+    unsigned int before;
+    unsigned int found;
+    unsigned int length = s64_buffer_length(&editor->buffer);
+
+    if (!text_length(query, &query_length) || query_length == 0u) {
+        return 0;
+    }
+
+    before = s64_editor_has_selection(editor)
+        ? s64_editor_selection_start(editor)
+        : s64_buffer_cursor(&editor->buffer);
+
+    if (!find_backward_position(&editor->buffer, query, query_length, before, &found)) {
+        if (!wrap || before == length
+            || !find_backward_position(&editor->buffer, query, query_length, length, &found)) {
+            return 0;
+        }
+    }
+
+    select_range(editor, found, query_length);
+    return 1;
+}
+
+int s64_editor_replace_selection(S64Editor* editor, const char* replacement)
+{
+    unsigned int i;
+    unsigned int replacement_length;
+    unsigned int selected;
+
+    if (!s64_editor_has_selection(editor)
+        || !text_length(replacement, &replacement_length)) {
+        return 0;
+    }
+
+    selected = s64_editor_selection_end(editor) - s64_editor_selection_start(editor);
+    if (replacement_length > (unsigned int)(s64_buffer_free(&editor->buffer) + selected)) {
+        return 0;
+    }
+
+    if (!delete_selection(editor)) {
+        return 0;
+    }
+
+    for (i = 0u; i < replacement_length; ++i) {
+        if (!s64_buffer_insert(&editor->buffer, (unsigned char)replacement[i])) {
+            return 0;
+        }
+    }
+
+    editor->dirty = 1u;
+    editor->selection_anchor = s64_buffer_cursor(&editor->buffer);
+    editor->selection_valid = 0u;
+    editor->mark_mode = 0u;
+    reset_preferred_column(editor);
+    s64_editor_recalculate_position(editor);
+    s64_editor_ensure_cursor_visible(editor);
+    return 1;
+}
+
+int s64_editor_replace_all(
+    S64Editor* editor,
+    const char* query,
+    const char* replacement,
+    unsigned int* replacements
+)
+{
+    unsigned int query_length;
+    unsigned int replacement_length;
+    unsigned int count = 0u;
+    unsigned int position = 0u;
+    unsigned int found;
+    unsigned int length = s64_buffer_length(&editor->buffer);
+    unsigned long final_length;
+
+    if (replacements != 0) {
+        *replacements = 0u;
+    }
+
+    if (!text_length(query, &query_length) || query_length == 0u
+        || !text_length(replacement, &replacement_length)) {
+        return 0;
+    }
+
+    while (find_forward_position(&editor->buffer, query, query_length, position, &found)) {
+        ++count;
+        position = found + query_length;
+    }
+
+    final_length = (unsigned long)length;
+    if (replacement_length >= query_length) {
+        final_length += (unsigned long)count
+            * (unsigned long)(replacement_length - query_length);
+    } else {
+        final_length -= (unsigned long)count
+            * (unsigned long)(query_length - replacement_length);
+    }
+
+    if (final_length > (unsigned long)S64_BUFFER_CAPACITY) {
+        return 0;
+    }
+
+    position = 0u;
+    while (find_forward_position(&editor->buffer, query, query_length, position, &found)) {
+        select_range(editor, found, query_length);
+        if (!s64_editor_replace_selection(editor, replacement)) {
+            return 0;
+        }
+        position = s64_buffer_cursor(&editor->buffer);
+    }
+
+    if (replacements != 0) {
+        *replacements = count;
+    }
+    return 1;
 }
 
 void s64_editor_toggle_insert(S64Editor* editor)

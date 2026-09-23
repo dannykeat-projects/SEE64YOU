@@ -123,6 +123,48 @@ int main(void)
     s64_editor_word_left(&editor);
     require(s64_buffer_cursor(&editor.buffer) == 4u, "word left returns to previous word");
 
+    s64_editor_init(&editor);
+    insert_text(&editor, "alpha beta alpha");
+    s64_editor_home(&editor);
+    require(s64_editor_find_next(&editor, "alpha", 1u), "find first match");
+    require(s64_editor_selection_start(&editor) == 0u, "first match start");
+    require(s64_editor_selection_end(&editor) == 5u, "first match end");
+    require(s64_editor_find_next(&editor, "alpha", 1u), "find next match");
+    require(s64_editor_selection_start(&editor) == 11u, "second match start");
+    require(s64_editor_find_next(&editor, "alpha", 1u), "find next wraps");
+    require(s64_editor_selection_start(&editor) == 0u, "wrapped match start");
+    require(s64_editor_find_previous(&editor, "alpha", 1u), "find previous wraps");
+    require(s64_editor_selection_start(&editor) == 11u, "previous wrapped match start");
+
+    require(s64_editor_find_next(&editor, "beta", 1u), "find replacement target");
+    require(s64_editor_replace_selection(&editor, "B"), "replace selected match");
+    require_text(&editor, "alpha B alpha", "replace selection content");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "aa aa aa");
+    {
+        unsigned int replaced = 0u;
+        require(s64_editor_replace_all(&editor, "aa", "b", &replaced), "replace all succeeds");
+        require(replaced == 3u, "replace all count");
+        require_text(&editor, "b b b", "replace all content");
+    }
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "aba");
+    {
+        unsigned int replaced = 0u;
+        require(s64_editor_replace_all(&editor, "a", "aa", &replaced), "replace all growth succeeds");
+        require(replaced == 2u, "replace all growth count");
+        require_text(&editor, "aabaa", "replace all skips replacement text");
+    }
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "one\ntwo\nthree");
+    require(s64_editor_go_to_line(&editor, 2u), "go to existing line");
+    require(editor.line == 2u && editor.column == 1u, "go to line position");
+    require(!s64_editor_go_to_line(&editor, 4u), "reject missing line");
+    require(editor.line == 2u && editor.column == 1u, "missing line preserves position");
+
     puts("editor tests passed");
     return 0;
 }

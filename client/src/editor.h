@@ -33,6 +33,16 @@ void s64_editor_page_up(S64Editor* editor);
 void s64_editor_page_down(S64Editor* editor);
 void s64_editor_word_left(S64Editor* editor);
 void s64_editor_word_right(S64Editor* editor);
+int s64_editor_go_to_line(S64Editor* editor, unsigned int line_number);
+int s64_editor_find_next(S64Editor* editor, const char* query, unsigned char wrap);
+int s64_editor_find_previous(S64Editor* editor, const char* query, unsigned char wrap);
+int s64_editor_replace_selection(S64Editor* editor, const char* replacement);
+int s64_editor_replace_all(
+    S64Editor* editor,
+    const char* query,
+    const char* replacement,
+    unsigned int* replacements
+);
 void s64_editor_toggle_insert(S64Editor* editor);
 
 void s64_editor_toggle_mark(S64Editor* editor);
