@@ -71,6 +71,18 @@ try {
     check($auth->valid($session['token']), 'issued token validates');
     check(!$auth->valid($session['token'] . 'x'), 'tampered token rejected');
 
+    $unconfigured = new S64Auth([
+        'password_hash' => '',
+        'token_secret' => '',
+        'token_ttl' => 600,
+    ]);
+    $forgedExpiry = time() + 600;
+    $forgedNonce = str_repeat('a', 16);
+    $forgedPayload = 'v1|' . $forgedExpiry . '|' . $forgedNonce;
+    $forgedSignature = hash_hmac('sha256', $forgedPayload, '');
+    $forgedToken = 'v1.' . $forgedExpiry . '.' . $forgedNonce . '.' . $forgedSignature;
+    check(!$unconfigured->valid($forgedToken), 'unconfigured auth rejects empty-secret forged token');
+
     $settingsConfig = [
         'site_title' => 'Old title',
         'theme' => 'plain',
