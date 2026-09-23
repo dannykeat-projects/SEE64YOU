@@ -119,14 +119,36 @@ int main(void)
     s64_http_init(&http, mock_execute);
 
     command_count = 0u;
+    result = s64_standalone_login(
+        &http,
+        "http://example.test/see64you/api.php?action=login",
+        "secret",
+        0u,
+        &session
+    );
+    require(result == S64_STANDALONE_INSECURE_TRANSPORT, "plaintext login requires explicit opt in");
+    require(command_count == 0u, "blocked plaintext login sends nothing");
+
+    result = s64_standalone_login(
+        &http,
+        "https://example.test/see64you/api.php?action=login",
+        "secret",
+        1u,
+        &session
+    );
+    require(result == S64_STANDALONE_TLS_UNSUPPORTED, "https is blocked until firmware TLS is verified");
+    require(command_count == 0u, "unsupported TLS login sends nothing");
+
+    command_count = 0u;
     exchange_status = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n";
     snprintf(response, sizeof(response), "{\"ok\":true,\"token\":\"%s\",\"expires\":1790199999}", token);
     exchange_body = response;
 
     result = s64_standalone_login(
         &http,
-        "example.test/see64you/api.php?action=login",
+        "http://example.test/see64you/api.php?action=login",
         "correct horse battery staple",
+        1u,
         &session
     );
     require(result == S64_STANDALONE_OK, "login succeeds");
@@ -139,8 +161,9 @@ int main(void)
     exchange_body = "{\"ok\":false,\"error\":\"invalid_credentials\"}";
     result = s64_standalone_login(
         &http,
-        "example.test/see64you/api.php?action=login",
+        "http://example.test/see64you/api.php?action=login",
         "wrong",
+        1u,
         &session
     );
     require(result == S64_STANDALONE_AUTH_FAILED, "401 maps to auth failure");
