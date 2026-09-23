@@ -14,6 +14,8 @@ typedef enum {
     S64_WORDPRESS_AUTH_FAILED,
     S64_WORDPRESS_PERMISSION_DENIED,
     S64_WORDPRESS_PLUGIN_UNAVAILABLE,
+    S64_WORDPRESS_NOT_FOUND,
+    S64_WORDPRESS_INCOMPATIBLE_DOCUMENT,
     S64_WORDPRESS_INSECURE_TRANSPORT,
     S64_WORDPRESS_TLS_UNSUPPORTED,
     S64_WORDPRESS_SERVER_ERROR,
@@ -40,6 +42,14 @@ int s64_wordpress_session_configure(
 );
 
 const char* s64_wordpress_result_message(S64WordPressResult result);
+
+/* Shared by WordPress publisher operations; not UI commands. */
+S64WordPressResult s64_wordpress_map_http(S64HttpResult result);
+S64WordPressResult s64_wordpress_validate_transport(
+    const char* url,
+    uint8_t allow_insecure_http
+);
+uint16_t s64_wordpress_http_status(const char* header);
 
 S64WordPressResult s64_wordpress_add_authorization(
     S64HttpTransport* http,
