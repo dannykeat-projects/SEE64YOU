@@ -61,9 +61,11 @@ The low-level UCI executor:
 
 The HTTP wrapper uses reusable firmware header/body handles and raw exchanges. Binary request bodies are split into 893-byte payload chunks (three bytes are reserved for target, command and body handle), while response bodies can be consumed incrementally. This is important for an 8 KiB editor document and avoids requiring a second document-sized network buffer.
 
-HTTP handles survive a C64 reset in the Ultimate firmware, so the publishing session must issue HTTP FREE ALL before allocating its first handles. Target hardware still needs to validate the exact firmware behaviour and keyboard/network integration.
+HTTP handles survive a C64 reset in the Ultimate firmware, so the publishing session issues HTTP FREE ALL before allocating its first handles.
 
-No transport is required for local document editing.
+The first standalone publisher operation is login. It lets the firmware build a URL-encoded `password` body, accepts the raw JSON response into a small bounded scratch buffer, stores only the returned bearer token and expiry, and frees request handles on success or failure. The normal site password is never retained in the session structure.
+
+Target hardware still needs to validate the exact firmware behaviour and keyboard/network integration. No transport is required for local document editing.
 
 ## Standalone web backend
 
