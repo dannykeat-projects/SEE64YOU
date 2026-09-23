@@ -37,7 +37,7 @@ static uint8_t s64_standalone_collect_text(
     return 1u;
 }
 
-static S64StandaloneResult s64_standalone_map_http(S64HttpResult result)
+S64StandaloneResult s64_standalone_map_http(S64HttpResult result)
 {
     switch (result) {
         case S64_HTTP_OK:
