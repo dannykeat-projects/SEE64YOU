@@ -57,6 +57,10 @@ echo "== Host standalone document publisher tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_documents_test.c client/src/buffer.c client/src/document.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/standalone.c client/src/publisher/standalone_documents.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host WordPress publisher auth tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/wordpress_test.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/wordpress.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host UCI compile check =="
 cc -std=c99 -Wall -Wextra -Iclient/src -c client/src/platform/uci.c -o "$TMP_BIN.o"
 rm -f "$TMP_BIN.o"
