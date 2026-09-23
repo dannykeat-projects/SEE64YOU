@@ -49,6 +49,18 @@ The editor core owns:
 
 UI rendering should read editor state; it should not become the document model.
 
+## Search and navigation
+
+The current editor supports a compact keyboard-driven search flow:
+
+- Ctrl+F enters a search term and selects the next match;
+- F2 repeats Find Next;
+- F4 repeats Find Previous;
+- Ctrl+G prompts for a 1-based line number;
+- searches wrap at the start/end of the document.
+
+The editor core also has capacity-checked single-replacement and Replace All primitives. The Replace interaction is deliberately not exposed as a destructive one-key action until its small-screen confirmation flow is designed.
+
 ## Markup
 
 The editor remains source-oriented. Formatting commands insert/remove a deliberately small markup subset instead of creating a full WYSIWYG engine.
