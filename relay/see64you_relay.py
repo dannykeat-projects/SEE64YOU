@@ -93,7 +93,7 @@ def _decoded_path(value: str) -> str:
 
 def _validate_safe_path(value: str, message: str) -> str:
     decoded = _decoded_path(value)
-    if "\\r" in decoded or "\\n" in decoded or "\\x00" in decoded or "\\\\" in decoded:
+    if "\r" in decoded or "\n" in decoded or "\x00" in decoded or "\\" in decoded:
         raise RelayConfigError(message)
     if ".." in decoded.split("/"):
         raise RelayConfigError(message)
