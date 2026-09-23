@@ -57,6 +57,21 @@ int main(void)
             case S64_INPUT_HOME:
                 s64_editor_home(&editor);
                 break;
+            case S64_INPUT_END:
+                s64_editor_end(&editor);
+                break;
+            case S64_INPUT_PAGE_UP:
+                s64_editor_page_up(&editor);
+                break;
+            case S64_INPUT_PAGE_DOWN:
+                s64_editor_page_down(&editor);
+                break;
+            case S64_INPUT_WORD_LEFT:
+                s64_editor_word_left(&editor);
+                break;
+            case S64_INPUT_WORD_RIGHT:
+                s64_editor_word_right(&editor);
+                break;
 
             case S64_INPUT_BACKSPACE:
                 s64_editor_backspace(&editor);
