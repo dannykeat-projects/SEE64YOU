@@ -180,6 +180,7 @@ S64StandaloneResult s64_standalone_login(
     S64HttpTransport* http,
     const char* login_url,
     const char* password,
+    uint8_t allow_insecure_http,
     S64StandaloneSession* session
 )
 {
@@ -199,6 +200,13 @@ S64StandaloneResult s64_standalone_login(
     }
 
     s64_standalone_session_clear(session);
+
+    if (strncmp(login_url, "https://", 8u) == 0) {
+        return S64_STANDALONE_TLS_UNSUPPORTED;
+    }
+    if (!allow_insecure_http) {
+        return S64_STANDALONE_INSECURE_TRANSPORT;
+    }
 
     http_result = s64_http_free_all(http);
     if (http_result != S64_HTTP_OK) {
