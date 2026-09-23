@@ -10,7 +10,9 @@ typedef struct {
     unsigned int line;
     unsigned int column;
     unsigned int selection_anchor;
+    unsigned int preferred_column;
     unsigned char selection_valid;
+    unsigned char preferred_column_valid;
     unsigned char mark_mode;
     unsigned char dirty;
     unsigned char insert_mode;
@@ -26,6 +28,11 @@ void s64_editor_right(S64Editor* editor);
 void s64_editor_up(S64Editor* editor);
 void s64_editor_down(S64Editor* editor);
 void s64_editor_home(S64Editor* editor);
+void s64_editor_end(S64Editor* editor);
+void s64_editor_page_up(S64Editor* editor);
+void s64_editor_page_down(S64Editor* editor);
+void s64_editor_word_left(S64Editor* editor);
+void s64_editor_word_right(S64Editor* editor);
 void s64_editor_toggle_insert(S64Editor* editor);
 
 void s64_editor_toggle_mark(S64Editor* editor);
