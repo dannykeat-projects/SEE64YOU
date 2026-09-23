@@ -34,6 +34,11 @@ function wants_wire(): bool
     return strtolower((string)($_GET['format'] ?? '')) === 's64';
 }
 
+function wants_ack(): bool
+{
+    return (string)($_GET['ack'] ?? '') === '1';
+}
+
 function respond_wire(array $document, int $status = 200): never
 {
     http_response_code($status);
@@ -106,6 +111,13 @@ try {
         $document = $documents->save(input_data());
         if (wants_wire()) {
             respond_wire($document);
+        }
+        if (wants_ack()) {
+            respond([
+                'ok' => true,
+                'slug' => (string)$document['slug'],
+                'status' => (string)$document['status'],
+            ]);
         }
         respond(['ok' => true, 'document' => $document]);
     }
