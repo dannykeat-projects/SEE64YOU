@@ -140,6 +140,8 @@ class RelayPolicyTests(unittest.TestCase):
             "/wp-json/see64you/%2e%2e/users",
             "/wp-json/see64you/%252e%252e/users",
             "/wp-json/see64you/%5c..%5cusers",
+            "/wp-json/see64you/%00users",
+            "/wp-json/see64you/%0d%0aX-Test:bad",
         ]:
             with self.subTest(path=path):
                 with self.assertRaises(RelayConfigError):
