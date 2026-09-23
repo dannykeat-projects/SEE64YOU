@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/lib/Documents.php';
 require_once dirname(__DIR__) . '/lib/Auth.php';
 require_once dirname(__DIR__) . '/lib/Settings.php';
+require_once dirname(__DIR__) . '/lib/Wire.php';
 require_once dirname(__DIR__) . '/lib/Render.php';
 
 function check(bool $condition, string $message): void
@@ -51,6 +52,12 @@ try {
     check(str_contains($rendered, '<strong>world</strong>'), 'bold markup renders');
     check(!str_contains($rendered, '<script>'), 'raw HTML is escaped');
     check(str_contains($rendered, '&lt;script&gt;'), 'escaped HTML remains visible');
+
+    $wire = S64Wire::serialize($loaded);
+    $wireRoundTrip = S64Wire::parse($wire);
+    check($wireRoundTrip['slug'] === 'hello-world', 'wire slug round trips');
+    check($wireRoundTrip['title'] === 'Hello World', 'wire title round trips');
+    check($wireRoundTrip['body'] === $loaded['body'], 'wire body round trips exactly');
 
     $password = 'test-password';
     $auth = new S64Auth([
