@@ -47,6 +47,19 @@ add_action('rest_api_init', static function (): void {
         'permission_callback' => '__return_true',
     ]);
 
+    register_rest_route('see64you/v1', '/connection', [
+        'methods' => WP_REST_Server::READABLE,
+        'callback' => static fn(): WP_REST_Response => new WP_REST_Response([
+            'ok' => true,
+            'protocol' => 'see64you/1',
+            'backend' => 'wordpress',
+            'can_edit_posts' => current_user_can('edit_posts'),
+            'can_edit_pages' => current_user_can('edit_pages'),
+        ]),
+        'permission_callback' => static fn(): bool =>
+            current_user_can('edit_posts') || current_user_can('edit_pages'),
+    ]);
+
     register_rest_route('see64you/v1', '/documents', [
         [
             'methods' => WP_REST_Server::READABLE,
