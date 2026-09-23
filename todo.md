@@ -24,7 +24,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] Cut/copy/paste using an application clipboard.
 - [ ] Undo/redo transaction history.
 - [x] Find / find next / find previous.
-- [ ] Replace / replace all (core implemented and host-tested; UI wiring pending).
+- [x] Replace / replace all.
 - [x] Go to line.
 - [ ] New/Open/Save/Save As using C64U-accessible storage.
 - [ ] Dirty-document confirmation before destructive actions.
