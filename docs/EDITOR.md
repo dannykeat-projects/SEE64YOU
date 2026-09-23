@@ -59,7 +59,7 @@ The current editor supports a compact keyboard-driven search flow:
 - Ctrl+G prompts for a 1-based line number;
 - searches wrap at the start/end of the document.
 
-The editor core also has capacity-checked single-replacement and Replace All primitives. The Replace interaction is deliberately not exposed as a destructive one-key action until its small-screen confirmation flow is designed.
+Ctrl+H or F6 opens a bounded Replace flow: enter the search text, replacement text, then explicitly choose one replacement or Replace All. Replace All preflights the resulting document size before changing text, so an oversized expansion is rejected rather than partially applied.
 
 ## Markup
 
