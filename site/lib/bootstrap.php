@@ -5,6 +5,7 @@ require_once __DIR__ . '/Config.php';
 require_once __DIR__ . '/Documents.php';
 require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/Settings.php';
+require_once __DIR__ . '/Wire.php';
 require_once __DIR__ . '/Render.php';
 
 $config = s64_config();
