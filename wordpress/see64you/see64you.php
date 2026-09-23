@@ -325,9 +325,16 @@ function see64you_list_documents(WP_REST_Request $request): WP_REST_Response|WP_
         ]];
     }
 
+    $managedOnly = (string)$request->get_param('managed') === '1';
     $posts = array_values(array_filter(
         get_posts($args),
-        static fn(WP_Post $post): bool => current_user_can('edit_post', $post->ID)
+        static function (WP_Post $post) use ($managedOnly): bool {
+            if (!current_user_can('edit_post', $post->ID)) {
+                return false;
+            }
+            return !$managedOnly
+                || see64you_c64_metadata_compatible(see64you_document_response($post));
+        }
     ));
     $documents = array_map(static function (WP_Post $post): array {
         $item = see64you_document_response($post);
