@@ -137,10 +137,12 @@ int main(void)
         !s64_wordpress_session_configure(&session, "bad:name", "abcdefghijkl"),
         "colon in username rejected"
     );
+    require(session.authorization[0] == '\0', "invalid username clears old credentials");
     require(
         !s64_wordpress_session_configure(&session, "editor", "    "),
         "empty normalized password rejected"
     );
+    require(session.authorization[0] == '\0', "invalid password leaves session clear");
 
     require(
         s64_wordpress_session_configure(&session, "editor", "abcd efgh ijkl"),
