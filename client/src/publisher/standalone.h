@@ -12,6 +12,8 @@ typedef enum {
     S64_STANDALONE_INVALID_ARGUMENT,
     S64_STANDALONE_TRANSPORT_ERROR,
     S64_STANDALONE_AUTH_FAILED,
+    S64_STANDALONE_INSECURE_TRANSPORT,
+    S64_STANDALONE_TLS_UNSUPPORTED,
     S64_STANDALONE_SERVER_ERROR,
     S64_STANDALONE_RESPONSE_TOO_LARGE,
     S64_STANDALONE_PROTOCOL_ERROR
@@ -25,14 +27,19 @@ typedef struct {
 void s64_standalone_session_clear(S64StandaloneSession* session);
 
 /*
- * login_url is the complete UCI HTTP resource specifier, including host and
- * query string, for example:
- *   example.test/see64you/api.php?action=login
+ * login_url is the complete UCI HTTP resource specifier including query.
+ *
+ * Current upstream firmware source parses https:// but does not negotiate TLS;
+ * the HTTP request is sent over a plain TCP socket. For that reason:
+ * - https:// is rejected until target hardware proves a secure implementation;
+ * - http:// or bare host/path requires allow_insecure_http != 0 and is intended
+ *   only for explicit trusted-LAN testing or a local compatibility relay.
  */
 S64StandaloneResult s64_standalone_login(
     S64HttpTransport* http,
     const char* login_url,
     const char* password,
+    uint8_t allow_insecure_http,
     S64StandaloneSession* session
 );
 
