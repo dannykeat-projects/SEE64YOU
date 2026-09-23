@@ -19,6 +19,10 @@ trap 'rm -f "$TMP_BIN"' EXIT
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/buffer_test.c client/src/buffer.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host editor tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/editor_test.c client/src/buffer.c client/src/clipboard.c client/src/editor.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 if command -v cl65 >/dev/null 2>&1; then
     echo "== cc65 C64 build =="
     make -C client clean all
