@@ -467,5 +467,11 @@ function see64you_delete_document(WP_REST_Request $request): WP_REST_Response|WP
         return new WP_Error('see64you_delete_failed', 'Could not move document to Trash.', ['status' => 500]);
     }
 
-    return new WP_REST_Response(['ok' => true, 'deleted' => true, 'id' => $id]);
+    return new WP_REST_Response([
+        'ok' => true,
+        'deleted' => true,
+        'deleted_int' => 1,
+        'id' => $id,
+        'id_text' => (string)$id,
+    ]);
 }
