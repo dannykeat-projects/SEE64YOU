@@ -33,8 +33,20 @@ static void render_status(const S64Editor* editor)
     char status[41];
     const char* mode = editor->insert_mode ? "INS" : "OVR";
     const char* dirty = editor->dirty ? " MOD" : "";
+    const char* selection = editor->mark_mode
+        ? " MARK"
+        : (s64_editor_has_selection(editor) ? " SEL" : "");
 
-    sprintf(status, "Ln %u Col %u %s%s %s", editor->line, editor->column, mode, dirty, http_ready ? "HTTP" : "OFF");
+    sprintf(
+        status,
+        "Ln %u Col %u %s%s %s%s",
+        editor->line,
+        editor->column,
+        mode,
+        dirty,
+        http_ready ? "HTTP" : "OFF",
+        selection
+    );
 
     clear_row(STATUS_ROW);
     revers(1);
@@ -79,7 +91,15 @@ static void render_body(const S64Editor* editor)
         }
 
         gotoxy(col, row);
-        cputc(s64_buffer_char_at(&editor->buffer, i));
+        if (s64_editor_has_selection(editor)
+            && i >= s64_editor_selection_start(editor)
+            && i < s64_editor_selection_end(editor)) {
+            revers(1);
+            cputc(s64_buffer_char_at(&editor->buffer, i));
+            revers(0);
+        } else {
+            cputc(s64_buffer_char_at(&editor->buffer, i));
+        }
         ++col;
         ++i;
 
