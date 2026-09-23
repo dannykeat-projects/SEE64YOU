@@ -9,6 +9,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] Add first cc65 editor core and C64 screen shell.
 - [x] Add first standalone flat-file PHP site.
 - [x] Add authenticated standalone publishing API.
+- [x] Reject protected standalone API tokens until site configuration is complete.
 - [x] Add WordPress plugin scaffold using WordPress-native authentication.
 - [ ] Compile and run the C64 client under VICE; fix any cc65/keyboard incompatibilities found.
 - [x] Run the standalone site locally and exercise all API operations end-to-end.
