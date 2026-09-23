@@ -8,6 +8,8 @@
 #define EDITOR_ROWS 23u
 #define STATUS_ROW 24u
 
+static unsigned char http_ready;
+
 static void clear_row(unsigned char row)
 {
     unsigned char i;
@@ -32,7 +34,7 @@ static void render_status(const S64Editor* editor)
     const char* mode = editor->insert_mode ? "INS" : "OVR";
     const char* dirty = editor->dirty ? " MOD" : "";
 
-    sprintf(status, "Ln %u Col %u  %s%s", editor->line, editor->column, mode, dirty);
+    sprintf(status, "Ln %u Col %u %s%s %s", editor->line, editor->column, mode, dirty, http_ready ? "HTTP" : "OFF");
 
     clear_row(STATUS_ROW);
     revers(1);
@@ -101,6 +103,11 @@ void s64_ui_init(void)
     bordercolor(COLOR_BLUE);
     textcolor(COLOR_LIGHTBLUE);
     clrscr();
+}
+
+void s64_ui_set_http_ready(unsigned char ready)
+{
+    http_ready = ready ? 1u : 0u;
 }
 
 void s64_ui_render(const S64Editor* editor)
