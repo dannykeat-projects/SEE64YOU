@@ -4,7 +4,7 @@
 
 #include "publisher/standalone_documents.h"
 
-#define MOCK_COMMAND_CAPACITY 896u
+#define MOCK_COMMAND_CAPACITY 897u
 
 static unsigned char command[MOCK_COMMAND_CAPACITY];
 static unsigned int command_length;
@@ -112,6 +112,8 @@ static S64UciResult mock_execute(
             command[offset++] = parts[i].data[j];
         }
     }
+    require(offset <= S64_UCI_COMMAND_CAPACITY, "UCI command size");
+    command[offset] = '\0';
     command_length = offset;
     require(command_length >= 2u && command[0] == 0x06u, "HTTP target command");
     opcode = command[1];
