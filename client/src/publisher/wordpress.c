@@ -256,6 +256,27 @@ static S64WordPressResult map_http(S64HttpResult result)
     }
 }
 
+static uint8_t ascii_equal_ci(char left, char right)
+{
+    if (left >= 'A' && left <= 'Z') left = (char)(left + ('a' - 'A'));
+    if (right >= 'A' && right <= 'Z') right = (char)(right + ('a' - 'A'));
+    return left == right;
+}
+
+static uint8_t url_has_https_scheme(const char* url)
+{
+    static const char scheme[] = "https://";
+    uint8_t i;
+
+    if (url == 0) return 0u;
+    for (i = 0u; i < (uint8_t)(sizeof(scheme) - 1u); ++i) {
+        if (url[i] == '\0' || !ascii_equal_ci(url[i], scheme[i])) {
+            return 0u;
+        }
+    }
+    return 1u;
+}
+
 static S64WordPressResult validate_transport(
     const char* url,
     uint8_t allow_insecure_http
@@ -264,7 +285,7 @@ static S64WordPressResult validate_transport(
     if (url == 0 || url[0] == '\0') {
         return S64_WORDPRESS_INVALID_ARGUMENT;
     }
-    if (strncmp(url, "https://", 8u) == 0) {
+    if (url_has_https_scheme(url)) {
         return S64_WORDPRESS_TLS_UNSUPPORTED;
     }
     return allow_insecure_http
