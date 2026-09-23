@@ -26,6 +26,22 @@ typedef struct {
 
 void s64_standalone_session_clear(S64StandaloneSession* session);
 
+/* Shared by standalone publisher operations; not UI commands. */
+S64StandaloneResult s64_standalone_validate_transport(
+    const char* url,
+    uint8_t allow_insecure_http
+);
+S64StandaloneResult s64_standalone_add_authorization(
+    S64HttpTransport* http,
+    uint8_t header_handle,
+    const S64StandaloneSession* session
+);
+S64StandaloneResult s64_standalone_exchange_ack(
+    S64HttpTransport* http,
+    uint8_t header_handle,
+    uint8_t body_handle
+);
+
 /*
  * login_url is the complete UCI HTTP resource specifier including query.
  *
