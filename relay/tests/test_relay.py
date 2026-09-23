@@ -62,6 +62,18 @@ class RelayConfigTests(unittest.TestCase):
             with self.assertRaises(RelayConfigError):
                 load_config(path)
 
+    def test_upstream_rejects_unsafe_base_path(self):
+        bad_values = [
+            "https://example.test/site/../admin/",
+            "https://example.test/site/%2e%2e/admin/",
+            "https://example.test/site/%5cadmin/",
+        ]
+        for value in bad_values:
+            with self.subTest(value=value), tempfile.TemporaryDirectory() as temp:
+                path = write_config(Path(temp), upstream_base=value)
+                with self.assertRaises(RelayConfigError):
+                    load_config(path)
+
     def test_upstream_rejects_credentials_query_and_fragment(self):
         bad_values = [
             "https://user:pass@example.test/site/",
