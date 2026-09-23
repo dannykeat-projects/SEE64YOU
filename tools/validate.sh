@@ -13,6 +13,13 @@ done
 echo "== Standalone backend tests =="
 php site/tests/run.php
 
+if command -v curl >/dev/null 2>&1; then
+    echo "== Standalone HTTP API tests =="
+    sh site/tests/http.sh
+else
+    echo "SKIP HTTP API tests (curl not found)"
+fi
+
 echo "== Host gap-buffer tests =="
 TMP_BIN=$(mktemp)
 trap 'rm -f "$TMP_BIN"' EXIT
