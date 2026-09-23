@@ -12,6 +12,8 @@
 typedef enum {
     SCENARIO_LIST = 1,
     SCENARIO_OPEN,
+    SCENARIO_OPEN_BAD_COUNT,
+    SCENARIO_OPEN_BAD_BASE64,
     SCENARIO_SAVE,
     SCENARIO_DELETE,
     SCENARIO_AUTH_FAIL
@@ -101,7 +103,9 @@ static S64UciResult reply_query(S64UciReply* reply, const char* path)
         if (strcmp(path, "documents%0/order") == 0) return reply_integer(reply, 0);
     }
 
-    if (scenario == SCENARIO_OPEN) {
+    if (scenario == SCENARIO_OPEN
+        || scenario == SCENARIO_OPEN_BAD_COUNT
+        || scenario == SCENARIO_OPEN_BAD_BASE64) {
         if (strcmp(path, "document/type") == 0) return reply_string(reply, "post");
         if (strcmp(path, "document/slug") == 0) return reply_string(reply, "opened-post");
         if (strcmp(path, "document/title") == 0) return reply_string(reply, "Opened Post");
@@ -109,10 +113,19 @@ static S64UciResult reply_query(S64UciReply* reply, const char* path)
         if (strcmp(path, "document/date") == 0) return reply_string(reply, "2026-09-24T08:00:00+10:00");
         if (strcmp(path, "document/order") == 0) return reply_integer(reply, -2);
         if (strcmp(path, "document/source_encoding") == 0) return reply_string(reply, "base64-chunks");
-        if (strcmp(path, "document/source_length") == 0) return reply_integer(reply, 12);
-        if (strcmp(path, "document/source_count") == 0) return reply_integer(reply, 1);
+        if (strcmp(path, "document/source_length") == 0) {
+            return reply_integer(reply, scenario == SCENARIO_OPEN_BAD_BASE64 ? 1 : 12);
+        }
+        if (strcmp(path, "document/source_count") == 0) {
+            return reply_integer(reply, scenario == SCENARIO_OPEN_BAD_COUNT ? 2 : 1);
+        }
         if (strcmp(path, "document/source_chunks%0") == 0) {
-            return reply_string(reply, "SGVsbG8gd29ybGQK");
+            return reply_string(
+                reply,
+                scenario == SCENARIO_OPEN_BAD_BASE64
+                    ? "AB=="
+                    : "SGVsbG8gd29ybGQK"
+            );
         }
     }
 
@@ -327,6 +340,28 @@ int main(void)
     require(strcmp(document.title, "Opened Post") == 0, "WordPress open title");
     require_buffer_text(&body, "Hello world\n", "WordPress source chunks decode");
     require(s64_buffer_cursor(&body) == 0u, "WordPress open cursor at start");
+
+    reset_mock(SCENARIO_OPEN_BAD_COUNT, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n");
+    result = s64_wordpress_open_document(
+        &http,
+        "http://example.test/wp-json/see64you/v1/documents/17?chunks=1",
+        1u,
+        &session,
+        &document
+    );
+    require(result == S64_WORDPRESS_PROTOCOL_ERROR, "wrong source chunk count rejected");
+    require(s64_buffer_length(&body) == 0u, "bad chunk count clears partial destination");
+
+    reset_mock(SCENARIO_OPEN_BAD_BASE64, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n");
+    result = s64_wordpress_open_document(
+        &http,
+        "http://example.test/wp-json/see64you/v1/documents/17?chunks=1",
+        1u,
+        &session,
+        &document
+    );
+    require(result == S64_WORDPRESS_PROTOCOL_ERROR, "non-canonical base64 rejected");
+    require(s64_buffer_length(&body) == 0u, "bad base64 clears partial destination");
 
     s64_buffer_init(&body);
     s64_document_init(&document, &body);
