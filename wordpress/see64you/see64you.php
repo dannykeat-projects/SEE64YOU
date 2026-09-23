@@ -325,7 +325,10 @@ function see64you_list_documents(WP_REST_Request $request): WP_REST_Response|WP_
         ]];
     }
 
-    $posts = get_posts($args);
+    $posts = array_values(array_filter(
+        get_posts($args),
+        static fn(WP_Post $post): bool => current_user_can('edit_post', $post->ID)
+    ));
     $documents = array_map(static function (WP_Post $post): array {
         $item = see64you_document_response($post);
         unset($item['body']);
@@ -406,6 +409,16 @@ function see64you_save_document(WP_REST_Request $request): WP_REST_Response|WP_E
     }
     if (strlen($date) > 40) {
         return new WP_Error('see64you_invalid_date', 'Date is invalid.', ['status' => 400]);
+    }
+
+    $parentId = $existing instanceof WP_Post ? (int)$existing->post_parent : 0;
+    $uniqueSlug = wp_unique_post_slug($slug, $id, $status, $type, $parentId);
+    if ($uniqueSlug !== $slug) {
+        return new WP_Error(
+            'see64you_slug_conflict',
+            'Slug is already in use. Choose another slug.',
+            ['status' => 409]
+        );
     }
 
     $postData = [
