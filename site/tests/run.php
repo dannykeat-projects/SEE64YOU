@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/lib/Documents.php';
 require_once dirname(__DIR__) . '/lib/Auth.php';
+require_once dirname(__DIR__) . '/lib/Settings.php';
 require_once dirname(__DIR__) . '/lib/Render.php';
 
 function check(bool $condition, string $message): void
@@ -62,6 +63,31 @@ try {
     $session = $auth->login($password);
     check($auth->valid($session['token']), 'issued token validates');
     check(!$auth->valid($session['token'] . 'x'), 'tampered token rejected');
+
+    $settingsConfig = [
+        'site_title' => 'Old title',
+        'theme' => 'plain',
+        'text_color' => '#111111',
+        'background_color' => '#ffffff',
+        'link_color' => '#0000ee',
+        'visited_color' => '#551a8b',
+        'password_hash' => 'keep-this-hash',
+        'token_secret' => str_repeat('b', 64),
+        'token_ttl' => 600,
+    ];
+    $configPath = $root . '/config.php';
+    $settings = new S64Settings($configPath, $settingsConfig);
+    $visible = $settings->update([
+        'site_title' => 'New title',
+        'theme' => 'c64',
+        'text_color' => '#abcdef',
+        'background_color' => '#123456',
+    ]);
+    check($visible['site_title'] === 'New title', 'settings title updates');
+    check($visible['theme'] === 'c64', 'settings theme updates');
+    $writtenConfig = require $configPath;
+    check($writtenConfig['password_hash'] === 'keep-this-hash', 'settings preserve password hash');
+    check($writtenConfig['token_secret'] === str_repeat('b', 64), 'settings preserve token secret');
 
     check($documents->delete('page', 'hello-world'), 'document deletes');
     check($documents->get('page', 'hello-world') === null, 'deleted document is gone');
