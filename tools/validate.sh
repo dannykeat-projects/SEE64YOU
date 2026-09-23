@@ -30,6 +30,14 @@ echo "== Host editor tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/editor_test.c client/src/buffer.c client/src/clipboard.c client/src/editor.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host UCI HTTP transport tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/http_test.c client/src/platform/http.c -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host UCI compile check =="
+cc -std=c99 -Wall -Wextra -Iclient/src -c client/src/platform/uci.c -o "$TMP_BIN.o"
+rm -f "$TMP_BIN.o"
+
 if command -v cl65 >/dev/null 2>&1; then
     echo "== cc65 C64 build =="
     make -C client clean all
