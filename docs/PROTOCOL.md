@@ -80,6 +80,12 @@ Form or JSON fields:
 
 Requires authentication.
 
+For memory-constrained clients, append `ack=1` to request a compact response:
+
+`POST api.php?action=save&ack=1`
+
+This returns only `ok`, `slug` and `status` rather than echoing the complete saved document. It is particularly useful when the request body uses `application/x-see64you`.
+
 ### Delete
 
 `POST api.php?action=delete`
