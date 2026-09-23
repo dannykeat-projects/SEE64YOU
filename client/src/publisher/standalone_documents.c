@@ -350,6 +350,8 @@ S64StandaloneResult s64_standalone_open_document(
     result = map_response_status(s64_standalone_http_status(document_response_header));
     if (result != S64_STANDALONE_OK) {
         (void)s64_document_wire_reader_finish(&open_reader);
+        s64_buffer_init(document->body);
+        s64_document_init(document, document->body);
         goto cleanup;
     }
 
@@ -361,6 +363,8 @@ S64StandaloneResult s64_standalone_open_document(
             result = S64_STANDALONE_PROTOCOL_ERROR;
         } else {
             result = s64_standalone_map_http(http_result);
+            s64_buffer_init(document->body);
+            s64_document_init(document, document->body);
         }
         goto cleanup;
     }
