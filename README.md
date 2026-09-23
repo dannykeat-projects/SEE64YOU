@@ -22,6 +22,7 @@ See64You is a Notepad-style text editor and lightweight publishing system for th
 client/       C64/C64U editor client (cc65)
 site/         Standalone flat-file PHP site and publishing API
 wordpress/    WordPress publishing plugin
+relay/        Optional trusted-LAN HTTPS relay for C64U publishing
 docs/         Architecture, editor, protocol and deployment notes
 tools/        Local validation/development helpers
 ```
@@ -66,6 +67,12 @@ php -S 127.0.0.1:8080 -t site
 Then open `http://127.0.0.1:8080/`.
 
 For publishing/API access, open `http://127.0.0.1:8080/setup.php` and complete the one-time setup form. It creates `config.php` with a password hash and random token-signing secret. Manual setup using `config.example.php` remains available.
+
+## Secure remote publishing
+
+The current C64U UCI HTTP path is not treated as verified TLS. For publishing to a remote HTTPS site, See64You includes an optional trusted-LAN relay in `relay/`. The C64U talks HTTP only to the relay on the local network; the relay authenticates the C64U request and forwards it to one fixed HTTPS upstream using normal certificate verification.
+
+See `relay/README.md` for setup and security details.
 
 ## Philosophy
 
