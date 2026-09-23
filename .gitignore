@@ -1,0 +1,17 @@
+# C64/cc65 build outputs
+client/build/
+client/*.o
+client/*.map
+client/*.lbl
+
+# Local standalone-site configuration and runtime data
+site/config.php
+site/data/sessions/
+site/data/*.tmp
+
+# Editor/OS clutter
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
