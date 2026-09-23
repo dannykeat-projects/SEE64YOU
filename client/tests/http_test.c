@@ -104,6 +104,10 @@ int main(void)
 {
     S64HttpTransport http;
     uint8_t handle;
+    uint8_t response_header_handle;
+    uint8_t response_body_handle;
+    int32_t integer_value;
+    char queried_string[16];
     unsigned char payload[1000];
     unsigned int i;
     BodySink sink;
@@ -151,6 +155,17 @@ int main(void)
     );
     require(handle == 3u, "body handle captured");
 
+    mock_reset();
+    require(
+        s64_http_body_add_string(&http, 3u, "password", "secret") == S64_HTTP_OK,
+        "string body field succeeds"
+    );
+    require(mock.bytes[0][0] == 0x06u && mock.bytes[0][1] == 0x25u, "string add opcode");
+    require(mock.bytes[0][2] == 3u && mock.bytes[0][3] == 8u, "string add handle and key length");
+    require(memcmp(mock.bytes[0] + 4u, "password", 8u) == 0, "string add key");
+    require(mock.bytes[0][12] == 6u, "string add value length");
+    require(memcmp(mock.bytes[0] + 13u, "secret", 6u) == 0, "string add value");
+
     for (i = 0u; i < sizeof(payload); ++i) {
         payload[i] = (unsigned char)(i & 0xffu);
     }
@@ -192,6 +207,90 @@ int main(void)
     require(sink.length == 4u && memcmp(sink.bytes, "BODY", 4u) == 0, "response body streamed");
     require(response_header_length == strlen(mock.status), "response header length returned");
     require(strcmp(response_header, mock.status) == 0, "response header captured");
+
+    mock_reset();
+    mock.status = "HTTP/1.1 200 OK";
+    mock.response[0] = 9u;
+    mock.response[1] = 10u;
+    mock.response_length = 2u;
+    require(
+        s64_http_exchange_object(
+            &http,
+            2u,
+            S64_HTTP_NO_BODY,
+            &response_header_handle,
+            &response_body_handle,
+            response_header,
+            (uint16_t)sizeof(response_header),
+            &response_header_length
+        ) == S64_HTTP_OK,
+        "object exchange succeeds"
+    );
+    require(mock.lengths[0] == 4u, "object exchange command length");
+    require(mock.bytes[0][0] == 0x06u && mock.bytes[0][1] == 0x31u, "object exchange opcode");
+    require(response_header_handle == 9u && response_body_handle == 10u, "object exchange handles");
+    require(strcmp(response_header, "HTTP/1.1 200 OK") == 0, "object exchange response status");
+
+    mock_reset();
+    mock.response[0] = 0x03u;
+    mock.response[1] = 5u;
+    memcpy(mock.response + 2u, "hello", 5u);
+    mock.response_length = 7u;
+    require(
+        s64_http_body_query_string(
+            &http,
+            10u,
+            "documents%2/title",
+            queried_string,
+            (uint16_t)sizeof(queried_string)
+        ) == S64_HTTP_OK,
+        "string body query succeeds"
+    );
+    require(mock.bytes[0][0] == 0x06u && mock.bytes[0][1] == 0x2au, "body query opcode");
+    require(mock.bytes[0][2] == 10u, "body query handle");
+    require(
+        memcmp(mock.bytes[0] + 3u, "documents%2/title", 17u) == 0,
+        "body query path"
+    );
+    require(strcmp(queried_string, "hello") == 0, "string body query value");
+
+    mock_reset();
+    mock.response[0] = 0x01u;
+    mock.response[1] = 0xd6u;
+    mock.response[2] = 0xffu;
+    mock.response[3] = 0xffu;
+    mock.response[4] = 0xffu;
+    mock.response_length = 5u;
+    require(
+        s64_http_body_query_integer(&http, 10u, "documents%2/order", &integer_value)
+            == S64_HTTP_OK,
+        "integer body query succeeds"
+    );
+    require(integer_value == -42, "integer body query signed value");
+
+    mock_reset();
+    mock.response[0] = 0x03u;
+    mock.response[1] = 10u;
+    memcpy(mock.response + 2u, "0123456789", 10u);
+    mock.response_length = 12u;
+    require(
+        s64_http_body_query_string(&http, 10u, "documents%0/title", queried_string, 5u)
+            == S64_HTTP_TRANSPORT_ERROR,
+        "oversized string query is rejected safely"
+    );
+
+    mock_reset();
+    mock.status = "400 BAD FORMAT: ENTRY documents NOT FOUND";
+    require(
+        s64_http_body_query_string(
+            &http,
+            10u,
+            "documents%99/slug",
+            queried_string,
+            (uint16_t)sizeof(queried_string)
+        ) == S64_HTTP_TARGET_ERROR,
+        "missing query path maps to target error"
+    );
 
     mock_reset();
     mock.status = "507 NO HEADER SLOT";
