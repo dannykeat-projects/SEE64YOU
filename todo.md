@@ -19,9 +19,9 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [ ] Incremental screen redraw rather than whole-editor redraw after each input.
 - [ ] Accurate vertical cursor movement preserving preferred column.
 - [ ] Word wrap toggle.
-- [ ] Home/End and Page Up/Page Down.
-- [ ] Selection model and visible selection.
-- [ ] Cut/copy/paste using an application clipboard.
+- [x] Home-to-line-start editor command.\n- [ ] End and Page Up/Page Down.
+- [x] Selection model and visible selection.
+- [x] Cut/copy/paste using an application clipboard.
 - [ ] Undo/redo transaction history.
 - [ ] Find / find next / find previous.
 - [ ] Replace / replace all.
@@ -29,7 +29,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [ ] New/Open/Save/Save As using C64U-accessible storage.
 - [ ] Dirty-document confirmation before destructive actions.
 - [ ] Recovery/autosave files.
-- [ ] Modern USB-keyboard shortcuts and separate C64-keyboard-friendly mappings.
+- [ ] Finish/validate modern USB-keyboard shortcuts and C64-keyboard-friendly mappings (MARK/function-key baseline implemented).
 
 ## P0 - Publishing
 
