@@ -48,6 +48,20 @@ try {
 }
 check($missingRejected, 'missing required header rejected');
 
+check(see64you_parse_int32('2147483647') === 2147483647, 'maximum int32 order accepted');
+check(see64you_parse_int32('-2147483648') === -2147483648, 'minimum int32 order accepted');
+check(see64you_parse_int32('+00042') === 42, 'signed padded order accepted');
+
+foreach (['2147483648', '-2147483649', '1.5', ''] as $invalidOrder) {
+    $rejected = false;
+    try {
+        see64you_parse_int32($invalidOrder);
+    } catch (InvalidArgumentException $exception) {
+        $rejected = $exception->getMessage() === 'invalid_wire_document';
+    }
+    check($rejected, 'invalid int32 order rejected: ' . $invalidOrder);
+}
+
 $source = str_repeat("abc\x00\xff", 100);
 $chunks = see64you_source_chunks($source);
 check(count($chunks) === (int)ceil(strlen($source) / SEE64YOU_SOURCE_CHUNK_BYTES), 'chunk count');
