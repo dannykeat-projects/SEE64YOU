@@ -50,9 +50,20 @@ The first implementation prioritises correctness and a runnable shell. Increment
 
 ## Transport
 
-Publishing operations should depend on a narrow transport layer rather than direct UCI calls scattered through UI code. The intended C64U implementation is UCI HTTP where available, with room for a development/compatibility bridge if needed.
+Publishing operations depend on a narrow transport layer rather than direct UCI calls scattered through UI code. The C64U implementation uses the firmware 3.15+ UCI HTTP target ($06).
 
-No transport should be required for local document editing.
+The low-level UCI executor:
+- enforces the documented 896-byte command limit;
+- writes commands as small caller-owned parts, avoiding a second 896-byte staging buffer;
+- drains response/status queues and acknowledges every returned block;
+- streams multi-block response data through a bounded callback buffer;
+- aborts timed-out commands so a failed request does not intentionally leave a command in flight.
+
+The HTTP wrapper uses reusable firmware header/body handles and raw exchanges. Binary request bodies are split into 893-byte payload chunks (three bytes are reserved for target, command and body handle), while response bodies can be consumed incrementally. This is important for an 8 KiB editor document and avoids requiring a second document-sized network buffer.
+
+HTTP handles survive a C64 reset in the Ultimate firmware, so the publishing session must issue HTTP FREE ALL before allocating its first handles. Target hardware still needs to validate the exact firmware behaviour and keyboard/network integration.
+
+No transport is required for local document editing.
 
 ## Standalone web backend
 
