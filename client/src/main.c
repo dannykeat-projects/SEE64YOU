@@ -1,4 +1,5 @@
 #include <conio.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "clipboard.h"
@@ -130,6 +131,73 @@ static void prompt_go_to_line(void)
     s64_ui_render(&editor);
 }
 
+static void prompt_replace(void)
+{
+    char query[SEARCH_TEXT_CAPACITY];
+    char replacement[SEARCH_TEXT_CAPACITY];
+    char choice[2];
+    char message[40];
+    unsigned int replaced = 0u;
+
+    if (!s64_ui_prompt_text("Find: ", query, SEARCH_TEXT_CAPACITY)) {
+        s64_ui_render(&editor);
+        return;
+    }
+
+    if (query[0] == '\0') {
+        s64_ui_message("Find text is empty");
+        return;
+    }
+
+    if (!s64_ui_prompt_text("With: ", replacement, SEARCH_TEXT_CAPACITY)) {
+        s64_ui_render(&editor);
+        return;
+    }
+
+    if (!s64_ui_prompt_text("R=one A=all: ", choice, sizeof(choice))) {
+        s64_ui_render(&editor);
+        return;
+    }
+
+    strcpy(find_query, query);
+    find_query_valid = 1u;
+
+    if (choice[0] == 'R' || choice[0] == 'r') {
+        if (!s64_editor_find_next(&editor, query, 1u)) {
+            s64_ui_message("Text not found");
+            return;
+        }
+
+        if (!s64_editor_replace_selection(&editor, replacement)) {
+            s64_ui_message("Replacement too large");
+            return;
+        }
+
+        s64_ui_render(&editor);
+        s64_ui_message("Replaced one match");
+        return;
+    }
+
+    if (choice[0] == 'A' || choice[0] == 'a') {
+        if (!s64_editor_replace_all(&editor, query, replacement, &replaced)) {
+            s64_ui_message("Replacement too large");
+            return;
+        }
+
+        if (replaced == 0u) {
+            s64_ui_message("Text not found");
+            return;
+        }
+
+        s64_ui_render(&editor);
+        sprintf(message, "Replaced %u match%s", replaced, replaced == 1u ? "" : "es");
+        s64_ui_message(message);
+        return;
+    }
+
+    s64_ui_message("Choose R or A");
+}
+
 int main(void)
 {
     S64InputEvent input;
@@ -238,7 +306,7 @@ int main(void)
                 prompt_go_to_line();
                 continue;
             case S64_INPUT_REPLACE:
-                s64_ui_message("Replace UI next");
+                prompt_replace();
                 continue;
             case S64_INPUT_UNDO:
                 s64_ui_message("Undo: history layer next");
