@@ -5,6 +5,7 @@
 #include "input.h"
 
 #define S64_SHFLAG (*(volatile unsigned char*)0x028Du)
+#define S64_MOD_COMMODORE 0x02u
 #define S64_MOD_CONTROL 0x04u
 
 static unsigned char s64_is_printable(unsigned char key)
@@ -45,9 +46,37 @@ void s64_input_read(S64InputEvent* event)
     modifiers |= S64_SHFLAG;
 
     if ((modifiers & S64_MOD_CONTROL) != 0u) {
+        if (key == CH_CURS_LEFT) {
+            event->type = S64_INPUT_WORD_LEFT;
+            return;
+        }
+        if (key == CH_CURS_RIGHT) {
+            event->type = S64_INPUT_WORD_RIGHT;
+            return;
+        }
+
         event->type = s64_control_command(key);
         if (event->type != S64_INPUT_NONE) {
             return;
+        }
+    }
+
+    if ((modifiers & S64_MOD_COMMODORE) != 0u) {
+        switch (key) {
+            case CH_CURS_LEFT:
+                event->type = S64_INPUT_HOME;
+                return;
+            case CH_CURS_RIGHT:
+                event->type = S64_INPUT_END;
+                return;
+            case CH_CURS_UP:
+                event->type = S64_INPUT_PAGE_UP;
+                return;
+            case CH_CURS_DOWN:
+                event->type = S64_INPUT_PAGE_DOWN;
+                return;
+            default:
+                break;
         }
     }
 
