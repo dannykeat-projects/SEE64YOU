@@ -19,7 +19,7 @@ Normal browser/API clients should use HTTPS outside trusted local testing.
 
 ### C64U transport note
 
-The current upstream UCI HTTP target must not be treated as TLS merely because it accepts an `https://` resource string. The firmware source inspected during development selects port 443 for that prefix but the exchange path uses a plain TCP socket with no TLS handshake. See64You therefore rejects direct `https://` login until secure target behaviour is verified, and requires explicit opt-in before sending credentials over plaintext HTTP.
+The current upstream UCI HTTP target must not be treated as TLS merely because it accepts an `https://` resource string. Rechecking upstream `master` shows the header parser selecting port 443 and recording a secure flag, while the exchange path still opens a plain TCP socket and sends the HTTP request directly with no TLS handshake. See64You therefore rejects direct `https://` login until secure target behaviour is verified, and requires explicit opt-in before sending credentials over plaintext HTTP.
 
 For real remote publishing, use a trusted local relay that keeps the C64U-to-relay leg inside a controlled LAN and uses HTTPS from the relay onward, or use future firmware with verified TLS support.
 
