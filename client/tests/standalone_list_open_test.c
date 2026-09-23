@@ -10,6 +10,7 @@ static unsigned char command[MOCK_COMMAND_CAPACITY];
 static unsigned int command_length;
 static const char* exchange_status;
 static const char* raw_body;
+static S64UciResult raw_transport_result;
 static unsigned int authorization_headers;
 
 static void require(int condition, const char* message)
@@ -146,15 +147,17 @@ static S64UciResult mock_execute(
     }
 
     if (opcode == 0x32u) {
+        S64UciResult sink_result = S64_UCI_OK;
+
         reply_status(reply, exchange_status);
         if (raw_body != NULL) {
-            return reply_bytes(
+            sink_result = reply_bytes(
                 reply,
                 (const unsigned char*)raw_body,
                 (uint16_t)strlen(raw_body)
             );
         }
-        return S64_UCI_OK;
+        return sink_result == S64_UCI_OK ? raw_transport_result : sink_result;
     }
 
     reply_status(reply, "000 OK");
@@ -245,6 +248,7 @@ int main(void)
     set_session(&session);
 
     authorization_headers = 0u;
+    raw_transport_result = S64_UCI_OK;
     exchange_status = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n";
     memset(&capture, 0, sizeof(capture));
 
@@ -315,6 +319,19 @@ int main(void)
     );
     require(result == S64_STANDALONE_AUTH_FAILED, "open maps expired token");
     require(s64_buffer_length(&body) == 0u, "failed open clears partial destination");
+
+    raw_body = wire;
+    raw_transport_result = S64_UCI_TIMEOUT;
+    exchange_status = "HTTP/1.1 200 OK\r\nContent-Type: application/x-see64you\r\n";
+    result = s64_standalone_open_document(
+        &http,
+        "http://example.test/api.php?action=get&type=post&slug=opened-post&format=s64",
+        1u,
+        &session,
+        &document
+    );
+    require(result == S64_STANDALONE_TRANSPORT_ERROR, "open maps interrupted transfer");
+    require(s64_buffer_length(&body) == 0u, "interrupted open clears partial document");
 
     puts("standalone list/open tests passed");
     return 0;
