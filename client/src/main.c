@@ -1,4 +1,5 @@
 #include <conio.h>
+#include <string.h>
 
 #include "clipboard.h"
 #include "editor.h"
@@ -6,9 +7,14 @@
 #include "platform/uci.h"
 #include "ui.h"
 
+#define SEARCH_TEXT_CAPACITY 33u
+#define LINE_TEXT_CAPACITY 6u
+
 static S64Editor editor;
 static S64Clipboard clipboard;
 static S64UciCapabilities uci_capabilities;
+static char find_query[SEARCH_TEXT_CAPACITY];
+static unsigned char find_query_valid;
 
 static void handle_clipboard_result(unsigned char ok, const char* failure)
 {
@@ -17,6 +23,111 @@ static void handle_clipboard_result(unsigned char ok, const char* failure)
     } else {
         s64_ui_render(&editor);
     }
+}
+
+static void show_find_result(unsigned char previous)
+{
+    unsigned char found;
+
+    if (!find_query_valid) {
+        return;
+    }
+
+    found = previous
+        ? (unsigned char)s64_editor_find_previous(&editor, find_query, 1u)
+        : (unsigned char)s64_editor_find_next(&editor, find_query, 1u);
+
+    if (found) {
+        s64_ui_render(&editor);
+    } else {
+        s64_ui_message("Text not found");
+    }
+}
+
+static void prompt_find(unsigned char previous)
+{
+    char value[SEARCH_TEXT_CAPACITY];
+
+    if (!s64_ui_prompt_text("Find: ", value, SEARCH_TEXT_CAPACITY)) {
+        s64_ui_render(&editor);
+        return;
+    }
+
+    if (value[0] == '\0') {
+        s64_ui_message("Find text is empty");
+        return;
+    }
+
+    strcpy(find_query, value);
+    find_query_valid = 1u;
+    show_find_result(previous);
+}
+
+static void repeat_find(unsigned char previous)
+{
+    if (!find_query_valid) {
+        prompt_find(previous);
+        return;
+    }
+
+    show_find_result(previous);
+}
+
+static int parse_line_number(const char* text, unsigned int* line_number)
+{
+    unsigned int value = 0u;
+    unsigned char digit;
+
+    if (*text == '\0') {
+        return 0;
+    }
+
+    while (*text != '\0') {
+        if (*text < '0' || *text > '9') {
+            return 0;
+        }
+
+        digit = (unsigned char)(*text - '0');
+        if (value > 819u) {
+            return 0;
+        }
+
+        value = (unsigned int)(value * 10u + digit);
+        if (value > S64_BUFFER_CAPACITY + 1u) {
+            return 0;
+        }
+        ++text;
+    }
+
+    if (value == 0u) {
+        return 0;
+    }
+
+    *line_number = value;
+    return 1;
+}
+
+static void prompt_go_to_line(void)
+{
+    char value[LINE_TEXT_CAPACITY];
+    unsigned int line_number;
+
+    if (!s64_ui_prompt_text("Go line: ", value, LINE_TEXT_CAPACITY)) {
+        s64_ui_render(&editor);
+        return;
+    }
+
+    if (!parse_line_number(value, &line_number)) {
+        s64_ui_message("Invalid line number");
+        return;
+    }
+
+    if (!s64_editor_go_to_line(&editor, line_number)) {
+        s64_ui_message("Line does not exist");
+        return;
+    }
+
+    s64_ui_render(&editor);
 }
 
 int main(void)
@@ -115,10 +226,19 @@ int main(void)
                 s64_ui_message("Save: storage layer next");
                 continue;
             case S64_INPUT_FIND:
-                s64_ui_message("Find: editor command next");
+                prompt_find(0u);
+                continue;
+            case S64_INPUT_FIND_NEXT:
+                repeat_find(0u);
+                continue;
+            case S64_INPUT_FIND_PREVIOUS:
+                repeat_find(1u);
+                continue;
+            case S64_INPUT_GOTO_LINE:
+                prompt_go_to_line();
                 continue;
             case S64_INPUT_REPLACE:
-                s64_ui_message("Replace: editor command next");
+                s64_ui_message("Replace UI next");
                 continue;
             case S64_INPUT_UNDO:
                 s64_ui_message("Undo: history layer next");
