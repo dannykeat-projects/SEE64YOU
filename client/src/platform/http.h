@@ -72,6 +72,30 @@ S64HttpResult s64_http_body_add_binary(
     uint16_t length
 );
 S64HttpResult s64_http_body_free(S64HttpTransport* transport, uint8_t handle);
+S64HttpResult s64_http_body_query_string(
+    S64HttpTransport* transport,
+    uint8_t handle,
+    const char* path,
+    char* value,
+    uint16_t value_capacity
+);
+S64HttpResult s64_http_body_query_integer(
+    S64HttpTransport* transport,
+    uint8_t handle,
+    const char* path,
+    int32_t* value
+);
+
+S64HttpResult s64_http_exchange_object(
+    S64HttpTransport* transport,
+    uint8_t header_handle,
+    uint8_t body_handle,
+    uint8_t* response_header_handle,
+    uint8_t* response_body_handle,
+    char* response_header,
+    uint16_t response_header_capacity,
+    uint16_t* response_header_length
+);
 
 S64HttpResult s64_http_exchange_raw(
     S64HttpTransport* transport,
