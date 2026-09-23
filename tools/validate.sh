@@ -13,6 +13,9 @@ done
 echo "== Standalone backend tests =="
 php site/tests/run.php
 
+echo "== WordPress protocol tests =="
+php wordpress/tests/run.php
+
 if command -v curl >/dev/null 2>&1; then
     echo "== Standalone HTTP API tests =="
     sh site/tests/http.sh
@@ -59,6 +62,10 @@ cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_documents_test.c 
 
 echo "== Host WordPress publisher auth tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/wordpress_test.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/wordpress.c -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host WordPress document publisher tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/wordpress_documents_test.c client/src/buffer.c client/src/document.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/wordpress.c client/src/publisher/wordpress_documents.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host UCI compile check =="
