@@ -81,13 +81,29 @@ def _validate_relay_key(value: object) -> str:
     return value.lower()
 
 
+def _decoded_path(value: str) -> str:
+    decoded = value
+    for _ in range(5):
+        next_value = urllib.parse.unquote(decoded)
+        if next_value == decoded:
+            return decoded
+        decoded = next_value
+    raise RelayConfigError("path uses excessive nested percent encoding")
+
+
+def _validate_safe_path(value: str, message: str) -> str:
+    decoded = _decoded_path(value)
+    if "\\r" in decoded or "\\n" in decoded or "\\x00" in decoded or "\\\\" in decoded:
+        raise RelayConfigError(message)
+    if ".." in decoded.split("/"):
+        raise RelayConfigError(message)
+    return value
+
+
 def _validate_prefix(value: object) -> str:
     if not isinstance(value, str) or not value.startswith("/"):
         raise RelayConfigError("allowed_path_prefixes entries must start with /")
-    decoded = urllib.parse.unquote(value)
-    if "\\" in decoded or "\x00" in decoded or ".." in decoded.split("/"):
-        raise RelayConfigError("allowed path prefix is unsafe")
-    return value
+    return _validate_safe_path(value, "allowed path prefix is unsafe")
 
 
 def load_config(path: str | Path) -> RelayConfig:
@@ -110,12 +126,10 @@ def load_config(path: str | Path) -> RelayConfig:
     if parsed.username or parsed.password or parsed.query or parsed.fragment:
         raise RelayConfigError("upstream_base must not contain credentials, query or fragment")
 
-    base_path = parsed.path or "/"
-    decoded_base_path = urllib.parse.unquote(base_path)
-    if "\x00" in decoded_base_path or "\\" in decoded_base_path:
-        raise RelayConfigError("upstream_base path is unsafe")
-    if ".." in decoded_base_path.split("/"):
-        raise RelayConfigError("upstream_base path is unsafe")
+    base_path = _validate_safe_path(
+        parsed.path or "/",
+        "upstream_base path is unsafe",
+    )
     if not base_path.endswith("/"):
         base_path += "/"
 
@@ -188,12 +202,9 @@ def relay_key_allowed(config: RelayConfig, supplied: str | None) -> bool:
 
 
 def _safe_incoming_path(path: str) -> str:
-    decoded = urllib.parse.unquote(path)
-    if "\x00" in decoded or "\\" in decoded or not decoded.startswith("/"):
+    if not path.startswith("/"):
         raise RelayConfigError("unsafe relay path")
-    if ".." in decoded.split("/"):
-        raise RelayConfigError("unsafe relay path")
-    return path
+    return _validate_safe_path(path, "unsafe relay path")
 
 
 def build_upstream_url(config: RelayConfig, incoming_target: str) -> str:
