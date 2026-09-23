@@ -75,7 +75,9 @@ curl -fsS -X POST -H "$AUTH" \
 LIST=$(curl -fsS -H "$AUTH" "$BASE/api.php?action=list&type=post")
 printf '%s' "$LIST" | php -r '
 $d=json_decode(stream_get_contents(STDIN),true);
-$slugs=array_column($d["documents"] ?? [], "slug");
+$documents=$d["documents"] ?? [];
+$slugs=array_column($documents, "slug");
+if (($d["count"] ?? -1) !== count($documents)) exit(1);
 if (!in_array("api-test", $slugs, true)) exit(1);
 '
 
