@@ -21,7 +21,11 @@ Normal browser/API clients should use HTTPS outside trusted local testing.
 
 The current upstream UCI HTTP target must not be treated as TLS merely because it accepts an `https://` resource string. Rechecking upstream `master` shows the header parser selecting port 443 and recording a secure flag, while the exchange path still opens a plain TCP socket and sends the HTTP request directly with no TLS handshake. See64You therefore rejects direct `https://` login until secure target behaviour is verified, and requires explicit opt-in before sending credentials over plaintext HTTP.
 
-For real remote publishing, use a trusted local relay that keeps the C64U-to-relay leg inside a controlled LAN and uses HTTPS from the relay onward, or use future firmware with verified TLS support.
+For real remote publishing, use the trusted local relay in `relay/` or future firmware with verified TLS support. The relay accepts the normal See64You path/query over LAN HTTP, requires its own 64-hex-character relay key, and forwards the request to one fixed HTTPS upstream with certificate verification. When relay authentication is configured, the C64 client adds:
+
+`X-See64You-Relay-Key: <64-hex-key>`
+
+This key authenticates access to the relay only; it does not replace the standalone bearer token or WordPress Authorization header and is never forwarded to the upstream site.
 
 WordPress uses WordPress-native REST authentication. Application Passwords are the preferred initial mechanism.
 
