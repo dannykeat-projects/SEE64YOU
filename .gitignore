@@ -9,6 +9,9 @@ site/config.php
 site/data/sessions/
 site/data/*.tmp
 
+# Local relay secrets/configuration
+relay/config.json
+
 # Editor/OS clutter
 .vscode/
 .idea/
