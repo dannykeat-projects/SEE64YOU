@@ -1,0 +1,35 @@
+#ifndef SEE64YOU_INPUT_H
+#define SEE64YOU_INPUT_H
+
+typedef enum {
+    S64_INPUT_NONE = 0,
+    S64_INPUT_CHARACTER,
+    S64_INPUT_LEFT,
+    S64_INPUT_RIGHT,
+    S64_INPUT_UP,
+    S64_INPUT_DOWN,
+    S64_INPUT_HOME,
+    S64_INPUT_BACKSPACE,
+    S64_INPUT_NEWLINE,
+    S64_INPUT_TOGGLE_INSERT,
+    S64_INPUT_TOGGLE_MARK,
+    S64_INPUT_COPY,
+    S64_INPUT_CUT,
+    S64_INPUT_PASTE,
+    S64_INPUT_SELECT_ALL,
+    S64_INPUT_SAVE,
+    S64_INPUT_FIND,
+    S64_INPUT_REPLACE,
+    S64_INPUT_UNDO,
+    S64_INPUT_REDO,
+    S64_INPUT_EXIT
+} S64InputType;
+
+typedef struct {
+    S64InputType type;
+    unsigned char character;
+} S64InputEvent;
+
+void s64_input_read(S64InputEvent* event);
+
+#endif
