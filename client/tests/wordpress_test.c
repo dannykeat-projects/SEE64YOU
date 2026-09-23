@@ -168,6 +168,15 @@ int main(void)
     require(result == S64_WORDPRESS_TLS_UNSUPPORTED, "direct https blocked");
     require(command_count == 0u, "blocked https sends nothing");
 
+    result = s64_wordpress_test_connection(
+        &http,
+        "HTTPS://example.test/wp-json/see64you/v1/connection",
+        1u,
+        &session
+    );
+    require(result == S64_WORDPRESS_TLS_UNSUPPORTED, "https scheme check is case insensitive");
+    require(command_count == 0u, "uppercase blocked https sends nothing");
+
     require(s64_relay_set_key(relay_key), "configure relay key");
     reset_mock();
     exchange_status = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n";
