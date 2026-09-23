@@ -422,6 +422,7 @@ S64WordPressResult s64_wordpress_open_document(
     int32_t source_count = 0;
     uint16_t decoded_total = 0u;
     uint16_t index;
+    uint8_t destination_started = 0u;
     int written;
 
     if (http == 0 || session == 0 || document == 0 || document->body == 0) {
@@ -457,6 +458,7 @@ S64WordPressResult s64_wordpress_open_document(
     if (result != S64_WORDPRESS_OK) goto cleanup;
 
     reset_document(document);
+    destination_started = 1u;
     result = apply_open_metadata(http, response_body_handle, document);
     if (result != S64_WORDPRESS_OK) goto cleanup;
 
@@ -511,7 +513,7 @@ S64WordPressResult s64_wordpress_open_document(
     result = S64_WORDPRESS_OK;
 
 cleanup:
-    if (result != S64_WORDPRESS_OK) reset_document(document);
+    if (result != S64_WORDPRESS_OK && destination_started) reset_document(document);
     if (response_created) {
         (void)s64_http_body_free(http, response_body_handle);
         (void)s64_http_header_free(http, response_header_handle);
@@ -598,10 +600,16 @@ S64WordPressResult s64_wordpress_save_document(
     sink.body_handle = request_body;
     sink.result = S64_HTTP_OK;
     document_result = s64_document_write_wire(document, wire_sink, &sink);
-    if (document_result != S64_DOCUMENT_OK || sink.result != S64_HTTP_OK) {
-        result = document_result == S64_DOCUMENT_INVALID_METADATA
-            ? S64_WORDPRESS_INVALID_ARGUMENT
-            : s64_wordpress_map_http(sink.result);
+    if (document_result == S64_DOCUMENT_INVALID_ARGUMENT
+        || document_result == S64_DOCUMENT_INVALID_METADATA) {
+        result = S64_WORDPRESS_INVALID_ARGUMENT;
+        goto cleanup;
+    }
+    if (document_result != S64_DOCUMENT_OK) {
+        result = s64_wordpress_map_http(sink.result);
+        if (result == S64_WORDPRESS_OK) {
+            result = S64_WORDPRESS_PROTOCOL_ERROR;
+        }
         goto cleanup;
     }
 
