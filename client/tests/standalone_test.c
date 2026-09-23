@@ -151,6 +151,16 @@ int main(void)
     require(result == S64_STANDALONE_TLS_UNSUPPORTED, "https is blocked until firmware TLS is verified");
     require(command_count == 0u, "unsupported TLS login sends nothing");
 
+    result = s64_standalone_login(
+        &http,
+        "HTTPS://example.test/see64you/api.php?action=login",
+        "secret",
+        1u,
+        &session
+    );
+    require(result == S64_STANDALONE_TLS_UNSUPPORTED, "https scheme check is case insensitive");
+    require(command_count == 0u, "uppercase unsupported TLS sends nothing");
+
     command_count = 0u;
     exchange_status = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n";
     snprintf(response, sizeof(response), "{\"ok\":true,\"token\":\"%s\",\"expires\":1790199999}", token);
