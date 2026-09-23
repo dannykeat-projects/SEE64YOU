@@ -58,7 +58,7 @@ final class S64Documents
         $date = trim((string)($input['date'] ?? ''));
         $order = (int)($input['order'] ?? 0);
 
-        if ($title === '') {
+        if ($title === '' || strlen($title) > 80) {
             throw new InvalidArgumentException('invalid_title');
         }
         if (!in_array($status, ['draft', 'published'], true)) {
@@ -66,6 +66,9 @@ final class S64Documents
         }
         if ($date === '') {
             $date = date(DATE_ATOM);
+        }
+        if (strlen($date) > 40) {
+            throw new InvalidArgumentException('invalid_date');
         }
 
         $document = [
@@ -132,7 +135,8 @@ final class S64Documents
 
     private function validateSlug(string $slug): string
     {
-        if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
+        if (strlen($slug) > 64
+            || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
             throw new InvalidArgumentException('invalid_slug');
         }
         return $slug;
