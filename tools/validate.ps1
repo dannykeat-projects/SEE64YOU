@@ -2,6 +2,18 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $Root
 
+function Invoke-Checked {
+    param(
+        [Parameter(Mandatory=$true)][string]$Description,
+        [Parameter(Mandatory=$true)][scriptblock]$Command
+    )
+    Write-Host "== $Description =="
+    & $Command
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Description failed"
+    }
+}
+
 Write-Host "== PHP syntax =="
 Get-ChildItem site, wordpress -Recurse -Filter *.php | ForEach-Object {
     & php -l $_.FullName | Out-Null
@@ -9,15 +21,138 @@ Get-ChildItem site, wordpress -Recurse -Filter *.php | ForEach-Object {
     Write-Host "OK $($_.FullName)"
 }
 
-Write-Host "== Standalone backend tests =="
-& php site/tests/run.php
-if ($LASTEXITCODE -ne 0) { throw "Standalone backend tests failed" }
+Invoke-Checked "Standalone backend tests" { & php site/tests/run.php }
+Invoke-Checked "WordPress protocol tests" { & php wordpress/tests/run.php }
+
+$Sh = Get-Command sh -ErrorAction SilentlyContinue
+$Curl = Get-Command curl.exe -ErrorAction SilentlyContinue
+if ($Sh -and $Curl) {
+    Invoke-Checked "Standalone HTTP API tests" { & $Sh.Path site/tests/http.sh }
+} else {
+    Write-Host "SKIP HTTP API tests (sh/curl.exe not found)"
+}
+
+$Python = @("python3", "python") |
+    ForEach-Object { Get-Command $_ -ErrorAction SilentlyContinue } |
+    Select-Object -First 1
+if ($Python) {
+    Invoke-Checked "Secure relay tests" {
+        & $Python.Path -m unittest discover -s relay/tests -p "test_*.py"
+    }
+} else {
+    Write-Host "SKIP secure relay tests (python not found)"
+}
+
+$HostCc = @("cc", "gcc", "clang") |
+    ForEach-Object { Get-Command $_ -ErrorAction SilentlyContinue } |
+    Select-Object -First 1
+
+if ($HostCc) {
+    $TestDir = Join-Path ([System.IO.Path]::GetTempPath()) ("see64you-tests-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force $TestDir | Out-Null
+
+    function Invoke-CTest {
+        param(
+            [Parameter(Mandatory=$true)][string]$Name,
+            [Parameter(Mandatory=$true)][string[]]$Sources
+        )
+
+        $Output = Join-Path $TestDir ($Name + ".exe")
+        Write-Host "== Host $Name tests =="
+        & $HostCc.Path -std=c99 -Wall -Wextra -Iclient/src @Sources -o $Output
+        if ($LASTEXITCODE -ne 0) { throw "Host $Name test build failed" }
+        & $Output
+        if ($LASTEXITCODE -ne 0) { throw "Host $Name tests failed" }
+    }
+
+    try {
+        Invoke-CTest "buffer" @(
+            "client/tests/buffer_test.c",
+            "client/src/buffer.c"
+        )
+        Invoke-CTest "editor" @(
+            "client/tests/editor_test.c",
+            "client/src/buffer.c",
+            "client/src/clipboard.c",
+            "client/src/editor.c"
+        )
+        Invoke-CTest "document" @(
+            "client/tests/document_test.c",
+            "client/src/document.c",
+            "client/src/buffer.c"
+        )
+        Invoke-CTest "http" @(
+            "client/tests/http_test.c",
+            "client/src/platform/http.c"
+        )
+        Invoke-CTest "relay" @(
+            "client/tests/relay_test.c",
+            "client/src/platform/http.c",
+            "client/src/publisher/relay.c"
+        )
+        Invoke-CTest "standalone" @(
+            "client/tests/standalone_test.c",
+            "client/src/platform/http.c",
+            "client/src/publisher/relay.c",
+            "client/src/publisher/standalone.c"
+        )
+        Invoke-CTest "standalone_documents" @(
+            "client/tests/standalone_documents_test.c",
+            "client/src/buffer.c",
+            "client/src/document.c",
+            "client/src/platform/http.c",
+            "client/src/publisher/relay.c",
+            "client/src/publisher/standalone.c",
+            "client/src/publisher/standalone_documents.c"
+        )
+        Invoke-CTest "wordpress" @(
+            "client/tests/wordpress_test.c",
+            "client/src/platform/http.c",
+            "client/src/publisher/relay.c",
+            "client/src/publisher/wordpress.c"
+        )
+        Invoke-CTest "wordpress_documents" @(
+            "client/tests/wordpress_documents_test.c",
+            "client/src/buffer.c",
+            "client/src/document.c",
+            "client/src/platform/http.c",
+            "client/src/publisher/relay.c",
+            "client/src/publisher/wordpress.c",
+            "client/src/publisher/wordpress_documents.c"
+        )
+
+        Write-Host "== Host UCI compile check =="
+        $UciObject = Join-Path $TestDir "uci.o"
+        & $HostCc.Path -std=c99 -Wall -Wextra -Iclient/src -c client/src/platform/uci.c -o $UciObject
+        if ($LASTEXITCODE -ne 0) { throw "Host UCI compile check failed" }
+    } finally {
+        Remove-Item -Recurse -Force $TestDir -ErrorAction SilentlyContinue
+    }
+} else {
+    Write-Host "SKIP host C tests (cc/gcc/clang not found)"
+}
 
 $Cl65 = Get-Command cl65 -ErrorAction SilentlyContinue
 if ($Cl65) {
     Write-Host "== cc65 C64 build =="
     New-Item -ItemType Directory -Force client/build | Out-Null
-    & cl65 -t c64 -Oirs -I client/src -o client/build/see64you.prg client/src/main.c client/src/buffer.c client/src/clipboard.c client/src/editor.c client/src/ui.c client/src/input/input.c client/src/platform/uci.c
+    $C64Sources = @(
+        "client/src/main.c",
+        "client/src/buffer.c",
+        "client/src/clipboard.c",
+        "client/src/document.c",
+        "client/src/editor.c",
+        "client/src/ui.c",
+        "client/src/input/input.c",
+        "client/src/platform/uci.c",
+        "client/src/platform/http.c",
+        "client/src/publisher/relay.c",
+        "client/src/publisher/standalone.c",
+        "client/src/publisher/standalone_documents.c",
+        "client/src/publisher/wordpress.c",
+        "client/src/publisher/wordpress_documents.c"
+    )
+    & $Cl65.Path -t c64 -Oirs -I client/src -o client/build/see64you.prg @C64Sources
     if ($LASTEXITCODE -ne 0) { throw "C64 build failed" }
 } else {
     Write-Host "SKIP cc65 build (cl65 not found)"
