@@ -1,10 +1,10 @@
 #include "standalone.h"
+#include "relay.h"
 
 #include <string.h>
 
 #define S64_STANDALONE_LOGIN_RESPONSE_CAPACITY 192u
 #define S64_STANDALONE_AUTH_HEADER_CAPACITY (S64_STANDALONE_TOKEN_CAPACITY + 24u)
-#define S64_STANDALONE_RELAY_HEADER_CAPACITY (S64_STANDALONE_RELAY_KEY_CAPACITY + 26u)
 
 typedef struct {
     char* data;
@@ -16,8 +16,6 @@ typedef struct {
 static char response_header[S64_HTTP_RESPONSE_HEADER_CAPACITY];
 static char login_response[S64_STANDALONE_LOGIN_RESPONSE_CAPACITY];
 static char authorization_header[S64_STANDALONE_AUTH_HEADER_CAPACITY];
-static char relay_header[S64_STANDALONE_RELAY_HEADER_CAPACITY];
-static char relay_key[S64_STANDALONE_RELAY_KEY_CAPACITY];
 
 static uint8_t s64_standalone_collect_text(
     const uint8_t* data,
@@ -187,56 +185,12 @@ S64StandaloneResult s64_standalone_validate_transport(
         : S64_STANDALONE_INSECURE_TRANSPORT;
 }
 
-static uint8_t is_hex_char(char value)
-{
-    return (value >= '0' && value <= '9')
-        || (value >= 'a' && value <= 'f')
-        || (value >= 'A' && value <= 'F');
-}
-
-int s64_standalone_set_relay_key(const char* value)
-{
-    uint16_t i;
-
-    if (value == 0 || value[0] == '\0') {
-        relay_key[0] = '\0';
-        return 1;
-    }
-
-    for (i = 0u; i < 64u; ++i) {
-        if (value[i] == '\0' || !is_hex_char(value[i])) {
-            return 0;
-        }
-    }
-    if (value[64] != '\0') {
-        return 0;
-    }
-
-    memcpy(relay_key, value, 65u);
-    return 1;
-}
-
-S64StandaloneResult s64_standalone_add_relay_header(
+static S64StandaloneResult s64_standalone_add_relay_header(
     S64HttpTransport* http,
     uint8_t header_handle
 )
 {
-    static const char prefix[] = "X-See64You-Relay-Key: ";
-    uint16_t prefix_length = (uint16_t)(sizeof(prefix) - 1u);
-    S64HttpResult result;
-
-    if (http == 0) {
-        return S64_STANDALONE_INVALID_ARGUMENT;
-    }
-    if (relay_key[0] == '\0') {
-        return S64_STANDALONE_OK;
-    }
-
-    memcpy(relay_header, prefix, prefix_length);
-    memcpy(relay_header + prefix_length, relay_key, 65u);
-
-    result = s64_http_header_add(http, header_handle, relay_header);
-    return s64_standalone_map_http(result);
+    return s64_standalone_map_http(s64_relay_add_header(http, header_handle));
 }
 
 S64StandaloneResult s64_standalone_add_authorization(
