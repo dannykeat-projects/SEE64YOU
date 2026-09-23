@@ -83,7 +83,11 @@ static S64UciResult mock_execute(
     if (opcode == 0x13u) {
         mock_reply_status(reply, "000 OK");
         if (last_command_length > 3u
-            && memcmp(last_command + 3u, "X-See64You-Relay-Key: ", 24u) == 0) {
+            && memcmp(
+                last_command + 3u,
+                "X-See64You-Relay-Key: ",
+                sizeof("X-See64You-Relay-Key: ") - 1u
+            ) == 0) {
             ++relay_headers;
         }
         return S64_UCI_OK;
