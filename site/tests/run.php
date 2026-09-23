@@ -107,6 +107,49 @@ try {
     }
     check($invalidRejected, 'path traversal slug rejected');
 
+    $metadataRejected = false;
+    try {
+        $documents->save([
+            'type' => 'post',
+            'slug' => str_repeat('a', 65),
+            'title' => 'Too long slug',
+            'status' => 'draft',
+            'body' => '',
+        ]);
+    } catch (InvalidArgumentException $exception) {
+        $metadataRejected = $exception->getMessage() === 'invalid_slug';
+    }
+    check($metadataRejected, 'slug longer than C64 metadata capacity rejected');
+
+    $metadataRejected = false;
+    try {
+        $documents->save([
+            'type' => 'post',
+            'slug' => 'long-title',
+            'title' => str_repeat('T', 81),
+            'status' => 'draft',
+            'body' => '',
+        ]);
+    } catch (InvalidArgumentException $exception) {
+        $metadataRejected = $exception->getMessage() === 'invalid_title';
+    }
+    check($metadataRejected, 'title longer than C64 metadata capacity rejected');
+
+    $metadataRejected = false;
+    try {
+        $documents->save([
+            'type' => 'post',
+            'slug' => 'long-date',
+            'title' => 'Long date',
+            'status' => 'draft',
+            'date' => str_repeat('2', 41),
+            'body' => '',
+        ]);
+    } catch (InvalidArgumentException $exception) {
+        $metadataRejected = $exception->getMessage() === 'invalid_date';
+    }
+    check($metadataRejected, 'date longer than C64 metadata capacity rejected');
+
     echo "site tests passed\n";
 } finally {
     $iterator = new RecursiveIteratorIterator(
