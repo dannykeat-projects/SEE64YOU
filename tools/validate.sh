@@ -46,11 +46,11 @@ cc -std=c99 -Wall -Wextra -Iclient/src client/tests/http_test.c client/src/platf
 "$TMP_BIN"
 
 echo "== Host standalone publisher tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_test.c client/src/platform/http.c client/src/publisher/standalone.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_test.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/standalone.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host standalone document publisher tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_documents_test.c client/src/buffer.c client/src/document.c client/src/platform/http.c client/src/publisher/standalone.c client/src/publisher/standalone_documents.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_documents_test.c client/src/buffer.c client/src/document.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/standalone.c client/src/publisher/standalone_documents.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host UCI compile check =="
