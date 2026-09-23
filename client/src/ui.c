@@ -145,3 +145,54 @@ void s64_ui_message(const char* message)
     cputs(message);
     revers(0);
 }
+
+
+unsigned char s64_ui_prompt_text(const char* label, char* value, unsigned char capacity)
+{
+    unsigned char key;
+    unsigned char length = 0u;
+    unsigned char label_length = (unsigned char)strlen(label);
+
+    if (capacity == 0u || label_length >= SCREEN_COLUMNS) {
+        return 0u;
+    }
+
+    value[0] = '\0';
+    clear_row(STATUS_ROW);
+    revers(1);
+    gotoxy(0u, STATUS_ROW);
+    cputs(label);
+
+    for (;;) {
+        key = (unsigned char)cgetc();
+
+        if (key == CH_STOP) {
+            value[0] = '\0';
+            revers(0);
+            return 0u;
+        }
+
+        if (key == CH_ENTER) {
+            value[length] = '\0';
+            revers(0);
+            return 1u;
+        }
+
+        if (key == CH_DEL) {
+            if (length > 0u) {
+                --length;
+                gotoxy((unsigned char)(label_length + length), STATUS_ROW);
+                cputc(' ');
+                gotoxy((unsigned char)(label_length + length), STATUS_ROW);
+            }
+            continue;
+        }
+
+        if (key >= 0x20u && key <= 0x7eu
+            && length + 1u < capacity
+            && label_length + length < SCREEN_COLUMNS) {
+            value[length++] = (char)key;
+            cputc(key);
+        }
+    }
+}
