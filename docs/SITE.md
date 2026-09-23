@@ -32,7 +32,7 @@ Date: 2026-09-23
 This page is stored as readable source text.
 ```
 
-The filename is the slug, for example `about.s64`. Slugs are restricted to lowercase letters, numbers and hyphens.
+The filename is the slug, for example `about.s64.php`. Each content file starts with a tiny PHP guard that immediately returns 404 when requested directly. This keeps drafts from being exposed merely because somebody guesses a filename, while the rest of the file remains ordinary readable text. Slugs are restricted to lowercase letters, numbers and hyphens.
 
 ## Rendering
 
