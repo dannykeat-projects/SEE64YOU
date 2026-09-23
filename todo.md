@@ -33,13 +33,13 @@ This is the authoritative project work queue. Keep completed work concise and mo
 
 ## P0 - Publishing
 
-- [ ] Implement C64U HTTP transport behind the publisher interface (bounded UCI executor and streaming HTTP-target layer implemented/host-tested; publisher wiring pending).
+- [ ] Implement C64U HTTP transport behind the publisher interface (bounded UCI/HTTP layer plus standalone login/save/delete operations implemented and host-tested; UI/hardware wiring pending).
 - [x] Add bounded UCI/HTTP-target capability probe from the published interface.
 - [ ] Verify current C64U UCI HTTP behaviour on target hardware.
 - [ ] Standalone login from C64U and token handling (bounded login/session logic implemented and host-tested; direct plaintext login requires explicit trusted-LAN opt-in; UI/hardware validation pending).
 - [ ] Provide a secure local relay path for remote publishing unless C64U firmware gains verified TLS support.
-- [ ] List/open/create/update/delete standalone pages.
-- [ ] List/open/create/update/delete standalone posts.
+- [ ] List/open/create/update/delete standalone pages (create/update/delete core implemented through shared document operations; list/open pending).
+- [ ] List/open/create/update/delete standalone posts (create/update/delete core implemented through shared document operations; list/open pending).
 - [ ] WordPress Application Password configuration and connection test.
 - [ ] Publish/update/unpublish WordPress pages and posts.
 - [ ] Friendly error mapping for network, auth and server failures.
