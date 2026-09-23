@@ -269,6 +269,31 @@ S64StandaloneResult s64_standalone_exchange_ack(
         : S64_STANDALONE_PROTOCOL_ERROR;
 }
 
+const char* s64_standalone_result_message(S64StandaloneResult result)
+{
+    switch (result) {
+        case S64_STANDALONE_OK:
+            return "OK";
+        case S64_STANDALONE_INVALID_ARGUMENT:
+            return "Invalid request";
+        case S64_STANDALONE_TRANSPORT_ERROR:
+            return "Network/UCI error";
+        case S64_STANDALONE_AUTH_FAILED:
+            return "Login expired or denied";
+        case S64_STANDALONE_INSECURE_TRANSPORT:
+            return "Plain HTTP not enabled";
+        case S64_STANDALONE_TLS_UNSUPPORTED:
+            return "C64U TLS unavailable";
+        case S64_STANDALONE_SERVER_ERROR:
+            return "Server rejected request";
+        case S64_STANDALONE_RESPONSE_TOO_LARGE:
+            return "Server reply too large";
+        case S64_STANDALONE_PROTOCOL_ERROR:
+        default:
+            return "Unexpected server reply";
+    }
+}
+
 void s64_standalone_session_clear(S64StandaloneSession* session)
 {
     if (session == 0) {
