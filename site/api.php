@@ -16,12 +16,31 @@ function respond(array $payload, int $status = 200): never
 function input_data(): array
 {
     $contentType = strtolower((string)($_SERVER['CONTENT_TYPE'] ?? ''));
+
+    if (str_contains($contentType, S64Wire::MIME)) {
+        return S64Wire::parse((string)file_get_contents('php://input'));
+    }
+
     if (str_contains($contentType, 'application/json')) {
         $decoded = json_decode((string)file_get_contents('php://input'), true);
         return is_array($decoded) ? $decoded : [];
     }
 
     return $_POST;
+}
+
+function wants_wire(): bool
+{
+    return strtolower((string)($_GET['format'] ?? '')) === 's64';
+}
+
+function respond_wire(array $document, int $status = 200): never
+{
+    http_response_code($status);
+    header('Content-Type: ' . S64Wire::MIME . '; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo S64Wire::serialize($document);
+    exit;
 }
 
 $action = (string)($_GET['action'] ?? 'status');
@@ -74,6 +93,9 @@ try {
         if ($document === null) {
             respond(['ok' => false, 'error' => 'not_found'], 404);
         }
+        if (wants_wire()) {
+            respond_wire($document);
+        }
         respond(['ok' => true, 'document' => $document]);
     }
 
@@ -81,7 +103,11 @@ try {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             respond(['ok' => false, 'error' => 'method_not_allowed'], 405);
         }
-        respond(['ok' => true, 'document' => $documents->save(input_data())]);
+        $document = $documents->save(input_data());
+        if (wants_wire()) {
+            respond_wire($document);
+        }
+        respond(['ok' => true, 'document' => $document]);
     }
 
     if ($action === 'delete') {
