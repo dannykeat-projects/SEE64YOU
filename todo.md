@@ -34,7 +34,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 ## P0 - Publishing
 
 - [ ] Implement C64U HTTP transport behind the publisher interface.
-- [ ] Verify current C64U UCI HTTP firmware behaviour on target firmware/hardware.
+- [x] Add bounded UCI/HTTP-target capability probe from the published interface.\n- [ ] Verify current C64U UCI HTTP behaviour on target hardware.
 - [ ] Standalone login from C64U and token handling.
 - [ ] List/open/create/update/delete standalone pages.
 - [ ] List/open/create/update/delete standalone posts.
@@ -58,8 +58,8 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] Newest-first posts listing.
 - [x] Plain theme requiring neither CSS nor JavaScript.
 - [x] Optional simple/C64-inspired inline styling.
-- [ ] Browser-based one-time setup helper.
-- [ ] Site-settings API for title/theme/colours.
+- [x] Browser-based one-time setup helper.
+- [x] Site-settings API for title/theme/colours.
 - [ ] Draft preview links.
 - [ ] Pagination/archive pages when post count warrants it.
 - [ ] Packaging script producing a self-contained upload directory.
