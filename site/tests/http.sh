@@ -18,24 +18,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 cp -R "$ROOT/site" "$SITE"
-rm -f "$SITE/config.php"
-
-php -r '
-$path = $argv[1];
-$password = $argv[2];
-$config = [
-    "site_title" => "HTTP Test",
-    "theme" => "plain",
-    "text_color" => "#a5a5ff",
-    "background_color" => "#3e31a2",
-    "link_color" => "#ffffff",
-    "visited_color" => "#c46cff",
-    "password_hash" => password_hash($password, PASSWORD_DEFAULT),
-    "token_secret" => bin2hex(random_bytes(32)),
-    "token_ttl" => 600,
-];
-file_put_contents($path, "<?php\ndeclare(strict_types=1);\nreturn " . var_export($config, true) . ";\n");
-' "$SITE/config.php" "$PASSWORD"
+rm -f "$SITE/config.php" "$SITE/ENABLE_SETUP"
 
 php -S "127.0.0.1:$PORT" -t "$SITE" >"$TMP/server.log" 2>&1 &
 SERVER_PID=$!
@@ -48,6 +31,24 @@ while [ "$i" -lt 50 ]; do
     i=$((i + 1))
     sleep 0.1
 done
+
+SETUP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/setup.php")
+[ "$SETUP_CODE" = "404" ]
+
+touch "$SITE/ENABLE_SETUP"
+curl -fsS "$BASE/setup.php" | grep -q 'See64You setup'
+
+curl -fsS -X POST \
+    --data-urlencode "site_title=HTTP Test" \
+    --data-urlencode "theme=plain" \
+    --data-urlencode "password=$PASSWORD" \
+    --data-urlencode "confirm=$PASSWORD" \
+    "$BASE/setup.php" | grep -q 'Setup complete'
+
+[ -f "$SITE/config.php" ]
+[ ! -f "$SITE/ENABLE_SETUP" ]
+SETUP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/setup.php")
+[ "$SETUP_CODE" = "404" ]
 
 STATUS=$(curl -fsS "$BASE/api.php?action=status")
 printf '%s' "$STATUS" | php -r '
