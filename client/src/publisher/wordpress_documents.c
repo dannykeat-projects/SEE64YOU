@@ -234,6 +234,12 @@ static S64WordPressResult append_base64_chunk(
         if ((c == -2 || d == -2) && i + 4u != length) {
             return S64_WORDPRESS_PROTOCOL_ERROR;
         }
+        if (c == -2 && (b & 0x0f) != 0) {
+            return S64_WORDPRESS_PROTOCOL_ERROR;
+        }
+        if (c >= 0 && d == -2 && (c & 0x03) != 0) {
+            return S64_WORDPRESS_PROTOCOL_ERROR;
+        }
 
         out[0] = (uint8_t)((a << 2) | (b >> 4));
         out_count = 1u;
@@ -486,6 +492,12 @@ S64WordPressResult s64_wordpress_open_document(
         result = S64_WORDPRESS_INCOMPATIBLE_DOCUMENT;
         goto cleanup;
     }
+    if (source_count != (source_length == 0
+            ? 0
+            : (source_length + 179L) / 180L)) {
+        result = S64_WORDPRESS_PROTOCOL_ERROR;
+        goto cleanup;
+    }
 
     for (index = 0u; index < (uint16_t)source_count; ++index) {
         written = sprintf(query_path, "document/source_chunks%%%u", index);
@@ -500,8 +512,20 @@ S64WordPressResult s64_wordpress_open_document(
         );
         if (result != S64_WORDPRESS_OK) goto cleanup;
 
-        result = append_base64_chunk(document->body, source_chunk, &decoded_total);
-        if (result != S64_WORDPRESS_OK) goto cleanup;
+        {
+            uint16_t before = decoded_total;
+            uint16_t expected_chunk = (uint16_t)(
+                source_length - (int32_t)index * 180L
+            );
+            if (expected_chunk > 180u) expected_chunk = 180u;
+
+            result = append_base64_chunk(document->body, source_chunk, &decoded_total);
+            if (result != S64_WORDPRESS_OK) goto cleanup;
+            if ((uint16_t)(decoded_total - before) != expected_chunk) {
+                result = S64_WORDPRESS_PROTOCOL_ERROR;
+                goto cleanup;
+            }
+        }
     }
 
     if (decoded_total != (uint16_t)source_length) {
