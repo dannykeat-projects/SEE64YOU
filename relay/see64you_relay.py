@@ -21,7 +21,7 @@ import urllib.request
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Union
 
 RELAY_HEADER = "X-See64You-Relay-Key"
 FORWARDED_REQUEST_HEADERS = ("Authorization", "Content-Type", "Accept")
@@ -38,7 +38,7 @@ class RelayConfig:
     upstream_netloc: str
     upstream_base_path: str
     relay_key: str
-    allowed_networks: tuple[ipaddress._BaseNetwork, ...]
+    allowed_networks: tuple[Union[ipaddress.IPv4Network, ipaddress.IPv6Network], ...]
     allowed_path_prefixes: tuple[str, ...]
     max_request_bytes: int
     max_response_bytes: int
@@ -111,13 +111,18 @@ def load_config(path: str | Path) -> RelayConfig:
         raise RelayConfigError("upstream_base must not contain credentials, query or fragment")
 
     base_path = parsed.path or "/"
+    decoded_base_path = urllib.parse.unquote(base_path)
+    if "\x00" in decoded_base_path or "\\" in decoded_base_path:
+        raise RelayConfigError("upstream_base path is unsafe")
+    if ".." in decoded_base_path.split("/"):
+        raise RelayConfigError("upstream_base path is unsafe")
     if not base_path.endswith("/"):
         base_path += "/"
 
     network_values = raw.get("allowed_clients", [])
     if not isinstance(network_values, list):
         raise RelayConfigError("allowed_clients must be a JSON array")
-    networks: list[ipaddress._BaseNetwork] = []
+    networks: list[Union[ipaddress.IPv4Network, ipaddress.IPv6Network]] = []
     for value in network_values:
         if not isinstance(value, str):
             raise RelayConfigError("allowed_clients entries must be IP addresses or CIDRs")
