@@ -42,7 +42,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [ ] List/open/create/update/delete standalone posts (create/update/delete core implemented through shared document operations; list/open pending).
 - [ ] WordPress Application Password configuration and connection test.
 - [ ] Publish/update/unpublish WordPress pages and posts.
-- [ ] Friendly error mapping for network, auth and server failures.
+- [ ] Friendly error mapping for network, auth and server failures (short C64-facing result messages implemented; UI wiring pending).
 
 ## P1 - Document format
 
