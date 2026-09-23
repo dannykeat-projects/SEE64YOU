@@ -109,7 +109,23 @@ function see64you_can_create_document(WP_REST_Request $request): bool
 function see64you_can_edit_document(WP_REST_Request $request): bool
 {
     $id = (int)$request['id'];
-    return $id > 0 && current_user_can('edit_post', $id);
+    if ($id <= 0 || !current_user_can('edit_post', $id)) {
+        return false;
+    }
+
+    $status = sanitize_key((string)$request->get_param('status'));
+    if ($status !== 'publish') {
+        return true;
+    }
+
+    $post = get_post($id);
+    if (!$post instanceof WP_Post) {
+        return false;
+    }
+
+    return $post->post_type === 'page'
+        ? current_user_can('publish_pages')
+        : current_user_can('publish_posts');
 }
 
 function see64you_can_delete_document(WP_REST_Request $request): bool
