@@ -19,7 +19,7 @@ The LAN leg is still plaintext HTTP. Treat the configured LAN as trusted and pre
 
 ## Setup
 
-Python 3.9+ is sufficient; no third-party packages are required.
+Python 3.10+ is sufficient; no third-party packages are required.
 
 Generate a relay key:
 
