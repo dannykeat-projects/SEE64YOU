@@ -37,6 +37,7 @@ typedef S64UciResult (*S64UciExecuteFn)(
 
 typedef struct {
     uint8_t interface_present;
+    uint8_t dos_target;
     uint8_t http_target;
 } S64UciCapabilities;
 
