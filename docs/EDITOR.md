@@ -81,7 +81,15 @@ Provisional subset:
 - `- list item`
 - `[label](https://example.com)`
 
-The subset is not frozen until editor commands and round-trip tests exist.
+The formatting core now implements these source transformations:
+
+- Bold wraps/toggles `**selection**`. With no selection it inserts `****` and leaves the cursor between the marker pairs.
+- Italic wraps/toggles `*selection*`; applying Italic inside Bold produces the conventional `***selection***` nesting, and toggling it again removes only the italic layer.
+- Heading 1 and Heading 2 replace/toggle the current logical line prefix (`# ` or `## `).
+- List Item toggles `- ` at the start of the current logical line.
+- Link requires selected label text and an `http://` or `https://` URL, producing `[label](url)`. Labels/new URLs that would break this deliberately small syntax are rejected instead of escaped ambiguously.
+
+Every transformation checks buffer capacity before insertion and is designed to complete fully or leave the source unchanged. The FORMAT menu/UI bindings are still pending, so the subset is not frozen as Markup v1 yet.
 
 ## Large documents
 
