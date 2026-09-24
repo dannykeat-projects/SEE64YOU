@@ -1,5 +1,7 @@
 #include "editor.h"
 
+#include <stdint.h>
+
 #define VIEW_COLUMNS 40u
 #define VIEW_ROWS 23u
 
@@ -1119,7 +1121,6 @@ int s64_editor_format_link(S64Editor* editor, const char* url)
     unsigned int url_length;
     unsigned int suffix_length;
     unsigned int i;
-    char suffix[259];
 
     if (editor == 0 || !s64_editor_has_selection(editor)
         || !link_url_valid(url, &url_length)) {
@@ -1132,20 +1133,21 @@ int s64_editor_format_link(S64Editor* editor, const char* url)
         return 0;
     }
 
-    suffix[0] = ']';
-    suffix[1] = '(';
-    for (i = 0u; i < url_length; ++i) {
-        suffix[i + 2u] = url[i];
-    }
-    suffix[url_length + 2u] = ')';
-    suffix[url_length + 3u] = '\0';
     suffix_length = url_length + 3u;
 
     if (s64_buffer_free(&editor->buffer) < suffix_length + 1u) {
         return 0;
     }
 
-    if (!insert_text_at(&editor->buffer, end, suffix, suffix_length)
+    if (!insert_text_at(&editor->buffer, end, "](", 2u)) {
+        return 0;
+    }
+    for (i = 0u; i < url_length; ++i) {
+        if (!s64_buffer_insert(&editor->buffer, (unsigned char)url[i])) {
+            return 0;
+        }
+    }
+    if (!s64_buffer_insert(&editor->buffer, ')')
         || !insert_text_at(&editor->buffer, start, "[", 1u)) {
         return 0;
     }

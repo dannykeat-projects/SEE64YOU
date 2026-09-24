@@ -162,15 +162,12 @@ $Cl65 = Get-Command cl65 -ErrorAction SilentlyContinue
 if ($Cl65) {
     Write-Host "== cc65 C64 build =="
     New-Item -ItemType Directory -Force client/build | Out-Null
-    $C64Sources = @(
-        "client/src/main.c",
-        "client/src/buffer.c",
-        "client/src/clipboard.c",
+    $ModuleDir = Join-Path ([System.IO.Path]::GetTempPath()) ("see64you-cc65-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force $ModuleDir | Out-Null
+    $Cc65Path = Join-Path (Split-Path -Parent $Cl65.Path) "cc65.exe"
+    $Ca65Path = Join-Path (Split-Path -Parent $Cl65.Path) "ca65.exe"
+    $C64ModuleSources = @(
         "client/src/document.c",
-        "client/src/editor.c",
-        "client/src/ui.c",
-        "client/src/input/input.c",
-        "client/src/platform/uci.c",
         "client/src/platform/dos.c",
         "client/src/platform/http.c",
         "client/src/publisher/destination.c",
@@ -181,8 +178,31 @@ if ($Cl65) {
         "client/src/publisher/wordpress.c",
         "client/src/publisher/wordpress_documents.c"
     )
+    try {
+        foreach ($Source in $C64ModuleSources) {
+            $BaseName = [System.IO.Path]::GetFileNameWithoutExtension($Source)
+            $AssemblyPath = Join-Path $ModuleDir ($BaseName + ".s")
+            $ObjectName = $BaseName + ".o"
+            $ObjectPath = Join-Path $ModuleDir $ObjectName
+            & $Cc65Path -t c64 -Oirs -I client/src -o $AssemblyPath $Source
+            if ($LASTEXITCODE -ne 0) { throw "cc65 module compile failed: $Source" }
+            & $Ca65Path -t c64 -o $ObjectPath $AssemblyPath
+            if ($LASTEXITCODE -ne 0) { throw "ca65 module assembly failed: $Source" }
+        }
+    $C64Sources = @(
+        "client/src/main.c",
+        "client/src/buffer.c",
+        "client/src/clipboard.c",
+        "client/src/editor.c",
+        "client/src/ui.c",
+        "client/src/input/input.c",
+        "client/src/platform/uci.c"
+    )
     & $Cl65.Path -t c64 -Oirs -I client/src -o client/build/see64you.prg @C64Sources
     if ($LASTEXITCODE -ne 0) { throw "C64 build failed" }
+    } finally {
+        Remove-Item -Recurse -Force $ModuleDir -ErrorAction SilentlyContinue
+    }
 } else {
     Write-Host "SKIP cc65 build (cl65 not found)"
 }

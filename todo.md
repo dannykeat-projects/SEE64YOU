@@ -10,22 +10,23 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] Add first standalone flat-file PHP site.
 - [x] Add authenticated standalone publishing API.
 - [x] Add WordPress plugin scaffold using WordPress-native authentication.
-- [ ] Compile and run the C64 client under VICE; fix any cc65/keyboard incompatibilities found.
+- [ ] Compile and run the C64 client under VICE; cc65 module compiles and linked C64 PRG pass on integration branch, but VICE runtime validation remains unavailable.
 - [x] Run the standalone site locally and exercise all API operations end-to-end.
 - [ ] Install the WordPress plugin on a test WordPress instance and exercise REST operations.
+- [ ] Complete integrated validation: PHP lint/site and WordPress protocol tests, 12 relay tests, standalone HTTP lifecycle, and cc65 module/C64 builds passed 2026-09-24; host C tests, VICE/C64U checks, and GitHub Actions remain unavailable (no host compiler, emulator, registered runner, or workflows).
 
 ## P0 - Editor essentials
 
 - [ ] Incremental screen redraw rather than whole-editor redraw after each input.
 - [x] Accurate vertical cursor movement preserving preferred column.
-- [ ] Word wrap toggle.
+- [x] Word wrap toggle and horizontal scrolling (F8; VICE validation pending).
 - [x] Home, End, Page Up/Page Down and word-navigation editor commands.
 - [x] Selection model and visible selection.
 - [x] Cut/copy/paste using an application clipboard.
 - [ ] Undo/redo transaction history.
-- [ ] Find / find next / find previous.
-- [ ] Replace / replace all.
-- [ ] Go to line.
+- [x] Find / find next / find previous (UI flows implemented; VICE validation pending).
+- [x] Replace / replace all (UI flows implemented; VICE validation pending).
+- [x] Go to line (UI flow implemented; VICE validation pending).
 - [ ] New/Open/Save/Save As using C64U-accessible storage (Ultimate-DOS capability probe and bounded open/read/write/close/delete/rename layer implemented with host tests; document integration and File UI pending).
 - [ ] Dirty-document confirmation before destructive actions.
 - [ ] Recovery/autosave files.
@@ -49,8 +50,8 @@ This is the authoritative project work queue. Keep completed work concise and mo
 
 - [x] Define simple metadata + source-body representation.
 - [x] Implement safe minimal markup rendering on the standalone backend.
-- [ ] Freeze See64You Markup v1 after editor formatting commands are implemented.
-- [ ] Bold / italic / headings / lists / links formatting commands.
+- [ ] Freeze See64You Markup v1 after formatting UI/menu wiring and round-trip validation.
+- [x] Bold / italic / headings / lists / links formatting command core (UI/menu wiring and VICE validation pending).
 - [ ] C64 preview view.
 - [ ] Preserve unsupported markup as text rather than corrupting it.
 
