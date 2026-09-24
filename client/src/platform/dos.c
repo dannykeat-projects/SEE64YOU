@@ -6,6 +6,7 @@
 #define S64_DOS_CMD_CLOSE_FILE 0x03u
 #define S64_DOS_CMD_READ_DATA  0x04u
 #define S64_DOS_CMD_WRITE_DATA 0x05u
+#define S64_DOS_CMD_FILE_STAT  0x08u
 #define S64_DOS_CMD_DELETE     0x09u
 #define S64_DOS_CMD_RENAME     0x0au
 #define S64_DOS_CMD_CHANGE_DIR 0x11u
@@ -41,7 +42,10 @@ static uint8_t text_length(
     }
 
     while (text[i] != '\0') {
-        if (i >= maximum) return 0u;
+        if (i >= maximum
+            || text[i] == '\r' || text[i] == '\n') {
+            return 0u;
+        }
         ++i;
     }
 
@@ -94,7 +98,7 @@ static S64DosResult map_status(const char* status, uint16_t length)
 static S64DosResult map_transport(S64UciResult result)
 {
     if (result == S64_UCI_OK) return S64_DOS_OK;
-    if (result == S64_UCI_CONSUMER_ABORTED) return S64_DOS_TRANSPORT_ERROR;
+    if (result == S64_UCI_CONSUMER_ABORTED) return S64_DOS_CONSUMER_ABORTED;
     return S64_DOS_TRANSPORT_ERROR;
 }
 
@@ -222,6 +226,8 @@ const char* s64_dos_result_message(S64DosResult result)
             return "Invalid file request";
         case S64_DOS_TRANSPORT_ERROR:
             return "Ultimate DOS unavailable";
+        case S64_DOS_CONSUMER_ABORTED:
+            return "File read stopped";
         case S64_DOS_NOT_FOUND:
             return "File not found";
         case S64_DOS_ACCESS_DENIED:
@@ -356,6 +362,30 @@ S64DosResult s64_dos_write(
     }
 
     return S64_DOS_OK;
+}
+
+S64DosResult s64_dos_file_exists(
+    S64Dos* dos,
+    const char* filename,
+    uint8_t* exists
+)
+{
+    S64DosResult result;
+
+    if (exists == 0) {
+        return S64_DOS_INVALID_ARGUMENT;
+    }
+    *exists = 0u;
+
+    result = filename_command(dos, S64_DOS_CMD_FILE_STAT, filename);
+    if (result == S64_DOS_OK) {
+        *exists = 1u;
+        return S64_DOS_OK;
+    }
+    if (result == S64_DOS_NOT_FOUND) {
+        return S64_DOS_OK;
+    }
+    return result;
 }
 
 S64DosResult s64_dos_delete_file(S64Dos* dos, const char* filename)
