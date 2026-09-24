@@ -140,6 +140,100 @@ try {
     }
     check($invalidRejected, 'path traversal slug rejected');
 
+    $metadataRejected = false;
+    try {
+        $documents->save([
+            'type' => 'post',
+            'slug' => str_repeat('a', 65),
+            'title' => 'Too long slug',
+            'status' => 'draft',
+            'body' => '',
+        ]);
+    } catch (InvalidArgumentException $exception) {
+        $metadataRejected = $exception->getMessage() === 'invalid_slug';
+    }
+    check($metadataRejected, 'slug longer than C64 metadata capacity rejected');
+
+    $metadataRejected = false;
+    try {
+        $documents->save([
+            'type' => 'post',
+            'slug' => 'long-title',
+            'title' => str_repeat('T', 81),
+            'status' => 'draft',
+            'body' => '',
+        ]);
+    } catch (InvalidArgumentException $exception) {
+        $metadataRejected = $exception->getMessage() === 'invalid_title';
+    }
+    check($metadataRejected, 'title longer than C64 metadata capacity rejected');
+
+    $metadataRejected = false;
+    try {
+        $documents->save([
+            'type' => 'post',
+            'slug' => 'long-date',
+            'title' => 'Long date',
+            'status' => 'draft',
+            'date' => str_repeat('2', 41),
+            'body' => '',
+        ]);
+    } catch (InvalidArgumentException $exception) {
+        $metadataRejected = $exception->getMessage() === 'invalid_date';
+    }
+    check($metadataRejected, 'date longer than C64 metadata capacity rejected');
+
+    foreach ([2147483648, -2147483649, '1.5'] as $badOrder) {
+        $orderRejected = false;
+        try {
+            $documents->save([
+                'type' => 'post',
+                'slug' => 'bad-order',
+                'title' => 'Bad order',
+                'status' => 'draft',
+                'order' => $badOrder,
+                'body' => '',
+            ]);
+        } catch (InvalidArgumentException $exception) {
+            $orderRejected = $exception->getMessage() === 'invalid_order';
+        }
+        check($orderRejected, 'out-of-range/invalid order rejected');
+    }
+
+    $largeRejected = false;
+    try {
+        $documents->save([
+            'type' => 'post',
+            'slug' => 'too-large',
+            'title' => 'Too large',
+            'status' => 'draft',
+            'body' => str_repeat('x', 8193),
+        ]);
+    } catch (InvalidArgumentException $exception) {
+        $largeRejected = $exception->getMessage() === 'document_too_large';
+    }
+    check($largeRejected, 'body beyond C64 buffer rejected');
+
+    $duplicateWireRejected = false;
+    try {
+        S64Wire::parse(str_replace(
+            "Type: page\n",
+            "Type: page\nType: post\n",
+            $wire
+        ));
+    } catch (InvalidArgumentException $exception) {
+        $duplicateWireRejected = $exception->getMessage() === 'invalid_wire_document';
+    }
+    check($duplicateWireRejected, 'duplicate wire header rejected');
+
+    $wireOrderRejected = false;
+    try {
+        S64Wire::parse(str_replace("Order: 10", "Order: 2147483648", $wire));
+    } catch (InvalidArgumentException $exception) {
+        $wireOrderRejected = $exception->getMessage() === 'invalid_wire_document';
+    }
+    check($wireOrderRejected, 'wire order beyond int32 rejected');
+
     echo "site tests passed\n";
 } finally {
     $iterator = new RecursiveIteratorIterator(

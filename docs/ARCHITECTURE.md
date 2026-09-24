@@ -67,6 +67,8 @@ The first standalone publisher operation is login. It lets the firmware build a 
 
 The client document representation owns only bounded metadata and a pointer to the existing gap buffer. Its wire serializer emits metadata and body incrementally, so publishing an 8 KiB document does not require a second 8 KiB body allocation. Standalone Save uses that serializer with the compact `ack=1` API response; Delete uses the firmware's URL-encoded body builder. Both reuse the same bearer-auth and transport-safety path as login.
 
+Standalone List uses the HTTP target's parsed response-body object and queries one result at a time. Results are delivered through a callback, so the client can render or page a large list without storing the whole array in C64 RAM. Open uses the raw `application/x-see64you` response and a streamed wire parser that writes body bytes directly into the existing gap buffer. Invalid, oversized or interrupted opens clear the partial destination rather than exposing truncated content as a valid document.
+
 ### C64U transport security
 
 Do not infer TLS support from the HTTP target accepting an `https://` resource string. This was rechecked against current upstream `master` during development: `HttpHeaderSlot` recognises `https://`, sets port 443 and records a `secure` flag, but `HttpTarget::cmd_exchange` still passes only host/port to `HttpRequest::connect_to_server`. That function opens a normal `AF_INET/SOCK_STREAM` socket and `send_request` writes the HTTP request bytes directly. No TLS handshake is present in that path.

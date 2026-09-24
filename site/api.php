@@ -88,7 +88,12 @@ try {
 
     if ($action === 'list') {
         $type = (string)($_GET['type'] ?? '');
-        respond(['ok' => true, 'documents' => $documents->list($type, false)]);
+        $listed = $documents->list($type, false);
+        respond([
+            'ok' => true,
+            'count' => count($listed),
+            'documents' => $listed,
+        ]);
     }
 
     if ($action === 'get') {

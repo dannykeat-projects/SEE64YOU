@@ -38,8 +38,8 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [ ] Verify current C64U UCI HTTP behaviour on target hardware.
 - [ ] Standalone login from C64U and token handling (bounded login/session logic implemented and host-tested; direct plaintext login requires explicit trusted-LAN opt-in; UI/hardware validation pending).
 - [ ] Provide a secure local relay path for remote publishing unless C64U firmware gains verified TLS support.
-- [ ] List/open/create/update/delete standalone pages (create/update/delete core implemented through shared document operations; list/open pending).
-- [ ] List/open/create/update/delete standalone posts (create/update/delete core implemented through shared document operations; list/open pending).
+- [ ] List/open/create/update/delete standalone pages (all core operations implemented; list/open regression tests added; local/target execution and UI wiring pending).
+- [ ] List/open/create/update/delete standalone posts (all core operations implemented; list/open regression tests added; local/target execution and UI wiring pending).
 - [ ] WordPress Application Password configuration and connection test.
 - [ ] Publish/update/unpublish WordPress pages and posts.
 - [ ] Friendly error mapping for network, auth and server failures (short C64-facing result messages implemented; UI wiring pending).

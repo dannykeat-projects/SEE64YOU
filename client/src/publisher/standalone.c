@@ -52,7 +52,7 @@ S64StandaloneResult s64_standalone_map_http(S64HttpResult result)
     }
 }
 
-static uint16_t s64_standalone_http_status(const char* header)
+uint16_t s64_standalone_http_status(const char* header)
 {
     const char* cursor = header;
     uint16_t value;

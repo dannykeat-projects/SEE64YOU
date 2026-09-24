@@ -61,6 +61,8 @@ Colours use six-digit CSS hex form such as `#a5a5ff`. Authentication secrets are
 
 Requires authentication.
 
+The response includes `count` as well as the `documents` array. The C64U client uses the firmware's structured response-body queries to read `count` and then one metadata record at a time, avoiding a second large list buffer.
+
 ### Get
 
 `GET api.php?action=get&type=post&slug=hello-world`

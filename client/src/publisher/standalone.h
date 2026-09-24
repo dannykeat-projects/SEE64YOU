@@ -29,6 +29,7 @@ const char* s64_standalone_result_message(S64StandaloneResult result);
 
 /* Shared by standalone publisher operations; not UI commands. */
 S64StandaloneResult s64_standalone_map_http(S64HttpResult result);
+uint16_t s64_standalone_http_status(const char* header);
 S64StandaloneResult s64_standalone_validate_transport(
     const char* url,
     uint8_t allow_insecure_http
