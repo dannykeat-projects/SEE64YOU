@@ -53,6 +53,27 @@ try {
     check(!str_contains($rendered, '<script>'), 'raw HTML is escaped');
     check(str_contains($rendered, '&lt;script&gt;'), 'escaped HTML remains visible');
 
+    $formatRendered = s64_markup(
+        "# Heading one\n"
+        . "## Heading two\n"
+        . "- list **bold**\n"
+        . "- list *italic*\n"
+        . "[OpenAI](https://openai.com)"
+    );
+    check(str_contains($formatRendered, '<h1>Heading one</h1>'), 'heading one renders');
+    check(str_contains($formatRendered, '<h2>Heading two</h2>'), 'heading two renders');
+    check(str_contains($formatRendered, '<li>list <strong>bold</strong></li>'), 'bold list item renders');
+    check(str_contains($formatRendered, '<li>list <em>italic</em></li>'), 'italic list item renders');
+    check(
+        str_contains($formatRendered, '<a href="https://openai.com">OpenAI</a>'),
+        'link markup renders'
+    );
+    check(
+        substr_count($formatRendered, '<ul>') === 1
+            && substr_count($formatRendered, '</ul>') === 1,
+        'formatting subset renders consistently'
+    );
+
     $wire = S64Wire::serialize($loaded);
     $wireRoundTrip = S64Wire::parse($wire);
     check($wireRoundTrip['slug'] === 'hello-world', 'wire slug round trips');
