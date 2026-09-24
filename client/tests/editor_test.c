@@ -217,6 +217,8 @@ int main(void)
     require_text(&editor, "# Title", "heading replacement from prefix");
     require(s64_editor_format_heading(&editor, 1u), "same heading toggles off");
     require_text(&editor, "Title", "heading toggle restores line");
+    require(!s64_editor_format_heading(&editor, 3u), "unsupported heading level rejected");
+    require_text(&editor, "Title", "unsupported heading leaves source unchanged");
 
     s64_editor_init(&editor);
     insert_text(&editor, "item");
@@ -257,6 +259,11 @@ int main(void)
         "unsafe link URL rejected"
     );
     require_text(&editor, "bad]label", "rejected URL leaves source unchanged");
+    require(
+        !s64_editor_format_link(&editor, "ftp://example.com/file"),
+        "unsupported link scheme rejected"
+    );
+    require_text(&editor, "bad]label", "unsupported scheme leaves source unchanged");
 
     s64_editor_init(&editor);
     {
