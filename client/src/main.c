@@ -264,6 +264,9 @@ int main(void)
             case S64_INPUT_TOGGLE_INSERT:
                 s64_editor_toggle_insert(&editor);
                 break;
+            case S64_INPUT_TOGGLE_WRAP:
+                s64_editor_toggle_word_wrap(&editor);
+                break;
 
             case S64_INPUT_TOGGLE_MARK:
                 s64_editor_toggle_mark(&editor);
