@@ -154,6 +154,16 @@ int main(void)
         ) == S64_DESTINATION_INVALID_ID,
         "WordPress nonnumeric ID rejected"
     );
+    require(
+        s64_destination_open_url(
+            &destination,
+            S64_DOCUMENT_POST,
+            "123456789012345678901",
+            url,
+            sizeof(url)
+        ) == S64_DESTINATION_INVALID_ID,
+        "WordPress ID longer than 20 digits rejected"
+    );
 
     require(
         s64_destination_configure(
