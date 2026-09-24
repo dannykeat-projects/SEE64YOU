@@ -48,7 +48,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] Define simple metadata + source-body representation.
 - [x] Implement safe minimal markup rendering on the standalone backend.
 - [ ] Freeze See64You Markup v1 after editor formatting commands are implemented.
-- [ ] Bold / italic / headings / lists / links formatting commands.
+- [ ] Bold / italic / headings / lists / links formatting commands (safe editor-core transformations implemented/host-tested; FORMAT menu and link URL prompt wiring pending).
 - [ ] C64 preview view.
 - [ ] Preserve unsupported markup as text rather than corrupting it.
 
