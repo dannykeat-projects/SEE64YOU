@@ -112,6 +112,15 @@ int main(void)
         "invalid WordPress ID rejected"
     );
     require(
+        !s64_publish_state_bind_remote(
+            &state,
+            &destination,
+            S64_DOCUMENT_POST,
+            "123456789012345678901"
+        ),
+        "oversized WordPress ID rejected"
+    );
+    require(
         strcmp(state.remote_identity, "12345") == 0,
         "failed identity replacement preserves existing binding"
     );
