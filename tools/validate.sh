@@ -38,6 +38,10 @@ echo "== Host UCI HTTP transport tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/http_test.c client/src/platform/http.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host Ultimate DOS tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/dos_test.c client/src/platform/dos.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host standalone publisher tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_test.c client/src/platform/http.c client/src/publisher/standalone.c -o "$TMP_BIN"
 "$TMP_BIN"
