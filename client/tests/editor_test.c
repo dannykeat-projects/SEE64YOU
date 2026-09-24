@@ -181,6 +181,99 @@ int main(void)
     require(!s64_editor_go_to_line(&editor, 4u), "reject missing line");
     require(editor.line == 2u && editor.column == 1u, "missing line preserves position");
 
+    s64_editor_init(&editor);
+    insert_text(&editor, "hello");
+    s64_editor_home(&editor);
+    s64_editor_toggle_mark(&editor);
+    s64_editor_end(&editor);
+    s64_editor_toggle_mark(&editor);
+    require(s64_editor_format_bold(&editor), "bold wraps selection");
+    require_text(&editor, "**hello**", "bold source markers");
+    require(s64_editor_selection_start(&editor) == 2u, "bold keeps label selection start");
+    require(s64_editor_selection_end(&editor) == 7u, "bold keeps label selection end");
+
+    require(s64_editor_format_italic(&editor), "italic nests with bold");
+    require_text(&editor, "***hello***", "bold italic nesting");
+    require(s64_editor_format_italic(&editor), "italic toggle removes nested italic");
+    require_text(&editor, "**hello**", "italic toggle preserves bold");
+    require(s64_editor_format_bold(&editor), "bold toggle removes bold");
+    require_text(&editor, "hello", "bold toggle restores source");
+
+    s64_editor_clear_selection(&editor);
+    s64_editor_end(&editor);
+    require(s64_editor_format_bold(&editor), "bold inserts paired markers without selection");
+    require_text(&editor, "hello****", "bold empty marker pair");
+    require(s64_buffer_cursor(&editor.buffer) == 7u, "cursor placed inside bold markers");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "Title");
+    require(s64_editor_format_heading(&editor, 1u), "heading one adds prefix");
+    require_text(&editor, "# Title", "heading one source");
+    require(s64_editor_format_heading(&editor, 2u), "heading level replaces existing heading");
+    require_text(&editor, "## Title", "heading two source");
+    s64_editor_home(&editor);
+    s64_editor_right(&editor);
+    require(s64_editor_format_heading(&editor, 1u), "heading replacement safe with cursor in prefix");
+    require_text(&editor, "# Title", "heading replacement from prefix");
+    require(s64_editor_format_heading(&editor, 1u), "same heading toggles off");
+    require_text(&editor, "Title", "heading toggle restores line");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "item");
+    s64_editor_home(&editor);
+    require(s64_editor_format_list_item(&editor), "list item adds prefix");
+    require_text(&editor, "- item", "list item source");
+    require(s64_editor_format_list_item(&editor), "list item toggles off");
+    require_text(&editor, "item", "list toggle restores line");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "OpenAI");
+    s64_editor_home(&editor);
+    s64_editor_toggle_mark(&editor);
+    s64_editor_end(&editor);
+    s64_editor_toggle_mark(&editor);
+    require(
+        s64_editor_format_link(&editor, "https://openai.com"),
+        "link wraps selected label"
+    );
+    require_text(
+        &editor,
+        "[OpenAI](https://openai.com)",
+        "link source syntax"
+    );
+    require(s64_editor_selection_start(&editor) == 1u, "link keeps label selected");
+    require(s64_editor_selection_end(&editor) == 7u, "link selection end");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "bad]label");
+    s64_editor_select_all(&editor);
+    require(
+        !s64_editor_format_link(&editor, "https://example.com"),
+        "unsafe link label rejected"
+    );
+    require_text(&editor, "bad]label", "rejected link leaves source unchanged");
+    require(
+        !s64_editor_format_link(&editor, "https://example.com/a)b"),
+        "unsafe link URL rejected"
+    );
+    require_text(&editor, "bad]label", "rejected URL leaves source unchanged");
+
+    s64_editor_init(&editor);
+    {
+        unsigned int i;
+        for (i = 0u; i < S64_BUFFER_CAPACITY - 1u; ++i) {
+            require(s64_editor_insert(&editor, 'x'), "fill buffer for formatting capacity test");
+        }
+    }
+    require(
+        !s64_editor_format_bold(&editor),
+        "bold preflight rejects insufficient free space"
+    );
+    require(
+        s64_buffer_length(&editor.buffer) == S64_BUFFER_CAPACITY - 1u,
+        "failed formatting makes no partial edit"
+    );
+
     puts("editor tests passed");
     return 0;
 }
