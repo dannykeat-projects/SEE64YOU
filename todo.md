@@ -43,7 +43,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [ ] WordPress Application Password configuration and connection test (plugin connection endpoint, bounded C64 credential session and host regression tests implemented; WordPress-instance and C64U validation pending).
 - [ ] List/open/publish/update/unpublish/delete WordPress pages and posts (C64-safe plugin protocol and bounded client CRUD core implemented with regression tests; real WordPress-instance, C64U and UI validation pending).
 - [ ] Friendly error mapping for network, auth and server failures (short C64-facing result messages implemented; UI wiring pending).
-- [ ] Publishing destination setup UI (backend-neutral active destination model and bounded endpoint URL construction implemented/host-tested; interactive C64 UI and persistence pending).
+- [ ] Publishing destination setup UI (backend-neutral active destination model, bounded endpoint URL construction and remote-identity state implemented/host-tested; interactive C64 UI and persistence pending).
 
 ## P1 - Document format
 
