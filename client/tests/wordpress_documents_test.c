@@ -389,7 +389,12 @@ int main(void)
     require(last_header_verb == (unsigned char)S64_HTTP_POST, "create uses POST");
     require(content_type_headers == 1u, "create sends wire content type");
     require(
-        wire_length > 12u && memcmp(wire_capture, "SEE64YOU/1\n", 12u) == 0,
+        wire_length >= sizeof("SEE64YOU/1\n") - 1u
+        && memcmp(
+            wire_capture,
+            "SEE64YOU/1\n",
+            sizeof("SEE64YOU/1\n") - 1u
+        ) == 0,
         "create streams wire header"
     );
     require(

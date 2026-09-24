@@ -490,7 +490,8 @@ S64WordPressResult s64_wordpress_open_document(
     if (result != S64_WORDPRESS_OK) goto cleanup;
 
     if (source_length < 0 || source_length > (int32_t)S64_BUFFER_CAPACITY
-        || source_count < 0 || source_count > S64_WP_SOURCE_CHUNK_LIMIT) {
+        || source_count < 0
+        || source_count > (int32_t)S64_WP_SOURCE_CHUNK_LIMIT) {
         result = S64_WORDPRESS_INCOMPATIBLE_DOCUMENT;
         goto cleanup;
     }

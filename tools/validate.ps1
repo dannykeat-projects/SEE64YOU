@@ -32,7 +32,7 @@ if ($Sh -and $Curl) {
     Write-Host "SKIP HTTP API tests (sh/curl.exe not found)"
 }
 
-$Python = @("python3", "python") |
+$Python = @("python", "python3") |
     ForEach-Object { Get-Command $_ -ErrorAction SilentlyContinue } |
     Select-Object -First 1
 if ($Python) {
