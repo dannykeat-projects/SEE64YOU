@@ -159,6 +159,22 @@ int main(void)
     }
 
     s64_editor_init(&editor);
+    require(editor.word_wrap, "word wrap enabled by default");
+    require(editor.view_column == 0u, "wrapped viewport starts at first column");
+    insert_text(&editor, "123456789012345678901234567890123456789012345");
+    require(editor.view_column == 0u, "wrapped long line does not scroll horizontally");
+    s64_editor_toggle_word_wrap(&editor);
+    require(!editor.word_wrap, "word wrap toggles off");
+    require(editor.view_column == 6u, "no-wrap follows cursor horizontally");
+    s64_editor_home(&editor);
+    require(editor.view_column == 0u, "home scrolls no-wrap viewport left");
+    s64_editor_end(&editor);
+    require(editor.view_column == 6u, "end restores horizontal cursor visibility");
+    s64_editor_toggle_word_wrap(&editor);
+    require(editor.word_wrap, "word wrap toggles on");
+    require(editor.view_column == 0u, "re-enabling wrap clears horizontal offset");
+
+    s64_editor_init(&editor);
     insert_text(&editor, "one\ntwo\nthree");
     require(s64_editor_go_to_line(&editor, 2u), "go to existing line");
     require(editor.line == 2u && editor.column == 1u, "go to line position");
