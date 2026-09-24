@@ -29,7 +29,7 @@ This key authenticates access to the relay only; it does not replace the standal
 
 Until the standalone site is configured, no bearer token is accepted for protected operations. An empty or missing token secret must never act as a usable signing key.
 
-WordPress uses WordPress-native REST authentication. Application Passwords are the preferred initial mechanism.
+WordPress uses WordPress-native REST authentication. Application Passwords are the preferred initial mechanism. The C64U client accepts the WordPress username plus an Application Password, strips the display-only spaces from the Application Password, and stores only the resulting Basic Authorization header for the active session. A protected `GET /wp-json/see64you/v1/connection` endpoint verifies both authentication and edit capability before document operations are enabled.
 
 ## Operations
 

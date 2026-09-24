@@ -40,7 +40,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [ ] Provide a secure local relay path for remote publishing unless C64U firmware gains verified TLS support (relay implementation, client relay-key header and unit tests added; local/target validation and UI configuration pending).
 - [ ] List/open/create/update/delete standalone pages (all core operations implemented; list/open regression tests added; local/target execution and UI wiring pending).
 - [ ] List/open/create/update/delete standalone posts (all core operations implemented; list/open regression tests added; local/target execution and UI wiring pending).
-- [ ] WordPress Application Password configuration and connection test.
+- [ ] WordPress Application Password configuration and connection test (plugin connection endpoint, bounded C64 credential session and host regression tests implemented; WordPress-instance and C64U validation pending).
 - [ ] Publish/update/unpublish WordPress pages and posts.
 - [ ] Friendly error mapping for network, auth and server failures (short C64-facing result messages implemented; UI wiring pending).
 

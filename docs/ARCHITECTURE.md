@@ -119,6 +119,8 @@ Public rendering is intentionally server-side and JavaScript-free.
 
 The WordPress plugin exposes a deliberately small document API. WordPress remains responsible for accounts, permissions and normal REST authentication. See64You source is stored in post metadata while generated HTML is stored as the post content.
 
+The C64 client uses a WordPress Application Password rather than the user's normal account password. Configuration converts `username:application-password` directly into a bounded Basic Authorization header without retaining a separate plaintext credential pair. The plugin's authenticated `/connection` endpoint is used as the initial capability/permission test. Remote WordPress access should use the trusted-LAN relay until direct C64U TLS is verified.
+
 ## Security boundaries
 
 The C64 client cannot make an untrusted server safe. Backends therefore validate document type, slug and authentication independently.
