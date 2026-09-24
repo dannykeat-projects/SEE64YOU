@@ -1,0 +1,18 @@
+name: Integration validation
+
+on:
+  push:
+    branches:
+      - integration-validation-2026-09-24
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: [self-hosted, Linux, X64, terra64]
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run full validation
+        run: ./tools/validate.sh
