@@ -30,7 +30,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] New/Open/Save/Save As using C64U-accessible storage (streamed canonical files, temporary-file replacement, overwrite detection and host tests implemented; C64U validation pending).
 - [x] Dirty-document confirmation before New, Open and Exit.
 - [ ] Recovery/autosave files.
-- [ ] Finish/validate modern USB-keyboard shortcuts and C64-keyboard-friendly mappings (MARK/function-key baseline implemented); Shift+letter currently does not produce capitals in VICE.
+- [ ] Finish/validate modern USB-keyboard shortcuts and C64-keyboard-friendly mappings (MARK/function-key baseline implemented; printable PETSCII capitals/punctuation acceptance implemented 2026-09-25; VICE validation pending).
 
 ## Manual VICE/C64U checks
 
@@ -44,6 +44,7 @@ These player-facing checks are assigned to the user where practical; automated s
 
 ## P0 - Publishing
 
+- [ ] Normalize C64 PETSCII text at ASCII file/network boundaries before end-to-end publishing; target-only encoding mismatch verified while fixing Shift input.
 - [ ] Implement C64U HTTP transport behind the publisher interface (bounded UCI/HTTP layer plus standalone login/save/delete operations implemented and host-tested; UI/hardware wiring pending).
 - [x] Add bounded UCI/HTTP-target capability probe from the published interface.
 - [ ] Verify current C64U UCI HTTP behaviour on target hardware.
