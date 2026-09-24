@@ -85,6 +85,12 @@ if ($HostCc) {
             "client/tests/http_test.c",
             "client/src/platform/http.c"
         )
+        Invoke-CTest "destination" @(
+            "client/tests/destination_test.c",
+            "client/src/document.c",
+            "client/src/buffer.c",
+            "client/src/publisher/destination.c"
+        )
         Invoke-CTest "relay" @(
             "client/tests/relay_test.c",
             "client/src/platform/http.c",
@@ -93,7 +99,8 @@ if ($HostCc) {
         Invoke-CTest "standalone" @(
             "client/tests/standalone_test.c",
             "client/src/platform/http.c",
-            "client/src/publisher/relay.c",
+            "client/src/publisher/destination.c",
+        "client/src/publisher/relay.c",
             "client/src/publisher/standalone.c"
         )
         Invoke-CTest "standalone_documents" @(
