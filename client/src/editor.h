@@ -48,6 +48,12 @@ int s64_editor_replace_all(
 void s64_editor_toggle_insert(S64Editor* editor);
 void s64_editor_toggle_word_wrap(S64Editor* editor);
 
+int s64_editor_format_bold(S64Editor* editor);
+int s64_editor_format_italic(S64Editor* editor);
+int s64_editor_format_heading(S64Editor* editor, unsigned char level);
+int s64_editor_format_list_item(S64Editor* editor);
+int s64_editor_format_link(S64Editor* editor, const char* url);
+
 void s64_editor_toggle_mark(S64Editor* editor);
 void s64_editor_select_all(S64Editor* editor);
 void s64_editor_clear_selection(S64Editor* editor);
