@@ -73,14 +73,12 @@ static void prepare_row(void)
 }
 
 static unsigned char position_selected(
-    const S64Editor* editor,
     unsigned int position,
     unsigned char has_selection,
     unsigned int selection_start,
     unsigned int selection_end
 )
 {
-    (void)editor;
     return has_selection
         && position >= selection_start
         && position < selection_end;
@@ -221,6 +219,7 @@ static void render_body_wrapped(
     unsigned char found = 0u;
     unsigned char row;
     unsigned char col;
+    unsigned char line_break;
 
     if (has_selection) {
         selection_start = s64_editor_selection_start(editor);
@@ -230,9 +229,16 @@ static void render_body_wrapped(
     for (row = EDITOR_FIRST_ROW; row < STATUS_ROW; ++row) {
         prepare_row();
         col = 0u;
+        line_break = 0u;
+
+        if (!found && position == cursor) {
+            *cursor_row = row;
+            *cursor_col = 0u;
+            found = 1u;
+        }
 
         while (position < length && col < SCREEN_COLUMNS) {
-            if (position == cursor) {
+            if (!found && position == cursor) {
                 *cursor_row = row;
                 *cursor_col = col;
                 found = 1u;
@@ -240,12 +246,12 @@ static void render_body_wrapped(
 
             if (s64_buffer_char_at(&editor->buffer, position) == '\n') {
                 ++position;
+                line_break = 1u;
                 break;
             }
 
             row_chars[col] = s64_buffer_char_at(&editor->buffer, position);
             row_reverse[col] = position_selected(
-                editor,
                 position,
                 has_selection,
                 selection_start,
@@ -255,7 +261,10 @@ static void render_body_wrapped(
             ++col;
         }
 
-        if (!found && position == cursor) {
+        if (!found
+            && !line_break
+            && col < SCREEN_COLUMNS
+            && position == cursor) {
             *cursor_row = row;
             *cursor_col = col;
             found = 1u;
@@ -325,7 +334,6 @@ static void render_body_horizontal(
         while (display < end && col < SCREEN_COLUMNS) {
             row_chars[col] = s64_buffer_char_at(&editor->buffer, display);
             row_reverse[col] = position_selected(
-                editor,
                 display,
                 has_selection,
                 selection_start,
