@@ -99,8 +99,7 @@ if ($HostCc) {
         Invoke-CTest "standalone" @(
             "client/tests/standalone_test.c",
             "client/src/platform/http.c",
-            "client/src/publisher/destination.c",
-        "client/src/publisher/relay.c",
+            "client/src/publisher/relay.c",
             "client/src/publisher/standalone.c"
         )
         Invoke-CTest "standalone_documents" @(
@@ -153,6 +152,7 @@ if ($Cl65) {
         "client/src/input/input.c",
         "client/src/platform/uci.c",
         "client/src/platform/http.c",
+        "client/src/publisher/destination.c",
         "client/src/publisher/relay.c",
         "client/src/publisher/standalone.c",
         "client/src/publisher/standalone_documents.c",
