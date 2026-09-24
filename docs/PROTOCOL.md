@@ -104,6 +104,21 @@ Fields:
 
 Requires authentication.
 
+## WordPress document operations
+
+The WordPress adapter exposes equivalent page/post semantics under `/wp-json/see64you/v1`.
+
+- `GET /connection`: authenticated capability/permission check.
+- `GET /documents?type=post&managed=1`: list See64You-managed posts that the authenticated WordPress user can edit and that fit current C64 metadata/body limits. The response includes `count`.
+- `GET /documents/<id>?chunks=1`: open a document. Source is returned as `base64-chunks`, split from 180 source bytes per chunk so each encoded string remains within the UCI structured-string limit.
+- `POST /documents?ack=1`: create from an `application/x-see64you` wire document.
+- `PATCH /documents/<id>?ack=1`: update the same way. Setting See64You status to `draft` unpublishes a previously published WordPress document.
+- `DELETE /documents/<id>`: move the document to WordPress Trash.
+
+WordPress save requests preserve the requested canonical slug exactly. If WordPress would need to change it to resolve a collision, the adapter returns a slug-conflict error instead of silently changing the document identity.
+
+The C64 client does not buffer a whole WordPress source response. It queries bounded metadata and one base64 source chunk at a time, decodes directly into the existing gap buffer, and clears partial replacement data if a load fails after it has started.
+
 ## Response shape
 
 Responses are small JSON objects:

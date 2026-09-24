@@ -12,6 +12,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+require_once __DIR__ . '/lib/protocol.php';
+
 const SEE64YOU_META_SOURCE = '_see64you_source';
 const SEE64YOU_META_MANAGED = '_see64you_managed';
 
@@ -92,23 +94,82 @@ add_action('rest_api_init', static function (): void {
     ]);
 });
 
-function see64you_type(WP_REST_Request $request): string
+function see64you_type(WP_REST_Request $request): ?string
 {
     $type = sanitize_key((string)$request->get_param('type'));
-    return $type === 'page' ? 'page' : 'post';
+    return in_array($type, ['page', 'post'], true) ? $type : null;
 }
 
-function see64you_can_list_documents(WP_REST_Request $request): bool
+function see64you_request_input(WP_REST_Request $request): array|WP_Error
 {
-    return see64you_type($request) === 'page'
+    $contentType = strtolower((string)$request->get_header('content-type'));
+
+    if (str_contains($contentType, SEE64YOU_WIRE_MIME)) {
+        try {
+            return see64you_wire_parse($request->get_body());
+        } catch (InvalidArgumentException) {
+            return new WP_Error(
+                'see64you_invalid_wire',
+                'Invalid See64You wire document.',
+                ['status' => 400]
+            );
+        }
+    }
+
+    return [
+        'type' => (string)$request->get_param('type'),
+        'slug' => (string)$request->get_param('slug'),
+        'title' => (string)$request->get_param('title'),
+        'status' => (string)$request->get_param('status'),
+        'date' => (string)$request->get_param('date'),
+        'order' => (int)$request->get_param('order'),
+        'body' => (string)$request->get_param('body'),
+    ];
+}
+
+function see64you_input_type(array $input): ?string
+{
+    $type = sanitize_key((string)($input['type'] ?? ''));
+    return in_array($type, ['page', 'post'], true) ? $type : null;
+}
+
+function see64you_c64_metadata_compatible(array $document): bool
+{
+    return in_array((string)($document['wordpress_status'] ?? ''), ['publish', 'draft'], true)
+        && strlen((string)($document['slug'] ?? '')) <= 64
+        && preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', (string)($document['slug'] ?? '')) === 1
+        && strlen((string)($document['title'] ?? '')) <= 80
+        && strlen((string)($document['date'] ?? '')) <= 40
+        && strlen((string)($document['body'] ?? '')) <= 8192;
+}
+
+function see64you_can_list_documents(WP_REST_Request $request): bool|WP_Error
+{
+    $type = see64you_type($request);
+    if ($type === null) {
+        return new WP_Error('see64you_invalid_type', 'Invalid document type.', ['status' => 400]);
+    }
+
+    return $type === 'page'
         ? current_user_can('edit_pages')
         : current_user_can('edit_posts');
 }
 
-function see64you_can_create_document(WP_REST_Request $request): bool
+function see64you_can_create_document(WP_REST_Request $request): bool|WP_Error
 {
-    $type = see64you_type($request);
-    $status = sanitize_key((string)$request->get_param('status'));
+    $input = see64you_request_input($request);
+    if (is_wp_error($input)) {
+        return $input;
+    }
+
+    $type = see64you_input_type($input);
+    $status = see64you_status_to_wordpress(sanitize_key((string)($input['status'] ?? '')));
+    if ($type === null) {
+        return new WP_Error('see64you_invalid_type', 'Invalid document type.', ['status' => 400]);
+    }
+    if ($status === null) {
+        return new WP_Error('see64you_invalid_status', 'Invalid document status.', ['status' => 400]);
+    }
 
     if ($type === 'page') {
         return current_user_can('edit_pages')
@@ -119,14 +180,26 @@ function see64you_can_create_document(WP_REST_Request $request): bool
         && ($status !== 'publish' || current_user_can('publish_posts'));
 }
 
-function see64you_can_edit_document(WP_REST_Request $request): bool
+function see64you_can_edit_document(WP_REST_Request $request): bool|WP_Error
 {
     $id = (int)$request['id'];
     if ($id <= 0 || !current_user_can('edit_post', $id)) {
         return false;
     }
 
-    $status = sanitize_key((string)$request->get_param('status'));
+    if ($request->get_method() === 'GET') {
+        return true;
+    }
+
+    $input = see64you_request_input($request);
+    if (is_wp_error($input)) {
+        return $input;
+    }
+
+    $status = see64you_status_to_wordpress(sanitize_key((string)($input['status'] ?? '')));
+    if ($status === null) {
+        return new WP_Error('see64you_invalid_status', 'Invalid document status.', ['status' => 400]);
+    }
     if ($status !== 'publish') {
         return true;
     }
@@ -217,10 +290,12 @@ function see64you_document_response(WP_Post $post): array
 
     return [
         'id' => $post->ID,
+        'id_text' => (string)$post->ID,
         'type' => $post->post_type === 'page' ? 'page' : 'post',
         'slug' => $post->post_name,
-        'title' => get_the_title($post),
-        'status' => $post->post_status,
+        'title' => $post->post_title,
+        'status' => see64you_status_from_wordpress($post->post_status),
+        'wordpress_status' => $post->post_status,
         'date' => get_post_time(DATE_ATOM, false, $post),
         'order' => (int)$post->menu_order,
         'body' => $source,
@@ -228,23 +303,50 @@ function see64you_document_response(WP_Post $post): array
     ];
 }
 
-function see64you_list_documents(WP_REST_Request $request): WP_REST_Response
+function see64you_list_documents(WP_REST_Request $request): WP_REST_Response|WP_Error
 {
     $type = see64you_type($request);
-    $posts = get_posts([
+    if ($type === null) {
+        return new WP_Error('see64you_invalid_type', 'Invalid document type.', ['status' => 400]);
+    }
+
+    $args = [
         'post_type' => $type,
         'post_status' => ['publish', 'draft', 'pending', 'future', 'private'],
         'posts_per_page' => 100,
         'orderby' => $type === 'page' ? ['menu_order' => 'ASC', 'title' => 'ASC'] : ['date' => 'DESC'],
-    ]);
+    ];
 
+    if ((string)$request->get_param('managed') === '1') {
+        $args['post_status'] = ['publish', 'draft'];
+        $args['meta_query'] = [[
+            'key' => SEE64YOU_META_MANAGED,
+            'value' => '1',
+        ]];
+    }
+
+    $managedOnly = (string)$request->get_param('managed') === '1';
+    $posts = array_values(array_filter(
+        get_posts($args),
+        static function (WP_Post $post) use ($managedOnly): bool {
+            if (!current_user_can('edit_post', $post->ID)) {
+                return false;
+            }
+            return !$managedOnly
+                || see64you_c64_metadata_compatible(see64you_document_response($post));
+        }
+    ));
     $documents = array_map(static function (WP_Post $post): array {
         $item = see64you_document_response($post);
         unset($item['body']);
         return $item;
     }, $posts);
 
-    return new WP_REST_Response(['ok' => true, 'documents' => $documents]);
+    return new WP_REST_Response([
+        'ok' => true,
+        'count' => count($documents),
+        'documents' => $documents,
+    ]);
 }
 
 function see64you_get_document(WP_REST_Request $request): WP_REST_Response|WP_Error
@@ -254,29 +356,76 @@ function see64you_get_document(WP_REST_Request $request): WP_REST_Response|WP_Er
         return new WP_Error('see64you_not_found', 'Document not found.', ['status' => 404]);
     }
 
-    return new WP_REST_Response(['ok' => true, 'document' => see64you_document_response($post)]);
+    $document = see64you_document_response($post);
+    if ((string)$request->get_param('chunks') === '1') {
+        if (!see64you_c64_metadata_compatible($document)) {
+            return new WP_Error(
+                'see64you_incompatible_document',
+                'Document exceeds the current C64 client limits.',
+                ['status' => 422]
+            );
+        }
+
+        $source = (string)$document['body'];
+        $chunks = see64you_source_chunks($source);
+        unset($document['body']);
+        $document['source_encoding'] = 'base64-chunks';
+        $document['source_length'] = strlen($source);
+        $document['source_count'] = count($chunks);
+        $document['source_chunks'] = $chunks;
+    }
+
+    return new WP_REST_Response(['ok' => true, 'document' => $document]);
 }
 
 function see64you_save_document(WP_REST_Request $request): WP_REST_Response|WP_Error
 {
     $id = isset($request['id']) ? (int)$request['id'] : 0;
     $existing = $id > 0 ? get_post($id) : null;
-    $type = $existing instanceof WP_Post ? $existing->post_type : see64you_type($request);
+    $input = see64you_request_input($request);
+    if (is_wp_error($input)) {
+        return $input;
+    }
 
-    if (!in_array($type, ['post', 'page'], true)) {
+    $requestedType = see64you_input_type($input);
+    $type = $existing instanceof WP_Post ? $existing->post_type : $requestedType;
+    if (!in_array($type, ['post', 'page'], true)
+        || ($existing instanceof WP_Post && $requestedType !== null && $requestedType !== $type)) {
         return new WP_Error('see64you_invalid_type', 'Invalid document type.', ['status' => 400]);
     }
 
-    $title = sanitize_text_field((string)$request->get_param('title'));
-    $source = str_replace(["\r\n", "\r"], "\n", (string)$request->get_param('body'));
-    $status = sanitize_key((string)$request->get_param('status'));
-    $slug = sanitize_title((string)$request->get_param('slug'));
+    $title = sanitize_text_field((string)($input['title'] ?? ''));
+    $source = str_replace(["\r\n", "\r"], "\n", (string)($input['body'] ?? ''));
+    $status = see64you_status_to_wordpress(sanitize_key((string)($input['status'] ?? '')));
+    $slug = trim((string)($input['slug'] ?? ''));
+    $date = trim((string)($input['date'] ?? ''));
+    $order = (int)($input['order'] ?? 0);
 
-    if ($title === '') {
-        return new WP_Error('see64you_invalid_title', 'Title is required.', ['status' => 400]);
+    if ($title === '' || strlen($title) > 80) {
+        return new WP_Error('see64you_invalid_title', 'Title is invalid.', ['status' => 400]);
     }
-    if (!in_array($status, ['draft', 'publish', 'pending', 'private', 'future'], true)) {
-        $status = 'draft';
+    if (strlen($source) > 8192) {
+        return new WP_Error('see64you_document_too_large', 'Document is too large.', ['status' => 413]);
+    }
+    if ($status === null) {
+        return new WP_Error('see64you_invalid_status', 'Invalid document status.', ['status' => 400]);
+    }
+    if (strlen($slug) > 64
+        || preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug) !== 1) {
+        return new WP_Error('see64you_invalid_slug', 'Slug is invalid.', ['status' => 400]);
+    }
+    if (strlen($date) > 40) {
+        return new WP_Error('see64you_invalid_date', 'Date is invalid.', ['status' => 400]);
+    }
+
+    $parentId = $existing instanceof WP_Post ? (int)$existing->post_parent : 0;
+    $uniqueSlug = wp_unique_post_slug($slug, $id, $status, $type, $parentId);
+    if ($uniqueSlug !== $slug) {
+        return new WP_Error(
+            'see64you_slug_conflict',
+            'Slug is already in use. Choose another slug.',
+            ['status' => 409]
+        );
     }
 
     $postData = [
@@ -285,19 +434,16 @@ function see64you_save_document(WP_REST_Request $request): WP_REST_Response|WP_E
         'post_title' => $title,
         'post_content' => see64you_render_markup($source),
         'post_status' => $status,
-        'menu_order' => (int)$request->get_param('order'),
+        'post_name' => $slug,
+        'menu_order' => $order,
     ];
 
-    if ($slug !== '') {
-        $postData['post_name'] = $slug;
-    }
-
-    $date = trim((string)$request->get_param('date'));
     if ($date !== '') {
         $timestamp = strtotime($date);
-        if ($timestamp !== false) {
-            $postData['post_date'] = wp_date('Y-m-d H:i:s', $timestamp);
+        if ($timestamp === false) {
+            return new WP_Error('see64you_invalid_date', 'Date is invalid.', ['status' => 400]);
         }
+        $postData['post_date'] = wp_date('Y-m-d H:i:s', $timestamp);
     }
 
     $savedId = wp_insert_post(wp_slash($postData), true);
@@ -309,7 +455,25 @@ function see64you_save_document(WP_REST_Request $request): WP_REST_Response|WP_E
     update_post_meta($savedId, SEE64YOU_META_MANAGED, true);
 
     $post = get_post($savedId);
-    return new WP_REST_Response(['ok' => true, 'document' => see64you_document_response($post)], $id > 0 ? 200 : 201);
+    if (!$post instanceof WP_Post) {
+        return new WP_Error('see64you_save_failed', 'Saved document could not be loaded.', ['status' => 500]);
+    }
+
+    $document = see64you_document_response($post);
+    if ((string)$request->get_param('ack') === '1') {
+        return new WP_REST_Response([
+            'ok' => true,
+            'id' => $savedId,
+            'id_text' => (string)$savedId,
+            'slug' => $document['slug'],
+            'status' => $document['status'],
+        ], $id > 0 ? 200 : 201);
+    }
+
+    return new WP_REST_Response(
+        ['ok' => true, 'document' => $document],
+        $id > 0 ? 200 : 201
+    );
 }
 
 function see64you_delete_document(WP_REST_Request $request): WP_REST_Response|WP_Error
@@ -325,5 +489,11 @@ function see64you_delete_document(WP_REST_Request $request): WP_REST_Response|WP
         return new WP_Error('see64you_delete_failed', 'Could not move document to Trash.', ['status' => 500]);
     }
 
-    return new WP_REST_Response(['ok' => true, 'deleted' => true, 'id' => $id]);
+    return new WP_REST_Response([
+        'ok' => true,
+        'deleted' => true,
+        'deleted_int' => 1,
+        'id' => $id,
+        'id_text' => (string)$id,
+    ]);
 }
