@@ -58,7 +58,7 @@ static S64StandaloneResult query_list_string(
 )
 {
     S64HttpResult result;
-    int written = sprintf(list_path, "documents%%%u/%s", index, field);
+    int written = sprintf(list_path, "documents%%%u/%s", (unsigned int)index, field);
 
     if (written <= 0 || written >= (int)sizeof(list_path)) {
         return S64_STANDALONE_PROTOCOL_ERROR;
@@ -157,7 +157,7 @@ static S64StandaloneResult query_list_summary(
         return result;
     }
 
-    written = sprintf(list_path, "documents%%%u/order", index);
+    written = sprintf(list_path, "documents%%%u/order", (unsigned int)index);
     if (written <= 0 || written >= (int)sizeof(list_path)) {
         return S64_STANDALONE_PROTOCOL_ERROR;
     }
@@ -277,12 +277,12 @@ S64StandaloneResult s64_standalone_list_documents(
         }
     }
 
-    if (delivered_count != 0) {
-        *delivered_count = delivered;
-    }
     result = S64_STANDALONE_OK;
 
 cleanup:
+    if (delivered_count != 0) {
+        *delivered_count = delivered;
+    }
     if (response_created) {
         (void)s64_http_body_free(http, response_body_handle);
         (void)s64_http_header_free(http, response_header_handle);
