@@ -67,6 +67,8 @@ The first standalone publisher operation is login. It lets the firmware build a 
 
 The client keeps one active publishing destination in a fixed-buffer profile. The profile stores only backend type, normalized base URL and the explicit insecure-LAN opt-in; all Standalone and WordPress endpoint URLs are constructed centrally with bounded output buffers. UI code therefore never assembles backend paths or query strings itself.
 
+A separate small publishing-state structure tracks connection state and the current remote identity. For Standalone the identity is the canonical slug; for WordPress it is the numeric post ID. This lets the future UI distinguish create/update/delete safely. In particular, changing a Standalone slug after opening a remote document no longer qualifies as an in-place update, preventing an accidental duplicate file from masquerading as a rename.
+
 The client document representation owns only bounded metadata and a pointer to the existing gap buffer. Its wire serializer emits metadata and body incrementally, so publishing an 8 KiB document does not require a second 8 KiB body allocation. Standalone Save uses that serializer with the compact `ack=1` API response; Delete uses the firmware's URL-encoded body builder. Both reuse the same bearer-auth and transport-safety path as login.
 
 ### C64U transport security
