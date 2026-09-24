@@ -9,8 +9,6 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] Add first cc65 editor core and C64 screen shell.
 - [x] Add first standalone flat-file PHP site.
 - [x] Add authenticated standalone publishing API.
-- [x] Reject protected standalone API tokens until site configuration is complete.
-- [x] Keep browser setup disabled until the owner explicitly enables the one-time setup marker.
 - [x] Add WordPress plugin scaffold using WordPress-native authentication.
 - [ ] Compile and run the C64 client under VICE; fix any cc65/keyboard incompatibilities found.
 - [x] Run the standalone site locally and exercise all API operations end-to-end.
@@ -20,14 +18,14 @@ This is the authoritative project work queue. Keep completed work concise and mo
 
 - [ ] Incremental screen redraw rather than whole-editor redraw after each input.
 - [x] Accurate vertical cursor movement preserving preferred column.
-- [x] Word wrap toggle.
+- [ ] Word wrap toggle.
 - [x] Home, End, Page Up/Page Down and word-navigation editor commands.
 - [x] Selection model and visible selection.
 - [x] Cut/copy/paste using an application clipboard.
 - [ ] Undo/redo transaction history.
-- [x] Find / find next / find previous.
-- [x] Replace / replace all.
-- [x] Go to line.
+- [ ] Find / find next / find previous.
+- [ ] Replace / replace all.
+- [ ] Go to line.
 - [ ] New/Open/Save/Save As using C64U-accessible storage.
 - [ ] Dirty-document confirmation before destructive actions.
 - [ ] Recovery/autosave files.
@@ -35,22 +33,23 @@ This is the authoritative project work queue. Keep completed work concise and mo
 
 ## P0 - Publishing
 
-- [ ] Implement C64U HTTP transport behind the publisher interface.
+- [ ] Implement C64U HTTP transport behind the publisher interface (bounded UCI/HTTP layer plus standalone login/save/delete operations implemented and host-tested; UI/hardware wiring pending).
 - [x] Add bounded UCI/HTTP-target capability probe from the published interface.
 - [ ] Verify current C64U UCI HTTP behaviour on target hardware.
-- [ ] Standalone login from C64U and token handling.
-- [ ] List/open/create/update/delete standalone pages.
-- [ ] List/open/create/update/delete standalone posts.
+- [ ] Standalone login from C64U and token handling (bounded login/session logic implemented and host-tested; direct plaintext login requires explicit trusted-LAN opt-in; UI/hardware validation pending).
+- [ ] Provide a secure local relay path for remote publishing unless C64U firmware gains verified TLS support.
+- [ ] List/open/create/update/delete standalone pages (create/update/delete core implemented through shared document operations; list/open pending).
+- [ ] List/open/create/update/delete standalone posts (create/update/delete core implemented through shared document operations; list/open pending).
 - [ ] WordPress Application Password configuration and connection test.
 - [ ] Publish/update/unpublish WordPress pages and posts.
-- [ ] Friendly error mapping for network, auth and server failures.
+- [ ] Friendly error mapping for network, auth and server failures (short C64-facing result messages implemented; UI wiring pending).
 
 ## P1 - Document format
 
 - [x] Define simple metadata + source-body representation.
 - [x] Implement safe minimal markup rendering on the standalone backend.
 - [ ] Freeze See64You Markup v1 after editor formatting commands are implemented.
-- [ ] Bold / italic / headings / lists / links formatting commands (safe editor-core transformations implemented/host-tested; FORMAT menu and link URL prompt wiring pending).
+- [ ] Bold / italic / headings / lists / links formatting commands.
 - [ ] C64 preview view.
 - [ ] Preserve unsupported markup as text rather than corrupting it.
 

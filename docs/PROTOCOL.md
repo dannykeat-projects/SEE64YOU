@@ -11,11 +11,17 @@ Standalone:
 Fields:
 - `password`
 
-Success returns JSON containing a bearer token and expiry. Subsequent protected calls send:
+Success returns JSON containing a bearer token and expiry. The C64U standalone publisher stores the returned token and expiry only; it does not retain the submitted password. Subsequent protected calls send:
 
 `Authorization: Bearer <token>`
 
-Use HTTPS outside trusted local testing.
+Normal browser/API clients should use HTTPS outside trusted local testing.
+
+### C64U transport note
+
+The current upstream UCI HTTP target must not be treated as TLS merely because it accepts an `https://` resource string. Rechecking upstream `master` shows the header parser selecting port 443 and recording a secure flag, while the exchange path still opens a plain TCP socket and sends the HTTP request directly with no TLS handshake. See64You therefore rejects direct `https://` login until secure target behaviour is verified, and requires explicit opt-in before sending credentials over plaintext HTTP.
+
+For real remote publishing, use a trusted local relay that keeps the C64U-to-relay leg inside a controlled LAN and uses HTTPS from the relay onward, or use future firmware with verified TLS support.
 
 Until the standalone site is configured, no bearer token is accepted for protected operations. An empty or missing token secret must never act as a usable signing key.
 
@@ -75,6 +81,12 @@ Form or JSON fields:
 - `order` (optional)
 
 Requires authentication.
+
+For memory-constrained clients, append `ack=1` to request a compact response:
+
+`POST api.php?action=save&ack=1`
+
+This returns only `ok`, `slug` and `status` rather than echoing the complete saved document. It is particularly useful when the request body uses `application/x-see64you`.
 
 ### Delete
 

@@ -50,9 +50,34 @@ The first implementation prioritises correctness and a runnable shell. Increment
 
 ## Transport
 
-Publishing operations should depend on a narrow transport layer rather than direct UCI calls scattered through UI code. The intended C64U implementation is UCI HTTP where available, with room for a development/compatibility bridge if needed.
+Publishing operations depend on a narrow transport layer rather than direct UCI calls scattered through UI code. The C64U implementation uses the firmware 3.15+ UCI HTTP target ($06).
 
-No transport should be required for local document editing.
+The low-level UCI executor:
+- enforces the documented 896-byte command limit;
+- writes commands as small caller-owned parts, avoiding a second 896-byte staging buffer;
+- drains response/status queues and acknowledges every returned block;
+- streams multi-block response data through a bounded callback buffer;
+- aborts timed-out commands so a failed request does not intentionally leave a command in flight.
+
+The HTTP wrapper uses reusable firmware header/body handles and raw exchanges. Binary request bodies are split into 893-byte payload chunks (three bytes are reserved for target, command and body handle), while response bodies can be consumed incrementally. This is important for an 8 KiB editor document and avoids requiring a second document-sized network buffer.
+
+HTTP handles survive a C64 reset in the Ultimate firmware, so the publishing session issues HTTP FREE ALL before allocating its first handles.
+
+The first standalone publisher operation is login. It lets the firmware build a URL-encoded `password` body, accepts the raw JSON response into a small bounded scratch buffer, stores only the returned bearer token and expiry, and frees request handles on success or failure. The normal site password is never retained in the session structure.
+
+The client document representation owns only bounded metadata and a pointer to the existing gap buffer. Its wire serializer emits metadata and body incrementally, so publishing an 8 KiB document does not require a second 8 KiB body allocation. Standalone Save uses that serializer with the compact `ack=1` API response; Delete uses the firmware's URL-encoded body builder. Both reuse the same bearer-auth and transport-safety path as login.
+
+### C64U transport security
+
+Do not infer TLS support from the HTTP target accepting an `https://` resource string. This was rechecked against current upstream `master` during development: `HttpHeaderSlot` recognises `https://`, sets port 443 and records a `secure` flag, but `HttpTarget::cmd_exchange` still passes only host/port to `HttpRequest::connect_to_server`. That function opens a normal `AF_INET/SOCK_STREAM` socket and `send_request` writes the HTTP request bytes directly. No TLS handshake is present in that path.
+
+Accordingly:
+- See64You rejects `https://` direct-login attempts as unsupported instead of silently sending plaintext to port 443;
+- plaintext `http://` or bare-host login is disabled unless the caller explicitly opts into insecure transport;
+- insecure direct login is intended only for controlled trusted-LAN testing or a local compatibility relay;
+- secure remote publishing needs a trusted local relay that terminates HTTPS, or future C64U firmware whose TLS behaviour has been verified on target hardware.
+
+Target hardware still needs to validate the exact UCI behaviour and keyboard/network integration. No transport is required for local document editing.
 
 ## Standalone web backend
 
@@ -74,4 +99,4 @@ The WordPress plugin exposes a deliberately small document API. WordPress remain
 
 The C64 client cannot make an untrusted server safe. Backends therefore validate document type, slug and authentication independently.
 
-Standalone-site login returns a short-lived signed token. Production publishing should use HTTPS because possession of a valid token grants publishing access until expiry.
+Standalone-site login returns a short-lived signed token. Ordinary web clients should use HTTPS. On the C64U path, credentials or bearer tokens must not cross an untrusted network until TLS is provided by verified firmware or a trusted relay.
