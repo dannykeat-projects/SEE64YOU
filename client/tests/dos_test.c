@@ -115,6 +115,7 @@ int main(void)
     CollectSink sink;
     unsigned char payload[1000];
     uint16_t bytes_read = 0u;
+    uint8_t exists = 0u;
     unsigned int i;
 
     s64_dos_init(&dos, mock_execute, S64_DOS_TARGET_PRIMARY);
@@ -156,7 +157,7 @@ int main(void)
     memset(&sink, 0, sizeof(sink));
     sink.accept = 0u;
     result = s64_dos_read(&dos, 3u, collect, &sink, &bytes_read);
-    require(result == S64_DOS_TRANSPORT_ERROR, "consumer abort propagates safely");
+    require(result == S64_DOS_CONSUMER_ABORTED, "consumer abort remains distinguishable");
 
     for (i = 0u; i < sizeof(payload); ++i) {
         payload[i] = (unsigned char)(i & 0xffu);
@@ -178,6 +179,17 @@ int main(void)
     require(result == S64_DOS_OK, "close succeeds");
     require(mock.lengths[0] == 2u, "close command length");
     require(mock.bytes[0][1] == 0x03u, "close opcode");
+
+    mock_reset();
+    result = s64_dos_file_exists(&dos, "old.s64", &exists);
+    require(result == S64_DOS_OK && exists == 1u, "existing file stat succeeds");
+    require(mock.bytes[0][1] == 0x08u, "file stat opcode");
+
+    mock_reset();
+    mock.status = "88,FILE NOT FOUND";
+    exists = 1u;
+    result = s64_dos_file_exists(&dos, "missing.s64", &exists);
+    require(result == S64_DOS_OK && exists == 0u, "missing file stat is normal absence");
 
     mock_reset();
     result = s64_dos_delete_file(&dos, "old.s64");
@@ -229,6 +241,12 @@ int main(void)
     require(
         s64_dos_close(&dos) == S64_DOS_TRANSPORT_ERROR,
         "transport timeout mapped"
+    );
+
+    mock_reset();
+    require(
+        s64_dos_open_read(&dos, "bad\nname.s64") == S64_DOS_INVALID_ARGUMENT,
+        "control characters in filenames rejected"
     );
 
     s64_dos_init(&dos, mock_execute, 0x06u);
