@@ -14,6 +14,7 @@ typedef enum {
     S64_DOS_OK = 0,
     S64_DOS_INVALID_ARGUMENT,
     S64_DOS_TRANSPORT_ERROR,
+    S64_DOS_CONSUMER_ABORTED,
     S64_DOS_NOT_FOUND,
     S64_DOS_ACCESS_DENIED,
     S64_DOS_NO_FILE_OPEN,
@@ -47,6 +48,11 @@ S64DosResult s64_dos_write(
     uint16_t length
 );
 
+S64DosResult s64_dos_file_exists(
+    S64Dos* dos,
+    const char* filename,
+    uint8_t* exists
+);
 S64DosResult s64_dos_delete_file(S64Dos* dos, const char* filename);
 S64DosResult s64_dos_rename_file(
     S64Dos* dos,
