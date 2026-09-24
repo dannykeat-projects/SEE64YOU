@@ -21,6 +21,7 @@
 #define S64_UCI_STATUS_AVAILABLE 0x40u
 #define S64_UCI_DATA_AVAILABLE   0x80u
 
+#define S64_UCI_TARGET_DOS       0x01u
 #define S64_UCI_TARGET_HTTP      0x06u
 #define S64_UCI_CMD_IDENTIFY     0x01u
 
@@ -233,36 +234,22 @@ static uint8_t s64_uci_count_identify(
 
 static uint8_t s64_uci_status_ok(const char* status, uint16_t length)
 {
-    return length >= 3u
+    return length >= 2u
         && status != 0
         && status[0] == '0'
-        && status[1] == '0'
-        && status[2] == '0';
+        && status[1] == '0';
 }
 
-void s64_uci_probe_capabilities(S64UciCapabilities* capabilities)
+static uint8_t s64_uci_probe_target(uint8_t target)
 {
-    static const uint8_t identify_command[] = {
-        S64_UCI_TARGET_HTTP,
-        S64_UCI_CMD_IDENTIFY
-    };
+    uint8_t identify_command[2];
     S64UciCommandPart part;
     S64UciReply reply;
     S64IdentifySink sink;
     char status[16];
 
-    if (capabilities == 0) {
-        return;
-    }
-
-    capabilities->interface_present = 0u;
-    capabilities->http_target = 0u;
-
-    if (!s64_uci_interface_present()) {
-        return;
-    }
-
-    capabilities->interface_present = 1u;
+    identify_command[0] = target;
+    identify_command[1] = S64_UCI_CMD_IDENTIFY;
 
     part.data = identify_command;
     part.length = (uint16_t)sizeof(identify_command);
@@ -274,9 +261,26 @@ void s64_uci_probe_capabilities(S64UciCapabilities* capabilities)
     reply.status_capacity = (uint16_t)sizeof(status);
     reply.status_length = 0u;
 
-    if (s64_uci_execute(&part, 1u, &reply) == S64_UCI_OK
+    return s64_uci_execute(&part, 1u, &reply) == S64_UCI_OK
         && sink.count != 0u
-        && s64_uci_status_ok(status, reply.status_length)) {
-        capabilities->http_target = 1u;
+        && s64_uci_status_ok(status, reply.status_length);
+}
+
+void s64_uci_probe_capabilities(S64UciCapabilities* capabilities)
+{
+    if (capabilities == 0) {
+        return;
     }
+
+    capabilities->interface_present = 0u;
+    capabilities->dos_target = 0u;
+    capabilities->http_target = 0u;
+
+    if (!s64_uci_interface_present()) {
+        return;
+    }
+
+    capabilities->interface_present = 1u;
+    capabilities->dos_target = s64_uci_probe_target(S64_UCI_TARGET_DOS);
+    capabilities->http_target = s64_uci_probe_target(S64_UCI_TARGET_HTTP);
 }

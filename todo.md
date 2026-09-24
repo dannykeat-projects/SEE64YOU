@@ -26,7 +26,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [ ] Find / find next / find previous.
 - [ ] Replace / replace all.
 - [ ] Go to line.
-- [ ] New/Open/Save/Save As using C64U-accessible storage.
+- [ ] New/Open/Save/Save As using C64U-accessible storage (Ultimate-DOS capability probe and bounded open/read/write/close/delete/rename layer implemented with host tests; document integration and File UI pending).
 - [ ] Dirty-document confirmation before destructive actions.
 - [ ] Recovery/autosave files.
 - [ ] Finish/validate modern USB-keyboard shortcuts and C64-keyboard-friendly mappings (MARK/function-key baseline implemented).
