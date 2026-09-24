@@ -18,7 +18,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 
 - [ ] Incremental screen redraw rather than whole-editor redraw after each input.
 - [x] Accurate vertical cursor movement preserving preferred column.
-- [ ] Word wrap toggle.
+- [x] Word wrap toggle.
 - [x] Home, End, Page Up/Page Down and word-navigation editor commands.
 - [x] Selection model and visible selection.
 - [x] Cut/copy/paste using an application clipboard.
