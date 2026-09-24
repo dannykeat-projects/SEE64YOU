@@ -30,9 +30,13 @@ else
     echo "SKIP secure relay tests (python3 not found)"
 fi
 
-echo "== Host gap-buffer tests =="
+echo "== Host charset tests =="
 TMP_BIN=$(mktemp)
 trap 'rm -f "$TMP_BIN"' EXIT
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/charset_test.c client/src/charset.c -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host gap-buffer tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/buffer_test.c client/src/buffer.c -o "$TMP_BIN"
 "$TMP_BIN"
 
