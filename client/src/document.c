@@ -1,4 +1,5 @@
 #include "document.h"
+#include "charset.h"
 
 #include <limits.h>
 #include <stdio.h>
@@ -7,6 +8,54 @@
 #define S64_DOCUMENT_WIRE_CHUNK 128u
 
 static uint8_t wire_chunk[S64_DOCUMENT_WIRE_CHUNK];
+
+static uint8_t native_to_wire(uint8_t native, uint8_t* wire)
+{
+#ifdef S64_NATIVE_PETSCII
+    return s64_charset_petscii_to_ascii(native, wire);
+#else
+    if (wire == 0) return 0u;
+    *wire = native;
+    return 1u;
+#endif
+}
+
+static uint8_t wire_to_native(uint8_t wire, uint8_t* native)
+{
+#ifdef S64_NATIVE_PETSCII
+    return s64_charset_ascii_to_petscii(wire, native);
+#else
+    if (native == 0) return 0u;
+    *native = wire;
+    return 1u;
+#endif
+}
+
+static uint8_t native_string_wire_valid(const char* text)
+{
+    uint8_t wire;
+
+    if (text == 0) return 0u;
+
+    while (*text != '\0') {
+        if (!native_to_wire((uint8_t)*text, &wire)) return 0u;
+        ++text;
+    }
+    return 1u;
+}
+
+static uint8_t native_body_wire_valid(const S64Buffer* body)
+{
+    unsigned int i;
+    uint8_t wire;
+
+    if (body == 0) return 0u;
+
+    for (i = 0u; i < s64_buffer_length(body); ++i) {
+        if (!native_to_wire(s64_buffer_char_at(body, i), &wire)) return 0u;
+    }
+    return 1u;
+}
 
 static uint8_t copy_text(char* destination, uint16_t capacity, const char* source)
 {
@@ -75,7 +124,26 @@ int s64_document_slug_valid(const char* slug)
 static uint8_t emit(S64DocumentSink sink, void* context, const char* text)
 {
     size_t length = strlen(text);
-    return sink((const uint8_t*)text, (uint16_t)length, context);
+    size_t offset = 0u;
+    uint16_t chunk;
+    uint16_t i;
+
+    while (offset < length) {
+        chunk = (uint16_t)(length - offset);
+        if (chunk > S64_DOCUMENT_WIRE_CHUNK) {
+            chunk = S64_DOCUMENT_WIRE_CHUNK;
+        }
+
+        for (i = 0u; i < chunk; ++i) {
+            if (!native_to_wire((uint8_t)text[offset + i], &wire_chunk[i])) {
+                return 0u;
+            }
+        }
+        if (!sink(wire_chunk, chunk, context)) return 0u;
+        offset += chunk;
+    }
+
+    return 1u;
 }
 
 void s64_document_init(S64Document* document, S64Buffer* body)
@@ -305,7 +373,10 @@ uint8_t s64_document_wire_reader_write(
     }
 
     for (i = 0u; i < length; ++i) {
-        byte = data[i];
+        if (!wire_to_native(data[i], &byte)) {
+            reader->result = S64_DOCUMENT_INVALID_METADATA;
+            return 0u;
+        }
 
         if (reader->phase == S64_WIRE_PHASE_BODY) {
             if (!s64_buffer_insert(reader->document->body, byte)) {
@@ -378,7 +449,11 @@ S64DocumentResult s64_document_write_wire(
     status = s64_document_status_name(document->status);
     if (type == 0 || status == 0 || !s64_document_slug_valid(document->slug)
         || !header_text_valid(document->title, S64_DOCUMENT_TITLE_CAPACITY, 0u)
-        || !header_text_valid(document->date, S64_DOCUMENT_DATE_CAPACITY, 1u)) {
+        || !header_text_valid(document->date, S64_DOCUMENT_DATE_CAPACITY, 1u)
+        || !native_string_wire_valid(document->slug)
+        || !native_string_wire_valid(document->title)
+        || !native_string_wire_valid(document->date)
+        || !native_body_wire_valid(document->body)) {
         return S64_DOCUMENT_INVALID_METADATA;
     }
 
@@ -408,7 +483,12 @@ S64DocumentResult s64_document_write_wire(
             chunk = S64_DOCUMENT_WIRE_CHUNK;
         }
         for (i = 0u; i < chunk; ++i) {
-            wire_chunk[i] = s64_buffer_char_at(document->body, offset + i);
+            if (!native_to_wire(
+                    s64_buffer_char_at(document->body, offset + i),
+                    &wire_chunk[i]
+                )) {
+                return S64_DOCUMENT_INVALID_METADATA;
+            }
         }
         if (!sink(wire_chunk, chunk, context)) {
             return S64_DOCUMENT_SINK_ERROR;
