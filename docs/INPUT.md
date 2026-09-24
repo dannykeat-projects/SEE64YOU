@@ -18,7 +18,8 @@ For that reason the reliable baseline is **MARK mode**:
 - F5: cut;
 - F6: Replace / Replace All;
 - F7: paste;
-- F8: exit during early development.
+- F8: toggle Word Wrap;
+- RUN/STOP: exit the current development shell (inside a prompt it cancels the prompt).
 
 The eventual menus will expose the same commands, so function-key shortcuts are never mandatory.
 
