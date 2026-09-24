@@ -366,6 +366,7 @@ static int replace_line_prefix(
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
     unsigned int start = line_start(&editor->buffer, cursor);
     unsigned int new_cursor;
+    unsigned int relative = cursor - start;
     unsigned int extra = prefix_length > existing_length
         ? prefix_length - existing_length
         : 0u;
@@ -388,7 +389,11 @@ static int replace_line_prefix(
         return 0;
     }
 
-    new_cursor = cursor - existing_length + prefix_length;
+    if (relative <= existing_length) {
+        new_cursor = start + (relative < prefix_length ? relative : prefix_length);
+    } else {
+        new_cursor = cursor - existing_length + prefix_length;
+    }
     s64_buffer_move_cursor(&editor->buffer, new_cursor);
     finish_format_edit(editor, 0u, 0u, 0u);
     return 1;
