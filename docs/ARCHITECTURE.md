@@ -79,6 +79,14 @@ Accordingly:
 
 Target hardware still needs to validate the exact UCI behaviour and keyboard/network integration. No transport is required for local document editing.
 
+## Local C64U storage
+
+Local New/Open/Save/Save As will use the Ultimate-DOS UCI target rather than depending on a mounted disk image. The low-level client layer now supports bounded file open/read/write/close plus delete, rename, change-directory and create-directory operations.
+
+Reads use the shared UCI executor, which acknowledges the Ultimate's streamed response blocks. Writes are split into 512-byte payloads as recommended by the Ultimate-DOS interface and do not allocate a second document-sized buffer. Overwrite/create uses the documented write/create-always attribute combination.
+
+The capability probe reports Ultimate-DOS separately from the HTTP target so File commands can degrade cleanly when direct filesystem access is unavailable. Document serialization/parsing and File-menu UI remain separate layers; directory browsing is intentionally deferred until its per-entry packet-boundary behavior is handled without flattening entries in the generic UCI stream.
+
 ## Standalone web backend
 
 The standalone site:
