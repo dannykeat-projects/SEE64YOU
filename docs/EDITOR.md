@@ -49,6 +49,14 @@ The editor core owns:
 
 UI rendering should read editor state; it should not become the document model.
 
+## Word wrap and viewport
+
+Word Wrap is enabled by default, preserving the original 40-column soft viewport behaviour. F8 toggles it.
+
+When Word Wrap is off, one logical document line occupies one screen row and the editor keeps a horizontal viewport offset. Moving the cursor beyond the left/right edge scrolls the view just enough to keep the insertion point visible; Home returns the current line to the first column. Re-enabling Word Wrap clears the horizontal offset.
+
+This is a visual layout setting only. It never inserts or removes newline characters from the canonical source.
+
 ## Search and navigation
 
 The current editor supports a compact keyboard-driven search flow:
