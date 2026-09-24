@@ -128,9 +128,10 @@ void s64_input_read(S64InputEvent* event)
             event->type = S64_INPUT_PASTE;
             return;
         case CH_F8:
-            event->type = S64_INPUT_EXIT;
+            event->type = S64_INPUT_TOGGLE_WRAP;
             return;
         case CH_STOP:
+            event->type = S64_INPUT_EXIT;
             return;
         default:
             break;
