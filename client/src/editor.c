@@ -399,12 +399,39 @@ static int replace_line_prefix(
     return 1;
 }
 
+static uint8_t ascii_equal_ci(char left, char right)
+{
+    if (left >= 'A' && left <= 'Z') left = (char)(left + ('a' - 'A'));
+    if (right >= 'A' && right <= 'Z') right = (char)(right + ('a' - 'A'));
+    return left == right;
+}
+
+static uint8_t url_has_supported_scheme(const char* url)
+{
+    static const char http_scheme[] = "http://";
+    static const char https_scheme[] = "https://";
+    unsigned int i;
+
+    if (url == 0) return 0u;
+
+    for (i = 0u; i < sizeof(http_scheme) - 1u; ++i) {
+        if (url[i] == '\0' || !ascii_equal_ci(url[i], http_scheme[i])) break;
+    }
+    if (i == sizeof(http_scheme) - 1u) return 1u;
+
+    for (i = 0u; i < sizeof(https_scheme) - 1u; ++i) {
+        if (url[i] == '\0' || !ascii_equal_ci(url[i], https_scheme[i])) return 0u;
+    }
+    return 1u;
+}
+
 static uint8_t link_url_valid(const char* url, unsigned int* length)
 {
     unsigned int i = 0u;
     unsigned char value;
 
-    if (url == 0 || url[0] == '\0' || length == 0) {
+    if (url == 0 || url[0] == '\0' || length == 0
+        || !url_has_supported_scheme(url)) {
         return 0u;
     }
 
@@ -1038,7 +1065,7 @@ int s64_editor_format_heading(S64Editor* editor, unsigned char level)
     char prefix[8];
     unsigned int i;
 
-    if (editor == 0 || level < 1u || level > 6u) {
+    if (editor == 0 || level < 1u || level > 2u) {
         return 0;
     }
 
