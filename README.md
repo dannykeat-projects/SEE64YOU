@@ -28,7 +28,7 @@ tools/        Local validation/development helpers
 
 ## Current status
 
-The project is in its first implementation phase. The repository includes the initial editor core, flat-file web backend and WordPress integration scaffold. See `todo.md` for the authoritative work queue.
+The project is in its first implementation phase. The repository includes the initial editor core, flat-file web backend and WordPress integration scaffold. See `todo.md` for the authoritative work queue. Before merging the current implementation stack, follow `docs/LOCAL_TESTING.md` for the integration, VICE and C64U validation order.
 
 ## Design principle
 
