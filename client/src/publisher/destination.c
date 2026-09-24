@@ -14,7 +14,10 @@ static uint8_t id_digits(const char* value)
 
     if (value == 0 || value[0] == '\0') return 0u;
     while (value[i] != '\0') {
-        if (value[i] < '0' || value[i] > '9') return 0u;
+        if (i >= S64_WORDPRESS_REMOTE_ID_MAX
+            || value[i] < '0' || value[i] > '9') {
+            return 0u;
+        }
         ++i;
     }
     return 1u;
