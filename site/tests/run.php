@@ -150,6 +150,57 @@ try {
     }
     check($metadataRejected, 'date longer than C64 metadata capacity rejected');
 
+    foreach ([2147483648, -2147483649, '1.5'] as $badOrder) {
+        $orderRejected = false;
+        try {
+            $documents->save([
+                'type' => 'post',
+                'slug' => 'bad-order',
+                'title' => 'Bad order',
+                'status' => 'draft',
+                'order' => $badOrder,
+                'body' => '',
+            ]);
+        } catch (InvalidArgumentException $exception) {
+            $orderRejected = $exception->getMessage() === 'invalid_order';
+        }
+        check($orderRejected, 'out-of-range/invalid order rejected');
+    }
+
+    $largeRejected = false;
+    try {
+        $documents->save([
+            'type' => 'post',
+            'slug' => 'too-large',
+            'title' => 'Too large',
+            'status' => 'draft',
+            'body' => str_repeat('x', 8193),
+        ]);
+    } catch (InvalidArgumentException $exception) {
+        $largeRejected = $exception->getMessage() === 'document_too_large';
+    }
+    check($largeRejected, 'body beyond C64 buffer rejected');
+
+    $duplicateWireRejected = false;
+    try {
+        S64Wire::parse(str_replace(
+            "Type: page\n",
+            "Type: page\nType: post\n",
+            $wire
+        ));
+    } catch (InvalidArgumentException $exception) {
+        $duplicateWireRejected = $exception->getMessage() === 'invalid_wire_document';
+    }
+    check($duplicateWireRejected, 'duplicate wire header rejected');
+
+    $wireOrderRejected = false;
+    try {
+        S64Wire::parse(str_replace("Order: 10", "Order: 2147483648", $wire));
+    } catch (InvalidArgumentException $exception) {
+        $wireOrderRejected = $exception->getMessage() === 'invalid_wire_document';
+    }
+    check($wireOrderRejected, 'wire order beyond int32 rejected');
+
     echo "site tests passed\n";
 } finally {
     $iterator = new RecursiveIteratorIterator(
