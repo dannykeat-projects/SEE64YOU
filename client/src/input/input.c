@@ -3,6 +3,7 @@
 #include <conio.h>
 
 #include "input.h"
+#include "charset.h"
 
 #define S64_SHFLAG (*(volatile unsigned char*)0x028Du)
 #define S64_MOD_SHIFT 0x01u
@@ -11,7 +12,11 @@
 
 static unsigned char s64_is_printable(unsigned char key)
 {
-    return key >= 0x20u && key <= 0x7eu;
+    uint8_t ascii;
+
+    return s64_charset_petscii_to_ascii(key, &ascii)
+        && ascii >= 0x20u
+        && ascii <= 0x7Eu;
 }
 
 static S64InputType s64_control_command(unsigned char key, unsigned char modifiers)
