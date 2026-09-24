@@ -37,14 +37,17 @@ The input layer uses this state alongside buffered keyboard characters. Where fi
 - Ctrl+C: Copy
 - Ctrl+X: Cut
 - Ctrl+V: Paste
+- Ctrl+N: New
+- Ctrl+O: Open
 - Ctrl+S: Save
+- Ctrl+Shift+S: Save As
 - Ctrl+F: Find
 - Ctrl+G: Go to line
 - Ctrl+H: Replace
 - Ctrl+Z: Undo
 - Ctrl+Y: Redo
 
-Find, Replace and Go to line now have working prompt flows. Save, Undo and Redo remain normalized commands awaiting their implementation layers.
+Find, Replace, Go to line and local file commands have working prompt flows. On a physical C64 keyboard, Commodore+F1 creates a new document, Commodore+F3 opens, Commodore+F5 saves and Commodore+F7 invokes Save As. Undo and Redo remain normalized commands awaiting their implementation layers.
 
 ## Validation rule
 

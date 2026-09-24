@@ -101,11 +101,11 @@ Target hardware still needs to validate the exact UCI behaviour and keyboard/net
 
 ## Local C64U storage
 
-Local New/Open/Save/Save As will use the Ultimate-DOS UCI target rather than depending on a mounted disk image. The low-level client layer now supports bounded file open/read/write/close plus delete, rename, change-directory and create-directory operations.
+Local New/Open/Save/Save As use the Ultimate-DOS UCI target rather than depending on a mounted disk image. Open streams the canonical See64You wire representation directly into the existing document buffer. A failed parse or interrupted read clears the partial destination, so truncated source cannot appear to be a successfully opened document.
 
-Reads use the shared UCI executor, which acknowledges the Ultimate's streamed response blocks. Writes are split into 512-byte payloads as recommended by the Ultimate-DOS interface and do not allocate a second document-sized buffer. Overwrite/create uses the documented write/create-always attribute combination.
+Reads use the shared UCI executor, which acknowledges the Ultimate's streamed response blocks. Saves serialize incrementally to a temporary file, close it, then replace the destination through delete/rename operations. A failed write removes the temporary file without truncating the existing destination; a failed final rename leaves the complete temporary file recoverable. Writes are split into bounded payloads by the Ultimate-DOS layer and do not allocate a second document-sized buffer. Save As checks for an existing destination before asking the user to overwrite it.
 
-The capability probe reports Ultimate-DOS separately from the HTTP target so File commands can degrade cleanly when direct filesystem access is unavailable. Document serialization/parsing and File-menu UI remain separate layers; directory browsing is intentionally deferred until its per-entry packet-boundary behavior is handled without flattening entries in the generic UCI stream.
+New, Open and Exit protect dirty documents with an explicit confirmation. A new document derives default title and slug metadata from its first Save As filename. The capability probe reports Ultimate-DOS separately from the HTTP target so File commands degrade cleanly when direct filesystem access is unavailable. Directory browsing remains deferred until its per-entry packet-boundary behavior is handled without flattening entries in the generic UCI stream.
 
 ## Standalone web backend
 

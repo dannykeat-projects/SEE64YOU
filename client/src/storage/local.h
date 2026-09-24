@@ -24,6 +24,7 @@ typedef struct {
     S64Document* document;
     char filename[S64_LOCAL_FILENAME_CAPACITY];
     S64DosResult dos_result;
+    uint8_t document_replaced;
 } S64LocalDocument;
 
 void s64_local_init(
@@ -34,6 +35,7 @@ void s64_local_init(
 
 const char* s64_local_result_message(const S64LocalDocument* local, S64LocalResult result);
 uint8_t s64_local_has_filename(const S64LocalDocument* local);
+uint8_t s64_local_document_replaced(const S64LocalDocument* local);
 
 S64LocalResult s64_local_new(S64LocalDocument* local, uint8_t discard_dirty);
 S64LocalResult s64_local_open(

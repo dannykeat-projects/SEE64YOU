@@ -225,11 +225,13 @@ int main(void)
         s64_local_open(&local, "missing.s64", 1u) == S64_LOCAL_IO_ERROR,
         "missing open maps to file error"
     );
+    require(!s64_local_document_replaced(&local), "pre-open failure reports no replacement");
     require_body(&body, "Opened body", "failed pre-open preserves document");
 
     set_file("broken.s64", "SEE64YOU/1\nType: post\n\npartial");
     result = s64_local_open(&local, "broken.s64", 1u);
     require(result == S64_LOCAL_INVALID_DOCUMENT, "invalid wire rejected");
+    require(s64_local_document_replaced(&local), "parsed failure reports cleared document");
     require(s64_buffer_length(&body) == 0u, "failed parsed open clears partial body");
     require(!s64_local_has_filename(&local), "failed parsed open clears identity");
 

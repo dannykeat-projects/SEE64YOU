@@ -13,7 +13,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [ ] Compile and run the C64 client under VICE; cc65 module compiles and linked C64 PRG pass on integration branch, but VICE runtime validation remains unavailable.
 - [x] Run the standalone site locally and exercise all API operations end-to-end.
 - [ ] Install the WordPress plugin on a test WordPress instance and exercise REST operations.
-- [ ] Complete integrated validation: PHP lint/site and WordPress protocol tests, 12 relay tests, standalone HTTP lifecycle, and cc65 module/C64 builds passed 2026-09-24; host C tests, VICE/C64U checks, and GitHub Actions remain unavailable (no host compiler, emulator, registered runner, or workflows).
+- [x] Run integrated automated validation locally and on the `terra64-wsl` self-hosted runner (PHP, HTTP, relay, host C, UCI compile and cc65 build passed 2026-09-24; VICE/C64U remain separate hardware gates).
 
 ## P0 - Editor essentials
 
@@ -27,8 +27,8 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] Find / find next / find previous (UI flows implemented; VICE validation pending).
 - [x] Replace / replace all (UI flows implemented; VICE validation pending).
 - [x] Go to line (UI flow implemented; VICE validation pending).
-- [ ] New/Open/Save/Save As using C64U-accessible storage (Ultimate-DOS capability probe and bounded open/read/write/close/delete/rename layer implemented with host tests; document integration and File UI pending).
-- [ ] Dirty-document confirmation before destructive actions.
+- [x] New/Open/Save/Save As using C64U-accessible storage (streamed canonical files, temporary-file replacement, overwrite detection and host tests implemented; C64U validation pending).
+- [x] Dirty-document confirmation before New, Open and Exit.
 - [ ] Recovery/autosave files.
 - [ ] Finish/validate modern USB-keyboard shortcuts and C64-keyboard-friendly mappings (MARK/function-key baseline implemented).
 

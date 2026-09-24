@@ -105,6 +105,7 @@ void s64_local_init(S64LocalDocument* local, S64Dos* dos, S64Document* document)
     local->document = document;
     local->filename[0] = '\0';
     local->dos_result = S64_DOS_OK;
+    local->document_replaced = 0u;
 }
 
 const char* s64_local_result_message(const S64LocalDocument* local, S64LocalResult result)
@@ -128,6 +129,11 @@ uint8_t s64_local_has_filename(const S64LocalDocument* local)
     return local != 0 && local->filename[0] != '\0';
 }
 
+uint8_t s64_local_document_replaced(const S64LocalDocument* local)
+{
+    return local != 0 && local->document_replaced;
+}
+
 S64LocalResult s64_local_new(S64LocalDocument* local, uint8_t discard_dirty)
 {
     if (local == 0 || local->document == 0 || local->document->body == 0) {
@@ -137,6 +143,7 @@ S64LocalResult s64_local_new(S64LocalDocument* local, uint8_t discard_dirty)
 
     clear_document(local);
     local->filename[0] = '\0';
+    local->document_replaced = 1u;
     return S64_LOCAL_OK;
 }
 
@@ -159,6 +166,7 @@ S64LocalResult s64_local_open(
         return S64_LOCAL_INVALID_ARGUMENT;
     }
     if (!discard_dirty) return S64_LOCAL_DIRTY;
+    local->document_replaced = 0u;
 
     dos_result = s64_dos_open_read(local->dos, checked_filename);
     if (dos_result != S64_DOS_OK) {
@@ -167,6 +175,7 @@ S64LocalResult s64_local_open(
     }
 
     s64_document_wire_reader_init(&reader, local->document);
+    local->document_replaced = 1u;
     do {
         bytes_read = 0u;
         dos_result = s64_dos_read(

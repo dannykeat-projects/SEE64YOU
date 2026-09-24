@@ -79,6 +79,10 @@ static void open_document(void)
 
     result = s64_local_open(&local_document, filename, 1u);
     if (result != S64_LOCAL_OK) {
+        if (s64_local_document_replaced(&local_document)) {
+            s64_editor_document_loaded(&editor);
+            s64_ui_render(&editor);
+        }
         show_local_result(result);
         return;
     }
