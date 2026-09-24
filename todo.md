@@ -10,14 +10,14 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] Add first standalone flat-file PHP site.
 - [x] Add authenticated standalone publishing API.
 - [x] Add WordPress plugin scaffold using WordPress-native authentication.
-- [ ] Compile and run the C64 client under VICE; cc65 module compiles and linked C64 PRG pass on integration branch, but VICE runtime validation remains unavailable.
+- [x] Compile and run the C64 client under VICE (user verified startup and basic text entry on 2026-09-24; focused editor-flow checks remain below).
 - [x] Run the standalone site locally and exercise all API operations end-to-end.
 - [ ] Install the WordPress plugin on a test WordPress instance and exercise REST operations.
 - [x] Run integrated automated validation locally and on the `terra64-wsl` self-hosted runner (PHP, HTTP, relay, host C, UCI compile and cc65 build passed 2026-09-24; VICE/C64U remain separate hardware gates).
 
 ## P0 - Editor essentials
 
-- [ ] Incremental screen redraw rather than whole-editor redraw after each input.
+- [ ] Replace whole-editor redraws during typing with incremental character/line, cursor and changed-status redraws; current VICE behaviour is slow and visibly flickers.
 - [x] Accurate vertical cursor movement preserving preferred column.
 - [x] Word wrap toggle and horizontal scrolling (F8; VICE validation pending).
 - [x] Home, End, Page Up/Page Down and word-navigation editor commands.
@@ -30,7 +30,17 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] New/Open/Save/Save As using C64U-accessible storage (streamed canonical files, temporary-file replacement, overwrite detection and host tests implemented; C64U validation pending).
 - [x] Dirty-document confirmation before New, Open and Exit.
 - [ ] Recovery/autosave files.
-- [ ] Finish/validate modern USB-keyboard shortcuts and C64-keyboard-friendly mappings (MARK/function-key baseline implemented).
+- [ ] Finish/validate modern USB-keyboard shortcuts and C64-keyboard-friendly mappings (MARK/function-key baseline implemented); Shift+letter currently does not produce capitals in VICE.
+
+## Manual VICE/C64U checks
+
+These player-facing checks are assigned to the user where practical; automated source and regression checks remain part of development.
+
+- [ ] After incremental rendering: type continuously, insert/delete within a line, hold Backspace, move the cursor and scroll; confirm immediate display with no full-screen flicker or stale characters.
+- [ ] After Shift handling: verify Shift+letter capitals, shifted punctuation, Caps Lock/Shift Lock behaviour, and unshifted input with both the emulated C64 keyboard and a modern USB keyboard where available.
+- [ ] Exercise New, Open, Save and Save As, including dirty-document and overwrite prompts; confirm saved source reopens exactly.
+- [ ] Exercise word wrap, horizontal scrolling, selection, clipboard, find/replace, go-to-line and formatting shortcuts at 40x25.
+- [ ] Repeat storage and keyboard checks on real C64U hardware when available; record firmware and keyboard type with any failure.
 
 ## P0 - Publishing
 
