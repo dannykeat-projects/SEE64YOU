@@ -17,7 +17,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 
 ## P0 - Editor essentials
 
-- [ ] Replace whole-editor redraws during typing with incremental character/line, cursor and changed-status redraws; current VICE behaviour is slow and visibly flickers.
+- [ ] Replace whole-editor redraws during typing with incremental updates (cell-diff body/status renderer implemented 2026-09-25; VICE validation pending).
 - [x] Accurate vertical cursor movement preserving preferred column.
 - [x] Word wrap toggle and horizontal scrolling (F8; VICE validation pending).
 - [x] Home, End, Page Up/Page Down and word-navigation editor commands.
