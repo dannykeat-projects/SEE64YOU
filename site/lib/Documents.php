@@ -56,7 +56,7 @@ final class S64Documents
         $body = str_replace(["\r\n", "\r"], "\n", (string)($input['body'] ?? ''));
         $status = (string)($input['status'] ?? 'draft');
         $date = trim((string)($input['date'] ?? ''));
-        $order = (int)($input['order'] ?? 0);
+        $order = $this->validateOrder($input['order'] ?? 0);
 
         if ($title === '' || strlen($title) > 80) {
             throw new InvalidArgumentException('invalid_title');
@@ -69,6 +69,9 @@ final class S64Documents
         }
         if (strlen($date) > 40) {
             throw new InvalidArgumentException('invalid_date');
+        }
+        if (strlen($body) > 8192) {
+            throw new InvalidArgumentException('document_too_large');
         }
 
         $document = [
@@ -133,6 +136,43 @@ final class S64Documents
         return $type;
     }
 
+    private function validateOrder(mixed $value): int
+    {
+        if (is_int($value)) {
+            if ($value < -2147483648 || $value > 2147483647) {
+                throw new InvalidArgumentException('invalid_order');
+            }
+            return $value;
+        }
+
+        if (!is_string($value)) {
+            throw new InvalidArgumentException('invalid_order');
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return 0;
+        }
+        if (!preg_match('/^[+-]?\d+$/', $value)) {
+            throw new InvalidArgumentException('invalid_order');
+        }
+
+        $negative = str_starts_with($value, '-');
+        $digits = ltrim($value, '+-');
+        $digits = ltrim($digits, '0');
+        if ($digits === '') {
+            return 0;
+        }
+
+        $limit = $negative ? '2147483648' : '2147483647';
+        if (strlen($digits) > strlen($limit)
+            || (strlen($digits) === strlen($limit) && strcmp($digits, $limit) > 0)) {
+            throw new InvalidArgumentException('invalid_order');
+        }
+
+        return (int)$value;
+    }
+
     private function validateSlug(string $slug): string
     {
         if (strlen($slug) > 64
@@ -176,7 +216,7 @@ final class S64Documents
             'title' => $headers['title'] ?? $slug,
             'status' => $headers['status'] ?? 'draft',
             'date' => $headers['date'] ?? '',
-            'order' => (int)($headers['order'] ?? 0),
+            'order' => $this->validateOrder($headers['order'] ?? '0'),
             'body' => implode("\n", $lines),
         ];
     }
