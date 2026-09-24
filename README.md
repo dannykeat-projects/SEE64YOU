@@ -65,7 +65,7 @@ php -S 127.0.0.1:8080 -t site
 
 Then open `http://127.0.0.1:8080/`.
 
-For publishing/API access, open `http://127.0.0.1:8080/setup.php` and complete the one-time setup form. It creates `config.php` with a password hash and random token-signing secret. Manual setup using `config.example.php` remains available.
+For publishing/API access, create an empty `site/ENABLE_SETUP` marker, then open `http://127.0.0.1:8080/setup.php` and complete the one-time setup form. Setup is disabled without that server-side marker, and successful setup removes it automatically. The form creates `config.php` with a password hash and random token-signing secret. Manual setup using `config.example.php` remains available.
 
 ## Philosophy
 

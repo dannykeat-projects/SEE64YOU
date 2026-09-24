@@ -17,6 +17,8 @@ Success returns JSON containing a bearer token and expiry. Subsequent protected 
 
 Use HTTPS outside trusted local testing.
 
+Until the standalone site is configured, no bearer token is accepted for protected operations. An empty or missing token secret must never act as a usable signing key.
+
 WordPress uses WordPress-native REST authentication. Application Passwords are the preferred initial mechanism.
 
 ## Operations

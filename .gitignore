@@ -6,6 +6,7 @@ client/*.lbl
 
 # Local standalone-site configuration and runtime data
 site/config.php
+site/ENABLE_SETUP
 site/data/sessions/
 site/data/*.tmp
 

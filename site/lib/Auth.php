@@ -36,6 +36,10 @@ final class S64Auth
 
     public function valid(string $token): bool
     {
+        if (!$this->configured()) {
+            return false;
+        }
+
         $parts = explode('.', $token);
         if (count($parts) !== 4 || $parts[0] !== 'v1') {
             return false;
