@@ -10,6 +10,9 @@ site/ENABLE_SETUP
 site/data/sessions/
 site/data/*.tmp
 
+# Local relay secrets/configuration
+relay/config.json
+
 # Editor/OS clutter
 .vscode/
 .idea/

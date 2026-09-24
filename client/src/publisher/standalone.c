@@ -1,4 +1,5 @@
 #include "standalone.h"
+#include "relay.h"
 
 #include <string.h>
 
@@ -205,6 +206,14 @@ S64StandaloneResult s64_standalone_validate_transport(
         : S64_STANDALONE_INSECURE_TRANSPORT;
 }
 
+static S64StandaloneResult s64_standalone_add_relay_header(
+    S64HttpTransport* http,
+    uint8_t header_handle
+)
+{
+    return s64_standalone_map_http(s64_relay_add_header(http, header_handle));
+}
+
 S64StandaloneResult s64_standalone_add_authorization(
     S64HttpTransport* http,
     uint8_t header_handle,
@@ -216,8 +225,15 @@ S64StandaloneResult s64_standalone_add_authorization(
     uint16_t prefix_length = (uint16_t)(sizeof(prefix) - 1u);
     S64HttpResult result;
 
+    S64StandaloneResult relay_result;
+
     if (http == 0 || session == 0) {
         return S64_STANDALONE_INVALID_ARGUMENT;
+    }
+
+    relay_result = s64_standalone_add_relay_header(http, header_handle);
+    if (relay_result != S64_STANDALONE_OK) {
+        return relay_result;
     }
 
     while (length < S64_STANDALONE_TOKEN_CAPACITY
@@ -365,6 +381,11 @@ S64StandaloneResult s64_standalone_login(
         return s64_standalone_map_http(http_result);
     }
     header_created = 1u;
+
+    result = s64_standalone_add_relay_header(http, header_handle);
+    if (result != S64_STANDALONE_OK) {
+        goto cleanup;
+    }
 
     http_result = s64_http_body_create(http, S64_HTTP_BODY_URL_ENCODED, &body_handle);
     if (http_result != S64_HTTP_OK) {

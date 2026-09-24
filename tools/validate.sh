@@ -20,6 +20,13 @@ else
     echo "SKIP HTTP API tests (curl not found)"
 fi
 
+if command -v python3 >/dev/null 2>&1; then
+    echo "== Secure relay tests =="
+    python3 -m unittest discover -s relay/tests -p 'test_*.py'
+else
+    echo "SKIP secure relay tests (python3 not found)"
+fi
+
 echo "== Host gap-buffer tests =="
 TMP_BIN=$(mktemp)
 trap 'rm -f "$TMP_BIN"' EXIT
@@ -42,16 +49,20 @@ echo "== Host Ultimate DOS tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/dos_test.c client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host relay client tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/relay_test.c client/src/platform/http.c client/src/publisher/relay.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host standalone publisher tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_test.c client/src/platform/http.c client/src/publisher/standalone.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_test.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/standalone.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host standalone document publisher tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_documents_test.c client/src/buffer.c client/src/document.c client/src/platform/http.c client/src/publisher/standalone.c client/src/publisher/standalone_documents.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_documents_test.c client/src/buffer.c client/src/document.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/standalone.c client/src/publisher/standalone_documents.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host standalone list/open tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_list_open_test.c client/src/buffer.c client/src/document.c client/src/platform/http.c client/src/publisher/standalone.c client/src/publisher/standalone_documents.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_list_open_test.c client/src/buffer.c client/src/document.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/standalone.c client/src/publisher/standalone_documents.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host UCI compile check =="

@@ -76,8 +76,22 @@ Do not infer TLS support from the HTTP target accepting an `https://` resource s
 Accordingly:
 - See64You rejects `https://` direct-login attempts as unsupported instead of silently sending plaintext to port 443;
 - plaintext `http://` or bare-host login is disabled unless the caller explicitly opts into insecure transport;
-- insecure direct login is intended only for controlled trusted-LAN testing or a local compatibility relay;
-- secure remote publishing needs a trusted local relay that terminates HTTPS, or future C64U firmware whose TLS behaviour has been verified on target hardware.
+- insecure direct login is intended only for controlled trusted-LAN testing or the local compatibility relay;
+- future direct HTTPS support must be verified on target hardware before this safety gate is relaxed.
+
+### Trusted-LAN HTTPS relay
+
+The optional `relay/` service provides the secure remote path without making the C64 client a TLS implementation. The C64U sends HTTP to a relay on a controlled LAN. Every relay request may carry a separate 32-byte random relay key in `X-See64You-Relay-Key`; the site bearer token or WordPress Authorization header remains independent. The relay then forwards only approved paths to one configured HTTPS origin using the host Python TLS stack with certificate verification enabled.
+
+The relay is deliberately constrained rather than acting as a general proxy:
+- the upstream origin is fixed and must use HTTPS;
+- redirects are not followed;
+- optional client IP/CIDR restrictions can limit the LAN source;
+- only configured endpoint prefixes are exposed;
+- relay authentication, request/response size limits and header filtering are enforced;
+- relay credentials, Host and Cookie headers are never forwarded upstream.
+
+This protects the internet-facing leg, but the C64U-to-relay leg remains plaintext. It therefore belongs only on a trusted LAN, not public Wi-Fi or another untrusted local network.
 
 Target hardware still needs to validate the exact UCI behaviour and keyboard/network integration. No transport is required for local document editing.
 

@@ -1,0 +1,11 @@
+{
+  "listen_host": "0.0.0.0",
+  "listen_port": 6464,
+  "upstream_base": "https://example.com/site/",
+  "relay_key": "replace-with-64-hex-characters",
+  "allowed_clients": ["192.168.1.64/32"],
+  "allowed_path_prefixes": ["/api.php", "/wp-json/see64you/"],
+  "max_request_bytes": 65536,
+  "max_response_bytes": 262144,
+  "timeout_seconds": 20
+}
