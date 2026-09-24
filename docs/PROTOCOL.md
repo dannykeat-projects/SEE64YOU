@@ -2,6 +2,10 @@
 
 The standalone backend defines the reference See64You document operations. The WordPress adapter should expose equivalent semantics where WordPress permits them.
 
+## Text encoding
+
+The `SEE64YOU/1` canonical document wire format uses 7-bit ASCII text with LF line endings. The C64 client keeps editor text in native PETSCII and converts at the document read/write boundary; bytes that cannot be represented by the current source-text subset are rejected rather than silently corrupted. A future protocol revision may define a wider character repertoire after display/editing behaviour is specified.
+
 ## Authentication
 
 Standalone:

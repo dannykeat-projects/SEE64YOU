@@ -44,7 +44,7 @@ These player-facing checks are assigned to the user where practical; automated s
 
 ## P0 - Publishing
 
-- [ ] Normalize C64 PETSCII text at ASCII file/network boundaries before end-to-end publishing; target-only encoding mismatch verified while fixing Shift input.
+- [ ] Normalize C64 PETSCII text at external ASCII boundaries before end-to-end publishing (canonical .s64 read/write conversion implemented 2026-09-25; UCI HTTP textual command/response conversion still pending).
 - [ ] Implement C64U HTTP transport behind the publisher interface (bounded UCI/HTTP layer plus standalone login/save/delete operations implemented and host-tested; UI/hardware wiring pending).
 - [x] Add bounded UCI/HTTP-target capability probe from the published interface.
 - [ ] Verify current C64U UCI HTTP behaviour on target hardware.
