@@ -85,6 +85,19 @@ if ($HostCc) {
             "client/tests/http_test.c",
             "client/src/platform/http.c"
         )
+        Invoke-CTest "destination" @(
+            "client/tests/destination_test.c",
+            "client/src/document.c",
+            "client/src/buffer.c",
+            "client/src/publisher/destination.c"
+        )
+        Invoke-CTest "publisher_state" @(
+            "client/tests/publisher_state_test.c",
+            "client/src/document.c",
+            "client/src/buffer.c",
+            "client/src/publisher/destination.c",
+            "client/src/publisher/state.c"
+        )
         Invoke-CTest "relay" @(
             "client/tests/relay_test.c",
             "client/src/platform/http.c",
@@ -160,6 +173,8 @@ if ($Cl65) {
         "client/src/platform/uci.c",
         "client/src/platform/dos.c",
         "client/src/platform/http.c",
+        "client/src/publisher/destination.c",
+        "client/src/publisher/state.c",
         "client/src/publisher/relay.c",
         "client/src/publisher/standalone.c",
         "client/src/publisher/standalone_documents.c",
