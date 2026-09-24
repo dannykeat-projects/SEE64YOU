@@ -9,7 +9,7 @@ static uint8_t wordpress_id_valid(const char* identity)
     if (identity == 0 || identity[0] == '\0') return 0u;
 
     while (identity[length] != '\0') {
-        if (length + 1u >= S64_PUBLISH_IDENTITY_CAPACITY
+        if (length >= S64_WORDPRESS_REMOTE_ID_MAX
             || identity[length] < '0' || identity[length] > '9') {
             return 0u;
         }
