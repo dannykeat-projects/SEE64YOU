@@ -1,6 +1,6 @@
 # Keyboard and input
 
-See64You uses a normalized input layer so editor commands do not depend directly on PETSCII key values.
+See64You uses a normalized input layer so editor commands do not depend directly on PETSCII key values. Printable keyboard input is validated against an explicit 7-bit source-text PETSCII/ASCII mapping rather than assuming printable PETSCII occupies ASCII byte ranges.
 
 ## Why selection cannot simply be Shift+Arrow
 
