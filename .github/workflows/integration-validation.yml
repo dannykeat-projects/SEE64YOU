@@ -15,4 +15,4 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run full validation
-        run: ./tools/validate.sh
+        run: sh ./tools/validate.sh
