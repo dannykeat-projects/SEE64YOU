@@ -21,6 +21,7 @@ typedef struct {
 } S64Editor;
 
 void s64_editor_init(S64Editor* editor);
+void s64_editor_document_loaded(S64Editor* editor);
 int s64_editor_insert(S64Editor* editor, unsigned char value);
 int s64_editor_newline(S64Editor* editor);
 int s64_editor_backspace(S64Editor* editor);

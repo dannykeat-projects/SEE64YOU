@@ -93,4 +93,4 @@ Every transformation checks buffer capacity before insertion and is designed to 
 
 ## Large documents
 
-The first implementation proves editing with a fixed buffer in normal memory. C64U REU storage is intended to support larger documents, clipboard and undo history later. The UI should not assume that all document bytes remain permanently addressable in main RAM.
+The first implementation proves editing with an 8 KiB fixed document buffer and a 2 KiB application clipboard in normal memory. C64U REU storage is intended to support larger documents, clipboard and undo history later. The UI should not assume that all document bytes remain permanently addressable in main RAM.

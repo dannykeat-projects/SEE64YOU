@@ -5,6 +5,7 @@
 #include "input.h"
 
 #define S64_SHFLAG (*(volatile unsigned char*)0x028Du)
+#define S64_MOD_SHIFT 0x01u
 #define S64_MOD_COMMODORE 0x02u
 #define S64_MOD_CONTROL 0x04u
 
@@ -13,7 +14,7 @@ static unsigned char s64_is_printable(unsigned char key)
     return key >= 0x20u && key <= 0x7eu;
 }
 
-static S64InputType s64_control_command(unsigned char key)
+static S64InputType s64_control_command(unsigned char key, unsigned char modifiers)
 {
     switch (key) {
         case 0x01u: return S64_INPUT_SELECT_ALL; /* Ctrl+A */
@@ -21,7 +22,11 @@ static S64InputType s64_control_command(unsigned char key)
         case 0x06u: return S64_INPUT_FIND;       /* Ctrl+F */
         case 0x07u: return S64_INPUT_GOTO_LINE;  /* Ctrl+G */
         case 0x08u: return S64_INPUT_REPLACE;    /* Ctrl+H */
-        case 0x13u: return S64_INPUT_SAVE;        /* Ctrl+S */
+        case 0x0Eu: return S64_INPUT_NEW;        /* Ctrl+N */
+        case 0x0Fu: return S64_INPUT_OPEN;       /* Ctrl+O */
+        case 0x13u: return (modifiers & S64_MOD_SHIFT) != 0u
+            ? S64_INPUT_SAVE_AS
+            : S64_INPUT_SAVE;                   /* Ctrl+Shift+S / Ctrl+S */
         case 0x16u: return S64_INPUT_PASTE;       /* Ctrl+V */
         case 0x18u: return S64_INPUT_CUT;         /* Ctrl+X */
         case 0x19u: return S64_INPUT_REDO;        /* Ctrl+Y */
@@ -56,7 +61,7 @@ void s64_input_read(S64InputEvent* event)
             return;
         }
 
-        event->type = s64_control_command(key);
+        event->type = s64_control_command(key, modifiers);
         if (event->type != S64_INPUT_NONE) {
             return;
         }
@@ -64,6 +69,18 @@ void s64_input_read(S64InputEvent* event)
 
     if ((modifiers & S64_MOD_COMMODORE) != 0u) {
         switch (key) {
+            case CH_F1:
+                event->type = S64_INPUT_NEW;
+                return;
+            case CH_F3:
+                event->type = S64_INPUT_OPEN;
+                return;
+            case CH_F5:
+                event->type = S64_INPUT_SAVE;
+                return;
+            case CH_F7:
+                event->type = S64_INPUT_SAVE_AS;
+                return;
             case CH_CURS_LEFT:
                 event->type = S64_INPUT_HOME;
                 return;

@@ -552,6 +552,20 @@ void s64_editor_init(S64Editor* editor)
     editor->word_wrap = 1u;
 }
 
+void s64_editor_document_loaded(S64Editor* editor)
+{
+    editor->view_start = 0u;
+    editor->view_column = 0u;
+    editor->line = 1u;
+    editor->column = 1u;
+    editor->selection_anchor = s64_buffer_cursor(&editor->buffer);
+    editor->preferred_column = 0u;
+    editor->selection_valid = 0u;
+    editor->preferred_column_valid = 0u;
+    editor->mark_mode = 0u;
+    editor->dirty = 0u;
+}
+
 void s64_editor_recalculate_position(S64Editor* editor)
 {
     unsigned int i;

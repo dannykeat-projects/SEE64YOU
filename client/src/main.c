@@ -3,9 +3,12 @@
 #include <string.h>
 
 #include "clipboard.h"
+#include "document.h"
 #include "editor.h"
 #include "input/input.h"
+#include "platform/dos.h"
 #include "platform/uci.h"
+#include "storage/local.h"
 #include "ui.h"
 
 #define SEARCH_TEXT_CAPACITY 33u
@@ -13,9 +16,128 @@
 
 static S64Editor editor;
 static S64Clipboard clipboard;
+static S64Document document;
+static S64Dos dos;
+static S64LocalDocument local_document;
 static S64UciCapabilities uci_capabilities;
 static char find_query[SEARCH_TEXT_CAPACITY];
 static unsigned char find_query_valid;
+
+static unsigned char local_storage_ready(void)
+{
+    if (!uci_capabilities.dos_target) {
+        s64_ui_message("Ultimate DOS unavailable");
+        return 0u;
+    }
+    return 1u;
+}
+
+static unsigned char allow_discard(void)
+{
+    return !editor.dirty || s64_ui_prompt_yes_no("Discard changes? Y/N");
+}
+
+static void show_local_result(S64LocalResult result)
+{
+    s64_ui_message(s64_local_result_message(&local_document, result));
+}
+
+static void new_document(void)
+{
+    S64LocalResult result;
+
+    if (!allow_discard()) {
+        s64_ui_render(&editor);
+        return;
+    }
+
+    result = s64_local_new(&local_document, 1u);
+    if (result != S64_LOCAL_OK) {
+        show_local_result(result);
+        return;
+    }
+
+    s64_editor_document_loaded(&editor);
+    s64_ui_render(&editor);
+    s64_ui_message("New document");
+}
+
+static void open_document(void)
+{
+    char filename[S64_LOCAL_FILENAME_CAPACITY];
+    S64LocalResult result;
+
+    if (!local_storage_ready()) return;
+    if (!allow_discard()) {
+        s64_ui_render(&editor);
+        return;
+    }
+    if (!s64_ui_prompt_text("Open: ", filename, sizeof(filename))) {
+        s64_ui_render(&editor);
+        return;
+    }
+
+    result = s64_local_open(&local_document, filename, 1u);
+    if (result != S64_LOCAL_OK) {
+        show_local_result(result);
+        return;
+    }
+
+    s64_editor_document_loaded(&editor);
+    s64_ui_render(&editor);
+    s64_ui_message("File opened");
+}
+
+static void save_as_document(void)
+{
+    char filename[S64_LOCAL_FILENAME_CAPACITY];
+    S64LocalResult result;
+
+    if (!local_storage_ready()) return;
+    if (!s64_ui_prompt_text("Save as: ", filename, sizeof(filename))) {
+        s64_ui_render(&editor);
+        return;
+    }
+
+    result = s64_local_save_as(&local_document, filename, 0u);
+    if (result == S64_LOCAL_EXISTS) {
+        if (!s64_ui_prompt_yes_no("Overwrite file? Y/N")) {
+            s64_ui_render(&editor);
+            return;
+        }
+        result = s64_local_save_as(&local_document, filename, 1u);
+    }
+
+    if (result != S64_LOCAL_OK) {
+        show_local_result(result);
+        return;
+    }
+
+    editor.dirty = 0u;
+    s64_ui_render(&editor);
+    s64_ui_message("File saved");
+}
+
+static void save_document(void)
+{
+    S64LocalResult result;
+
+    if (!local_storage_ready()) return;
+    if (!s64_local_has_filename(&local_document)) {
+        save_as_document();
+        return;
+    }
+
+    result = s64_local_save(&local_document);
+    if (result != S64_LOCAL_OK) {
+        show_local_result(result);
+        return;
+    }
+
+    editor.dirty = 0u;
+    s64_ui_render(&editor);
+    s64_ui_message("File saved");
+}
 
 static void handle_clipboard_result(unsigned char ok, const char* failure)
 {
@@ -205,9 +327,13 @@ int main(void)
 
     s64_editor_init(&editor);
     s64_clipboard_init(&clipboard);
+    s64_document_init(&document, &editor.buffer);
+    s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
+    s64_local_init(&local_document, &dos, &document);
     s64_ui_init();
     s64_uci_probe_capabilities(&uci_capabilities);
     s64_ui_set_http_ready(uci_capabilities.http_target);
+    s64_ui_set_dos_ready(uci_capabilities.dos_target);
     s64_ui_render(&editor);
 
     while (running) {
@@ -293,8 +419,17 @@ int main(void)
                 );
                 continue;
 
+            case S64_INPUT_NEW:
+                new_document();
+                continue;
+            case S64_INPUT_OPEN:
+                open_document();
+                continue;
             case S64_INPUT_SAVE:
-                s64_ui_message("Save: storage layer next");
+                save_document();
+                continue;
+            case S64_INPUT_SAVE_AS:
+                save_as_document();
                 continue;
             case S64_INPUT_FIND:
                 prompt_find(0u);
@@ -319,6 +454,10 @@ int main(void)
                 continue;
 
             case S64_INPUT_EXIT:
+                if (editor.dirty && !s64_ui_prompt_yes_no("Discard and exit? Y/N")) {
+                    s64_ui_render(&editor);
+                    continue;
+                }
                 running = 0u;
                 continue;
 

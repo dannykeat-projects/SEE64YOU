@@ -52,6 +52,10 @@ echo "== Host Ultimate DOS tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/dos_test.c client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host local document tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/local_documents_test.c client/src/buffer.c client/src/document.c client/src/platform/dos.c client/src/storage/local.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host publisher destination tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/destination_test.c client/src/document.c client/src/buffer.c client/src/publisher/destination.c -o "$TMP_BIN"
 "$TMP_BIN"

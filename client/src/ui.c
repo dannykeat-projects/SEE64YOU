@@ -9,6 +9,7 @@
 #define STATUS_ROW 24u
 
 static unsigned char http_ready;
+static unsigned char dos_ready;
 
 static void clear_row(unsigned char row)
 {
@@ -45,7 +46,7 @@ static void render_status(const S64Editor* editor)
         editor->column,
         mode,
         dirty,
-        http_ready ? "HTTP" : "OFF",
+        dos_ready ? "DOS" : (http_ready ? "HTTP" : "OFF"),
         wrap,
         selection
     );
@@ -221,6 +222,11 @@ void s64_ui_set_http_ready(unsigned char ready)
     http_ready = ready ? 1u : 0u;
 }
 
+void s64_ui_set_dos_ready(unsigned char ready)
+{
+    dos_ready = ready ? 1u : 0u;
+}
+
 void s64_ui_render(const S64Editor* editor)
 {
     render_header();
@@ -283,6 +289,28 @@ unsigned char s64_ui_prompt_text(const char* label, char* value, unsigned char c
             && label_length + length < SCREEN_COLUMNS) {
             value[length++] = (char)key;
             cputc(key);
+        }
+    }
+}
+
+unsigned char s64_ui_prompt_yes_no(const char* label)
+{
+    unsigned char key;
+
+    clear_row(STATUS_ROW);
+    revers(1);
+    gotoxy(0u, STATUS_ROW);
+    cputs(label);
+
+    for (;;) {
+        key = (unsigned char)cgetc();
+        if (key == 'y' || key == 'Y') {
+            revers(0);
+            return 1u;
+        }
+        if (key == 'n' || key == 'N' || key == CH_STOP) {
+            revers(0);
+            return 0u;
         }
     }
 }

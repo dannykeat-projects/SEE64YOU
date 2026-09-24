@@ -146,6 +146,13 @@ if ($HostCc) {
             "client/tests/dos_test.c",
             "client/src/platform/dos.c"
         )
+        Invoke-CTest "local_documents" @(
+            "client/tests/local_documents_test.c",
+            "client/src/buffer.c",
+            "client/src/document.c",
+            "client/src/platform/dos.c",
+            "client/src/storage/local.c"
+        )
 
         Write-Host "== Host UCI compile check =="
         $UciObject = Join-Path $TestDir "uci.o"
@@ -193,10 +200,13 @@ if ($Cl65) {
         "client/src/main.c",
         "client/src/buffer.c",
         "client/src/clipboard.c",
+        "client/src/document.c",
         "client/src/editor.c",
         "client/src/ui.c",
         "client/src/input/input.c",
-        "client/src/platform/uci.c"
+        "client/src/platform/uci.c",
+        "client/src/platform/dos.c",
+        "client/src/storage/local.c"
     )
     & $Cl65.Path -t c64 -Oirs -I client/src -o client/build/see64you.prg @C64Sources
     if ($LASTEXITCODE -ne 0) { throw "C64 build failed" }
