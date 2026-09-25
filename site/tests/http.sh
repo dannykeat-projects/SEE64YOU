@@ -164,6 +164,28 @@ WRONG_TYPE_PREVIEW_CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/page.ph
 DIRECT_CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/posts/api-test.s64.php")
 [ "$DIRECT_CODE" = "404" ]
 
+BACKUP_UNAUTH_CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/api.php?action=backup")
+[ "$BACKUP_UNAUTH_CODE" = "401" ]
+
+BACKUP=$(curl -fsS -D "$TMP/backup.headers" -H "$AUTH" "$BASE/api.php?action=backup")
+grep -qi '^Content-Type: application/json' "$TMP/backup.headers"
+grep -qi '^Content-Disposition: attachment; filename="see64you-backup.json"' "$TMP/backup.headers"
+grep -qi '^Cache-Control: no-store' "$TMP/backup.headers"
+printf '%s' "$BACKUP" | php -r '
+$d=json_decode(stream_get_contents(STDIN),true);
+if (!is_array($d) || ($d["format"] ?? "") !== "see64you-backup/1") exit(1);
+if (!is_string($d["exported_at"] ?? null)) exit(1);
+if (($d["settings"]["site_title"] ?? "") !== "HTTP Test") exit(1);
+if (array_key_exists("password_hash", $d["settings"] ?? [])) exit(1);
+if (array_key_exists("token_secret", $d["settings"] ?? [])) exit(1);
+$posts=$d["posts"] ?? [];
+$bySlug=[];
+foreach ($posts as $post) $bySlug[$post["slug"] ?? ""]=$post;
+if (($bySlug["api-test"]["status"] ?? "") !== "draft") exit(1);
+if (($bySlug["api-test"]["body"] ?? "") !== "Hello **C64U** <script>bad()</script>") exit(1);
+if (($bySlug["wire-test"]["body"] ?? "") !== "A body sent without JSON escaping.\nSecond line.") exit(1);
+'
+
 curl -fsS -X POST -H "$AUTH" \
     --data-urlencode "type=post" \
     --data-urlencode "slug=api-test" \
