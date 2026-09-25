@@ -56,6 +56,8 @@ Output:
 client/build/see64you.prg
 ```
 
+The integration validation workflow also publishes the current successful C64 build as the GitHub Actions artifact `see64you-prg`, so the latest integration version can be downloaded for manual VICE/C64U testing without rebuilding locally.
+
 ## Running the standalone site locally
 
 Requires PHP 8.1+.
