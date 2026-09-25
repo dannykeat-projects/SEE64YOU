@@ -119,6 +119,28 @@ try {
     check($auth->valid($session['token']), 'issued token validates');
     check(!$auth->valid($session['token'] . 'x'), 'tampered token rejected');
 
+    $preview = $auth->previewToken('page', 'hello-world');
+    check(
+        is_int($preview['expires'] ?? null) && $preview['expires'] > time(),
+        'preview token includes a future expiry'
+    );
+    check(
+        $auth->validPreviewToken((string)$preview['token'], 'page', 'hello-world'),
+        'preview token validates for its document'
+    );
+    check(
+        !$auth->validPreviewToken((string)$preview['token'], 'post', 'hello-world'),
+        'preview token is bound to document type'
+    );
+    check(
+        !$auth->validPreviewToken((string)$preview['token'], 'page', 'another-page'),
+        'preview token is bound to document slug'
+    );
+    check(
+        !$auth->validPreviewToken((string)$preview['token'] . 'x', 'page', 'hello-world'),
+        'tampered preview token is rejected'
+    );
+
     $unconfigured = new S64Auth([
         'password_hash' => '',
         'token_secret' => '',

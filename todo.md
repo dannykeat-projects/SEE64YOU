@@ -77,7 +77,7 @@ These player-facing checks are assigned to the user where practical; automated s
 - [x] Optional simple/C64-inspired inline styling.
 - [x] Browser-based one-time setup helper.
 - [x] Site-settings API for title/theme/colours.
-- [ ] Draft preview links.
+- [x] Draft preview links (authenticated API issues signed one-hour document-specific preview URLs; draft rendering is no-store/noindex/no-referrer with unit and HTTP regression coverage).
 - [ ] Pagination/archive pages when post count warrants it.
 - [ ] Packaging script producing a self-contained upload directory.
 

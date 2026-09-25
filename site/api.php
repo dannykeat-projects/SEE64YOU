@@ -74,6 +74,32 @@ try {
         respond(['ok' => false, 'error' => 'unauthorized'], 401);
     }
 
+    if ($action === 'preview') {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+            respond(['ok' => false, 'error' => 'method_not_allowed'], 405);
+        }
+
+        $type = (string)($_GET['type'] ?? '');
+        $slug = (string)($_GET['slug'] ?? '');
+        $document = $documents->get($type, $slug);
+        if ($document === null) {
+            respond(['ok' => false, 'error' => 'not_found'], 404);
+        }
+        if ($document['status'] !== 'draft') {
+            respond(['ok' => false, 'error' => 'not_draft'], 400);
+        }
+
+        $preview = $auth->previewToken($type, $slug);
+        $script = $type === 'page' ? 'page.php' : 'post.php';
+        respond([
+            'ok' => true,
+            'preview_url' => $script
+                . '?slug=' . rawurlencode($slug)
+                . '&preview=' . rawurlencode((string)$preview['token']),
+            'expires' => $preview['expires'],
+        ]);
+    }
+
     if ($action === 'settings') {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
             respond(['ok' => true, 'settings' => $settings->publicValues()]);
