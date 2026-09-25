@@ -83,3 +83,29 @@ uint8_t s64_charset_petscii_to_ascii(uint8_t petscii, uint8_t* ascii)
     *ascii = value;
     return 1u;
 }
+
+uint8_t s64_charset_native_to_ascii(uint8_t native, uint8_t* ascii)
+{
+#ifdef S64_NATIVE_PETSCII
+    return s64_charset_petscii_to_ascii(native, ascii);
+#else
+    uint8_t unused;
+
+    if (ascii == 0 || !s64_charset_ascii_to_petscii(native, &unused)) return 0u;
+    *ascii = native;
+    return 1u;
+#endif
+}
+
+uint8_t s64_charset_ascii_to_native(uint8_t ascii, uint8_t* native)
+{
+#ifdef S64_NATIVE_PETSCII
+    return s64_charset_ascii_to_petscii(ascii, native);
+#else
+    uint8_t unused;
+
+    if (native == 0 || !s64_charset_ascii_to_petscii(ascii, &unused)) return 0u;
+    *native = ascii;
+    return 1u;
+#endif
+}
