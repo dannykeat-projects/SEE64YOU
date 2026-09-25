@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#define S64_BUFFER_CAPACITY 8192u
+#define S64_BUFFER_CAPACITY 4096u
 
 typedef struct {
     unsigned char data[S64_BUFFER_CAPACITY];

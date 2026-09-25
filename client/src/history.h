@@ -3,7 +3,7 @@
 
 #include "buffer.h"
 
-#define S64_HISTORY_CAPACITY 2048u
+#define S64_HISTORY_CAPACITY 512u
 
 typedef struct {
     unsigned int cursor;

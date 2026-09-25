@@ -52,7 +52,7 @@ UI rendering should read editor state; it should not become the document model.
 
 ## Undo/redo and recovery
 
-The base C64 editor keeps one bounded 2 KiB reversible edit transaction in ordinary RAM. Consecutive typing is coalesced, while cursor movement or another editing command starts a new transaction. Ctrl+Z undoes the current transaction and Ctrl+Shift+Z reapplies it. REU-backed multi-level history remains a later enhancement.
+The base C64 editor keeps one bounded 512-byte reversible edit transaction in ordinary RAM. Consecutive typing is coalesced, while cursor movement or another editing command starts a new transaction. Ctrl+Z undoes the current transaction and Ctrl+Shift+Z reapplies it. REU-backed larger, multi-level history remains a later enhancement.
 
 When Ultimate DOS storage is available, dirty documents also use the reserved `SEE64YOU.REC` recovery file. The first edit after a clean state is eligible for an immediate recovery write; during active editing the snapshot is refreshed at roughly 30-second intervals. Recovery writes use the same temporary-file replacement path as normal local saves and do not assign a real filename to an unsaved document.
 
@@ -102,4 +102,4 @@ Every transformation checks buffer capacity before insertion and is designed to 
 
 ## Large documents
 
-The first implementation proves editing with an 8 KiB fixed document buffer and a 2 KiB application clipboard in normal memory. C64U REU storage is intended to support larger documents, clipboard and undo history later. The UI should not assume that all document bytes remain permanently addressable in main RAM.
+The complete conventional-C64 build uses a 4 KiB fixed document buffer, a 1 KiB application clipboard and a 512-byte undo transaction in normal memory. These bounds keep the editor, incremental renderer, local storage and recovery workflow inside ordinary C64 RAM. C64U REU storage is intended to support larger documents, clipboard and undo history later. The UI should not assume that all document bytes remain permanently addressable in main RAM.

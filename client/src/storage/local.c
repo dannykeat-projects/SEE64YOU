@@ -187,7 +187,8 @@ const char* s64_local_result_message(const S64LocalDocument* local, S64LocalResu
         case S64_LOCAL_DOCUMENT_TOO_LARGE: return "Document too large";
         case S64_LOCAL_IO_ERROR:
         default:
-            return local == 0 ? "File error" : s64_dos_result_message(local->dos_result);
+            if (local == 0) return "File error";
+            return s64_dos_result_message(local->dos_result);
     }
 }
 

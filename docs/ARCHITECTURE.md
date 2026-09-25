@@ -59,7 +59,7 @@ The low-level UCI executor:
 - streams multi-block response data through a bounded callback buffer;
 - aborts timed-out commands so a failed request does not intentionally leave a command in flight.
 
-The HTTP wrapper uses reusable firmware header/body handles and raw exchanges. Binary request bodies are split into 893-byte payload chunks (three bytes are reserved for target, command and body handle), while response bodies can be consumed incrementally. This is important for an 8 KiB editor document and avoids requiring a second document-sized network buffer.
+The HTTP wrapper uses reusable firmware header/body handles and raw exchanges. Binary request bodies are split into 893-byte payload chunks (three bytes are reserved for target, command and body handle), while response bodies can be consumed incrementally. This is important for the bounded editor document and avoids requiring a second document-sized network buffer.
 
 HTTP handles survive a C64 reset in the Ultimate firmware, so the publishing session issues HTTP FREE ALL before allocating its first handles.
 
@@ -69,7 +69,7 @@ The client keeps one active publishing destination in a fixed-buffer profile. Th
 
 A separate small publishing-state structure tracks connection state and the current remote identity. For Standalone the identity is the canonical slug; for WordPress it is the numeric post ID. This lets the future UI distinguish create/update/delete safely. In particular, changing a Standalone slug after opening a remote document no longer qualifies as an in-place update, preventing an accidental duplicate file from masquerading as a rename.
 
-The client document representation owns only bounded metadata and a pointer to the existing gap buffer. Its wire serializer emits metadata and body incrementally, so publishing an 8 KiB document does not require a second 8 KiB body allocation. Standalone Save uses that serializer with the compact `ack=1` API response; Delete uses the firmware's URL-encoded body builder. Both reuse the same bearer-auth and transport-safety path as login.
+The client document representation owns only bounded metadata and a pointer to the existing gap buffer. Its wire serializer emits metadata and body incrementally, so publishing a document does not require a second document-sized body allocation. Standalone Save uses that serializer with the compact `ack=1` API response; Delete uses the firmware's URL-encoded body builder. Both reuse the same bearer-auth and transport-safety path as login.
 
 Standalone List uses the HTTP target's parsed response-body object and queries one result at a time. Results are delivered through a callback, so the client can render or page a large list without storing the whole array in C64 RAM. Open uses the raw `application/x-see64you` response and a streamed wire parser that writes body bytes directly into the existing gap buffer. Invalid, oversized or interrupted opens clear the partial destination rather than exposing truncated content as a valid document.
 
@@ -125,7 +125,7 @@ The WordPress plugin exposes a deliberately small document API. WordPress remain
 
 The C64 client uses a WordPress Application Password rather than the user's normal account password. Configuration converts `username:application-password` directly into a bounded Basic Authorization header without retaining a separate plaintext credential pair. The plugin's authenticated `/connection` endpoint is used as the initial capability/permission test. Remote WordPress access should use the trusted-LAN relay until direct C64U TLS is verified.
 
-WordPress document operations deliberately avoid returning an entire 8 KiB source body as one structured string. Lists are queried one item at a time. Open returns source as base64 strings representing 180 raw source bytes each; the client validates the advertised chunk count/length and decodes directly into the existing gap buffer. Create/update use the same streamed `application/x-see64you` wire representation as the standalone backend, while compact acknowledgements return only bounded identifiers/status. Updating a published document with status `draft` is the unpublish operation.
+WordPress document operations deliberately avoid returning an entire source body as one structured string. Lists are queried one item at a time. Open returns source as base64 strings representing 180 raw source bytes each; the client validates the advertised chunk count/length and decodes directly into the existing gap buffer. Create/update use the same streamed `application/x-see64you` wire representation as the standalone backend, while compact acknowledgements return only bounded identifiers/status. Updating a published document with status `draft` is the unpublish operation.
 
 The adapter filters list results through WordPress's per-post `edit_post` capability rather than relying only on broad post-type capabilities. Managed C64 lists also omit documents that have become incompatible with current C64 metadata/body limits. Canonical slugs are never silently changed for WordPress uniqueness: a collision is returned to the editor instead.
 
