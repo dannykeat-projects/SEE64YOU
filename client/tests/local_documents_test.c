@@ -307,10 +307,8 @@ int main(void)
     require(result == S64_LOCAL_OK, "recovery snapshot opens");
     require_body(&body, "Unsaved recovery body", "recovery restores exact body");
     require(!s64_local_has_filename(&local), "recovered document requires explicit save");
-    require(strcmp(document.title, "Recovered Draft") == 0,
-        "recovery supplies temporary title only when needed");
-    require(strcmp(document.slug, "recovered-draft") == 0,
-        "recovery supplies temporary slug only when needed");
+    require(document.title[0] == '\0' && document.slug[0] == '\0',
+        "recovery removes synthetic metadata from unsaved document");
 
     require(s64_local_delete_recovery(&local) == S64_LOCAL_OK,
         "recovery snapshot deletes");
