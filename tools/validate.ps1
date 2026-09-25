@@ -73,6 +73,7 @@ if ($HostCc) {
         Invoke-CTest "editor" @(
             "client/tests/editor_test.c",
             "client/src/buffer.c",
+            "client/src/history.c",
             "client/src/clipboard.c",
             "client/src/editor.c"
         )
@@ -199,6 +200,7 @@ if ($Cl65) {
     $C64Sources = @(
         "client/src/main.c",
         "client/src/buffer.c",
+        "client/src/history.c",
         "client/src/clipboard.c",
         "client/src/document.c",
         "client/src/editor.c",
