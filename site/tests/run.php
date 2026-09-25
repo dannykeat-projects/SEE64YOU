@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/lib/Auth.php';
 require_once dirname(__DIR__) . '/lib/Settings.php';
 require_once dirname(__DIR__) . '/lib/Wire.php';
 require_once dirname(__DIR__) . '/lib/Render.php';
+require_once dirname(__DIR__) . '/lib/PostArchive.php';
 
 function check(bool $condition, string $message): void
 {
@@ -47,6 +48,27 @@ try {
 
     $documents->save(array_replace($saved, ['status' => 'published']));
     check(count($documents->list('page', true)) === 1, 'published page appears publicly');
+
+    $archiveFixture = [];
+    for ($i = 0; $i < 12; ++$i) {
+        $archiveFixture[] = [
+            'date' => ($i < 7 ? '2026' : '2025') . '-01-01T00:00:00+00:00',
+            'slug' => 'post-' . $i,
+            'title' => 'Post ' . $i,
+        ];
+    }
+    check(S64PostArchive::years($archiveFixture) === ['2026', '2025'], 'archive years preserve newest order');
+    check(count(S64PostArchive::filterByYear($archiveFixture, '2025')) === 5, 'archive filters by year');
+    $firstArchivePage = S64PostArchive::paginate($archiveFixture, 1);
+    $secondArchivePage = S64PostArchive::paginate($archiveFixture, 2);
+    check(count($firstArchivePage['items']) === 10, 'archive first page uses fixed page size');
+    check(count($secondArchivePage['items']) === 2, 'archive second page contains remainder');
+    check($firstArchivePage['pages'] === 2 && $secondArchivePage['valid'], 'archive page count is correct');
+    check(!S64PostArchive::paginate($archiveFixture, 3)['valid'], 'archive rejects out-of-range page');
+    check(S64PostArchive::parseYear('2026') === '2026', 'archive accepts four-digit year');
+    check(S64PostArchive::parseYear('20x6') === null, 'archive rejects invalid year');
+    check(S64PostArchive::parsePage('2') === 2, 'archive accepts positive page');
+    check(S64PostArchive::parsePage('0') === 0, 'archive rejects zero page');
 
     $rendered = s64_markup((string)$loaded['body']);
     check(str_contains($rendered, '<strong>world</strong>'), 'bold markup renders');
