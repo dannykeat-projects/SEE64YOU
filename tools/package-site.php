@@ -93,6 +93,18 @@ function s64_package_site(string $repositoryRoot, string $outputDirectory): void
         throw new RuntimeException('Site directory not found: ' . $siteRoot);
     }
 
+    $siteReal = realpath($siteRoot);
+    $outputParentReal = realpath(dirname($outputDirectory));
+    if ($siteReal !== false && $outputParentReal !== false) {
+        $sitePrefix = rtrim(str_replace('\\', '/', $siteReal), '/') . '/';
+        $outputPath = rtrim(str_replace('\\', '/', $outputParentReal), '/')
+            . '/' . basename($outputDirectory);
+        if ($outputPath === rtrim($sitePrefix, '/')
+            || str_starts_with($outputPath . '/', $sitePrefix)) {
+            throw new RuntimeException('Output directory must be outside site/');
+        }
+    }
+
     if (file_exists($outputDirectory)) {
         s64_remove_tree($outputDirectory);
     }
