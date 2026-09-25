@@ -3,9 +3,9 @@ SOURCES := src/main.c src/charset.c src/buffer.c src/history.c src/clipboard.c s
 
 CL65 ?= cl65
 # Keep the complete editor inside conventional C64 RAM. Aggressive inlining
-# makes this feature set too large, while 1.5 KiB remains ample for the cc65
+# makes this feature set too large, while 1 KiB remains ample for the cc65
 # software stack because the large working buffers are static.
-CFLAGS := -t c64 -O -I src -DS64_NATIVE_PETSCII=1 -Wl -D,__STACKSIZE__=0x0600
+CFLAGS := -t c64 -O -I src -DS64_NATIVE_PETSCII=1 -Wl -D,__STACKSIZE__=0x0400
 
 .PHONY: all clean
 

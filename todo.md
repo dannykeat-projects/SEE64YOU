@@ -18,7 +18,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 
 ## P0 - Editor essentials
 
-- [ ] Replace whole-editor redraws during typing with incremental updates (cell-diff body/status renderer implemented 2026-09-25; VICE validation pending).
+- [ ] Replace whole-editor redraws during typing with incremental updates (VICE confirmed no flicker, but the first cell-diff renderer added multi-second key latency; row-bounded sequential rendering implemented 2026-09-25 and awaiting VICE retest).
 - [x] Accurate vertical cursor movement preserving preferred column.
 - [x] Word wrap toggle and horizontal scrolling (F8; VICE validation pending).
 - [x] Home, End, Page Up/Page Down and word-navigation editor commands.
@@ -31,7 +31,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] New/Open/Save/Save As using C64U-accessible storage (streamed canonical files, temporary-file replacement, overwrite detection and host tests implemented; C64U validation pending).
 - [x] Dirty-document confirmation before New, Open and Exit.
 - [ ] Recovery/autosave files (reserved `SEE64YOU.REC` snapshot, startup recovery prompt and active-edit refresh implemented with host tests; integration/C64U validation pending).
-- [ ] Finish/validate modern USB-keyboard shortcuts and C64-keyboard-friendly mappings (MARK/function-key baseline implemented; printable PETSCII capitals/punctuation acceptance implemented 2026-09-25; VICE validation pending).
+- [ ] Finish/validate modern USB-keyboard shortcuts and C64-keyboard-friendly mappings (MARK/function-key baseline implemented; Shift+letter capitals confirmed in VICE 2026-09-25; shifted punctuation, lock keys and hardware mappings remain).
 
 ## Manual VICE/C64U checks
 

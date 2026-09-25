@@ -15,6 +15,8 @@ static unsigned char dos_ready;
 static unsigned char header_rendered;
 static unsigned char body_cache_valid;
 static unsigned char status_cache_valid;
+static unsigned char body_rows;
+static unsigned char body_reverse_present;
 static unsigned char body_cache[EDITOR_CELLS];
 static unsigned char body_reverse_cache[REVERSE_CACHE_BYTES];
 static unsigned char row_chars[SCREEN_COLUMNS];
@@ -84,7 +86,7 @@ static unsigned char position_selected(
         && position < selection_end;
 }
 
-static void flush_body_row(unsigned char row)
+static void flush_body_row(unsigned char row, unsigned char compare_reverse)
 {
     unsigned int base = (unsigned int)(row - EDITOR_FIRST_ROW) * SCREEN_COLUMNS;
     unsigned int cell;
@@ -96,7 +98,7 @@ static void flush_body_row(unsigned char row)
 
         if (body_cache_valid
             && body_cache[cell] == row_chars[col]
-            && cached_reverse(cell) == row_reverse[col]) {
+            && (!compare_reverse || cached_reverse(cell) == row_reverse[col])) {
             ++col;
             continue;
         }
@@ -110,7 +112,7 @@ static void flush_body_row(unsigned char row)
 
             if (body_cache_valid
                 && body_cache[cell] == row_chars[col]
-                && cached_reverse(cell) == row_reverse[col]) {
+                && (!compare_reverse || cached_reverse(cell) == row_reverse[col])) {
                 break;
             }
 
@@ -121,12 +123,34 @@ static void flush_body_row(unsigned char row)
 
             cputc(row_chars[col]);
             body_cache[cell] = row_chars[col];
-            set_cached_reverse(cell, row_reverse[col]);
+            if (compare_reverse) {
+                set_cached_reverse(cell, row_reverse[col]);
+            }
             ++col;
         }
     }
 
     revers(0);
+}
+
+static void finish_body_rows(
+    unsigned char rendered_rows,
+    unsigned char previous_rows,
+    unsigned char compare_reverse
+)
+{
+    unsigned char desired_rows = rendered_rows;
+
+    while (rendered_rows < previous_rows) {
+        prepare_row();
+        flush_body_row(
+            (unsigned char)(EDITOR_FIRST_ROW + rendered_rows),
+            compare_reverse
+        );
+        ++rendered_rows;
+    }
+
+    body_rows = desired_rows;
 }
 
 static void render_status_text(const char* text)
@@ -197,9 +221,18 @@ static unsigned int render_line_end(
 )
 {
     unsigned int length = s64_buffer_length(buffer);
+    unsigned int physical = position;
 
-    while (position < length && s64_buffer_char_at(buffer, position) != '\n') {
+    if (physical >= buffer->gap_start) {
+        physical += buffer->gap_end - buffer->gap_start;
+    }
+
+    while (position < length && buffer->data[physical] != '\n') {
         ++position;
+        ++physical;
+        if (physical == buffer->gap_start) {
+            physical = buffer->gap_end;
+        }
     }
     return position;
 }
@@ -213,6 +246,7 @@ static void render_body_wrapped(
     unsigned int position = editor->view_start;
     unsigned int length = s64_buffer_length(&editor->buffer);
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
+    unsigned int physical = position;
     unsigned int selection_start = 0u;
     unsigned int selection_end = 0u;
     unsigned char has_selection = s64_editor_has_selection(editor);
@@ -220,6 +254,13 @@ static void render_body_wrapped(
     unsigned char row;
     unsigned char col;
     unsigned char line_break;
+    unsigned char previous_rows = body_rows;
+    unsigned char rendered_rows = 0u;
+    unsigned char compare_reverse = has_selection || body_reverse_present;
+
+    if (physical >= editor->buffer.gap_start) {
+        physical += editor->buffer.gap_end - editor->buffer.gap_start;
+    }
 
     if (has_selection) {
         selection_start = s64_editor_selection_start(editor);
@@ -244,20 +285,30 @@ static void render_body_wrapped(
                 found = 1u;
             }
 
-            if (s64_buffer_char_at(&editor->buffer, position) == '\n') {
+            if (editor->buffer.data[physical] == '\n') {
                 ++position;
+                ++physical;
+                if (physical == editor->buffer.gap_start) {
+                    physical = editor->buffer.gap_end;
+                }
                 line_break = 1u;
                 break;
             }
 
-            row_chars[col] = s64_buffer_char_at(&editor->buffer, position);
-            row_reverse[col] = position_selected(
-                position,
-                has_selection,
-                selection_start,
-                selection_end
-            );
+            row_chars[col] = editor->buffer.data[physical];
+            if (has_selection) {
+                row_reverse[col] = position_selected(
+                    position,
+                    has_selection,
+                    selection_start,
+                    selection_end
+                );
+            }
             ++position;
+            ++physical;
+            if (physical == editor->buffer.gap_start) {
+                physical = editor->buffer.gap_end;
+            }
             ++col;
         }
 
@@ -270,8 +321,16 @@ static void render_body_wrapped(
             found = 1u;
         }
 
-        flush_body_row(row);
+        flush_body_row(row, compare_reverse);
+        ++rendered_rows;
+
+        if (position >= length && found) {
+            break;
+        }
     }
+
+    finish_body_rows(rendered_rows, previous_rows, compare_reverse);
+    body_reverse_present = has_selection;
 
     if (!found) {
         *cursor_row = EDITOR_FIRST_ROW;
@@ -293,10 +352,14 @@ static void render_body_horizontal(
     unsigned int end;
     unsigned int display;
     unsigned int cursor_offset;
+    unsigned int physical;
     unsigned char has_selection = s64_editor_has_selection(editor);
     unsigned char found = 0u;
     unsigned char row;
     unsigned char col;
+    unsigned char previous_rows = body_rows;
+    unsigned char rendered_rows = 0u;
+    unsigned char compare_reverse = has_selection || body_reverse_present;
 
     if (has_selection) {
         selection_start = s64_editor_selection_start(editor);
@@ -307,8 +370,7 @@ static void render_body_horizontal(
         prepare_row();
 
         if (line > length) {
-            flush_body_row(row);
-            continue;
+            break;
         }
 
         end = render_line_end(&editor->buffer, line);
@@ -331,26 +393,42 @@ static void render_body_horizontal(
         }
 
         col = 0u;
+        if (display >= editor->buffer.gap_start) {
+            physical = display
+                + (editor->buffer.gap_end - editor->buffer.gap_start);
+        } else {
+            physical = display;
+        }
         while (display < end && col < SCREEN_COLUMNS) {
-            row_chars[col] = s64_buffer_char_at(&editor->buffer, display);
-            row_reverse[col] = position_selected(
-                display,
-                has_selection,
-                selection_start,
-                selection_end
-            );
+            row_chars[col] = editor->buffer.data[physical];
+            if (has_selection) {
+                row_reverse[col] = position_selected(
+                    display,
+                    has_selection,
+                    selection_start,
+                    selection_end
+                );
+            }
             ++display;
+            ++physical;
+            if (physical == editor->buffer.gap_start) {
+                physical = editor->buffer.gap_end;
+            }
             ++col;
         }
 
-        flush_body_row(row);
+        flush_body_row(row, compare_reverse);
+        ++rendered_rows;
 
         if (end == length) {
-            line = length + 1u;
+            break;
         } else {
             line = end + 1u;
         }
     }
+
+    finish_body_rows(rendered_rows, previous_rows, compare_reverse);
+    body_reverse_present = has_selection;
 
     if (!found) {
         *cursor_row = EDITOR_FIRST_ROW;
@@ -383,6 +461,8 @@ void s64_ui_init(void)
     header_rendered = 0u;
     body_cache_valid = 0u;
     status_cache_valid = 0u;
+    body_rows = 0u;
+    body_reverse_present = 0u;
     memset(body_reverse_cache, 0, sizeof(body_reverse_cache));
 }
 
