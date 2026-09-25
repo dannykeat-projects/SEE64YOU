@@ -48,6 +48,14 @@ try {
     s64_package_site($repo, $output);
     package_check(!file_exists($output . '/old.txt'), 'existing output is replaced cleanly');
 
+    $insideRejected = false;
+    try {
+        s64_package_site($repo, $site . '/package-output');
+    } catch (RuntimeException $exception) {
+        $insideRejected = str_contains($exception->getMessage(), 'outside site/');
+    }
+    package_check($insideRejected, 'output inside site directory is rejected');
+
     echo "site package tests passed\n";
 } finally {
     s64_remove_tree($root);
