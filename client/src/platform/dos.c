@@ -156,8 +156,10 @@ static S64DosResult open_file(
 
     parts[0].data = prefix;
     parts[0].length = (uint16_t)sizeof(prefix);
+    parts[0].flags = 0u;
     parts[1].data = (const uint8_t*)filename;
     parts[1].length = filename_length;
+    parts[1].flags = S64_UCI_PART_NATIVE_TEXT;
 
     return run_status_command(dos, parts, 2u, 0u);
 }
@@ -182,8 +184,10 @@ static S64DosResult filename_command(
 
     parts[0].data = prefix;
     parts[0].length = (uint16_t)sizeof(prefix);
+    parts[0].flags = 0u;
     parts[1].data = (const uint8_t*)filename;
     parts[1].length = filename_length;
+    parts[1].flags = S64_UCI_PART_NATIVE_TEXT;
 
     return run_status_command(dos, parts, 2u, 0u);
 }
@@ -263,6 +267,7 @@ S64DosResult s64_dos_close(S64Dos* dos)
     command[1] = S64_DOS_CMD_CLOSE_FILE;
     part.data = command;
     part.length = (uint16_t)sizeof(command);
+    part.flags = 0u;
 
     return run_status_command(dos, &part, 1u, 0u);
 }
@@ -296,6 +301,7 @@ S64DosResult s64_dos_read(
 
     part.data = command;
     part.length = (uint16_t)sizeof(command);
+    part.flags = 0u;
 
     read_state.sink = sink;
     read_state.context = sink_context;
@@ -343,6 +349,7 @@ S64DosResult s64_dos_write(
 
     parts[0].data = prefix;
     parts[0].length = (uint16_t)sizeof(prefix);
+    parts[0].flags = 0u;
 
     while (offset < length) {
         chunk = (uint16_t)(length - offset);
@@ -352,6 +359,7 @@ S64DosResult s64_dos_write(
 
         parts[1].data = data + offset;
         parts[1].length = chunk;
+        parts[1].flags = 0u;
 
         result = run_status_command(dos, parts, 2u, 1u);
         if (result != S64_DOS_OK) {
@@ -417,12 +425,16 @@ S64DosResult s64_dos_rename_file(
 
     parts[0].data = prefix;
     parts[0].length = (uint16_t)sizeof(prefix);
+    parts[0].flags = 0u;
     parts[1].data = (const uint8_t*)filename;
     parts[1].length = old_length;
+    parts[1].flags = S64_UCI_PART_NATIVE_TEXT;
     parts[2].data = &separator;
     parts[2].length = 1u;
+    parts[2].flags = 0u;
     parts[3].data = (const uint8_t*)new_name;
     parts[3].length = new_length;
+    parts[3].flags = S64_UCI_PART_NATIVE_TEXT;
 
     return run_status_command(dos, parts, 4u, 0u);
 }
