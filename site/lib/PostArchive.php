@@ -70,7 +70,7 @@ final class S64PostArchive
         if ($value === '') {
             return 1;
         }
-        if (preg_match('/^[1-9][0-9]*$/', $value) !== 1) {
+        if (strlen($value) > 9 || preg_match('/^[1-9][0-9]*$/', $value) !== 1) {
             return 0;
         }
 
