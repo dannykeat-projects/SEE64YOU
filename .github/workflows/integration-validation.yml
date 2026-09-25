@@ -6,6 +6,10 @@ on:
       - integration-validation-2026-09-24
   workflow_dispatch:
 
+concurrency:
+  group: see64you-integration-validation
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: [self-hosted, Linux, X64, terra64]
