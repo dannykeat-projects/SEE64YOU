@@ -207,6 +207,7 @@ int main(void)
     S64LocalResult result;
     unsigned int saved_length;
     unsigned long saved_checksum;
+    unsigned char recovery_exists;
 
     s64_dos_init(&dos, mock_execute, S64_DOS_TARGET_PRIMARY);
     s64_buffer_init(&body);
@@ -276,6 +277,49 @@ int main(void)
     require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "approved new succeeds");
     require(s64_buffer_length(&body) == 0u && !s64_local_has_filename(&local),
         "new clears document and identity");
+
+    insert_text(&body, "Unsaved recovery body");
+    require(document.title[0] == '\0' && document.slug[0] == '\0',
+        "unsaved recovery fixture has no metadata");
+    result = s64_local_save_recovery(&local);
+    require(result == S64_LOCAL_OK, "recovery snapshot saves");
+    require(!s64_local_has_filename(&local), "recovery save does not claim a filename");
+    require(document.title[0] == '\0' && document.slug[0] == '\0',
+        "recovery save does not mutate live metadata");
+    require(file_exists && strcmp(file_name, S64_LOCAL_RECOVERY_FILENAME) == 0,
+        "recovery uses fixed filename");
+
+    recovery_exists = 0u;
+    require(
+        s64_local_recovery_exists(&local, &recovery_exists) == S64_LOCAL_OK
+            && recovery_exists,
+        "recovery snapshot is discoverable"
+    );
+
+    require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "clear before recovery open");
+    result = s64_local_open_recovery(&local);
+    require(result == S64_LOCAL_OK, "recovery snapshot opens");
+    require_body(&body, "Unsaved recovery body", "recovery restores exact body");
+    require(!s64_local_has_filename(&local), "recovered document requires explicit save");
+    require(strcmp(document.title, "Recovered Draft") == 0,
+        "recovery supplies temporary title only when needed");
+    require(strcmp(document.slug, "recovered-draft") == 0,
+        "recovery supplies temporary slug only when needed");
+
+    require(s64_local_delete_recovery(&local) == S64_LOCAL_OK,
+        "recovery snapshot deletes");
+    recovery_exists = 1u;
+    require(
+        s64_local_recovery_exists(&local, &recovery_exists) == S64_LOCAL_OK
+            && !recovery_exists,
+        "deleted recovery no longer exists"
+    );
+
+    require(
+        s64_local_save_as(&local, S64_LOCAL_RECOVERY_FILENAME, 1u)
+            == S64_LOCAL_INVALID_ARGUMENT,
+        "normal save cannot overwrite reserved recovery file"
+    );
 
     puts("local document tests passed");
     return 0;
