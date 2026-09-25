@@ -1,52 +1,36 @@
 # Local validation runbook
 
-Use this before merging the current implementation branches. The repository has deliberately kept editor, publishing and C64U-storage work in reviewable dependency chains; local validation is the next integration gate.
+This runbook is the handover for the current integrated See64You branch.
 
-## Current pull-request chains
+Use `integration-validation-2026-09-24` as the authoritative development/testing branch. The older stacked implementation PRs predate the integration branch and should not be merged into it again.
 
-Editor:
+## 1. Restore the self-hosted runner
 
-```
-#1 Search / Replace / Go To Line
- └─ #9 Word Wrap / horizontal viewport
-     └─ #11 source-formatting command core
-```
+The repository transfer left current GitHub Actions jobs queued because the existing self-hosted runner is not picking up jobs from `dannykeat-projects/SEE64YOU`.
 
-Publishing and C64U platform:
+On the local runner machine:
 
-```
-#3 bounded UCI HTTP transport
- ├─ #4 Standalone List / Open
- ├─ #5 trusted-LAN HTTPS relay
- │   └─ #6 WordPress authentication
- │       └─ #7 WordPress document CRUD
- │           └─ #8 publishing destination / remote identity state
- └─ #10 Ultimate-DOS local filesystem layer
-```
+1. Open the See64You repository on GitHub.
+2. Go to **Settings → Actions → Runners**.
+3. Add/re-register a self-hosted Linux x64 runner for this repository or organisation.
+4. Ensure the runner has the custom label `terra64`.
+5. Ensure PHP, a host C compiler, cc65 (`cl65`, `cc65`, `ca65`), Python 3, curl and a POSIX shell are available.
+6. Start the runner and confirm it reports **Idle**.
 
-Standalone web hardening:
+The workflow requires:
 
 ```
-#2 unconfigured authentication / setup hardening
+self-hosted
+Linux
+X64
+terra64
 ```
 
-All of these PRs were individually mergeable when this runbook was added. Do not treat that as runtime validation.
+The integration workflow uses one concurrency group, so once the runner returns, the newest integration job should supersede stale queued/in-progress jobs.
 
-## 1. Create a local integration branch
+## 2. Run the full repository validator locally
 
-Start from current `main` and merge the open branches locally in dependency order. Resolve integration conflicts locally; do not rewrite an upstream feature branch merely to make the integration branch compile.
-
-A practical order is:
-
-1. #1, #9, #11
-2. #2
-3. #3
-4. #4 and #10
-5. #5, #6, #7, #8
-
-If a later PR already contains its parent commits, merge only what Git still considers new.
-
-## 2. Run the full repository validator
+From the repository root:
 
 Windows PowerShell:
 
@@ -54,112 +38,161 @@ Windows PowerShell:
 .\tools\validate.ps1
 ```
 
-Unix-like shell:
+Unix-like shell / WSL:
 
 ```sh
 ./tools/validate.sh
 ```
 
-The useful local environment should provide PHP, a host C compiler and cc65/`cl65`. Do not accept a validator run as complete if the cc65 stage is skipped.
+Do not treat the run as complete if the cc65 stage is skipped.
 
-Fix compiler warnings that indicate real C/cc65 portability problems rather than suppressing them.
+The validator currently covers:
 
-## 3. Build and smoke-test under VICE
+- PHP syntax;
+- standalone backend, preview/archive and packaging regressions;
+- standalone HTTP API lifecycle;
+- WordPress protocol tests;
+- secure relay tests;
+- charset conversion;
+- gap buffer and editor behavior;
+- bounded undo/redo;
+- document/wire format;
+- UCI HTTP/DOS transport;
+- local document storage/recovery;
+- publishing destination/state;
+- standalone and WordPress publisher cores;
+- cc65 module checks and the full C64 build.
 
-Build:
+Fix real compiler/cc65 warnings rather than suppressing them.
+
+## 3. Verify the current PRG
+
+Build explicitly if needed:
 
 ```sh
 make -C client clean all
 ```
 
-Run `client/build/see64you.prg` in VICE.
+Expected output:
 
-Check at minimum:
+```
+client/build/see64you.prg
+```
 
-- normal insertion, newline, Backspace, Delete and insert/overwrite behavior;
+The GitHub integration workflow builds this PRG before validation and uploads it as the `see64you-prg` artifact. Keep that artifact path working so a current test build is always available after a successful integration run.
+
+## 4. VICE smoke test
+
+Run the current `see64you.prg` and check:
+
+- continuous typing has no full-screen flicker or stale cells;
+- insertion, newline, Backspace, Delete and insert/overwrite behavior;
 - Home, End, Page Up/Down, word movement and preferred-column vertical movement;
-- MARK selection, Select All, Cut/Copy/Paste and visible reverse-video selection;
-- Find, Find Next, Find Previous, Replace, Replace All and Go To Line;
-- F8 Word Wrap toggle, including horizontal scrolling of a line longer than 40 characters;
-- RUN/STOP exits the shell and cancels bounded prompts while a prompt is active;
-- formatting source transformations do not corrupt cursor/selection state;
-- Ctrl+Z / Ctrl+Shift+Z undo and redo typing, deletion, paste, Replace All and formatting without stale cursor/selection state;
-- screen/status rendering does not write outside the 40x25 layout.
+- word-wrap on/off and horizontal scrolling past 40 columns;
+- MARK selection, Select All, Cut/Copy/Paste and reverse-video selection;
+- Ctrl+Z undoes the current bounded transaction;
+- Ctrl+Shift+Z redoes it;
+- consecutive ordinary typing coalesces into one undo step;
+- cursor movement breaks typing coalescing;
+- Find, Find Next/Previous, Replace, Replace All and Go To Line;
+- formatting transformations preserve cursor/selection state;
+- RUN/STOP exits normally and cancels bounded prompts;
+- Shift+letter capitals, shifted punctuation and Shift Lock/Caps Lock behavior;
+- no status/body drawing escapes the 40×25 layout.
 
-Record any keyboard mapping that differs from the host tests rather than changing editor behavior by guesswork.
+Record keyboard behavior that differs from host tests instead of changing mappings by guesswork.
 
-## 4. Validate on C64 Ultimate hardware
+## 5. Ultimate-DOS and recovery test
 
-The target-hardware pass is authoritative for UCI behavior.
-
-Confirm:
+On a C64 Ultimate, verify:
 
 - UCI interface detection;
-- separate Ultimate-DOS and HTTP-target capability detection;
-- Ultimate-DOS open/read/write/close;
-- file-existence probe, rename and delete;
-- 512-byte write chunking works with real files;
-- no stale open file remains after errors;
-- HTTP handle lifecycle works after reset/relaunch;
-- modern USB keyboard and physical-C64 keyboard mappings both remain usable;
-- dirty edits create `SEE64YOU.REC`, restart offers recovery, recovered text matches exactly, and Save/discard removes the recovery file.
+- separate Ultimate-DOS and HTTP capability detection;
+- New/Open/Save/Save As;
+- overwrite confirmation;
+- exact source round-trip;
+- file existence, rename, delete and 512-byte write chunking;
+- no stale open file after errors;
+- dirty editing creates `SEE64YOU.REC`;
+- restart offers recovery/discard;
+- recovered text matches exactly;
+- successful Save/Save As removes recovery;
+- confirmed discard removes recovery;
+- undoing back to the saved state does not leave a stale recovery file.
 
-Do not relax the current direct-HTTPS safety gate merely because an `https://` URL parses. TLS must be demonstrated on target before direct remote credentials are allowed.
+## 6. UCI HTTP/publishing test
 
-## 5. Standalone-site integration
+The current code converts native PETSCII text to wire ASCII at HTTP/DOS UCI boundaries while keeping binary parts unchanged.
 
-Run the PHP site locally and repeat the complete authenticated lifecycle after branch integration:
+On target hardware verify:
+
+- URL/header/form text reaches the HTTP target as ordinary ASCII;
+- UCI textual status/string replies return correctly to native C64 text;
+- HTTP handle lifecycle survives error/reset/relaunch;
+- standalone trusted-LAN login works;
+- standalone list/open/create/update/delete works for pages and posts;
+- publisher error messages are useful and bounded.
+
+Do **not** relax the direct-HTTPS safety gate simply because an `https://` URL parses. Current direct TLS remains unverified; remote publishing should use the trusted-LAN relay until target firmware behavior proves otherwise.
+
+## 7. Standalone-site checks
+
+The automated suite now covers the core standalone site heavily. A manual browser pass should still confirm:
 
 - one-time setup;
-- failed login and successful login;
-- page/post list;
-- open;
-- create draft;
-- publish;
-- update;
-- unpublish;
-- delete;
-- malformed/oversized source rejection;
-- 8 KiB body boundary;
-- signed-32-bit `order` boundary;
-- exact source round trip.
+- login failure/success;
+- draft creation and publishing;
+- signed one-hour draft preview links;
+- preview links remain unavailable without a valid matching token;
+- preview responses are no-store/noindex/no-referrer;
+- newest-first post list;
+- 10-post pagination;
+- year archive links;
+- simple/C64 themes;
+- generated upload package from:
 
-Then test the C64 client against the site over the intended trusted-LAN route.
+```sh
+php tools/package-site.php
+```
 
-## 6. Relay and WordPress integration
+The generated `dist/see64you-site/` should contain runtime files and starter content, exclude local `config.php` and tests, and include a fresh `ENABLE_SETUP` marker.
 
-Start the secure local relay with a controlled HTTPS destination and verify that it refuses:
+## 8. Relay and WordPress checks
+
+These require external services and can remain deferred until a disposable WordPress test instance is available.
+
+For the relay verify rejection of:
 
 - an invalid relay key;
-- disallowed paths;
+- disallowed/traversal paths;
 - redirects;
 - oversized requests/responses;
 - unsafe forwarded headers.
 
-Install the See64You plugin on a disposable WordPress test instance and exercise:
+For WordPress verify:
 
-- Application Password configuration;
+- plugin installation/activation;
+- Application Password setup;
 - connection/permission test;
-- page and post listing;
-- open;
-- create;
-- update;
-- publish/unpublish;
-- delete/Trash;
-- slug collision;
+- page/post list and open;
+- create/update/publish/unpublish/delete;
+- slug collision handling;
 - insufficient permissions;
-- exact source retained in See64You metadata.
+- exact See64You source retention.
 
-Run those tests both directly where appropriate and through the relay path intended for real remote publishing.
+## 9. What remains legitimately deferred
 
-## 7. Merge gate
+Until the runner/VICE/C64U/WordPress environment is available, keep these TODOs open rather than guessing:
 
-Do not merge the stack simply because individual PRs are conflict-free. Merge after:
+- incremental renderer runtime validation;
+- undo/redo target validation;
+- recovery/autosave target validation;
+- final USB/C64 keyboard mapping validation;
+- UCI HTTP target behavior;
+- end-to-end standalone/WordPress publishing UI;
+- formatting UI/menu validation and Markup v1 freeze;
+- C64 preview view;
+- REU-backed document/clipboard/multi-level undo;
+- mouse support and conventional-C64 degradation testing.
 
-- the full validator passes with cc65 enabled;
-- VICE smoke testing passes;
-- integration regressions found during testing are fixed;
-- C64U-specific UCI behavior needed by the feature is verified;
-- WordPress-dependent PRs have passed on a real test WordPress instance.
-
-After the first integrated validation pass, update `todo.md` with actual results and then rebase/retarget dependent PRs as needed.
+When validation passes, update `todo.md` with the actual date/result and only then mark the relevant validation-gated items complete.
