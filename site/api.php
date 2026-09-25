@@ -48,6 +48,38 @@ function respond_wire(array $document, int $status = 200): never
     exit;
 }
 
+function backup_documents(S64Documents $documents, string $type): array
+{
+    $result = [];
+    foreach ($documents->list($type, false) as $summary) {
+        $document = $documents->get($type, (string)$summary['slug']);
+        if ($document !== null) {
+            $result[] = $document;
+        }
+    }
+    return $result;
+}
+
+function respond_backup(S64Documents $documents, S64Settings $settings): never
+{
+    $backup = [
+        'format' => 'see64you-backup/1',
+        'exported_at' => date(DATE_ATOM),
+        'settings' => $settings->publicValues(),
+        'pages' => backup_documents($documents, 'page'),
+        'posts' => backup_documents($documents, 'post'),
+    ];
+
+    header('Content-Type: application/json; charset=utf-8');
+    header('Content-Disposition: attachment; filename="see64you-backup.json"');
+    header('Cache-Control: no-store');
+    echo json_encode(
+        $backup,
+        JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT
+    );
+    exit;
+}
+
 $action = (string)($_GET['action'] ?? 'status');
 
 try {
@@ -72,6 +104,13 @@ try {
 
     if (!$auth->valid(S64Auth::requestToken())) {
         respond(['ok' => false, 'error' => 'unauthorized'], 401);
+    }
+
+    if ($action === 'backup') {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+            respond(['ok' => false, 'error' => 'method_not_allowed'], 405);
+        }
+        respond_backup($documents, $settings);
     }
 
     if ($action === 'preview') {

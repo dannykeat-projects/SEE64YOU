@@ -94,5 +94,5 @@ These player-facing checks are assigned to the user where practical; automated s
 - [ ] Optional spell-check workflow if a sensible server-assisted design emerges.
 - [ ] Multiple saved publishing destinations.
 - [ ] Export/import plain text and See64You source.
-- [ ] Site backup/download command.
+- [x] Site backup/download command (authenticated `action=backup` JSON download exports public settings plus all page/post source, excluding auth secrets, with HTTP regression coverage).
 - [ ] Accessibility/readability pass for colour combinations.
