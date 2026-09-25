@@ -14,7 +14,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] Run the standalone site locally and exercise all API operations end-to-end.
 - [ ] Install the WordPress plugin on a test WordPress instance and exercise REST operations.
 - [x] Run integrated automated validation locally and on the `terra64-wsl` self-hosted runner (PHP, HTTP, relay, host C, UCI compile and cc65 build passed 2026-09-24; VICE/C64U remain separate hardware gates).
-- [ ] Restore/re-register the self-hosted runner after the repository transfer; current integration validation/PRG builds are queued and not being picked up as of 2026-09-25.
+- [x] Restore the self-hosted runner after the repository transfer (runner returned online and the full integration validation plus downloadable PRG build passed 2026-09-25).
 
 ## P0 - Editor essentials
 
