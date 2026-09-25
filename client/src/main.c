@@ -549,11 +549,17 @@ int main(void)
                     s64_ui_message("Nothing to undo");
                     continue;
                 }
+                if (!editor.dirty) {
+                    clear_recovery_snapshot();
+                }
                 break;
             case S64_INPUT_REDO:
                 if (!s64_editor_redo(&editor)) {
                     s64_ui_message("Nothing to redo");
                     continue;
+                }
+                if (!editor.dirty) {
+                    clear_recovery_snapshot();
                 }
                 break;
 
