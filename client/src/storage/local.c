@@ -292,6 +292,8 @@ S64LocalResult s64_local_save_as(
 )
 {
     S64LocalResult result;
+    S64DosResult dos_result;
+    uint8_t exists;
     char checked_filename[S64_LOCAL_FILENAME_CAPACITY];
 
     if (local == 0 || local->dos == 0 || local->document == 0
@@ -299,6 +301,15 @@ S64LocalResult s64_local_save_as(
         || !filename_copy(checked_filename, filename)
         || strcmp(checked_filename, S64_LOCAL_RECOVERY_FILENAME) == 0) {
         return S64_LOCAL_INVALID_ARGUMENT;
+    }
+
+    dos_result = s64_dos_file_exists(local->dos, checked_filename, &exists);
+    if (dos_result != S64_DOS_OK) {
+        local->dos_result = dos_result;
+        return S64_LOCAL_IO_ERROR;
+    }
+    if (exists && !overwrite) {
+        return S64_LOCAL_EXISTS;
     }
 
     if (!default_metadata(local->document, checked_filename)) {
@@ -309,7 +320,7 @@ S64LocalResult s64_local_save_as(
         local,
         local->document,
         checked_filename,
-        overwrite
+        1u
     );
     if (result == S64_LOCAL_OK) {
         strcpy(local->filename, checked_filename);
