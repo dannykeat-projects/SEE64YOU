@@ -63,6 +63,18 @@ function s64_markup(string $source): string
     return implode("\n", $html);
 }
 
+function s64_draft_preview_headers(): void
+{
+    header('Cache-Control: private, no-store');
+    header('X-Robots-Tag: noindex, nofollow');
+    header('Referrer-Policy: no-referrer');
+}
+
+function s64_draft_preview_banner(): string
+{
+    return '<p><strong>Draft preview</strong></p>';
+}
+
 function s64_safe_color(mixed $value, string $fallback): string
 {
     $value = (string)$value;
