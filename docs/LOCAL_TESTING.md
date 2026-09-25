@@ -83,6 +83,7 @@ Check at minimum:
 - F8 Word Wrap toggle, including horizontal scrolling of a line longer than 40 characters;
 - RUN/STOP exits the shell and cancels bounded prompts while a prompt is active;
 - formatting source transformations do not corrupt cursor/selection state;
+- Ctrl+Z / Ctrl+Shift+Z undo and redo typing, deletion, paste, Replace All and formatting without stale cursor/selection state;
 - screen/status rendering does not write outside the 40x25 layout.
 
 Record any keyboard mapping that differs from the host tests rather than changing editor behavior by guesswork.
@@ -100,7 +101,8 @@ Confirm:
 - 512-byte write chunking works with real files;
 - no stale open file remains after errors;
 - HTTP handle lifecycle works after reset/relaunch;
-- modern USB keyboard and physical-C64 keyboard mappings both remain usable.
+- modern USB keyboard and physical-C64 keyboard mappings both remain usable;
+- dirty edits create `SEE64YOU.REC`, restart offers recovery, recovered text matches exactly, and Save/discard removes the recovery file.
 
 Do not relax the current direct-HTTPS safety gate merely because an `https://` URL parses. TLS must be demonstrated on target before direct remote credentials are allowed.
 
