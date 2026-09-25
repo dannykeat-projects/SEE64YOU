@@ -70,6 +70,8 @@ Then open `http://127.0.0.1:8080/`.
 
 For publishing/API access, create an empty `site/ENABLE_SETUP` marker, then open `http://127.0.0.1:8080/setup.php` and complete the one-time setup form. Setup is disabled without that server-side marker, and successful setup removes it automatically. The form creates `config.php` with a password hash and random token-signing secret. Manual setup using `config.example.php` remains available.
 
+Authenticated clients can request a short-lived signed preview link for a draft page or post through the standalone API. Draft previews remain hidden without the matching document-specific token and are served with no-store/noindex/no-referrer headers.
+
 ## Secure remote publishing
 
 The current C64U UCI HTTP path is not treated as verified TLS. For publishing to a remote HTTPS site, See64You includes an optional trusted-LAN relay in `relay/`. The C64U talks HTTP only to the relay on the local network; the relay authenticates the C64U request and forwards it to one fixed HTTPS upstream using normal certificate verification.
