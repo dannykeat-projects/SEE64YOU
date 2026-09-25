@@ -1,5 +1,6 @@
 #include "standalone.h"
 #include "relay.h"
+#include "charset.h"
 
 #include <string.h>
 
@@ -11,6 +12,7 @@ typedef struct {
     uint16_t capacity;
     uint16_t length;
     uint8_t overflow;
+    uint8_t invalid;
 } S64StandaloneTextSink;
 
 static char response_header[S64_HTTP_RESPONSE_HEADER_CAPACITY];
@@ -25,10 +27,15 @@ static uint8_t s64_standalone_collect_text(
 {
     S64StandaloneTextSink* sink = (S64StandaloneTextSink*)context;
     uint16_t i;
+    uint8_t native;
 
     for (i = 0u; i < length; ++i) {
+        if (!s64_charset_ascii_to_native(data[i], &native)) {
+            sink->invalid = 1u;
+            return 0u;
+        }
         if (sink->length + 1u < sink->capacity) {
-            sink->data[sink->length++] = (char)data[i];
+            sink->data[sink->length++] = (char)native;
             sink->data[sink->length] = '\0';
         } else {
             sink->overflow = 1u;
@@ -271,6 +278,7 @@ S64StandaloneResult s64_standalone_exchange_ack(
     sink.capacity = (uint16_t)sizeof(login_response);
     sink.length = 0u;
     sink.overflow = 0u;
+    sink.invalid = 0u;
     login_response[0] = '\0';
     response_header[0] = '\0';
 
@@ -285,7 +293,9 @@ S64StandaloneResult s64_standalone_exchange_ack(
         0
     );
     if (http_result != S64_HTTP_OK) {
-        return s64_standalone_map_http(http_result);
+        return sink.invalid
+            ? S64_STANDALONE_PROTOCOL_ERROR
+            : s64_standalone_map_http(http_result);
     }
     if (sink.overflow) {
         return S64_STANDALONE_RESPONSE_TOO_LARGE;
@@ -404,6 +414,7 @@ S64StandaloneResult s64_standalone_login(
     sink.capacity = (uint16_t)sizeof(login_response);
     sink.length = 0u;
     sink.overflow = 0u;
+    sink.invalid = 0u;
     login_response[0] = '\0';
     response_header[0] = '\0';
 
@@ -418,7 +429,9 @@ S64StandaloneResult s64_standalone_login(
         &response_header_length
     );
     if (http_result != S64_HTTP_OK) {
-        result = s64_standalone_map_http(http_result);
+        result = sink.invalid
+            ? S64_STANDALONE_PROTOCOL_ERROR
+            : s64_standalone_map_http(http_result);
         goto cleanup;
     }
     if (sink.overflow) {
