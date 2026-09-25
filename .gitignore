@@ -19,3 +19,6 @@ relay/config.json
 .DS_Store
 Thumbs.db
 *.swp
+
+# Generated upload packages
+dist/
