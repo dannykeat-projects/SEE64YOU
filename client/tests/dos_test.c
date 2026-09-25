@@ -10,6 +10,8 @@
 typedef struct {
     unsigned int count;
     unsigned int lengths[MOCK_MAX_COMMANDS];
+    unsigned char part_counts[MOCK_MAX_COMMANDS];
+    unsigned char part_flags[MOCK_MAX_COMMANDS][4];
     unsigned char bytes[MOCK_MAX_COMMANDS][MOCK_MAX_BYTES];
     const char* status;
     unsigned char response[1024];
@@ -47,8 +49,11 @@ static S64UciResult mock_execute(
     size_t status_length;
 
     require(command_index < MOCK_MAX_COMMANDS, "mock command capacity");
+    require(part_count <= 4u, "mock part capacity");
+    mock.part_counts[command_index] = part_count;
 
     for (i = 0u; i < part_count; ++i) {
+        mock.part_flags[command_index][i] = parts[i].flags;
         require(offset + parts[i].length <= MOCK_MAX_BYTES, "mock byte capacity");
         for (j = 0u; j < parts[i].length; ++j) {
             mock.bytes[command_index][offset++] = parts[i].data[j];
@@ -126,6 +131,9 @@ int main(void)
     require(mock.count == 1u, "open read command count");
     require(mock.bytes[0][0] == 0x01u && mock.bytes[0][1] == 0x02u, "open read target/opcode");
     require(mock.bytes[0][2] == 0x01u, "open read attribute");
+    require(mock.part_counts[0] == 2u, "open read part count");
+    require(mock.part_flags[0][0] == 0u, "open prefix is binary");
+    require(mock.part_flags[0][1] == S64_UCI_PART_NATIVE_TEXT, "open filename is text");
     require(
         memcmp(mock.bytes[0] + 3u, "drafts/hello.s64", 16u) == 0,
         "open read filename"
@@ -173,6 +181,8 @@ int main(void)
     require(mock.bytes[0][2] == 0u && mock.bytes[0][3] == 0u, "write alignment bytes");
     require(memcmp(mock.bytes[0] + 4u, payload, 512u) == 0, "first write payload");
     require(memcmp(mock.bytes[1] + 4u, payload + 512u, 488u) == 0, "second write payload");
+    require(mock.part_flags[0][0] == 0u && mock.part_flags[0][1] == 0u,
+        "file data remains binary");
 
     mock_reset();
     result = s64_dos_close(&dos);
@@ -204,6 +214,10 @@ int main(void)
     require(memcmp(mock.bytes[0] + 2u, "old.s64", 7u) == 0, "rename old name");
     require(mock.bytes[0][9] == 0u, "rename separator");
     require(memcmp(mock.bytes[0] + 10u, "new.s64", 7u) == 0, "rename new name");
+    require(mock.part_counts[0] == 4u, "rename part count");
+    require(mock.part_flags[0][1] == S64_UCI_PART_NATIVE_TEXT, "rename old name is text");
+    require(mock.part_flags[0][2] == 0u, "rename separator is binary");
+    require(mock.part_flags[0][3] == S64_UCI_PART_NATIVE_TEXT, "rename new name is text");
 
     mock_reset();
     result = s64_dos_change_dir(&dos, "SEE64YOU");

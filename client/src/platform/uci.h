@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #define S64_UCI_COMMAND_CAPACITY 896u
+#define S64_UCI_PART_NATIVE_TEXT 0x01u
 
 typedef enum {
     S64_UCI_OK = 0,
@@ -17,6 +18,7 @@ typedef enum {
 typedef struct {
     const uint8_t* data;
     uint16_t length;
+    uint8_t flags;
 } S64UciCommandPart;
 
 typedef uint8_t (*S64UciDataSink)(const uint8_t* data, uint16_t length, void* context);
@@ -44,6 +46,8 @@ typedef struct {
 /*
  * Execute one bounded UCI command. Command parts are written directly to the
  * hardware queue so callers do not need a second 896-byte staging buffer.
+ * Parts marked S64_UCI_PART_NATIVE_TEXT are converted to wire ASCII byte by
+ * byte; unmarked parts are binary and are transferred unchanged.
  * Response data may be streamed through data_sink; status is drained even if
  * the caller's buffer is smaller than the hardware status queue.
  */

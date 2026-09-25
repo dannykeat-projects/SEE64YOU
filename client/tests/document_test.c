@@ -72,6 +72,15 @@ int main(void)
     require(strcmp(sink.data, expected) == 0, "wire format matches backend");
     require(!s64_document_set_slug(&document, "../bad"), "reject bad slug");
     require(!s64_document_set_title(&document, "bad\ntitle"), "reject header newline");
+    require(s64_document_set_title(&document, "ASCII title"), "restore valid title");
+    document.title[5] = (char)0x80u;
+    memset(&sink, 0, sizeof(sink));
+    require(
+        s64_document_write_wire(&document, collect, &sink) == S64_DOCUMENT_INVALID_METADATA,
+        "reject non-ASCII canonical metadata"
+    );
+    require(sink.length == 0u, "invalid canonical metadata emits nothing");
+    require(s64_document_set_title(&document, "Hello World"), "restore title");
     memset(document.title, 'X', sizeof(document.title));
     memset(&sink, 0, sizeof(sink));
     require(s64_document_write_wire(&document, collect, &sink) == S64_DOCUMENT_INVALID_METADATA,

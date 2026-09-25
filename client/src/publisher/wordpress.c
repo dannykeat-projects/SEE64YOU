@@ -1,6 +1,7 @@
 #include "wordpress.h"
 
 #include "relay.h"
+#include "charset.h"
 
 #include <string.h>
 
@@ -22,6 +23,7 @@ typedef struct {
     uint16_t capacity;
     uint16_t length;
     uint8_t overflow;
+    uint8_t invalid;
 } S64WordPressTextSink;
 
 static char response_header[S64_HTTP_RESPONSE_HEADER_CAPACITY];
@@ -37,15 +39,14 @@ static uint8_t next_credential_byte(S64CredentialReader* reader, uint8_t* value)
     if (reader->phase == 0u) {
         current = reader->username[reader->username_index];
         if (current != '\0') {
-            *value = (uint8_t)current;
             ++reader->username_index;
-            return 1u;
+            return s64_charset_native_to_ascii((uint8_t)current, value);
         }
         reader->phase = 1u;
     }
 
     if (reader->phase == 1u) {
-        *value = (uint8_t)':';
+        *value = 0x3Au;
         reader->phase = 2u;
         return 1u;
     }
@@ -59,8 +60,7 @@ static uint8_t next_credential_byte(S64CredentialReader* reader, uint8_t* value)
             }
             ++reader->password_index;
             if (current != ' ') {
-                *value = (uint8_t)current;
-                return 1u;
+                return s64_charset_native_to_ascii((uint8_t)current, value);
             }
         }
     }
@@ -78,9 +78,9 @@ static uint8_t username_valid(const char* username)
     }
 
     while (username[length] != '\0') {
-        value = (unsigned char)username[length];
         if (length >= S64_WORDPRESS_USERNAME_MAX
-            || value < 0x21u || value > 0x7eu || value == ':') {
+            || !s64_charset_native_to_ascii((uint8_t)username[length], &value)
+            || value < 0x21u || value > 0x7Eu || value == 0x3Au) {
             return 0u;
         }
         ++length;
@@ -100,12 +100,12 @@ static uint8_t application_password_valid(const char* password)
     }
 
     while (password[input_length] != '\0') {
-        value = (unsigned char)password[input_length];
         if (input_length >= S64_WORDPRESS_APP_PASSWORD_INPUT_MAX
-            || value < 0x20u || value > 0x7eu) {
+            || !s64_charset_native_to_ascii((uint8_t)password[input_length], &value)
+            || value < 0x20u || value > 0x7Eu) {
             return 0u;
         }
-        if (value != ' ') {
+        if (value != 0x20u) {
             ++compact_length;
             if (compact_length > S64_WORDPRESS_APP_PASSWORD_MAX) {
                 return 0u;
@@ -180,10 +180,15 @@ static uint8_t collect_text(
 {
     S64WordPressTextSink* sink = (S64WordPressTextSink*)context;
     uint16_t i;
+    uint8_t native;
 
     for (i = 0u; i < length; ++i) {
+        if (!s64_charset_ascii_to_native(data[i], &native)) {
+            sink->invalid = 1u;
+            return 0u;
+        }
         if (sink->length + 1u < sink->capacity) {
-            sink->data[sink->length++] = (char)data[i];
+            sink->data[sink->length++] = (char)native;
             sink->data[sink->length] = '\0';
         } else {
             sink->overflow = 1u;
@@ -435,6 +440,7 @@ S64WordPressResult s64_wordpress_test_connection(
     sink.capacity = (uint16_t)sizeof(response_body);
     sink.length = 0u;
     sink.overflow = 0u;
+    sink.invalid = 0u;
     response_body[0] = '\0';
     response_header[0] = '\0';
 
@@ -449,7 +455,9 @@ S64WordPressResult s64_wordpress_test_connection(
         0
     );
     if (http_result != S64_HTTP_OK) {
-        result = s64_wordpress_map_http(http_result);
+        result = sink.invalid
+            ? S64_WORDPRESS_PROTOCOL_ERROR
+            : s64_wordpress_map_http(http_result);
         goto cleanup;
     }
     if (sink.overflow) {

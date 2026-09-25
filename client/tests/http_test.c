@@ -10,6 +10,8 @@
 typedef struct {
     unsigned int count;
     unsigned int lengths[MOCK_MAX_COMMANDS];
+    unsigned char part_counts[MOCK_MAX_COMMANDS];
+    unsigned char part_flags[MOCK_MAX_COMMANDS][4];
     unsigned char bytes[MOCK_MAX_COMMANDS][MOCK_MAX_BYTES];
     const char* status;
     unsigned char response[16];
@@ -47,8 +49,11 @@ static S64UciResult mock_execute(
     size_t status_length;
 
     require(command_index < MOCK_MAX_COMMANDS, "mock command capacity");
+    require(part_count <= 4u, "mock part capacity");
+    mock.part_counts[command_index] = part_count;
 
     for (i = 0u; i < part_count; ++i) {
+        mock.part_flags[command_index][i] = parts[i].flags;
         require(offset + parts[i].length <= MOCK_MAX_BYTES, "mock byte capacity");
         for (j = 0u; j < parts[i].length; ++j) {
             mock.bytes[command_index][offset++] = parts[i].data[j];
@@ -133,6 +138,9 @@ int main(void)
     require(mock.bytes[0][0] == 0x06u, "header create target");
     require(mock.bytes[0][1] == 0x11u, "header create opcode");
     require(mock.bytes[0][2] == 0x03u, "header create verb");
+    require(mock.part_counts[0] == 2u, "header create part count");
+    require(mock.part_flags[0][0] == 0u, "header create prefix is binary");
+    require(mock.part_flags[0][1] == S64_UCI_PART_NATIVE_TEXT, "header create URL is text");
     require(
         memcmp(mock.bytes[0] + 3u, "example.test/api.php?action=save", 32u) == 0,
         "header create URL"
@@ -145,6 +153,8 @@ int main(void)
     );
     require(mock.bytes[0][0] == 0x06u && mock.bytes[0][1] == 0x13u, "header add opcode");
     require(mock.bytes[0][2] == 4u, "header add handle");
+    require(mock.part_flags[0][0] == 0u, "header add prefix is binary");
+    require(mock.part_flags[0][1] == S64_UCI_PART_NATIVE_TEXT, "header line is text");
 
     mock_reset();
     mock.response[0] = 3u;
@@ -165,6 +175,11 @@ int main(void)
     require(memcmp(mock.bytes[0] + 4u, "password", 8u) == 0, "string add key");
     require(mock.bytes[0][12] == 6u, "string add value length");
     require(memcmp(mock.bytes[0] + 13u, "secret", 6u) == 0, "string add value");
+    require(mock.part_counts[0] == 4u, "string add part count");
+    require(mock.part_flags[0][0] == 0u, "string add prefix is binary");
+    require(mock.part_flags[0][1] == S64_UCI_PART_NATIVE_TEXT, "string key is text");
+    require(mock.part_flags[0][2] == 0u, "string length is binary");
+    require(mock.part_flags[0][3] == S64_UCI_PART_NATIVE_TEXT, "string value is text");
 
     for (i = 0u; i < sizeof(payload); ++i) {
         payload[i] = (unsigned char)(i & 0xffu);
@@ -182,6 +197,8 @@ int main(void)
     require(mock.bytes[0][2] == 3u, "binary add handle");
     require(memcmp(mock.bytes[0] + 3u, payload, 893u) == 0, "first binary payload");
     require(memcmp(mock.bytes[1] + 3u, payload + 893u, 107u) == 0, "second binary payload");
+    require(mock.part_flags[0][0] == 0u && mock.part_flags[0][1] == 0u,
+        "binary body remains binary");
 
     mock_reset();
     mock.status = "HTTP/1.1 200 OK\r\nContent-Type: application/x-see64you\r\n";
@@ -252,6 +269,8 @@ int main(void)
         memcmp(mock.bytes[0] + 3u, "documents%2/title", 17u) == 0,
         "body query path"
     );
+    require(mock.part_flags[0][0] == 0u, "body query prefix is binary");
+    require(mock.part_flags[0][1] == S64_UCI_PART_NATIVE_TEXT, "body query path is text");
     require(strcmp(queried_string, "hello") == 0, "string body query value");
 
     mock_reset();

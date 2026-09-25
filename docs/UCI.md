@@ -42,6 +42,12 @@ UCI HTTP Target
 
 Only the platform layer may touch UCI registers. Publisher/editor code should consume normal operations such as login, list, get, save, delete and settings.
 
+## Text and binary command parts
+
+C64 editor/UI strings are native PETSCII, while the Ultimate HTTP and DOS targets consume ordinary byte-oriented text. The UCI command-part API therefore marks text parts explicitly with `S64_UCI_PART_NATIVE_TEXT`. Those parts are preflighted and converted byte-by-byte to 7-bit ASCII while they are written to the hardware queue; binary command fields and payloads are transferred unchanged. Textual UCI status and HTTP string-query responses are converted back to the platform-native representation before higher layers inspect them.
+
+This boundary is intentionally streaming. It avoids an additional 896-byte command staging buffer on the C64 and prevents PETSCII from leaking into URLs, HTTP headers, form values or Ultimate DOS filenames.
+
 ## Validation gates
 
 Before calling C64U publishing complete:

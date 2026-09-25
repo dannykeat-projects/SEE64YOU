@@ -1,4 +1,5 @@
 #include "uci.h"
+#include "charset.h"
 
 #include <time.h>
 
@@ -69,35 +70,39 @@ static uint8_t s64_uci_wait_for_response(void)
     return S64_UCI_STATE_IDLE;
 }
 
-static uint8_t s64_uci_command_length(
+static S64UciResult s64_uci_validate_command(
     const S64UciCommandPart* parts,
-    uint8_t part_count,
-    uint16_t* total
+    uint8_t part_count
 )
 {
     uint8_t part;
+    uint8_t converted;
+    uint16_t i;
     uint16_t length = 0u;
 
     if (parts == 0 || part_count == 0u) {
-        return 0u;
+        return S64_UCI_PROTOCOL_ERROR;
     }
 
     for (part = 0u; part < part_count; ++part) {
-        if (parts[part].length != 0u && parts[part].data == 0) {
-            return 0u;
+        if ((parts[part].flags & (uint8_t)~S64_UCI_PART_NATIVE_TEXT) != 0u
+            || (parts[part].length != 0u && parts[part].data == 0)) {
+            return S64_UCI_PROTOCOL_ERROR;
         }
         if (parts[part].length > (uint16_t)(S64_UCI_COMMAND_CAPACITY - length)) {
-            return 0u;
+            return S64_UCI_COMMAND_TOO_LARGE;
+        }
+        if ((parts[part].flags & S64_UCI_PART_NATIVE_TEXT) != 0u) {
+            for (i = 0u; i < parts[part].length; ++i) {
+                if (!s64_charset_native_to_ascii(parts[part].data[i], &converted)) {
+                    return S64_UCI_PROTOCOL_ERROR;
+                }
+            }
         }
         length = (uint16_t)(length + parts[part].length);
     }
 
-    if (length == 0u) {
-        return 0u;
-    }
-
-    *total = length;
-    return 1u;
+    return length == 0u ? S64_UCI_PROTOCOL_ERROR : S64_UCI_OK;
 }
 
 static void s64_uci_reset_reply(S64UciReply* reply)
@@ -112,12 +117,16 @@ static void s64_uci_reset_reply(S64UciReply* reply)
     }
 }
 
-static void s64_uci_store_status(S64UciReply* reply, uint8_t value)
+static uint8_t s64_uci_store_status(S64UciReply* reply, uint8_t value)
 {
+    uint8_t native;
     uint16_t index;
 
     if (reply == 0) {
-        return;
+        return 1u;
+    }
+    if (!s64_charset_ascii_to_native(value, &native)) {
+        return 0u;
     }
 
     index = reply->status_length;
@@ -126,9 +135,10 @@ static void s64_uci_store_status(S64UciReply* reply, uint8_t value)
     if (reply->status != 0
         && reply->status_capacity > 1u
         && index < (uint16_t)(reply->status_capacity - 1u)) {
-        reply->status[index] = (char)value;
+        reply->status[index] = (char)native;
         reply->status[index + 1u] = '\0';
     }
+    return 1u;
 }
 
 static uint8_t s64_uci_flush_data(
@@ -157,15 +167,18 @@ S64UciResult s64_uci_execute(
 {
     uint8_t part;
     uint8_t state;
+    uint8_t byte;
     uint8_t consumer_failed = 0u;
+    uint8_t status_invalid = 0u;
     uint16_t i;
-    uint16_t command_length;
     uint16_t stream_length;
+    S64UciResult validation;
 
     s64_uci_reset_reply(reply);
 
-    if (!s64_uci_command_length(parts, part_count, &command_length)) {
-        return S64_UCI_COMMAND_TOO_LARGE;
+    validation = s64_uci_validate_command(parts, part_count);
+    if (validation != S64_UCI_OK) {
+        return validation;
     }
 
     if (!s64_uci_interface_present()) {
@@ -179,7 +192,13 @@ S64UciResult s64_uci_execute(
 
     for (part = 0u; part < part_count; ++part) {
         for (i = 0u; i < parts[part].length; ++i) {
-            S64_UCI_COMMAND = parts[part].data[i];
+            byte = parts[part].data[i];
+            if ((parts[part].flags & S64_UCI_PART_NATIVE_TEXT) != 0u
+                && !s64_charset_native_to_ascii(byte, &byte)) {
+                S64_UCI_CONTROL = S64_UCI_ABORT;
+                return S64_UCI_PROTOCOL_ERROR;
+            }
+            S64_UCI_COMMAND = byte;
         }
     }
     S64_UCI_CONTROL = S64_UCI_PUSH_COMMAND;
@@ -202,7 +221,9 @@ S64UciResult s64_uci_execute(
         (void)s64_uci_flush_data(reply, stream_length, &consumer_failed);
 
         while ((S64_UCI_CONTROL & S64_UCI_STATUS_AVAILABLE) != 0u) {
-            s64_uci_store_status(reply, S64_UCI_STATUS_DATA);
+            if (!s64_uci_store_status(reply, S64_UCI_STATUS_DATA)) {
+                status_invalid = 1u;
+            }
         }
 
         S64_UCI_CONTROL = S64_UCI_ACCEPT_DATA;
@@ -212,6 +233,7 @@ S64UciResult s64_uci_execute(
         }
     }
 
+    if (status_invalid) return S64_UCI_PROTOCOL_ERROR;
     return consumer_failed ? S64_UCI_CONSUMER_ABORTED : S64_UCI_OK;
 }
 
@@ -253,6 +275,7 @@ static uint8_t s64_uci_probe_target(uint8_t target)
 
     part.data = identify_command;
     part.length = (uint16_t)sizeof(identify_command);
+    part.flags = 0u;
     sink.count = 0u;
 
     reply.data_sink = s64_uci_count_identify;

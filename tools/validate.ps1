@@ -66,6 +66,10 @@ if ($HostCc) {
     }
 
     try {
+        Invoke-CTest "charset" @(
+            "client/tests/charset_test.c",
+            "client/src/charset.c"
+        )
         Invoke-CTest "buffer" @(
             "client/tests/buffer_test.c",
             "client/src/buffer.c"
@@ -80,32 +84,38 @@ if ($HostCc) {
         Invoke-CTest "document" @(
             "client/tests/document_test.c",
             "client/src/document.c",
+            "client/src/charset.c",
             "client/src/buffer.c"
         )
         Invoke-CTest "http" @(
             "client/tests/http_test.c",
+            "client/src/charset.c",
             "client/src/platform/http.c"
         )
         Invoke-CTest "destination" @(
             "client/tests/destination_test.c",
             "client/src/document.c",
+            "client/src/charset.c",
             "client/src/buffer.c",
             "client/src/publisher/destination.c"
         )
         Invoke-CTest "publisher_state" @(
             "client/tests/publisher_state_test.c",
             "client/src/document.c",
+            "client/src/charset.c",
             "client/src/buffer.c",
             "client/src/publisher/destination.c",
             "client/src/publisher/state.c"
         )
         Invoke-CTest "relay" @(
             "client/tests/relay_test.c",
+            "client/src/charset.c",
             "client/src/platform/http.c",
             "client/src/publisher/relay.c"
         )
         Invoke-CTest "standalone" @(
             "client/tests/standalone_test.c",
+            "client/src/charset.c",
             "client/src/platform/http.c",
             "client/src/publisher/relay.c",
             "client/src/publisher/standalone.c"
@@ -114,6 +124,7 @@ if ($HostCc) {
             "client/tests/standalone_documents_test.c",
             "client/src/buffer.c",
             "client/src/document.c",
+            "client/src/charset.c",
             "client/src/platform/http.c",
             "client/src/publisher/relay.c",
             "client/src/publisher/standalone.c",
@@ -123,6 +134,7 @@ if ($HostCc) {
             "client/tests/standalone_list_open_test.c",
             "client/src/buffer.c",
             "client/src/document.c",
+            "client/src/charset.c",
             "client/src/platform/http.c",
             "client/src/publisher/relay.c",
             "client/src/publisher/standalone.c",
@@ -130,6 +142,7 @@ if ($HostCc) {
         )
         Invoke-CTest "wordpress" @(
             "client/tests/wordpress_test.c",
+            "client/src/charset.c",
             "client/src/platform/http.c",
             "client/src/publisher/relay.c",
             "client/src/publisher/wordpress.c"
@@ -138,6 +151,7 @@ if ($HostCc) {
             "client/tests/wordpress_documents_test.c",
             "client/src/buffer.c",
             "client/src/document.c",
+            "client/src/charset.c",
             "client/src/platform/http.c",
             "client/src/publisher/relay.c",
             "client/src/publisher/wordpress.c",
@@ -151,6 +165,7 @@ if ($HostCc) {
             "client/tests/local_documents_test.c",
             "client/src/buffer.c",
             "client/src/document.c",
+            "client/src/charset.c",
             "client/src/platform/dos.c",
             "client/src/storage/local.c"
         )
@@ -175,6 +190,7 @@ if ($Cl65) {
     $Cc65Path = Join-Path (Split-Path -Parent $Cl65.Path) "cc65.exe"
     $Ca65Path = Join-Path (Split-Path -Parent $Cl65.Path) "ca65.exe"
     $C64ModuleSources = @(
+        "client/src/charset.c",
         "client/src/document.c",
         "client/src/platform/dos.c",
         "client/src/platform/http.c",
@@ -192,13 +208,14 @@ if ($Cl65) {
             $AssemblyPath = Join-Path $ModuleDir ($BaseName + ".s")
             $ObjectName = $BaseName + ".o"
             $ObjectPath = Join-Path $ModuleDir $ObjectName
-            & $Cc65Path -t c64 -Oirs -I client/src -o $AssemblyPath $Source
+            & $Cc65Path -t c64 -Oirs -DS64_NATIVE_PETSCII=1 -I client/src -o $AssemblyPath $Source
             if ($LASTEXITCODE -ne 0) { throw "cc65 module compile failed: $Source" }
             & $Ca65Path -t c64 -o $ObjectPath $AssemblyPath
             if ($LASTEXITCODE -ne 0) { throw "ca65 module assembly failed: $Source" }
         }
     $C64Sources = @(
         "client/src/main.c",
+        "client/src/charset.c",
         "client/src/buffer.c",
         "client/src/history.c",
         "client/src/clipboard.c",
@@ -210,7 +227,7 @@ if ($Cl65) {
         "client/src/platform/dos.c",
         "client/src/storage/local.c"
     )
-    & $Cl65.Path -t c64 -Oirs -I client/src -o client/build/see64you.prg @C64Sources
+    & $Cl65.Path -t c64 -Oirs -DS64_NATIVE_PETSCII=1 -I client/src -o client/build/see64you.prg @C64Sources
     if ($LASTEXITCODE -ne 0) { throw "C64 build failed" }
     } finally {
         Remove-Item -Recurse -Force $ModuleDir -ErrorAction SilentlyContinue

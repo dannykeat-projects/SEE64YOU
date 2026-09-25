@@ -1,4 +1,5 @@
 #include "http.h"
+#include "charset.h"
 
 #define S64_HTTP_TARGET              0x06u
 #define S64_HTTP_CMD_FREE_ALL        0x10u
@@ -83,10 +84,13 @@ static uint8_t s64_http_capture_string_query(
                 sink->invalid = 1u;
             }
         } else {
+            uint8_t native;
+
             if (sink->received < sink->expected
                 && sink->received + 1u < sink->capacity
-                && sink->value != 0) {
-                sink->value[sink->received] = (char)byte;
+                && sink->value != 0
+                && s64_charset_ascii_to_native(byte, &native)) {
+                sink->value[sink->received] = (char)native;
             } else {
                 sink->invalid = 1u;
             }
@@ -259,6 +263,7 @@ S64HttpResult s64_http_free_all(S64HttpTransport* transport)
 
     part.data = command;
     part.length = (uint16_t)sizeof(command);
+    part.flags = 0u;
     return s64_http_run_status_command(transport, &part, 1u);
 }
 
@@ -290,8 +295,10 @@ S64HttpResult s64_http_header_create(
 
     parts[0].data = prefix;
     parts[0].length = (uint16_t)sizeof(prefix);
+    parts[0].flags = 0u;
     parts[1].data = (const uint8_t*)url;
     parts[1].length = url_length;
+    parts[1].flags = S64_UCI_PART_NATIVE_TEXT;
 
     return s64_http_create_handle(transport, parts, 2u, handle);
 }
@@ -321,8 +328,10 @@ S64HttpResult s64_http_header_add(
 
     parts[0].data = prefix;
     parts[0].length = (uint16_t)sizeof(prefix);
+    parts[0].flags = 0u;
     parts[1].data = (const uint8_t*)header_line;
     parts[1].length = line_length;
+    parts[1].flags = S64_UCI_PART_NATIVE_TEXT;
 
     return s64_http_run_status_command(transport, parts, 2u);
 }
@@ -338,6 +347,7 @@ S64HttpResult s64_http_header_free(S64HttpTransport* transport, uint8_t handle)
 
     part.data = command;
     part.length = (uint16_t)sizeof(command);
+    part.flags = 0u;
     return s64_http_run_status_command(transport, &part, 1u);
 }
 
@@ -361,6 +371,7 @@ S64HttpResult s64_http_body_create(
 
     part.data = command;
     part.length = (uint16_t)sizeof(command);
+    part.flags = 0u;
     return s64_http_create_handle(transport, &part, 1u, handle);
 }
 
@@ -391,12 +402,16 @@ S64HttpResult s64_http_body_add_string(
 
     parts[0].data = prefix;
     parts[0].length = (uint16_t)sizeof(prefix);
+    parts[0].flags = 0u;
     parts[1].data = (const uint8_t*)key;
     parts[1].length = key_length;
+    parts[1].flags = S64_UCI_PART_NATIVE_TEXT;
     parts[2].data = &value_length_byte;
     parts[2].length = 1u;
+    parts[2].flags = 0u;
     parts[3].data = (const uint8_t*)value;
     parts[3].length = value_length;
+    parts[3].flags = S64_UCI_PART_NATIVE_TEXT;
 
     return s64_http_run_status_command(transport, parts, 4u);
 }
@@ -429,6 +444,7 @@ S64HttpResult s64_http_body_add_binary(
 
     parts[0].data = prefix;
     parts[0].length = (uint16_t)sizeof(prefix);
+    parts[0].flags = 0u;
 
     while (offset < length) {
         chunk = (uint16_t)(length - offset);
@@ -438,6 +454,7 @@ S64HttpResult s64_http_body_add_binary(
 
         parts[1].data = data + offset;
         parts[1].length = chunk;
+        parts[1].flags = 0u;
 
         result = s64_http_run_status_command(transport, parts, 2u);
         if (result != S64_HTTP_OK) {
@@ -461,6 +478,7 @@ S64HttpResult s64_http_body_free(S64HttpTransport* transport, uint8_t handle)
 
     part.data = command;
     part.length = (uint16_t)sizeof(command);
+    part.flags = 0u;
     return s64_http_run_status_command(transport, &part, 1u);
 }
 
@@ -498,8 +516,10 @@ S64HttpResult s64_http_body_query_string(
 
     parts[0].data = prefix;
     parts[0].length = (uint16_t)sizeof(prefix);
+    parts[0].flags = 0u;
     parts[1].data = (const uint8_t*)path;
     parts[1].length = path_length;
+    parts[1].flags = S64_UCI_PART_NATIVE_TEXT;
 
     sink.value = value;
     sink.capacity = value_capacity;
@@ -562,8 +582,10 @@ S64HttpResult s64_http_body_query_integer(
 
     parts[0].data = prefix;
     parts[0].length = (uint16_t)sizeof(prefix);
+    parts[0].flags = 0u;
     parts[1].data = (const uint8_t*)path;
     parts[1].length = path_length;
+    parts[1].flags = S64_UCI_PART_NATIVE_TEXT;
 
     sink.count = 0u;
     sink.invalid = 0u;
@@ -623,6 +645,7 @@ S64HttpResult s64_http_exchange_object(
 
     part.data = command;
     part.length = (uint16_t)sizeof(command);
+    part.flags = 0u;
 
     sink.count = 0u;
     sink.values[0] = 0u;
@@ -678,6 +701,7 @@ S64HttpResult s64_http_exchange_raw(
 
     part.data = command;
     part.length = (uint16_t)sizeof(command);
+    part.flags = 0u;
 
     reply.data_sink = body_sink;
     reply.data_context = body_context;

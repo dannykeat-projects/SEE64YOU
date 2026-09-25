@@ -32,7 +32,8 @@ fi
 
 echo "== Host charset tests =="
 TMP_BIN=$(mktemp)
-trap 'rm -f "$TMP_BIN"' EXIT
+TMP_MODULE_DIR=""
+trap 'rm -f "$TMP_BIN"; if [ -n "$TMP_MODULE_DIR" ]; then rm -rf "$TMP_MODULE_DIR"; fi' EXIT
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/charset_test.c client/src/charset.c -o "$TMP_BIN"
 "$TMP_BIN"
 
@@ -45,11 +46,11 @@ cc -std=c99 -Wall -Wextra -Iclient/src client/tests/editor_test.c client/src/buf
 "$TMP_BIN"
 
 echo "== Host document tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/document_test.c client/src/document.c client/src/buffer.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/document_test.c client/src/document.c client/src/charset.c client/src/buffer.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host UCI HTTP transport tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/http_test.c client/src/platform/http.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/http_test.c client/src/charset.c client/src/platform/http.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host Ultimate DOS tests =="
@@ -57,50 +58,75 @@ cc -std=c99 -Wall -Wextra -Iclient/src client/tests/dos_test.c client/src/platfo
 "$TMP_BIN"
 
 echo "== Host local document tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/local_documents_test.c client/src/buffer.c client/src/document.c client/src/platform/dos.c client/src/storage/local.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/local_documents_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/dos.c client/src/storage/local.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host publisher destination tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/destination_test.c client/src/document.c client/src/buffer.c client/src/publisher/destination.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/destination_test.c client/src/document.c client/src/charset.c client/src/buffer.c client/src/publisher/destination.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host publisher state tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/publisher_state_test.c client/src/document.c client/src/buffer.c client/src/publisher/destination.c client/src/publisher/state.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/publisher_state_test.c client/src/document.c client/src/charset.c client/src/buffer.c client/src/publisher/destination.c client/src/publisher/state.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host relay client tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/relay_test.c client/src/platform/http.c client/src/publisher/relay.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/relay_test.c client/src/charset.c client/src/platform/http.c client/src/publisher/relay.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host standalone publisher tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_test.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/standalone.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_test.c client/src/charset.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/standalone.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host standalone document publisher tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_documents_test.c client/src/buffer.c client/src/document.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/standalone.c client/src/publisher/standalone_documents.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_documents_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/standalone.c client/src/publisher/standalone_documents.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host standalone list/open tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_list_open_test.c client/src/buffer.c client/src/document.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/standalone.c client/src/publisher/standalone_documents.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_list_open_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/standalone.c client/src/publisher/standalone_documents.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host WordPress publisher auth tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/wordpress_test.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/wordpress.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/wordpress_test.c client/src/charset.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/wordpress.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host WordPress document publisher tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/wordpress_documents_test.c client/src/buffer.c client/src/document.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/wordpress.c client/src/publisher/wordpress_documents.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/wordpress_documents_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/wordpress.c client/src/publisher/wordpress_documents.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host UCI compile check =="
 cc -std=c99 -Wall -Wextra -Iclient/src -c client/src/platform/uci.c -o "$TMP_BIN.o"
 rm -f "$TMP_BIN.o"
 
-if command -v cl65 >/dev/null 2>&1; then
+if command -v cl65 >/dev/null 2>&1 \
+    && command -v cc65 >/dev/null 2>&1 \
+    && command -v ca65 >/dev/null 2>&1; then
+    echo "== cc65 C64 module checks =="
+    TMP_MODULE_DIR=$(mktemp -d)
+    for source in \
+        client/src/charset.c \
+        client/src/document.c \
+        client/src/platform/dos.c \
+        client/src/platform/http.c \
+        client/src/publisher/destination.c \
+        client/src/publisher/state.c \
+        client/src/publisher/relay.c \
+        client/src/publisher/standalone.c \
+        client/src/publisher/standalone_documents.c \
+        client/src/publisher/wordpress.c \
+        client/src/publisher/wordpress_documents.c
+    do
+        base=$(basename "$source" .c)
+        cc65 -t c64 -Oirs -DS64_NATIVE_PETSCII=1 -I client/src \
+            -o "$TMP_MODULE_DIR/$base.s" "$source"
+        ca65 -t c64 -o "$TMP_MODULE_DIR/$base.o" "$TMP_MODULE_DIR/$base.s"
+    done
+
     echo "== cc65 C64 build =="
     make -C client clean all
+    rm -rf "$TMP_MODULE_DIR"
+    TMP_MODULE_DIR=""
 else
-    echo "SKIP cc65 build (cl65 not found)"
+    echo "SKIP cc65 build (cl65/cc65/ca65 not found)"
 fi
 
 echo "Validation passed"
