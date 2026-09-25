@@ -70,6 +70,8 @@ try {
     check(S64PostArchive::parsePage('2') === 2, 'archive accepts positive page');
     check(S64PostArchive::parsePage('0') === 0, 'archive rejects zero page');
 
+    check(S64PostArchive::parsePage('9999999999') === 0, 'archive rejects oversized page input');
+
     $rendered = s64_markup((string)$loaded['body']);
     check(str_contains($rendered, '<strong>world</strong>'), 'bold markup renders');
     check(!str_contains($rendered, '<script>'), 'raw HTML is escaped');
