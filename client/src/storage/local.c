@@ -98,6 +98,73 @@ static uint8_t default_metadata(S64Document* document, const char* filename)
     return 1u;
 }
 
+static S64LocalResult write_document_file(
+    S64LocalDocument* local,
+    const S64Document* document,
+    const char* filename,
+    uint8_t overwrite
+)
+{
+    S64DocumentResult document_result;
+    S64LocalWriteSink sink;
+    S64DosResult result;
+    S64DosResult close_result;
+    uint8_t exists;
+    char temporary[S64_LOCAL_FILENAME_CAPACITY + 4u];
+
+    result = s64_dos_file_exists(local->dos, filename, &exists);
+    if (result != S64_DOS_OK) {
+        local->dos_result = result;
+        return S64_LOCAL_IO_ERROR;
+    }
+    if (exists && !overwrite) return S64_LOCAL_EXISTS;
+
+    document_result = s64_document_write_wire(document, discard_sink, 0);
+    if (document_result != S64_DOCUMENT_OK) {
+        return S64_LOCAL_INVALID_DOCUMENT;
+    }
+
+    strcpy(temporary, filename);
+    strcat(temporary, ".tmp");
+    result = s64_dos_open_write(local->dos, temporary);
+    if (result != S64_DOS_OK) {
+        local->dos_result = result;
+        return S64_LOCAL_IO_ERROR;
+    }
+
+    sink.dos = local->dos;
+    sink.result = S64_DOS_OK;
+    document_result = s64_document_write_wire(document, write_sink, &sink);
+    close_result = s64_dos_close(local->dos);
+    if (document_result != S64_DOCUMENT_OK || close_result != S64_DOS_OK) {
+        local->dos_result = document_result != S64_DOCUMENT_OK
+            ? sink.result
+            : close_result;
+        (void)s64_dos_delete_file(local->dos, temporary);
+        return document_result == S64_DOCUMENT_INVALID_METADATA
+            ? S64_LOCAL_INVALID_DOCUMENT
+            : S64_LOCAL_IO_ERROR;
+    }
+
+    if (exists) {
+        result = s64_dos_delete_file(local->dos, filename);
+        if (result != S64_DOS_OK) {
+            local->dos_result = result;
+            (void)s64_dos_delete_file(local->dos, temporary);
+            return S64_LOCAL_IO_ERROR;
+        }
+    }
+
+    result = s64_dos_rename_file(local->dos, temporary, filename);
+    if (result != S64_DOS_OK) {
+        local->dos_result = result;
+        (void)s64_dos_delete_file(local->dos, temporary);
+        return S64_LOCAL_IO_ERROR;
+    }
+
+    return S64_LOCAL_OK;
+}
+
 void s64_local_init(S64LocalDocument* local, S64Dos* dos, S64Document* document)
 {
     if (local == 0) return;
@@ -224,66 +291,137 @@ S64LocalResult s64_local_save_as(
     uint8_t overwrite
 )
 {
-    S64DocumentResult document_result;
-    S64LocalWriteSink sink;
-    S64DosResult result;
-    S64DosResult close_result;
+    S64LocalResult result;
+    S64DosResult dos_result;
     uint8_t exists;
     char checked_filename[S64_LOCAL_FILENAME_CAPACITY];
-    char temporary[S64_LOCAL_FILENAME_CAPACITY + 4u];
 
     if (local == 0 || local->dos == 0 || local->document == 0
         || local->document->body == 0
-        || !filename_copy(checked_filename, filename)) {
+        || !filename_copy(checked_filename, filename)
+        || strcmp(checked_filename, S64_LOCAL_RECOVERY_FILENAME) == 0) {
         return S64_LOCAL_INVALID_ARGUMENT;
     }
 
-    result = s64_dos_file_exists(local->dos, checked_filename, &exists);
-    if (result != S64_DOS_OK) {
-        local->dos_result = result;
+    dos_result = s64_dos_file_exists(local->dos, checked_filename, &exists);
+    if (dos_result != S64_DOS_OK) {
+        local->dos_result = dos_result;
         return S64_LOCAL_IO_ERROR;
     }
-    if (exists && !overwrite) return S64_LOCAL_EXISTS;
+    if (exists && !overwrite) {
+        return S64_LOCAL_EXISTS;
+    }
 
     if (!default_metadata(local->document, checked_filename)) {
         return S64_LOCAL_INVALID_DOCUMENT;
     }
-    document_result = s64_document_write_wire(local->document, discard_sink, 0);
-    if (document_result != S64_DOCUMENT_OK) return S64_LOCAL_INVALID_DOCUMENT;
 
-    strcpy(temporary, checked_filename);
-    strcat(temporary, ".tmp");
-    result = s64_dos_open_write(local->dos, temporary);
+    result = write_document_file(
+        local,
+        local->document,
+        checked_filename,
+        1u
+    );
+    if (result == S64_LOCAL_OK) {
+        strcpy(local->filename, checked_filename);
+    }
+    return result;
+}
+
+S64LocalResult s64_local_recovery_exists(
+    S64LocalDocument* local,
+    uint8_t* exists
+)
+{
+    S64DosResult result;
+
+    if (local == 0 || local->dos == 0 || exists == 0) {
+        return S64_LOCAL_INVALID_ARGUMENT;
+    }
+
+    result = s64_dos_file_exists(
+        local->dos,
+        S64_LOCAL_RECOVERY_FILENAME,
+        exists
+    );
     if (result != S64_DOS_OK) {
         local->dos_result = result;
         return S64_LOCAL_IO_ERROR;
     }
+    return S64_LOCAL_OK;
+}
 
-    sink.dos = local->dos;
-    sink.result = S64_DOS_OK;
-    document_result = s64_document_write_wire(local->document, write_sink, &sink);
-    close_result = s64_dos_close(local->dos);
-    if (document_result != S64_DOCUMENT_OK || close_result != S64_DOS_OK) {
-        local->dos_result = document_result != S64_DOCUMENT_OK ? sink.result : close_result;
-        (void)s64_dos_delete_file(local->dos, temporary);
-        return document_result == S64_DOCUMENT_INVALID_METADATA
-            ? S64_LOCAL_INVALID_DOCUMENT
-            : S64_LOCAL_IO_ERROR;
+S64LocalResult s64_local_save_recovery(S64LocalDocument* local)
+{
+    S64Document recovery;
+
+    if (local == 0 || local->dos == 0 || local->document == 0
+        || local->document->body == 0) {
+        return S64_LOCAL_INVALID_ARGUMENT;
     }
 
-    if (exists) {
-        result = s64_dos_delete_file(local->dos, checked_filename);
-        if (result != S64_DOS_OK) {
-            local->dos_result = result;
-            return S64_LOCAL_IO_ERROR;
+    recovery = *local->document;
+    if (!s64_document_slug_valid(recovery.slug)) {
+        strcpy(recovery.slug, "recovered-draft");
+    }
+    if (recovery.title[0] == '\0') {
+        strcpy(recovery.title, "Recovered Draft");
+    }
+
+    return write_document_file(
+        local,
+        &recovery,
+        S64_LOCAL_RECOVERY_FILENAME,
+        1u
+    );
+}
+
+S64LocalResult s64_local_open_recovery(S64LocalDocument* local)
+{
+    S64LocalResult result;
+
+    result = s64_local_open(
+        local,
+        S64_LOCAL_RECOVERY_FILENAME,
+        1u
+    );
+    if (result == S64_LOCAL_OK) {
+        local->filename[0] = '\0';
+        if (strcmp(local->document->slug, "recovered-draft") == 0
+            && strcmp(local->document->title, "Recovered Draft") == 0) {
+            local->document->slug[0] = '\0';
+            local->document->title[0] = '\0';
         }
     }
-    result = s64_dos_rename_file(local->dos, temporary, checked_filename);
+    return result;
+}
+
+S64LocalResult s64_local_delete_recovery(S64LocalDocument* local)
+{
+    S64DosResult result;
+    uint8_t exists;
+
+    if (local == 0 || local->dos == 0) {
+        return S64_LOCAL_INVALID_ARGUMENT;
+    }
+
+    result = s64_dos_file_exists(
+        local->dos,
+        S64_LOCAL_RECOVERY_FILENAME,
+        &exists
+    );
     if (result != S64_DOS_OK) {
         local->dos_result = result;
         return S64_LOCAL_IO_ERROR;
     }
+    if (!exists) {
+        return S64_LOCAL_OK;
+    }
 
-    strcpy(local->filename, checked_filename);
+    result = s64_dos_delete_file(local->dos, S64_LOCAL_RECOVERY_FILENAME);
+    if (result != S64_DOS_OK) {
+        local->dos_result = result;
+        return S64_LOCAL_IO_ERROR;
+    }
     return S64_LOCAL_OK;
 }

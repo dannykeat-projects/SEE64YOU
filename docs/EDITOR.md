@@ -25,7 +25,8 @@ Modern USB keyboard target:
 - Shift+arrows: extend selection
 - Ctrl+arrows: word movement
 - Ctrl+Shift+arrows: wordwise selection
-- Ctrl+A/C/X/V/Z/Y/F/H/S: conventional desktop actions
+- Ctrl+A/C/X/V/F/H/S: conventional desktop actions
+- Ctrl+Z: Undo; Ctrl+Shift+Z: Redo
 - Home/End, Page Up/Page Down: conventional navigation
 
 Original C64 keyboard cannot reproduce every modern chord naturally. It will have a separate mapping, likely using Commodore/function-key assisted commands or an explicit mark mode. The modern mapping must not make an original keyboard unusable.
@@ -45,9 +46,17 @@ The editor core owns:
 - insert/overwrite state
 - dirty state
 - viewport offset
-- undo history (later)
+- bounded single-level undo/redo history
 
 UI rendering should read editor state; it should not become the document model.
+
+## Undo/redo and recovery
+
+The base C64 editor keeps one bounded 2 KiB reversible edit transaction in ordinary RAM. Consecutive typing is coalesced, while cursor movement or another editing command starts a new transaction. Ctrl+Z undoes the current transaction and Ctrl+Shift+Z reapplies it. REU-backed multi-level history remains a later enhancement.
+
+When Ultimate DOS storage is available, dirty documents also use the reserved `SEE64YOU.REC` recovery file. The first edit after a clean state is eligible for an immediate recovery write; during active editing the snapshot is refreshed at roughly 30-second intervals. Recovery writes use the same temporary-file replacement path as normal local saves and do not assign a real filename to an unsaved document.
+
+At startup, an existing recovery snapshot is offered for recovery or discard. A recovered document remains dirty and must be saved explicitly. Successful Save/Save As, a confirmed New/Open replacement, or confirmed discard on Exit removes the recovery snapshot. Systems without Ultimate DOS continue editing normally without recovery storage.
 
 ## Word wrap and viewport
 

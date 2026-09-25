@@ -29,7 +29,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] Go to line (UI flow implemented; VICE validation pending).
 - [x] New/Open/Save/Save As using C64U-accessible storage (streamed canonical files, temporary-file replacement, overwrite detection and host tests implemented; C64U validation pending).
 - [x] Dirty-document confirmation before New, Open and Exit.
-- [ ] Recovery/autosave files.
+- [ ] Recovery/autosave files (reserved `SEE64YOU.REC` snapshot, startup recovery prompt and active-edit refresh implemented with host tests; integration/C64U validation pending).
 - [ ] Finish/validate modern USB-keyboard shortcuts and C64-keyboard-friendly mappings (MARK/function-key baseline implemented; printable PETSCII capitals/punctuation acceptance implemented 2026-09-25; VICE validation pending).
 
 ## Manual VICE/C64U checks
@@ -39,6 +39,7 @@ These player-facing checks are assigned to the user where practical; automated s
 - [ ] After incremental rendering: type continuously, insert/delete within a line, hold Backspace, move the cursor and scroll; confirm immediate display with no full-screen flicker or stale characters.
 - [ ] After Shift handling: verify Shift+letter capitals, shifted punctuation, Caps Lock/Shift Lock behaviour, and unshifted input with both the emulated C64 keyboard and a modern USB keyboard where available.
 - [ ] Exercise New, Open, Save and Save As, including dirty-document and overwrite prompts; confirm saved source reopens exactly.
+- [ ] Exercise recovery/autosave: create dirty edits, confirm `SEE64YOU.REC`, restart and recover/discard, then confirm Save/discard removes the snapshot.
 - [ ] Exercise word wrap, horizontal scrolling, selection, clipboard, undo/redo, find/replace, go-to-line and formatting shortcuts at 40x25.
 - [ ] Repeat storage and keyboard checks on real C64U hardware when available; record firmware and keyboard type with any failure.
 

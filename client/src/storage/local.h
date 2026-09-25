@@ -7,6 +7,7 @@
 #include "platform/dos.h"
 
 #define S64_LOCAL_FILENAME_CAPACITY 34u
+#define S64_LOCAL_RECOVERY_FILENAME "SEE64YOU.REC"
 
 typedef enum {
     S64_LOCAL_OK = 0,
@@ -49,5 +50,12 @@ S64LocalResult s64_local_save_as(
     const char* filename,
     uint8_t overwrite
 );
+S64LocalResult s64_local_recovery_exists(
+    S64LocalDocument* local,
+    uint8_t* exists
+);
+S64LocalResult s64_local_save_recovery(S64LocalDocument* local);
+S64LocalResult s64_local_open_recovery(S64LocalDocument* local);
+S64LocalResult s64_local_delete_recovery(S64LocalDocument* local);
 
 #endif

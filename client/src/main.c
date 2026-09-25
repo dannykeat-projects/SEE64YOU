@@ -1,6 +1,7 @@
 #include <conio.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include "clipboard.h"
 #include "document.h"
@@ -13,6 +14,8 @@
 
 #define SEARCH_TEXT_CAPACITY 33u
 #define LINE_TEXT_CAPACITY 6u
+#define AUTOSAVE_SECONDS 30UL
+#define AUTOSAVE_INTERVAL ((clock_t)(AUTOSAVE_SECONDS * (unsigned long)CLOCKS_PER_SEC))
 
 static S64Editor editor;
 static S64Clipboard clipboard;
@@ -22,6 +25,8 @@ static S64LocalDocument local_document;
 static S64UciCapabilities uci_capabilities;
 static char find_query[SEARCH_TEXT_CAPACITY];
 static unsigned char find_query_valid;
+static clock_t last_recovery_write;
+static unsigned char recovery_error_shown;
 
 static unsigned char local_storage_ready(void)
 {
@@ -42,6 +47,89 @@ static void show_local_result(S64LocalResult result)
     s64_ui_message(s64_local_result_message(&local_document, result));
 }
 
+static void arm_recovery_autosave(void)
+{
+    last_recovery_write = (clock_t)(clock() - AUTOSAVE_INTERVAL);
+    recovery_error_shown = 0u;
+}
+
+static void defer_recovery_autosave(void)
+{
+    last_recovery_write = clock();
+    recovery_error_shown = 0u;
+}
+
+static void clear_recovery_snapshot(void)
+{
+    if (uci_capabilities.dos_target) {
+        (void)s64_local_delete_recovery(&local_document);
+    }
+    arm_recovery_autosave();
+}
+
+static void maybe_autosave(void)
+{
+    clock_t now;
+    S64LocalResult result;
+
+    if (!editor.dirty || !uci_capabilities.dos_target) {
+        return;
+    }
+
+    now = clock();
+    if ((clock_t)(now - last_recovery_write) < AUTOSAVE_INTERVAL) {
+        return;
+    }
+
+    result = s64_local_save_recovery(&local_document);
+    last_recovery_write = now;
+    if (result == S64_LOCAL_OK) {
+        recovery_error_shown = 0u;
+    } else if (!recovery_error_shown) {
+        recovery_error_shown = 1u;
+        s64_ui_message("Autosave unavailable");
+    }
+}
+
+static void offer_recovery(void)
+{
+    S64LocalResult result;
+    uint8_t exists = 0u;
+
+    if (!uci_capabilities.dos_target) {
+        arm_recovery_autosave();
+        return;
+    }
+
+    result = s64_local_recovery_exists(&local_document, &exists);
+    if (result != S64_LOCAL_OK || !exists) {
+        arm_recovery_autosave();
+        return;
+    }
+
+    if (!s64_ui_prompt_yes_no("Recover autosave? Y/N")) {
+        (void)s64_local_delete_recovery(&local_document);
+        arm_recovery_autosave();
+        s64_ui_render(&editor);
+        s64_ui_message("Recovery discarded");
+        return;
+    }
+
+    result = s64_local_open_recovery(&local_document);
+    if (result != S64_LOCAL_OK) {
+        (void)s64_local_delete_recovery(&local_document);
+        arm_recovery_autosave();
+        show_local_result(result);
+        return;
+    }
+
+    s64_editor_document_loaded(&editor);
+    editor.dirty = 1u;
+    defer_recovery_autosave();
+    s64_ui_render(&editor);
+    s64_ui_message("Recovered autosave");
+}
+
 static void new_document(void)
 {
     S64LocalResult result;
@@ -58,6 +146,7 @@ static void new_document(void)
     }
 
     s64_editor_document_loaded(&editor);
+    clear_recovery_snapshot();
     s64_ui_render(&editor);
     s64_ui_message("New document");
 }
@@ -88,6 +177,7 @@ static void open_document(void)
     }
 
     s64_editor_document_loaded(&editor);
+    clear_recovery_snapshot();
     s64_ui_render(&editor);
     s64_ui_message("File opened");
 }
@@ -118,6 +208,7 @@ static void save_as_document(void)
     }
 
     s64_editor_mark_saved(&editor);
+    clear_recovery_snapshot();
     s64_ui_render(&editor);
     s64_ui_message("File saved");
 }
@@ -139,6 +230,7 @@ static void save_document(void)
     }
 
     s64_editor_mark_saved(&editor);
+    clear_recovery_snapshot();
     s64_ui_render(&editor);
     s64_ui_message("File saved");
 }
@@ -339,8 +431,10 @@ int main(void)
     s64_ui_set_http_ready(uci_capabilities.http_target);
     s64_ui_set_dos_ready(uci_capabilities.dos_target);
     s64_ui_render(&editor);
+    offer_recovery();
 
     while (running) {
+        maybe_autosave();
         s64_input_read(&input);
 
         switch (input.type) {
@@ -455,11 +549,17 @@ int main(void)
                     s64_ui_message("Nothing to undo");
                     continue;
                 }
+                if (!editor.dirty) {
+                    clear_recovery_snapshot();
+                }
                 break;
             case S64_INPUT_REDO:
                 if (!s64_editor_redo(&editor)) {
                     s64_ui_message("Nothing to redo");
                     continue;
+                }
+                if (!editor.dirty) {
+                    clear_recovery_snapshot();
                 }
                 break;
 
@@ -467,6 +567,9 @@ int main(void)
                 if (editor.dirty && !s64_ui_prompt_yes_no("Discard and exit? Y/N")) {
                     s64_ui_render(&editor);
                     continue;
+                }
+                if (editor.dirty) {
+                    clear_recovery_snapshot();
                 }
                 running = 0u;
                 continue;
