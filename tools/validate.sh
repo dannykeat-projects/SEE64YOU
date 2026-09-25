@@ -13,6 +13,9 @@ done
 echo "== Standalone backend tests =="
 php site/tests/run.php
 
+echo "== Standalone package tests =="
+php tools/tests/package_site_test.php
+
 echo "== WordPress protocol tests =="
 php wordpress/tests/run.php
 

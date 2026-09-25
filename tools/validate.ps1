@@ -22,6 +22,7 @@ Get-ChildItem site, wordpress -Recurse -Filter *.php | ForEach-Object {
 }
 
 Invoke-Checked "Standalone backend tests" { & php site/tests/run.php }
+Invoke-Checked "Standalone package tests" { & php tools/tests/package_site_test.php }
 Invoke-Checked "WordPress protocol tests" { & php wordpress/tests/run.php }
 
 $Sh = Get-Command sh -ErrorAction SilentlyContinue

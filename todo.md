@@ -79,7 +79,7 @@ These player-facing checks are assigned to the user where practical; automated s
 - [x] Site-settings API for title/theme/colours.
 - [x] Draft preview links (authenticated API issues signed one-hour document-specific preview URLs; draft rendering is no-store/noindex/no-referrer with unit and HTTP regression coverage).
 - [ ] Pagination/archive pages when post count warrants it.
-- [ ] Packaging script producing a self-contained upload directory.
+- [x] Packaging script producing a self-contained upload directory (`php tools/package-site.php`; excludes local config/tests, includes starter content and fresh setup marker, with regression coverage).
 
 ## P1 - C64U enhancements
 
