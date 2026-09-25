@@ -811,6 +811,12 @@ static int editor_insert_value(
     unsigned char captured;
     S64HistoryState after;
 
+    if (editor->insert_mode
+        && !had_selection
+        && s64_buffer_free(&editor->buffer) == 0u) {
+        return 0;
+    }
+
     if (coalesce_insert
         && editor->insert_mode
         && !had_selection
