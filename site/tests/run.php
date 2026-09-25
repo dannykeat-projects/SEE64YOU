@@ -74,6 +74,33 @@ try {
         'formatting subset renders consistently'
     );
 
+    $unsupportedSource = "### Heading three\n"
+        . "`inline code`\n"
+        . "~~strikethrough~~\n"
+        . "[FTP link](ftp://example.com/file)\n"
+        . "**unterminated";
+    $unsupportedRendered = s64_markup($unsupportedSource);
+    check(
+        str_contains($unsupportedRendered, '<p>### Heading three</p>'),
+        'unsupported heading level remains text'
+    );
+    check(
+        str_contains($unsupportedRendered, '<p>`inline code`</p>'),
+        'unsupported code markup remains text'
+    );
+    check(
+        str_contains($unsupportedRendered, '<p>~~strikethrough~~</p>'),
+        'unsupported strikethrough remains text'
+    );
+    check(
+        str_contains($unsupportedRendered, '[FTP link](ftp://example.com/file)'),
+        'unsupported link scheme remains source text'
+    );
+    check(
+        str_contains($unsupportedRendered, '<p>**unterminated</p>'),
+        'incomplete supported markup remains text'
+    );
+
     $wire = S64Wire::serialize($loaded);
     $wireRoundTrip = S64Wire::parse($wire);
     check($wireRoundTrip['slug'] === 'hello-world', 'wire slug round trips');

@@ -64,7 +64,7 @@ These player-facing checks are assigned to the user where practical; automated s
 - [ ] Freeze See64You Markup v1 after formatting UI/menu wiring and round-trip validation.
 - [x] Bold / italic / headings / lists / links formatting command core (UI/menu wiring and VICE validation pending).
 - [ ] C64 preview view.
-- [ ] Preserve unsupported markup as text rather than corrupting it.
+- [x] Preserve unsupported markup as text rather than corrupting it (verified by renderer regression coverage 2026-09-25).
 
 ## P1 - Standalone site
 
