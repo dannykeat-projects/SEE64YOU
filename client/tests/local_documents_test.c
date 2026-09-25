@@ -253,9 +253,15 @@ int main(void)
             "New local body", strlen("New local body")) == 0,
         "save writes exact body");
 
+    document.title[0] = '\0';
+    document.slug[0] = '\0';
     result = s64_local_save_as(&local, "My Note.s64", 0u);
     require(result == S64_LOCAL_EXISTS, "save as detects overwrite");
     require(!temporary_exists, "overwrite refusal creates no temp file");
+    require(document.title[0] == '\0' && document.slug[0] == '\0',
+        "overwrite refusal does not mutate metadata");
+    require(s64_document_set_title(&document, "My Note"), "restore save title fixture");
+    require(s64_document_set_slug(&document, "my-note"), "restore save slug fixture");
 
     insert_text(&body, " updated");
     result = s64_local_save(&local);
