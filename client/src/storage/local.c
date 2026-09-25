@@ -387,6 +387,11 @@ S64LocalResult s64_local_open_recovery(S64LocalDocument* local)
     );
     if (result == S64_LOCAL_OK) {
         local->filename[0] = '\0';
+        if (strcmp(local->document->slug, "recovered-draft") == 0
+            && strcmp(local->document->title, "Recovered Draft") == 0) {
+            local->document->slug[0] = '\0';
+            local->document->title[0] = '\0';
+        }
     }
     return result;
 }
