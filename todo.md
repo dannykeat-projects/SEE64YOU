@@ -14,6 +14,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] Run the standalone site locally and exercise all API operations end-to-end.
 - [ ] Install the WordPress plugin on a test WordPress instance and exercise REST operations.
 - [x] Run integrated automated validation locally and on the `terra64-wsl` self-hosted runner (PHP, HTTP, relay, host C, UCI compile and cc65 build passed 2026-09-24; VICE/C64U remain separate hardware gates).
+- [ ] Restore/re-register the self-hosted runner after the repository transfer; current integration validation/PRG builds are queued and not being picked up as of 2026-09-25.
 
 ## P0 - Editor essentials
 
@@ -45,7 +46,7 @@ These player-facing checks are assigned to the user where practical; automated s
 
 ## P0 - Publishing
 
-- [ ] Normalize C64 PETSCII text at external ASCII boundaries before end-to-end publishing (canonical .s64 read/write conversion implemented 2026-09-25; UCI HTTP textual command/response conversion still pending).
+- [ ] Normalize C64 PETSCII text at external ASCII boundaries before end-to-end publishing (canonical .s64 plus UCI HTTP/DOS command/status/string conversion implemented with regression coverage; self-hosted/C64U validation pending).
 - [ ] Implement C64U HTTP transport behind the publisher interface (bounded UCI/HTTP layer plus standalone login/save/delete operations implemented and host-tested; UI/hardware wiring pending).
 - [x] Add bounded UCI/HTTP-target capability probe from the published interface.
 - [ ] Verify current C64U UCI HTTP behaviour on target hardware.
