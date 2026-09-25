@@ -281,6 +281,96 @@ int main(void)
         "failed formatting makes no partial edit"
     );
 
+    s64_editor_init(&editor);
+    insert_text(&editor, "abc");
+    require(s64_editor_undo(&editor), "undo coalesced typing");
+    require_text(&editor, "", "typing undo restores empty document");
+    require(!editor.dirty, "undo first edit restores clean state");
+    require(s64_editor_redo(&editor), "redo coalesced typing");
+    require_text(&editor, "abc", "typing redo restores text");
+    require(editor.dirty, "redo edit restores dirty state");
+
+    s64_editor_mark_saved(&editor);
+    require(!editor.dirty, "mark saved clears dirty state");
+    require(s64_editor_undo(&editor), "undo after save");
+    require_text(&editor, "", "undo after save restores previous text");
+    require(editor.dirty, "undo away from saved state becomes dirty");
+    require(s64_editor_redo(&editor), "redo back to saved state");
+    require_text(&editor, "abc", "redo returns saved text");
+    require(!editor.dirty, "redo to saved state becomes clean");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "ab");
+    s64_editor_left(&editor);
+    require(s64_editor_insert(&editor, 'X'), "insert after cursor move");
+    require_text(&editor, "aXb", "cursor edit content");
+    require(s64_editor_undo(&editor), "cursor movement breaks typing transaction");
+    require_text(&editor, "ab", "undo removes only post-move edit");
+    require(s64_editor_redo(&editor), "redo post-move edit");
+    require_text(&editor, "aXb", "redo restores post-move edit");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "hello");
+    s64_editor_mark_saved(&editor);
+    require(s64_editor_backspace(&editor), "backspace for undo");
+    require_text(&editor, "hell", "backspace content");
+    require(s64_editor_undo(&editor), "undo backspace");
+    require_text(&editor, "hello", "undo restores backspaced character");
+    require(!editor.dirty, "undo backspace restores saved state");
+    require(s64_editor_redo(&editor), "redo backspace");
+    require_text(&editor, "hell", "redo removes character again");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "hello world");
+    s64_editor_mark_saved(&editor);
+    s64_editor_home(&editor);
+    s64_editor_toggle_mark(&editor);
+    s64_editor_right(&editor);
+    s64_editor_right(&editor);
+    s64_editor_right(&editor);
+    s64_editor_right(&editor);
+    s64_editor_right(&editor);
+    s64_editor_toggle_mark(&editor);
+    require(s64_editor_cut(&editor, &clipboard), "cut for undo");
+    require_text(&editor, " world", "cut edit content");
+    require(s64_editor_undo(&editor), "undo cut");
+    require_text(&editor, "hello world", "undo cut restores selection text");
+    require(s64_editor_redo(&editor), "redo cut");
+    require_text(&editor, " world", "redo cut removes selection again");
+
+    require(s64_editor_paste(&editor, &clipboard), "paste for undo");
+    require_text(&editor, "hello world", "paste edit content");
+    require(s64_editor_undo(&editor), "undo paste");
+    require_text(&editor, " world", "undo paste removes inserted text");
+    require(s64_editor_redo(&editor), "redo paste");
+    require_text(&editor, "hello world", "redo paste restores inserted text");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "aa aa aa");
+    s64_editor_mark_saved(&editor);
+    {
+        unsigned int replaced = 0u;
+        require(s64_editor_replace_all(&editor, "aa", "b", &replaced), "replace all undo fixture");
+        require(replaced == 3u, "replace all undo count");
+    }
+    require_text(&editor, "b b b", "replace all undo changed content");
+    require(s64_editor_undo(&editor), "undo replace all as one transaction");
+    require_text(&editor, "aa aa aa", "undo replace all restores source");
+    require(!editor.dirty, "undo replace all restores saved state");
+    require(s64_editor_redo(&editor), "redo replace all as one transaction");
+    require_text(&editor, "b b b", "redo replace all restores replacements");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "hello");
+    s64_editor_mark_saved(&editor);
+    s64_editor_select_all(&editor);
+    require(s64_editor_format_bold(&editor), "bold for undo");
+    require_text(&editor, "**hello**", "bold undo fixture");
+    require(s64_editor_undo(&editor), "undo formatting");
+    require_text(&editor, "hello", "undo formatting restores source");
+    require(s64_editor_redo(&editor), "redo formatting");
+    require_text(&editor, "**hello**", "redo formatting restores markers");
+
     puts("editor tests passed");
     return 0;
 }

@@ -23,7 +23,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] Home, End, Page Up/Page Down and word-navigation editor commands.
 - [x] Selection model and visible selection.
 - [x] Cut/copy/paste using an application clipboard.
-- [ ] Undo/redo transaction history.
+- [ ] Undo/redo transaction history (bounded single-level RAM implementation with Ctrl+Z / Ctrl+Shift+Z and regression tests added; integration/VICE validation pending).
 - [x] Find / find next / find previous (UI flows implemented; VICE validation pending).
 - [x] Replace / replace all (UI flows implemented; VICE validation pending).
 - [x] Go to line (UI flow implemented; VICE validation pending).
@@ -39,7 +39,7 @@ These player-facing checks are assigned to the user where practical; automated s
 - [ ] After incremental rendering: type continuously, insert/delete within a line, hold Backspace, move the cursor and scroll; confirm immediate display with no full-screen flicker or stale characters.
 - [ ] After Shift handling: verify Shift+letter capitals, shifted punctuation, Caps Lock/Shift Lock behaviour, and unshifted input with both the emulated C64 keyboard and a modern USB keyboard where available.
 - [ ] Exercise New, Open, Save and Save As, including dirty-document and overwrite prompts; confirm saved source reopens exactly.
-- [ ] Exercise word wrap, horizontal scrolling, selection, clipboard, find/replace, go-to-line and formatting shortcuts at 40x25.
+- [ ] Exercise word wrap, horizontal scrolling, selection, clipboard, undo/redo, find/replace, go-to-line and formatting shortcuts at 40x25.
 - [ ] Repeat storage and keyboard checks on real C64U hardware when available; record firmware and keyboard type with any failure.
 
 ## P0 - Publishing

@@ -117,7 +117,7 @@ static void save_as_document(void)
         return;
     }
 
-    editor.dirty = 0u;
+    s64_editor_mark_saved(&editor);
     s64_ui_render(&editor);
     s64_ui_message("File saved");
 }
@@ -138,7 +138,7 @@ static void save_document(void)
         return;
     }
 
-    editor.dirty = 0u;
+    s64_editor_mark_saved(&editor);
     s64_ui_render(&editor);
     s64_ui_message("File saved");
 }
@@ -451,11 +451,17 @@ int main(void)
                 prompt_replace();
                 continue;
             case S64_INPUT_UNDO:
-                s64_ui_message("Undo: history layer next");
-                continue;
+                if (!s64_editor_undo(&editor)) {
+                    s64_ui_message("Nothing to undo");
+                    continue;
+                }
+                break;
             case S64_INPUT_REDO:
-                s64_ui_message("Redo: history layer next");
-                continue;
+                if (!s64_editor_redo(&editor)) {
+                    s64_ui_message("Nothing to redo");
+                    continue;
+                }
+                break;
 
             case S64_INPUT_EXIT:
                 if (editor.dirty && !s64_ui_prompt_yes_no("Discard and exit? Y/N")) {

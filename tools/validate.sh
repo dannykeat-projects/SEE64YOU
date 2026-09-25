@@ -41,7 +41,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src client/tests/buffer_test.c client/src/buf
 "$TMP_BIN"
 
 echo "== Host editor tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/editor_test.c client/src/buffer.c client/src/clipboard.c client/src/editor.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/editor_test.c client/src/buffer.c client/src/history.c client/src/clipboard.c client/src/editor.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host document tests =="
