@@ -130,6 +130,37 @@ if (array_key_exists("document", $d) || array_key_exists("body", $d)) exit(1);
 CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/post.php?slug=api-test")
 [ "$CODE" = "404" ]
 
+PREVIEW_UNAUTH_CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
+    "$BASE/api.php?action=preview&type=post&slug=api-test")
+[ "$PREVIEW_UNAUTH_CODE" = "401" ]
+
+PREVIEW_REPLY=$(curl -fsS -H "$AUTH" \
+    "$BASE/api.php?action=preview&type=post&slug=api-test")
+PREVIEW_URL=$(printf '%s' "$PREVIEW_REPLY" | php -r '
+$d=json_decode(stream_get_contents(STDIN),true);
+if (!is_array($d) || !($d["ok"] ?? false)) exit(1);
+if (!is_string($d["preview_url"] ?? null) || !str_starts_with($d["preview_url"], "post.php?")) exit(1);
+if (!is_int($d["expires"] ?? null) || $d["expires"] <= time()) exit(1);
+echo $d["preview_url"];
+')
+PREVIEW=$(curl -fsS -D "$TMP/preview.headers" "$BASE/$PREVIEW_URL")
+printf '%s' "$PREVIEW" | grep -q 'Draft preview'
+printf '%s' "$PREVIEW" | grep -q '<strong>C64U</strong>'
+if printf '%s' "$PREVIEW" | grep -q '<script>bad()'; then
+    echo "FAIL: raw script reached draft preview HTML" >&2
+    exit 1
+fi
+grep -qi '^Cache-Control: private, no-store' "$TMP/preview.headers"
+grep -qi '^X-Robots-Tag: noindex, nofollow' "$TMP/preview.headers"
+grep -qi '^Referrer-Policy: no-referrer' "$TMP/preview.headers"
+
+TAMPERED_PREVIEW_CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/${PREVIEW_URL}x")
+[ "$TAMPERED_PREVIEW_CODE" = "404" ]
+
+WRONG_TYPE_PREVIEW=${PREVIEW_URL#post.php?}
+WRONG_TYPE_PREVIEW_CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/page.php?$WRONG_TYPE_PREVIEW")
+[ "$WRONG_TYPE_PREVIEW_CODE" = "404" ]
+
 DIRECT_CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/posts/api-test.s64.php")
 [ "$DIRECT_CODE" = "404" ]
 
