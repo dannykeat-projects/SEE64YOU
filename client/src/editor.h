@@ -3,9 +3,11 @@
 
 #include "buffer.h"
 #include "clipboard.h"
+#include "history.h"
 
 typedef struct {
     S64Buffer buffer;
+    S64History history;
     unsigned int view_start;
     unsigned int view_column;
     unsigned int line;
@@ -22,6 +24,9 @@ typedef struct {
 
 void s64_editor_init(S64Editor* editor);
 void s64_editor_document_loaded(S64Editor* editor);
+void s64_editor_mark_saved(S64Editor* editor);
+int s64_editor_undo(S64Editor* editor);
+int s64_editor_redo(S64Editor* editor);
 int s64_editor_insert(S64Editor* editor, unsigned char value);
 int s64_editor_newline(S64Editor* editor);
 int s64_editor_backspace(S64Editor* editor);
