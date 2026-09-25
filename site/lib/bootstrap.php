@@ -7,6 +7,7 @@ require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/Settings.php';
 require_once __DIR__ . '/Wire.php';
 require_once __DIR__ . '/Render.php';
+require_once __DIR__ . '/PostArchive.php';
 
 $config = s64_config();
 $documents = new S64Documents(dirname(__DIR__));
