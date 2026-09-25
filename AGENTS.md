@@ -51,4 +51,5 @@
 - Update `todo.md` when work is completed, deferred, discovered, or reprioritised.
 - Keep documentation concise and authoritative; do not create duplicate planning files.
 - Validate the smallest relevant scope first, then run the full available validation.
+- Keep a downloadable `see64you.prg` for the current integration version: integration validation must build it first and publish it as the `see64you-prg` workflow artifact so manual testing is always available when the C64 build succeeds.
 - Do not claim C64U hardware validation unless it actually ran on C64U hardware.
