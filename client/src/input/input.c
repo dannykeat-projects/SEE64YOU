@@ -49,12 +49,10 @@ void s64_input_read(S64InputEvent* event)
     event->type = S64_INPUT_NONE;
     event->character = 0u;
 
-    while (!kbhit()) {
-        /* KERNAL IRQ scanning continues to fill the keyboard buffer. */
-    }
-
     modifiers = S64_SHFLAG;
+    cursor(1);
     key = (unsigned char)cgetc();
+    cursor(0);
     modifiers |= S64_SHFLAG;
 
     if ((modifiers & S64_MOD_CONTROL) != 0u) {

@@ -7,26 +7,20 @@
 #define EDITOR_FIRST_ROW 1u
 #define EDITOR_ROWS 23u
 #define STATUS_ROW 24u
-#define EDITOR_CELLS (EDITOR_ROWS * SCREEN_COLUMNS)
-#define REVERSE_CACHE_BYTES ((EDITOR_CELLS + 7u) / 8u)
-
 static unsigned char http_ready;
 static unsigned char dos_ready;
 static unsigned char header_rendered;
-static unsigned char body_cache_valid;
 static unsigned char status_cache_valid;
 static unsigned char body_rows;
-static unsigned char body_reverse_present;
-static unsigned char body_cache[EDITOR_CELLS];
-static unsigned char body_reverse_cache[REVERSE_CACHE_BYTES];
+static unsigned char cursor_position_valid;
+static unsigned char cursor_col;
+static unsigned char cursor_row;
+static unsigned int rendered_view_start;
+static unsigned int rendered_view_column;
+static unsigned char rendered_word_wrap;
 static unsigned char row_chars[SCREEN_COLUMNS];
 static unsigned char row_reverse[SCREEN_COLUMNS];
 static unsigned char status_cache[SCREEN_COLUMNS];
-
-static const unsigned char bit_masks[8] = {
-    0x01u, 0x02u, 0x04u, 0x08u,
-    0x10u, 0x20u, 0x40u, 0x80u
-};
 
 static void clear_row(unsigned char row)
 {
@@ -51,23 +45,6 @@ static void render_header(void)
     header_rendered = 1u;
 }
 
-static unsigned char cached_reverse(unsigned int cell)
-{
-    return (body_reverse_cache[cell >> 3] & bit_masks[cell & 7u]) != 0u;
-}
-
-static void set_cached_reverse(unsigned int cell, unsigned char reverse)
-{
-    unsigned char* value = &body_reverse_cache[cell >> 3];
-    unsigned char mask = bit_masks[cell & 7u];
-
-    if (reverse) {
-        *value |= mask;
-    } else {
-        *value &= (unsigned char)~mask;
-    }
-}
-
 static void prepare_row(void)
 {
     memset(row_chars, ' ', sizeof(row_chars));
@@ -86,48 +63,20 @@ static unsigned char position_selected(
         && position < selection_end;
 }
 
-static void flush_body_row(unsigned char row, unsigned char compare_reverse)
+static void flush_body_row(unsigned char row)
 {
-    unsigned int base = (unsigned int)(row - EDITOR_FIRST_ROW) * SCREEN_COLUMNS;
-    unsigned int cell;
     unsigned char col = 0u;
     unsigned char reverse = 0u;
 
+    gotoxy(0u, row);
+    revers(0);
     while (col < SCREEN_COLUMNS) {
-        cell = base + col;
-
-        if (body_cache_valid
-            && body_cache[cell] == row_chars[col]
-            && (!compare_reverse || cached_reverse(cell) == row_reverse[col])) {
-            ++col;
-            continue;
+        if (row_reverse[col] != reverse) {
+            reverse = row_reverse[col];
+            revers(reverse);
         }
-
-        gotoxy(col, row);
-        reverse = row_reverse[col];
-        revers(reverse);
-
-        while (col < SCREEN_COLUMNS) {
-            cell = base + col;
-
-            if (body_cache_valid
-                && body_cache[cell] == row_chars[col]
-                && (!compare_reverse || cached_reverse(cell) == row_reverse[col])) {
-                break;
-            }
-
-            if (row_reverse[col] != reverse) {
-                reverse = row_reverse[col];
-                revers(reverse);
-            }
-
-            cputc(row_chars[col]);
-            body_cache[cell] = row_chars[col];
-            if (compare_reverse) {
-                set_cached_reverse(cell, row_reverse[col]);
-            }
-            ++col;
-        }
+        cputc(row_chars[col]);
+        ++col;
     }
 
     revers(0);
@@ -135,18 +84,14 @@ static void flush_body_row(unsigned char row, unsigned char compare_reverse)
 
 static void finish_body_rows(
     unsigned char rendered_rows,
-    unsigned char previous_rows,
-    unsigned char compare_reverse
+    unsigned char previous_rows
 )
 {
     unsigned char desired_rows = rendered_rows;
 
     while (rendered_rows < previous_rows) {
         prepare_row();
-        flush_body_row(
-            (unsigned char)(EDITOR_FIRST_ROW + rendered_rows),
-            compare_reverse
-        );
+        flush_body_row((unsigned char)(EDITOR_FIRST_ROW + rendered_rows));
         ++rendered_rows;
     }
 
@@ -256,7 +201,6 @@ static void render_body_wrapped(
     unsigned char line_break;
     unsigned char previous_rows = body_rows;
     unsigned char rendered_rows = 0u;
-    unsigned char compare_reverse = has_selection || body_reverse_present;
 
     if (physical >= editor->buffer.gap_start) {
         physical += editor->buffer.gap_end - editor->buffer.gap_start;
@@ -321,7 +265,7 @@ static void render_body_wrapped(
             found = 1u;
         }
 
-        flush_body_row(row, compare_reverse);
+        flush_body_row(row);
         ++rendered_rows;
 
         if (position >= length && found) {
@@ -329,8 +273,7 @@ static void render_body_wrapped(
         }
     }
 
-    finish_body_rows(rendered_rows, previous_rows, compare_reverse);
-    body_reverse_present = has_selection;
+    finish_body_rows(rendered_rows, previous_rows);
 
     if (!found) {
         *cursor_row = EDITOR_FIRST_ROW;
@@ -359,7 +302,6 @@ static void render_body_horizontal(
     unsigned char col;
     unsigned char previous_rows = body_rows;
     unsigned char rendered_rows = 0u;
-    unsigned char compare_reverse = has_selection || body_reverse_present;
 
     if (has_selection) {
         selection_start = s64_editor_selection_start(editor);
@@ -417,7 +359,7 @@ static void render_body_horizontal(
             ++col;
         }
 
-        flush_body_row(row, compare_reverse);
+        flush_body_row(row);
         ++rendered_rows;
 
         if (end == length) {
@@ -427,8 +369,7 @@ static void render_body_horizontal(
         }
     }
 
-    finish_body_rows(rendered_rows, previous_rows, compare_reverse);
-    body_reverse_present = has_selection;
+    finish_body_rows(rendered_rows, previous_rows);
 
     if (!found) {
         *cursor_row = EDITOR_FIRST_ROW;
@@ -448,7 +389,6 @@ static void render_body(
         render_body_horizontal(editor, cursor_col, cursor_row);
     }
 
-    body_cache_valid = 1u;
 }
 
 void s64_ui_init(void)
@@ -459,11 +399,9 @@ void s64_ui_init(void)
     clrscr();
 
     header_rendered = 0u;
-    body_cache_valid = 0u;
     status_cache_valid = 0u;
     body_rows = 0u;
-    body_reverse_present = 0u;
-    memset(body_reverse_cache, 0, sizeof(body_reverse_cache));
+    cursor_position_valid = 0u;
 }
 
 void s64_ui_set_http_ready(unsigned char ready)
@@ -478,13 +416,73 @@ void s64_ui_set_dos_ready(unsigned char ready)
 
 void s64_ui_render(const S64Editor* editor)
 {
-    unsigned char cursor_col = 0u;
-    unsigned char cursor_row = EDITOR_FIRST_ROW;
+    unsigned char next_cursor_col = 0u;
+    unsigned char next_cursor_row = EDITOR_FIRST_ROW;
 
     render_header();
-    render_body(editor, &cursor_col, &cursor_row);
+    render_body(editor, &next_cursor_col, &next_cursor_row);
     render_status(editor);
-    gotoxy(cursor_col, cursor_row);
+    gotoxy(next_cursor_col, next_cursor_row);
+    cursor_col = next_cursor_col;
+    cursor_row = next_cursor_row;
+    cursor_position_valid = 1u;
+    rendered_view_start = editor->view_start;
+    rendered_view_column = editor->view_column;
+    rendered_word_wrap = editor->word_wrap;
+}
+
+void s64_ui_render_append(const S64Editor* editor, unsigned char value)
+{
+    unsigned char col = cursor_col;
+    unsigned char row = cursor_row;
+
+    if (!cursor_position_valid) {
+        s64_ui_render(editor);
+        return;
+    }
+
+    gotoxy(col, row);
+    revers(0);
+    cputc(value);
+
+    ++col;
+    if (col >= SCREEN_COLUMNS) {
+        col = 0u;
+        ++row;
+        if (row >= STATUS_ROW) {
+            s64_ui_render(editor);
+            return;
+        }
+        prepare_row();
+        flush_body_row(row);
+        body_rows = (unsigned char)(row - EDITOR_FIRST_ROW + 1u);
+    }
+
+    render_status(editor);
+    gotoxy(col, row);
+    cursor_col = col;
+    cursor_row = row;
+}
+
+void s64_ui_render_cursor(const S64Editor* editor)
+{
+    unsigned char col = editor->view_cursor_column;
+    unsigned char row = (unsigned char)(EDITOR_FIRST_ROW + editor->view_cursor_row);
+
+    if (!cursor_position_valid
+        || rendered_view_start != editor->view_start
+        || rendered_view_column != editor->view_column
+        || rendered_word_wrap != editor->word_wrap
+        || col >= SCREEN_COLUMNS
+        || row >= STATUS_ROW) {
+        s64_ui_render(editor);
+        return;
+    }
+
+    render_status(editor);
+    gotoxy(col, row);
+    cursor_col = col;
+    cursor_row = row;
 }
 
 void s64_ui_message(const char* message)

@@ -13,7 +13,7 @@ all: $(TARGET)
 
 $(TARGET): $(SOURCES)
 	@mkdir -p build
-	$(CL65) $(CFLAGS) -o $@ $(SOURCES)
+	$(CL65) $(CFLAGS) -m build/see64you.map -o $@ $(SOURCES)
 
 clean:
 	rm -rf build

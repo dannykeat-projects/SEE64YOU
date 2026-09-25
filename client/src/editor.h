@@ -14,6 +14,8 @@ typedef struct {
     unsigned int column;
     unsigned int selection_anchor;
     unsigned int preferred_column;
+    unsigned char view_cursor_row;
+    unsigned char view_cursor_column;
     unsigned char selection_valid;
     unsigned char preferred_column_valid;
     unsigned char mark_mode;

@@ -420,6 +420,12 @@ int main(void)
 {
     S64InputEvent input;
     unsigned char running = 1u;
+    unsigned int previous_cursor;
+    unsigned int previous_length;
+    unsigned int previous_view_start;
+    unsigned char previous_selection;
+    unsigned char previous_mark_mode;
+    unsigned char cursor_only;
 
     s64_editor_init(&editor);
     s64_clipboard_init(&clipboard);
@@ -436,44 +442,68 @@ int main(void)
     while (running) {
         maybe_autosave();
         s64_input_read(&input);
+        cursor_only = 0u;
 
         switch (input.type) {
             case S64_INPUT_CHARACTER:
+                previous_cursor = s64_buffer_cursor(&editor.buffer);
+                previous_length = s64_buffer_length(&editor.buffer);
+                previous_view_start = editor.view_start;
+                previous_selection = s64_editor_has_selection(&editor);
+                previous_mark_mode = editor.mark_mode;
                 if (!s64_editor_insert(&editor, input.character)) {
                     s64_ui_message("Document buffer full");
+                    continue;
+                }
+                if (previous_cursor == previous_length
+                    && !previous_selection
+                    && !previous_mark_mode
+                    && editor.word_wrap
+                    && editor.view_start == previous_view_start) {
+                    s64_ui_render_append(&editor, input.character);
                     continue;
                 }
                 break;
 
             case S64_INPUT_LEFT:
                 s64_editor_left(&editor);
+                cursor_only = 1u;
                 break;
             case S64_INPUT_RIGHT:
                 s64_editor_right(&editor);
+                cursor_only = 1u;
                 break;
             case S64_INPUT_UP:
                 s64_editor_up(&editor);
+                cursor_only = 1u;
                 break;
             case S64_INPUT_DOWN:
                 s64_editor_down(&editor);
+                cursor_only = 1u;
                 break;
             case S64_INPUT_HOME:
                 s64_editor_home(&editor);
+                cursor_only = 1u;
                 break;
             case S64_INPUT_END:
                 s64_editor_end(&editor);
+                cursor_only = 1u;
                 break;
             case S64_INPUT_PAGE_UP:
                 s64_editor_page_up(&editor);
+                cursor_only = 1u;
                 break;
             case S64_INPUT_PAGE_DOWN:
                 s64_editor_page_down(&editor);
+                cursor_only = 1u;
                 break;
             case S64_INPUT_WORD_LEFT:
                 s64_editor_word_left(&editor);
+                cursor_only = 1u;
                 break;
             case S64_INPUT_WORD_RIGHT:
                 s64_editor_word_right(&editor);
+                cursor_only = 1u;
                 break;
 
             case S64_INPUT_BACKSPACE:
@@ -487,6 +517,7 @@ int main(void)
                 break;
             case S64_INPUT_TOGGLE_INSERT:
                 s64_editor_toggle_insert(&editor);
+                cursor_only = 1u;
                 break;
             case S64_INPUT_TOGGLE_WRAP:
                 s64_editor_toggle_word_wrap(&editor);
@@ -579,7 +610,13 @@ int main(void)
                 continue;
         }
 
-        s64_ui_render(&editor);
+        if (cursor_only
+            && !editor.mark_mode
+            && !s64_editor_has_selection(&editor)) {
+            s64_ui_render_cursor(&editor);
+        } else {
+            s64_ui_render(&editor);
+        }
     }
 
     clrscr();

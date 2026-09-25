@@ -175,6 +175,25 @@ int main(void)
     require(editor.view_column == 0u, "re-enabling wrap clears horizontal offset");
 
     s64_editor_init(&editor);
+    insert_text(&editor, "123456789012345678901234567890123456789012345");
+    s64_editor_up(&editor);
+    require(s64_buffer_cursor(&editor.buffer) == 5u, "wrapped up moves one visual row");
+    s64_editor_down(&editor);
+    require(s64_buffer_cursor(&editor.buffer) == 45u, "wrapped down restores visual column");
+
+    s64_editor_init(&editor);
+    {
+        unsigned int i;
+        for (i = 0u; i < 960u; ++i) {
+            require(s64_editor_insert(&editor, 'x'), "fill wrapped viewport");
+        }
+    }
+    require(editor.view_start == 80u, "wrapped viewport scrolls by visual rows");
+    s64_editor_page_up(&editor);
+    require(s64_buffer_cursor(&editor.buffer) == 80u, "page up moves through wrapped rows");
+    require(editor.view_start <= 80u, "page up reveals previous wrapped page");
+
+    s64_editor_init(&editor);
     insert_text(&editor, "one\ntwo\nthree");
     require(s64_editor_go_to_line(&editor, 2u), "go to existing line");
     require(editor.line == 2u && editor.column == 1u, "go to line position");

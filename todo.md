@@ -18,7 +18,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 
 ## P0 - Editor essentials
 
-- [ ] Replace whole-editor redraws during typing with incremental updates (VICE confirmed no flicker, but the first cell-diff renderer added multi-second key latency; row-bounded sequential rendering implemented 2026-09-25 and awaiting VICE retest).
+- [ ] Replace whole-editor redraws during typing with incremental updates (constant-time append rendering, native blinking cursor and cursor-only movement implemented 2026-09-25; VICE responsiveness retest pending, while mid-document edits still use bounded full redraws).
 - [x] Accurate vertical cursor movement preserving preferred column.
 - [x] Word wrap toggle and horizontal scrolling (F8; VICE validation pending).
 - [x] Home, End, Page Up/Page Down and word-navigation editor commands.
@@ -38,6 +38,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 These player-facing checks are assigned to the user where practical; automated source and regression checks remain part of development.
 
 - [ ] After incremental rendering: type continuously, insert/delete within a line, hold Backspace, move the cursor and scroll; confirm immediate display with no full-screen flicker or stale characters.
+- [ ] Retest the 2026-09-25 editor checkpoint in VICE: confirm a visible blinking cursor; type continuously through multiple wrapped screenfuls; use Left/Right and Up/Down across wrapped rows; then use Page Up to return to the preceding screen. Record separately whether append typing, navigation, Backspace and mid-document insertion remain slow.
 - [ ] After Shift handling: verify Shift+letter capitals, shifted punctuation, Caps Lock/Shift Lock behaviour, and unshifted input with both the emulated C64 keyboard and a modern USB keyboard where available.
 - [ ] Exercise New, Open, Save and Save As, including dirty-document and overwrite prompts; confirm saved source reopens exactly.
 - [ ] Exercise recovery/autosave: create dirty edits, confirm `SEE64YOU.REC`, restart and recover/discard, then confirm Save/discard removes the snapshot.
