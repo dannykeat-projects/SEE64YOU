@@ -945,8 +945,9 @@ int s64_editor_delete(S64Editor* editor)
 
 void s64_editor_left(S64Editor* editor)
 {
-    s64_history_break_coalesce(&editor->history);
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
+
+    s64_history_break_coalesce(&editor->history);
 
     if (cursor > 0u) {
         s64_buffer_move_cursor(&editor->buffer, cursor - 1u);
@@ -959,8 +960,9 @@ void s64_editor_left(S64Editor* editor)
 
 void s64_editor_right(S64Editor* editor)
 {
-    s64_history_break_coalesce(&editor->history);
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
+
+    s64_history_break_coalesce(&editor->history);
 
     if (cursor < s64_buffer_length(&editor->buffer)) {
         s64_buffer_move_cursor(&editor->buffer, cursor + 1u);
@@ -973,12 +975,13 @@ void s64_editor_right(S64Editor* editor)
 
 void s64_editor_up(S64Editor* editor)
 {
-    s64_history_break_coalesce(&editor->history);
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
     unsigned int current_start = line_start(&editor->buffer, cursor);
     unsigned int previous_end;
     unsigned int previous_start;
     unsigned int desired_column;
+
+    s64_history_break_coalesce(&editor->history);
 
     if (current_start == 0u) {
         return;
@@ -1001,13 +1004,14 @@ void s64_editor_up(S64Editor* editor)
 
 void s64_editor_down(S64Editor* editor)
 {
-    s64_history_break_coalesce(&editor->history);
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
     unsigned int current_start = line_start(&editor->buffer, cursor);
     unsigned int current_end = line_end(&editor->buffer, cursor);
     unsigned int next_start;
     unsigned int next_end;
     unsigned int desired_column;
+
+    s64_history_break_coalesce(&editor->history);
 
     if (current_end >= s64_buffer_length(&editor->buffer)) {
         return;
@@ -1030,8 +1034,9 @@ void s64_editor_down(S64Editor* editor)
 
 void s64_editor_home(S64Editor* editor)
 {
-    s64_history_break_coalesce(&editor->history);
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
+
+    s64_history_break_coalesce(&editor->history);
     s64_buffer_move_cursor(&editor->buffer, line_start(&editor->buffer, cursor));
     reset_preferred_column(editor);
     update_selection_after_move(editor);
@@ -1041,8 +1046,9 @@ void s64_editor_home(S64Editor* editor)
 
 void s64_editor_end(S64Editor* editor)
 {
-    s64_history_break_coalesce(&editor->history);
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
+
+    s64_history_break_coalesce(&editor->history);
     s64_buffer_move_cursor(&editor->buffer, line_end(&editor->buffer, cursor));
     reset_preferred_column(editor);
     update_selection_after_move(editor);
@@ -1078,8 +1084,9 @@ void s64_editor_page_down(S64Editor* editor)
 
 void s64_editor_word_left(S64Editor* editor)
 {
-    s64_history_break_coalesce(&editor->history);
     unsigned int position = s64_buffer_cursor(&editor->buffer);
+
+    s64_history_break_coalesce(&editor->history);
 
     while (position > 0u && !is_word_char(s64_buffer_char_at(&editor->buffer, position - 1u))) {
         --position;
@@ -1097,9 +1104,10 @@ void s64_editor_word_left(S64Editor* editor)
 
 void s64_editor_word_right(S64Editor* editor)
 {
-    s64_history_break_coalesce(&editor->history);
     unsigned int position = s64_buffer_cursor(&editor->buffer);
     unsigned int length = s64_buffer_length(&editor->buffer);
+
+    s64_history_break_coalesce(&editor->history);
 
     while (position < length && is_word_char(s64_buffer_char_at(&editor->buffer, position))) {
         ++position;
@@ -1117,10 +1125,11 @@ void s64_editor_word_right(S64Editor* editor)
 
 int s64_editor_go_to_line(S64Editor* editor, unsigned int line_number)
 {
-    s64_history_break_coalesce(&editor->history);
     unsigned int i;
     unsigned int current_line = 1u;
     unsigned int length = s64_buffer_length(&editor->buffer);
+
+    s64_history_break_coalesce(&editor->history);
 
     if (line_number == 0u) {
         return 0;
