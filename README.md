@@ -80,6 +80,8 @@ php tools/package-site.php
 
 By default this rebuilds `dist/see64you-site/`. It includes the runtime files and starter content, excludes tests and any local `config.php`, and creates `ENABLE_SETUP` so the one-time browser setup is available immediately after upload. An alternate output directory can be supplied as the first argument.
 
+An authenticated full-content backup can be downloaded from `api.php?action=backup`. The JSON backup contains public site settings and every page/post source document, including drafts, but deliberately excludes the password hash and token-signing secret. It is intended for safe archival/export rather than credential cloning.
+
 ## Secure remote publishing
 
 The current C64U UCI HTTP path is not treated as verified TLS. For publishing to a remote HTTPS site, See64You includes an optional trusted-LAN relay in `relay/`. The C64U talks HTTP only to the relay on the local network; the relay authenticates the C64U request and forwards it to one fixed HTTPS upstream using normal certificate verification.
