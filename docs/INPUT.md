@@ -45,9 +45,9 @@ The input layer uses this state alongside buffered keyboard characters. Where fi
 - Ctrl+G: Go to line
 - Ctrl+H: Replace
 - Ctrl+Z: Undo
-- Ctrl+Y: Redo
+- Ctrl+Shift+Z: Redo
 
-Find, Replace, Go to line and local file commands have working prompt flows. On a physical C64 keyboard, Commodore+F1 creates a new document, Commodore+F3 opens, Commodore+F5 saves and Commodore+F7 invokes Save As. Undo and Redo remain normalized commands awaiting their implementation layers.
+Find, Replace, Go to line and local file commands have working prompt flows. Ctrl+Z and Ctrl+Shift+Z use the bounded base-C64 undo/redo transaction layer; ordinary consecutive typing is coalesced into one undo step. On a physical C64 keyboard, Commodore+F1 creates a new document, Commodore+F3 opens, Commodore+F5 saves and Commodore+F7 invokes Save As. REU-backed multi-level history remains a later enhancement.
 
 ## Validation rule
 
