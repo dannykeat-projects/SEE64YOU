@@ -1,4 +1,5 @@
 #include "wordpress_documents.h"
+#include "charset.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -203,6 +204,8 @@ static S64WordPressResult append_base64_chunk(
 {
     uint16_t length = 0u;
     uint16_t i;
+    uint8_t j;
+    uint8_t native;
     int a;
     int b;
     int c;
@@ -259,10 +262,11 @@ static S64WordPressResult append_base64_chunk(
             return S64_WORDPRESS_INCOMPATIBLE_DOCUMENT;
         }
 
-        if (!s64_buffer_insert(body, out[0])
-            || (out_count > 1u && !s64_buffer_insert(body, out[1]))
-            || (out_count > 2u && !s64_buffer_insert(body, out[2]))) {
-            return S64_WORDPRESS_INCOMPATIBLE_DOCUMENT;
+        for (j = 0u; j < out_count; ++j) {
+            if (!s64_charset_ascii_to_native(out[j], &native)
+                || !s64_buffer_insert(body, native)) {
+                return S64_WORDPRESS_INCOMPATIBLE_DOCUMENT;
+            }
         }
         *decoded_total = (uint16_t)(*decoded_total + out_count);
     }
