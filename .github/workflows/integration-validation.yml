@@ -14,5 +14,16 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Build current C64 test PRG
+        run: make -C client clean all
+
+      - name: Publish current C64 test PRG
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-prg
+          path: client/build/see64you.prg
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Run full validation
         run: sh ./tools/validate.sh
