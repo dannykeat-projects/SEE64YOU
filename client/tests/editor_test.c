@@ -87,12 +87,12 @@ int main(void)
     s64_editor_right(&editor);
     require(editor.column == 5u, "fixture column");
     s64_editor_up(&editor);
-    require(editor.column == 2u, "short line clamps vertical column");
+    require(editor.line == 2u && editor.column == 2u, "short line clamps vertical column");
     s64_editor_up(&editor);
-    require(editor.column == 5u, "vertical movement restores preferred column");
+    require(editor.line == 1u && editor.column == 5u, "vertical movement restores preferred column");
     s64_editor_down(&editor);
     s64_editor_down(&editor);
-    require(editor.column == 5u, "preferred column survives repeated vertical movement");
+    require(editor.line == 3u && editor.column == 5u, "preferred column survives repeated vertical movement");
     s64_editor_end(&editor);
     require(editor.column == 6u, "end moves to line end");
 
@@ -173,6 +173,15 @@ int main(void)
     require(s64_buffer_cursor(&editor.buffer) == 4u, "word left returns to previous word");
 
     s64_editor_init(&editor);
+    insert_text(&editor, "one\ntwo");
+    s64_editor_word_left(&editor);
+    require(editor.line == 2u && editor.column == 1u, "word left reaches current line start");
+    s64_editor_word_left(&editor);
+    require(editor.line == 1u && editor.column == 1u, "word left crosses newline locally");
+    s64_editor_word_right(&editor);
+    require(editor.line == 2u && editor.column == 1u, "word right crosses newline locally");
+
+    s64_editor_init(&editor);
     insert_text(&editor, "alpha beta alpha");
     s64_editor_home(&editor);
     require(s64_editor_find_next(&editor, "alpha", 1u), "find first match");
@@ -227,8 +236,10 @@ int main(void)
     insert_text(&editor, "123456789012345678901234567890123456789012345");
     s64_editor_up(&editor);
     require(s64_buffer_cursor(&editor.buffer) == 5u, "wrapped up moves one visual row");
+    require(editor.line == 1u && editor.column == 6u, "wrapped up preserves logical line position");
     s64_editor_down(&editor);
     require(s64_buffer_cursor(&editor.buffer) == 45u, "wrapped down restores visual column");
+    require(editor.line == 1u && editor.column == 46u, "wrapped down preserves logical line position");
 
     s64_editor_init(&editor);
     {
@@ -240,6 +251,7 @@ int main(void)
     require(editor.view_start == 80u, "wrapped viewport scrolls by visual rows");
     s64_editor_page_up(&editor);
     require(s64_buffer_cursor(&editor.buffer) == 80u, "page up moves through wrapped rows");
+    require(editor.line == 1u && editor.column == 81u, "page up preserves logical position");
     require(editor.view_start <= 80u, "page up reveals previous wrapped page");
 
     s64_editor_init(&editor);
