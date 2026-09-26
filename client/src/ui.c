@@ -22,7 +22,7 @@ static unsigned char cursor_row;
 static unsigned int rendered_view_start;
 static unsigned int rendered_view_column;
 static unsigned char rendered_word_wrap;
-static unsigned char row_chars[SCREEN_COLUMNS];
+static unsigned char row_chars[SCREEN_COLUMNS + 1u];
 static unsigned char row_reverse[SCREEN_COLUMNS];
 static unsigned char status_cache[SCREEN_COLUMNS];
 
@@ -141,25 +141,34 @@ static void render_status_text(const char* text)
 
 static void render_status(const S64Editor* editor)
 {
-    const char* selection = editor->mark_mode
-        ? " MARK"
-        : (s64_editor_has_selection(editor) ? " SEL " : "     ");
+    memcpy(
+        row_chars,
+        "Ln 0000 Col 0000 INS     OFF  WRP       ",
+        SCREEN_COLUMNS
+    );
+    row_chars[SCREEN_COLUMNS] = '\0';
 
-    render_status_text("Ln      Col                             ");
+    if (!editor->insert_mode) {
+        memcpy(&row_chars[17], "OVR", 3u);
+    }
+    if (editor->dirty) {
+        memcpy(&row_chars[20], " MOD", 4u);
+    }
+    if (dos_ready) {
+        memcpy(&row_chars[25], "DOS ", 4u);
+    } else if (http_ready) {
+        memcpy(&row_chars[25], "HTTP", 4u);
+    }
+    if (!editor->word_wrap) {
+        memcpy(&row_chars[30], "HOR", 3u);
+    }
+    if (editor->mark_mode) {
+        memcpy(&row_chars[33], " MARK", 5u);
+    } else if (s64_editor_has_selection(editor)) {
+        memcpy(&row_chars[33], " SEL ", 5u);
+    }
 
-    revers(1);
-    gotoxy(17u, STATUS_ROW);
-    cputs(editor->insert_mode ? "INS" : "OVR");
-    gotoxy(20u, STATUS_ROW);
-    cputs(editor->dirty ? " MOD" : "    ");
-    gotoxy(25u, STATUS_ROW);
-    cputs(dos_ready ? "DOS " : (http_ready ? "HTTP" : "OFF "));
-    gotoxy(30u, STATUS_ROW);
-    cputs(editor->word_wrap ? "WRP" : "HOR");
-    gotoxy(33u, STATUS_ROW);
-    cputs(selection);
-    revers(0);
-
+    render_status_text((const char*)row_chars);
     s64_ui_status_line_fast(editor->line);
     s64_ui_status_column_fast(editor->column);
 
