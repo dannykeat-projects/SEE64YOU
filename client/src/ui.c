@@ -15,7 +15,6 @@ static unsigned char http_ready;
 static unsigned char dos_ready;
 static unsigned char header_rendered;
 static unsigned char body_rows;
-static unsigned char partial_first_row;
 static unsigned char cursor_position_valid;
 static unsigned char cursor_col;
 static unsigned char cursor_row;
@@ -178,8 +177,7 @@ static unsigned int render_line_end(
 static void render_body_wrapped(
     const S64Editor* editor,
     unsigned char* cursor_col,
-    unsigned char* cursor_row,
-    unsigned char first_row
+    unsigned char* cursor_row
 )
 {
     unsigned int position = editor->view_start;
@@ -259,9 +257,7 @@ static void render_body_wrapped(
             found = 1u;
         }
 
-        if (row >= first_row) {
-            flush_body_row(row);
-        }
+        flush_body_row(row);
         ++rendered_rows;
 
         if (position >= length && found) {
@@ -380,12 +376,7 @@ static void render_body(
 )
 {
     if (editor->word_wrap) {
-        render_body_wrapped(
-            editor,
-            cursor_col,
-            cursor_row,
-            EDITOR_FIRST_ROW
-        );
+        render_body_wrapped(editor, cursor_col, cursor_row);
     } else {
         render_body_horizontal(editor, cursor_col, cursor_row);
     }
@@ -401,7 +392,6 @@ void s64_ui_init(void)
 
     header_rendered = 0u;
     body_rows = 0u;
-    partial_first_row = 0u;
     cursor_position_valid = 0u;
 }
 
@@ -421,22 +411,8 @@ void s64_ui_render(const S64Editor* editor)
     unsigned char next_cursor_row = EDITOR_FIRST_ROW;
 
     render_header();
-    if (partial_first_row && editor->word_wrap) {
-        render_body_wrapped(
-            editor,
-            &next_cursor_col,
-            &next_cursor_row,
-            partial_first_row
-        );
-        s64_ui_status_line_fast(editor->line);
-        s64_ui_status_column_fast(editor->column);
-        if (editor->dirty) {
-            s64_ui_status_dirty_fast();
-        }
-    } else {
-        render_body(editor, &next_cursor_col, &next_cursor_row);
-        render_status(editor);
-    }
+    render_body(editor, &next_cursor_col, &next_cursor_row);
+    render_status(editor);
     gotoxy(next_cursor_col, next_cursor_row);
     cursor_col = next_cursor_col;
     cursor_row = next_cursor_row;
@@ -444,13 +420,6 @@ void s64_ui_render(const S64Editor* editor)
     rendered_view_start = editor->view_start;
     rendered_view_column = editor->view_column;
     rendered_word_wrap = editor->word_wrap;
-    partial_first_row = 0u;
-}
-
-void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row)
-{
-    partial_first_row = (unsigned char)(EDITOR_FIRST_ROW + first_body_row);
-    s64_ui_render(editor);
 }
 
 void s64_ui_render_append(const S64Editor* editor, unsigned char value)
