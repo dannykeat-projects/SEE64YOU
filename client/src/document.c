@@ -2,12 +2,37 @@
 #include "charset.h"
 
 #include <limits.h>
-#include <stdlib.h>
 #include <string.h>
 
 #define S64_DOCUMENT_WIRE_CHUNK 128u
 
 static uint8_t wire_chunk[S64_DOCUMENT_WIRE_CHUNK];
+
+static void format_int32(int32_t value, char* output)
+{
+    char digits[10];
+    uint32_t magnitude;
+    uint8_t count = 0u;
+
+    if (value < 0) {
+        *output++ = '-';
+        magnitude = (uint32_t)(-(value + 1));
+        ++magnitude;
+    } else {
+        magnitude = (uint32_t)value;
+    }
+
+    do {
+        digits[count++] = (char)('0' + (magnitude % 10u));
+        magnitude /= 10u;
+    } while (magnitude != 0u);
+
+    while (count != 0u) {
+        *output++ = digits[--count];
+    }
+    *output = '\0';
+}
+
 
 static uint8_t native_string_wire_valid(const char* text)
 {
@@ -449,7 +474,7 @@ S64DocumentResult s64_document_write_wire(
         return S64_DOCUMENT_SINK_ERROR;
     }
 
-    ltoa((long)document->order, order, 10);
+    format_int32(document->order, order);
     if (!emit(sink, context, order) || !emit(sink, context, "\n\n")) {
         return S64_DOCUMENT_SINK_ERROR;
     }
