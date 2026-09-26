@@ -172,7 +172,7 @@ static void finish_content_edit(S64Editor* editor)
     s64_editor_ensure_cursor_visible(editor);
 }
 
-static void finish_local_edit(S64Editor* editor)
+static void finish_character_edit(S64Editor* editor, unsigned char inserted)
 {
     editor->dirty = 1u;
     editor->selection_anchor = s64_buffer_cursor(&editor->buffer);
@@ -180,11 +180,6 @@ static void finish_local_edit(S64Editor* editor)
     editor->mark_mode = 0u;
     reset_preferred_column(editor);
     editor->position_cursor = s64_buffer_cursor(&editor->buffer);
-}
-
-static void finish_character_edit(S64Editor* editor, unsigned char inserted)
-{
-    finish_local_edit(editor);
 
     if (inserted) {
         ++editor->column;
@@ -1145,24 +1140,14 @@ int s64_editor_delete(S64Editor* editor)
     }
 
     captured = history_begin(editor, cursor, cursor + 1u);
-    if (s64_buffer_char_at(&editor->buffer, cursor) != '\n') {
-        if (!s64_buffer_delete(&editor->buffer)) {
-            if (captured) {
-                s64_history_reset(&editor->history);
-            }
-            return 0;
+    if (!s64_buffer_delete(&editor->buffer)) {
+        if (captured) {
+            s64_history_reset(&editor->history);
         }
-        finish_local_edit(editor);
-    } else {
-        if (!s64_buffer_delete(&editor->buffer)) {
-            if (captured) {
-                s64_history_reset(&editor->history);
-            }
-            return 0;
-        }
-        finish_content_edit(editor);
+        return 0;
     }
 
+    finish_content_edit(editor);
     history_commit(editor, 0u, 0u, captured);
     return 1;
 }
