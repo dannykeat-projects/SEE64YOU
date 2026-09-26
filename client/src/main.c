@@ -441,7 +441,7 @@ int main(void)
     offer_recovery();
 
     while (running) {
-        if (!s64_input_pending()) {
+        if (!kbhit()) {
             maybe_autosave();
         }
         s64_input_read(&input);
@@ -472,7 +472,7 @@ int main(void)
                     s64_ui_render_append(
                         &editor,
                         inserted_value,
-                        (unsigned char)!s64_input_pending()
+                        (unsigned char)!kbhit()
                     );
                     continue;
                 }
