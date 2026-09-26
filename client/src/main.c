@@ -549,6 +549,35 @@ int main(void)
                 cursor_only = 1u;
                 break;
 
+            case S64_INPUT_DELETE:
+                previous_cursor = s64_buffer_cursor(&editor.buffer);
+                previous_view_start = editor.view_start;
+                previous_selection = s64_editor_has_selection(&editor);
+                previous_mark_mode = editor.mark_mode;
+                previous_cursor_row = editor.view_cursor_row;
+                removed_value = previous_cursor < s64_buffer_length(&editor.buffer)
+                    ? s64_buffer_char_at(&editor.buffer, previous_cursor)
+                    : 0u;
+                if (!s64_editor_delete(&editor)) {
+                    continue;
+                }
+                if (!previous_selection
+                    && !previous_mark_mode
+                    && editor.word_wrap
+                    && editor.view_start == previous_view_start) {
+                    s64_ui_render_edit(
+                        &editor,
+                        (unsigned char)(
+                            (removed_value == '\n' ? 0u : S64_UI_EDIT_CHARACTER)
+                            | (previous_cursor_row < editor.view_cursor_row
+                                ? previous_cursor_row
+                                : editor.view_cursor_row)
+                        )
+                    );
+                    continue;
+                }
+                break;
+
             case S64_INPUT_BACKSPACE:
                 previous_cursor = s64_buffer_cursor(&editor.buffer);
                 previous_length = s64_buffer_length(&editor.buffer);
