@@ -15,7 +15,6 @@ static unsigned char http_ready;
 static unsigned char dos_ready;
 static unsigned char header_rendered;
 static unsigned char body_rows;
-static unsigned char partial_first_row;
 static unsigned char cursor_position_valid;
 static unsigned char cursor_col;
 static unsigned char cursor_row;
@@ -70,10 +69,6 @@ static void flush_body_row(unsigned char row)
 {
     unsigned char col = 0u;
     unsigned char reverse = 0u;
-
-    if (partial_first_row && row < partial_first_row) {
-        return;
-    }
 
     gotoxy(0u, row);
     revers(0);
@@ -397,7 +392,6 @@ void s64_ui_init(void)
 
     header_rendered = 0u;
     body_rows = 0u;
-    partial_first_row = 0u;
     cursor_position_valid = 0u;
 }
 
@@ -473,13 +467,6 @@ void s64_ui_render_append(const S64Editor* editor, unsigned char value)
 
     cursor_col = col;
     cursor_row = row;
-}
-
-void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row)
-{
-    partial_first_row = (unsigned char)(EDITOR_FIRST_ROW + first_body_row);
-    s64_ui_render(editor);
-    partial_first_row = 0u;
 }
 
 void s64_ui_render_cursor(const S64Editor* editor)
