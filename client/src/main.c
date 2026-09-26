@@ -514,22 +514,7 @@ int main(void)
                 break;
 
             case S64_INPUT_BACKSPACE:
-                previous_cursor = s64_buffer_cursor(&editor.buffer);
-                previous_length = s64_buffer_length(&editor.buffer);
-                previous_view_start = editor.view_start;
-                previous_selection = s64_editor_has_selection(&editor);
-                previous_mark_mode = editor.mark_mode;
-                if (!s64_editor_backspace(&editor)) {
-                    continue;
-                }
-                if (previous_cursor == previous_length
-                    && !previous_selection
-                    && !previous_mark_mode
-                    && editor.word_wrap
-                    && editor.view_start == previous_view_start) {
-                    s64_ui_render_append(&editor, S64_UI_BACKSPACE_TAIL);
-                    continue;
-                }
+                s64_editor_backspace(&editor);
                 break;
             case S64_INPUT_TOGGLE_INSERT:
                 s64_editor_toggle_insert(&editor);
