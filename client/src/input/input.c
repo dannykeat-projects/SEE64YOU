@@ -85,6 +85,9 @@ void s64_input_read(S64InputEvent* event)
             case CH_F7:
                 event->type = S64_INPUT_SAVE_AS;
                 return;
+            case CH_DEL:
+                event->type = S64_INPUT_DELETE;
+                return;
             case CH_CURS_LEFT:
                 event->type = S64_INPUT_HOME;
                 return;
