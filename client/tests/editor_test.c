@@ -258,8 +258,19 @@ int main(void)
     insert_text(&editor, "one\ntwo\nthree");
     require(s64_editor_go_to_line(&editor, 2u), "go to existing line");
     require(editor.line == 2u && editor.column == 1u, "go to line position");
+    s64_editor_right(&editor);
+    require(editor.line == 2u && editor.column == 2u, "go to line keeps incremental position synchronized");
     require(!s64_editor_go_to_line(&editor, 4u), "reject missing line");
-    require(editor.line == 2u && editor.column == 1u, "missing line preserves position");
+    require(editor.line == 2u && editor.column == 2u, "missing line preserves position");
+
+    s64_buffer_init(&editor.buffer);
+    require(s64_buffer_insert(&editor.buffer, 'n'), "load fixture first character");
+    require(s64_buffer_insert(&editor.buffer, 'e'), "load fixture second character");
+    require(s64_buffer_insert(&editor.buffer, 'w'), "load fixture third character");
+    require(s64_buffer_move_cursor(&editor.buffer, 0u), "load fixture starts at document beginning");
+    s64_editor_document_loaded(&editor);
+    s64_editor_right(&editor);
+    require(editor.line == 1u && editor.column == 2u, "document load resets incremental position tracking");
 
     s64_editor_init(&editor);
     insert_text(&editor, "hello");
