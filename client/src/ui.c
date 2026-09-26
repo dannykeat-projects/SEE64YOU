@@ -14,7 +14,6 @@ void s64_ui_status_dirty_fast(void);
 static unsigned char http_ready;
 static unsigned char dos_ready;
 static unsigned char header_rendered;
-static unsigned char status_cache_valid;
 static unsigned char body_rows;
 static unsigned char cursor_position_valid;
 static unsigned char cursor_col;
@@ -24,7 +23,6 @@ static unsigned int rendered_view_column;
 static unsigned char rendered_word_wrap;
 static unsigned char row_chars[SCREEN_COLUMNS + 1u];
 static unsigned char row_reverse[SCREEN_COLUMNS];
-static unsigned char status_cache[SCREEN_COLUMNS];
 
 static void clear_row(unsigned char row)
 {
@@ -104,39 +102,19 @@ static void finish_body_rows(
 
 static void render_status_text(const char* text)
 {
-    unsigned char col;
-    unsigned char length = (unsigned char)strlen(text);
-
-    if (length > SCREEN_COLUMNS) {
-        length = SCREEN_COLUMNS;
-    }
+    unsigned char col = 0u;
 
     revers(1);
-    col = 0u;
+    gotoxy(0u, STATUS_ROW);
+    while (col < SCREEN_COLUMNS && text[col] != '\0') {
+        cputc((unsigned char)text[col]);
+        ++col;
+    }
     while (col < SCREEN_COLUMNS) {
-        unsigned char value = col < length ? (unsigned char)text[col] : (unsigned char)' ';
-
-        if (status_cache_valid && status_cache[col] == value) {
-            ++col;
-            continue;
-        }
-
-        gotoxy(col, STATUS_ROW);
-
-        while (col < SCREEN_COLUMNS) {
-            value = col < length ? (unsigned char)text[col] : (unsigned char)' ';
-
-            if (status_cache_valid && status_cache[col] == value) {
-                break;
-            }
-
-            cputc(value);
-            status_cache[col] = value;
-            ++col;
-        }
+        cputc(' ');
+        ++col;
     }
     revers(0);
-    status_cache_valid = 1u;
 }
 
 static void render_status(const S64Editor* editor)
@@ -172,11 +150,6 @@ static void render_status(const S64Editor* editor)
     s64_ui_status_line_fast(editor->line);
     s64_ui_status_column_fast(editor->column);
 
-    /*
-     * The numeric helpers write screen RAM directly and intentionally bypass
-     * the text cache. Force the next general status render to rebuild it.
-     */
-    status_cache_valid = 0u;
 }
 
 static unsigned int render_line_end(
@@ -418,7 +391,6 @@ void s64_ui_init(void)
     clrscr();
 
     header_rendered = 0u;
-    status_cache_valid = 0u;
     body_rows = 0u;
     cursor_position_valid = 0u;
 }
@@ -492,7 +464,6 @@ void s64_ui_render_append(const S64Editor* editor, unsigned char value)
     if (editor->dirty) {
         s64_ui_status_dirty_fast();
     }
-    status_cache_valid = 0u;
 
     cursor_col = col;
     cursor_row = row;
@@ -535,7 +506,6 @@ unsigned char s64_ui_prompt_text(const char* label, char* value, unsigned char c
     }
 
     value[0] = '\0';
-    status_cache_valid = 0u;
     clear_row(STATUS_ROW);
     revers(1);
     gotoxy(0u, STATUS_ROW);
@@ -579,7 +549,6 @@ unsigned char s64_ui_prompt_yes_no(const char* label)
 {
     unsigned char key;
 
-    status_cache_valid = 0u;
     clear_row(STATUS_ROW);
     revers(1);
     gotoxy(0u, STATUS_ROW);
