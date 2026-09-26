@@ -446,6 +446,7 @@ int main(void)
     unsigned char previous_cursor_row;
     unsigned char cursor_only;
     unsigned char inserted_value;
+    unsigned char removed_value;
 
     s64_editor_init(&editor);
     s64_clipboard_init(&clipboard);
@@ -546,10 +547,15 @@ int main(void)
                 break;
 
             case S64_INPUT_BACKSPACE:
+                previous_cursor = s64_buffer_cursor(&editor.buffer);
+                previous_length = s64_buffer_length(&editor.buffer);
                 previous_view_start = editor.view_start;
                 previous_selection = s64_editor_has_selection(&editor);
                 previous_mark_mode = editor.mark_mode;
                 previous_cursor_row = editor.view_cursor_row;
+                removed_value = previous_cursor > 0u
+                    ? s64_buffer_char_at(&editor.buffer, previous_cursor - 1u)
+                    : 0u;
                 if (!s64_editor_backspace(&editor)) {
                     continue;
                 }
@@ -557,12 +563,33 @@ int main(void)
                     && !previous_mark_mode
                     && editor.word_wrap
                     && editor.view_start == previous_view_start) {
-                    s64_ui_render_edit(
-                        &editor,
-                        previous_cursor_row < editor.view_cursor_row
-                            ? previous_cursor_row
-                            : editor.view_cursor_row
-                    );
+                    if (previous_cursor == previous_length
+                        && removed_value != '\n') {
+                        gotoxy(
+                            editor.view_cursor_column,
+                            (unsigned char)(1u + editor.view_cursor_row)
+                        );
+                        cputc(' ');
+                        s64_ui_status_line_fast(editor.line);
+                        s64_ui_status_column_fast(editor.column);
+                        if (editor.dirty) {
+                            s64_ui_status_dirty_fast();
+                        }
+                        gotoxy(
+                            editor.view_cursor_column,
+                            (unsigned char)(1u + editor.view_cursor_row)
+                        );
+                    } else {
+                        s64_ui_render_edit(
+                            &editor,
+                            (unsigned char)(
+                                (removed_value == '\n' ? 0u : 0x80u)
+                                | (previous_cursor_row < editor.view_cursor_row
+                                    ? previous_cursor_row
+                                    : editor.view_cursor_row)
+                            )
+                        );
+                    }
                     continue;
                 }
                 break;
