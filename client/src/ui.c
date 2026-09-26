@@ -1,5 +1,4 @@
 #include <conio.h>
-#include <stdio.h>
 #include <string.h>
 #include "ui.h"
 
@@ -7,10 +6,15 @@
 #define EDITOR_FIRST_ROW 1u
 #define EDITOR_ROWS 23u
 #define STATUS_ROW 24u
+#define STATUS_LINE_COL 3u
+#define STATUS_COLUMN_COL 12u
+#define STATUS_NUMBER_WIDTH 4u
 static unsigned char http_ready;
 static unsigned char dos_ready;
 static unsigned char header_rendered;
 static unsigned char status_cache_valid;
+static unsigned char status_layout_valid;
+static unsigned char rendered_dirty;
 static unsigned char body_rows;
 static unsigned char cursor_position_valid;
 static unsigned char cursor_col;
@@ -133,31 +137,148 @@ static void render_status_text(const char* text)
     }
     revers(0);
     status_cache_valid = 1u;
+    status_layout_valid = 0u;
+}
+
+static void status_number(unsigned int value, char* output)
+{
+    unsigned char digit;
+    unsigned char started = 0u;
+
+    digit = 0u;
+    while (value >= 1000u) {
+        value -= 1000u;
+        ++digit;
+    }
+    if (digit != 0u) {
+        output[0] = (char)('0' + digit);
+        started = 1u;
+    } else {
+        output[0] = ' ';
+    }
+
+    digit = 0u;
+    while (value >= 100u) {
+        value -= 100u;
+        ++digit;
+    }
+    if (digit != 0u || started) {
+        output[1] = (char)('0' + digit);
+        started = 1u;
+    } else {
+        output[1] = ' ';
+    }
+
+    digit = 0u;
+    while (value >= 10u) {
+        value -= 10u;
+        ++digit;
+    }
+    if (digit != 0u || started) {
+        output[2] = (char)('0' + digit);
+    } else {
+        output[2] = ' ';
+    }
+
+    output[3] = (char)('0' + (unsigned char)value);
+}
+
+static void render_status_range(
+    unsigned char start,
+    const char* values,
+    unsigned char count
+)
+{
+    unsigned char offset = 0u;
+
+    revers(1);
+    while (offset < count) {
+        unsigned char col = (unsigned char)(start + offset);
+        unsigned char value = (unsigned char)values[offset];
+
+        if (status_cache_valid && status_cache[col] == value) {
+            ++offset;
+            continue;
+        }
+
+        gotoxy(col, STATUS_ROW);
+        while (offset < count) {
+            col = (unsigned char)(start + offset);
+            value = (unsigned char)values[offset];
+            if (status_cache_valid && status_cache[col] == value) {
+                break;
+            }
+
+            cputc(value);
+            status_cache[col] = value;
+            ++offset;
+        }
+    }
+    revers(0);
 }
 
 static void render_status(const S64Editor* editor)
 {
     char status[41];
-    const char* mode = editor->insert_mode ? "INS" : "OVR";
-    const char* dirty = editor->dirty ? " MOD" : "";
-    const char* wrap = editor->word_wrap ? "WRP" : "HOR";
-    const char* selection = editor->mark_mode
-        ? " MARK"
-        : (s64_editor_has_selection(editor) ? " SEL" : "");
 
-    sprintf(
-        status,
-        "Ln %u Col %u %s%s %s %s%s",
-        editor->line,
-        editor->column,
-        mode,
-        dirty,
-        dos_ready ? "DOS" : (http_ready ? "HTTP" : "OFF"),
-        wrap,
-        selection
-    );
+    memset(status, ' ', SCREEN_COLUMNS);
+    status[SCREEN_COLUMNS] = '\0';
+
+    status[0] = 'L';
+    status[1] = 'n';
+    status_number(editor->line, &status[STATUS_LINE_COL]);
+
+    status[8] = 'C';
+    status[9] = 'o';
+    status[10] = 'l';
+    status_number(editor->column, &status[STATUS_COLUMN_COL]);
+
+    memcpy(&status[17], editor->insert_mode ? "INS" : "OVR", 3u);
+    if (editor->dirty) {
+        memcpy(&status[20], " MOD", 4u);
+    }
+
+    if (dos_ready) {
+        memcpy(&status[25], "DOS ", 4u);
+    } else if (http_ready) {
+        memcpy(&status[25], "HTTP", 4u);
+    } else {
+        memcpy(&status[25], "OFF ", 4u);
+    }
+
+    memcpy(&status[30], editor->word_wrap ? "WRP" : "HOR", 3u);
+    if (editor->mark_mode) {
+        memcpy(&status[33], " MARK", 5u);
+    } else if (s64_editor_has_selection(editor)) {
+        memcpy(&status[33], " SEL ", 5u);
+    }
 
     render_status_text(status);
+    status_layout_valid = 1u;
+    rendered_dirty = editor->dirty;
+}
+
+static void render_status_position(const S64Editor* editor)
+{
+    char digits[STATUS_NUMBER_WIDTH];
+
+    if (!status_layout_valid || rendered_dirty != editor->dirty) {
+        render_status(editor);
+        return;
+    }
+
+    status_number(editor->line, digits);
+    render_status_range(
+        STATUS_LINE_COL,
+        digits,
+        STATUS_NUMBER_WIDTH
+    );
+    status_number(editor->column, digits);
+    render_status_range(
+        STATUS_COLUMN_COL,
+        digits,
+        STATUS_NUMBER_WIDTH
+    );
 }
 
 static unsigned int render_line_end(
@@ -400,6 +521,8 @@ void s64_ui_init(void)
 
     header_rendered = 0u;
     status_cache_valid = 0u;
+    status_layout_valid = 0u;
+    rendered_dirty = 0u;
     body_rows = 0u;
     cursor_position_valid = 0u;
 }
@@ -435,13 +558,13 @@ void s64_ui_render_append(const S64Editor* editor, unsigned char value)
 {
     unsigned char col = cursor_col;
     unsigned char row = cursor_row;
+    unsigned char visible_rows;
 
     if (!cursor_position_valid) {
         s64_ui_render(editor);
         return;
     }
 
-    gotoxy(col, row);
     revers(0);
     if (value == '\n') {
         col = 0u;
@@ -455,17 +578,17 @@ void s64_ui_render_append(const S64Editor* editor, unsigned char value)
         }
     }
 
-    if (col == 0u) {
-        if (row >= STATUS_ROW) {
-            s64_ui_render(editor);
-            return;
-        }
-        prepare_row();
-        flush_body_row(row);
-        body_rows = (unsigned char)(row - EDITOR_FIRST_ROW + 1u);
+    if (row >= STATUS_ROW) {
+        s64_ui_render(editor);
+        return;
     }
 
-    render_status(editor);
+    visible_rows = (unsigned char)(row - EDITOR_FIRST_ROW + 1u);
+    if (visible_rows > body_rows) {
+        body_rows = visible_rows;
+    }
+
+    render_status_position(editor);
     gotoxy(col, row);
     cursor_col = col;
     cursor_row = row;
@@ -509,6 +632,7 @@ unsigned char s64_ui_prompt_text(const char* label, char* value, unsigned char c
 
     value[0] = '\0';
     status_cache_valid = 0u;
+    status_layout_valid = 0u;
     clear_row(STATUS_ROW);
     revers(1);
     gotoxy(0u, STATUS_ROW);
@@ -553,6 +677,7 @@ unsigned char s64_ui_prompt_yes_no(const char* label)
     unsigned char key;
 
     status_cache_valid = 0u;
+    status_layout_valid = 0u;
     clear_row(STATUS_ROW);
     revers(1);
     gotoxy(0u, STATUS_ROW);
