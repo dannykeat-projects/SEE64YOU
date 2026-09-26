@@ -454,6 +454,88 @@ void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row)
     s64_ui_render(editor);
 }
 
+static unsigned char render_short_logical_line(const S64Editor* editor)
+{
+    unsigned int cursor = s64_buffer_cursor(&editor->buffer);
+    unsigned int start = cursor - (editor->column - 1u);
+    unsigned int length = s64_buffer_length(&editor->buffer);
+    unsigned int position = start;
+    unsigned char row = (unsigned char)(
+        EDITOR_FIRST_ROW + editor->view_cursor_row
+    );
+    unsigned char col = 0u;
+
+    if (row >= STATUS_ROW || start < editor->view_start) {
+        return 0u;
+    }
+
+    prepare_row();
+    while (position < length
+        && s64_buffer_char_at(&editor->buffer, position) != '\n') {
+        if (col >= 39u) {
+            return 0u;
+        }
+        row_chars[col++] = s64_buffer_char_at(&editor->buffer, position++);
+    }
+
+    flush_body_row(row);
+    s64_ui_status_line_fast(editor->line);
+    s64_ui_status_column_fast(editor->column);
+    if (editor->dirty) {
+        s64_ui_status_dirty_fast();
+    }
+    gotoxy(editor->view_cursor_column, row);
+    cursor_col = editor->view_cursor_column;
+    cursor_row = row;
+    return 1u;
+}
+
+void s64_ui_render_char_edit(const S64Editor* editor)
+{
+    if (!cursor_position_valid
+        || !editor->word_wrap
+        || editor->mark_mode
+        || s64_editor_has_selection(editor)
+        || rendered_view_start != editor->view_start
+        || rendered_view_column != editor->view_column
+        || rendered_word_wrap != editor->word_wrap
+        || !render_short_logical_line(editor)) {
+        s64_ui_render_edit(editor, editor->view_cursor_row);
+    }
+}
+
+void s64_ui_render_backspace(const S64Editor* editor)
+{
+    unsigned char row = (unsigned char)(
+        EDITOR_FIRST_ROW + editor->view_cursor_row
+    );
+
+    if (cursor_position_valid
+        && editor->word_wrap
+        && !editor->mark_mode
+        && !s64_editor_has_selection(editor)
+        && rendered_view_start == editor->view_start
+        && rendered_view_column == editor->view_column
+        && rendered_word_wrap == editor->word_wrap
+        && s64_buffer_cursor(&editor->buffer)
+            == s64_buffer_length(&editor->buffer)
+        && row < STATUS_ROW) {
+        gotoxy(editor->view_cursor_column, row);
+        cputc(' ');
+        s64_ui_status_line_fast(editor->line);
+        s64_ui_status_column_fast(editor->column);
+        if (editor->dirty) {
+            s64_ui_status_dirty_fast();
+        }
+        gotoxy(editor->view_cursor_column, row);
+        cursor_col = editor->view_cursor_column;
+        cursor_row = row;
+        return;
+    }
+
+    s64_ui_render_char_edit(editor);
+}
+
 void s64_ui_render_append(const S64Editor* editor, unsigned char value)
 {
     unsigned char col = cursor_col;
