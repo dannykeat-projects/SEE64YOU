@@ -18,7 +18,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 
 ## P0 - Editor essentials
 
-- [ ] Replace whole-editor redraws during typing with incremental updates (constant-time append rendering, native blinking cursor, cursor-only movement, and hot-path typing/Backspace/Delete/Left/Right position bookkeeping now avoid whole-document-prefix rescans; VICE responsiveness retest pending, while mid-document edits still use the general visible-body redraw).
+- [ ] Replace whole-editor redraws during typing with incremental updates (constant-time append rendering, native blinking cursor and cursor-only drawing are implemented; ordinary typing/editing plus Left/Right, Up/Down, Page Up/Down, Home/End and word navigation now avoid whole-document-prefix position rescans; VICE responsiveness retest pending, while mid-document edits still use the general visible-body redraw).
 - [x] Accurate vertical cursor movement preserving preferred column.
 - [x] Word wrap toggle and horizontal scrolling (F8; VICE validation pending).
 - [x] Home, End, Page Up/Page Down and word-navigation editor commands.
