@@ -31,7 +31,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] New/Open/Save/Save As using C64U-accessible storage (streamed canonical files, temporary-file replacement, overwrite detection and host tests implemented; C64U validation pending).
 - [x] Dirty-document confirmation before New, Open and Exit.
 - [ ] Recovery/autosave files (reserved `SEE64YOU.REC` snapshot, startup recovery prompt and active-edit refresh implemented with host tests; integration/C64U validation pending).
-- [ ] Finish/validate modern USB-keyboard shortcuts and C64-keyboard-friendly mappings (MARK/function-key baseline implemented; Shift+letter capitals confirmed in VICE 2026-09-25; Commodore+Delete now provides a C64-friendly forward-delete command with model/history regression coverage. Shifted punctuation, lock keys and distinct modern USB Delete hardware mapping remain).
+- [ ] Finish/validate modern USB-keyboard shortcuts and C64-keyboard-friendly mappings (MARK/function-key baseline implemented; Shift+letter capitals confirmed in VICE 2026-09-25. VICE symbolic mapping quirks exposed that modifier+cursor PETSCII codes are unreliable, so Ctrl+Left/Right, Ctrl+Up/Down and Ctrl/Commodore+Delete now decode the raw C64 keyboard-matrix key plus modifier state. Shifted punctuation, lock keys, and final VICE/C64U shortcut validation remain).
 
 ## Manual VICE/C64U checks
 
