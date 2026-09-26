@@ -189,7 +189,7 @@ static void render_body_wrapped(
     unsigned int position = editor->view_start;
     unsigned int length = s64_buffer_length(&editor->buffer);
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
-    unsigned int physical = position;
+    unsigned int physical;
     unsigned int selection_start = 0u;
     unsigned int selection_end = 0u;
     unsigned char has_selection = s64_editor_has_selection(editor);
@@ -200,6 +200,14 @@ static void render_body_wrapped(
     unsigned char previous_rows = body_rows;
     unsigned char rendered_rows = 0u;
 
+    if (partial_char_edit) {
+        unsigned int logical_column = editor->column - 1u;
+
+        position = cursor - (logical_column % SCREEN_COLUMNS);
+        rendered_rows = (unsigned char)(partial_first_row - EDITOR_FIRST_ROW);
+    }
+
+    physical = position;
     if (physical >= editor->buffer.gap_start) {
         physical += editor->buffer.gap_end - editor->buffer.gap_start;
     }
@@ -209,7 +217,11 @@ static void render_body_wrapped(
         selection_end = s64_editor_selection_end(editor);
     }
 
-    for (row = EDITOR_FIRST_ROW; row < STATUS_ROW; ++row) {
+    for (
+        row = partial_char_edit ? partial_first_row : EDITOR_FIRST_ROW;
+        row < STATUS_ROW;
+        ++row
+    ) {
         prepare_row();
         col = 0u;
         line_break = 0u;
