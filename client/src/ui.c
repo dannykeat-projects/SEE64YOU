@@ -434,30 +434,42 @@ void s64_ui_render_append(const S64Editor* editor, unsigned char value)
     }
 
     revers(0);
-    if (value == '\n') {
-        col = 0u;
-        ++row;
+    if (value == S64_UI_BACKSPACE_TAIL) {
+        col = editor->view_cursor_column;
+        row = (unsigned char)(EDITOR_FIRST_ROW + editor->view_cursor_row);
+        if (row >= STATUS_ROW) {
+            s64_ui_render(editor);
+            return;
+        }
+        gotoxy(col, row);
+        cputc(' ');
+        body_rows = (unsigned char)(row - EDITOR_FIRST_ROW + 1u);
     } else {
-        cputc(value);
-        ++col;
-        if (col >= SCREEN_COLUMNS) {
+        if (value == '\n') {
             col = 0u;
             ++row;
+        } else {
+            cputc(value);
+            ++col;
+            if (col >= SCREEN_COLUMNS) {
+                col = 0u;
+                ++row;
+            }
+        }
+
+        if (row >= STATUS_ROW) {
+            s64_ui_render(editor);
+            return;
+        }
+
+        visible_rows = (unsigned char)(row - EDITOR_FIRST_ROW + 1u);
+        if (visible_rows > body_rows) {
+            body_rows = visible_rows;
         }
     }
 
-    if (row >= STATUS_ROW) {
-        s64_ui_render(editor);
-        return;
-    }
-
-    visible_rows = (unsigned char)(row - EDITOR_FIRST_ROW + 1u);
-    if (visible_rows > body_rows) {
-        body_rows = visible_rows;
-    }
-
     s64_ui_status_column_fast(editor->column);
-    if (value == '\n') {
+    if (value == '\n' || value == S64_UI_BACKSPACE_TAIL) {
         s64_ui_status_line_fast(editor->line);
         gotoxy(col, row);
     }
