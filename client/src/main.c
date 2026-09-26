@@ -1,5 +1,5 @@
 #include <conio.h>
-#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -408,7 +408,9 @@ static void prompt_replace(void)
         }
 
         s64_ui_render(&editor);
-        sprintf(message, "Replaced %u match%s", replaced, replaced == 1u ? "" : "es");
+        strcpy(message, "Replaced ");
+        utoa(replaced, message + 9u, 10);
+        strcat(message, replaced == 1u ? " match" : " matches");
         s64_ui_message(message);
         return;
     }
