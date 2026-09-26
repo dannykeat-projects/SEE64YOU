@@ -200,11 +200,11 @@ static void render_body_wrapped(
     unsigned char previous_rows = body_rows;
     unsigned char rendered_rows = 0u;
 
+    row = EDITOR_FIRST_ROW;
     if (partial_char_edit) {
-        unsigned int logical_column = editor->column - 1u;
-
-        position = cursor - (logical_column % SCREEN_COLUMNS);
+        position = cursor - editor->view_cursor_column;
         rendered_rows = (unsigned char)(partial_first_row - EDITOR_FIRST_ROW);
+        row = partial_first_row;
     }
 
     physical = position;
@@ -217,11 +217,7 @@ static void render_body_wrapped(
         selection_end = s64_editor_selection_end(editor);
     }
 
-    for (
-        row = partial_char_edit ? partial_first_row : EDITOR_FIRST_ROW;
-        row < STATUS_ROW;
-        ++row
-    ) {
+    for (; row < STATUS_ROW; ++row) {
         prepare_row();
         col = 0u;
         line_break = 0u;
