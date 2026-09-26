@@ -554,7 +554,11 @@ void s64_ui_render(const S64Editor* editor)
     rendered_word_wrap = editor->word_wrap;
 }
 
-void s64_ui_render_append(const S64Editor* editor, unsigned char value)
+void s64_ui_render_append(
+    const S64Editor* editor,
+    unsigned char value,
+    unsigned char update_status
+)
 {
     unsigned char col = cursor_col;
     unsigned char row = cursor_row;
@@ -588,8 +592,13 @@ void s64_ui_render_append(const S64Editor* editor, unsigned char value)
         body_rows = visible_rows;
     }
 
-    render_status_position(editor);
-    gotoxy(col, row);
+    if (update_status) {
+        render_status_position(editor);
+        gotoxy(col, row);
+    } else if (value == '\n') {
+        gotoxy(col, row);
+    }
+
     cursor_col = col;
     cursor_row = row;
 }
