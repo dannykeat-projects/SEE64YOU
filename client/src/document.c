@@ -4,7 +4,7 @@
 #include <limits.h>
 #include <string.h>
 
-#define S64_DOCUMENT_WIRE_CHUNK 128u
+#define S64_DOCUMENT_WIRE_CHUNK 96u
 
 static uint8_t wire_chunk[S64_DOCUMENT_WIRE_CHUNK];
 
