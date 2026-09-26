@@ -1,5 +1,4 @@
 #include <conio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -27,6 +26,24 @@ static char find_query[SEARCH_TEXT_CAPACITY];
 static unsigned char find_query_valid;
 static clock_t last_recovery_write;
 static unsigned char recovery_error_shown;
+
+static char* append_unsigned(char* output, unsigned int value)
+{
+    char digits[5];
+    unsigned char count = 0u;
+
+    do {
+        digits[count++] = (char)('0' + (value % 10u));
+        value /= 10u;
+    } while (value != 0u);
+
+    while (count != 0u) {
+        *output++ = digits[--count];
+    }
+    *output = '\0';
+    return output;
+}
+
 
 static unsigned char local_storage_ready(void)
 {
@@ -409,8 +426,7 @@ static void prompt_replace(void)
 
         s64_ui_render(&editor);
         strcpy(message, "Replaced ");
-        utoa(replaced, message + 9u, 10);
-        strcat(message, replaced == 1u ? " match" : " matches");
+        strcat(append_unsigned(message + 9u, replaced), replaced == 1u ? " match" : " matches");
         s64_ui_message(message);
         return;
     }
