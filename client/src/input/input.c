@@ -41,6 +41,11 @@ static S64InputType s64_control_command(unsigned char key, unsigned char modifie
     }
 }
 
+unsigned char s64_input_pending(void)
+{
+    return kbhit() ? 1u : 0u;
+}
+
 void s64_input_read(S64InputEvent* event)
 {
     unsigned char key;
