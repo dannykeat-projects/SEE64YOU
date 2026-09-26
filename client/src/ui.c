@@ -69,11 +69,11 @@ static unsigned char position_selected(
 static void flush_body_row(unsigned char row)
 {
     unsigned char col = 0u;
+    unsigned char reverse = 0u;
 
     if (partial_first_row && row < partial_first_row) {
         return;
     }
-    unsigned char reverse = 0u;
 
     gotoxy(0u, row);
     revers(0);
