@@ -441,7 +441,9 @@ int main(void)
     offer_recovery();
 
     while (running) {
-        maybe_autosave();
+        if (!s64_input_pending()) {
+            maybe_autosave();
+        }
         s64_input_read(&input);
         cursor_only = 0u;
 
@@ -467,7 +469,11 @@ int main(void)
                     && !previous_mark_mode
                     && editor.word_wrap
                     && editor.view_start == previous_view_start) {
-                    s64_ui_render_append(&editor, inserted_value);
+                    s64_ui_render_append(
+                        &editor,
+                        inserted_value,
+                        (unsigned char)!s64_input_pending()
+                    );
                     continue;
                 }
                 break;
