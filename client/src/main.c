@@ -570,15 +570,7 @@ int main(void)
                             (unsigned char)(1u + editor.view_cursor_row)
                         );
                         cputc(' ');
-                        s64_ui_status_line_fast(editor.line);
-                        s64_ui_status_column_fast(editor.column);
-                        if (editor.dirty) {
-                            s64_ui_status_dirty_fast();
-                        }
-                        gotoxy(
-                            editor.view_cursor_column,
-                            (unsigned char)(1u + editor.view_cursor_row)
-                        );
+                        s64_ui_render_cursor(&editor);
                     } else {
                         s64_ui_render_edit(
                             &editor,
