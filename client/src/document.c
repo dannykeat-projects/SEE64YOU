@@ -2,7 +2,7 @@
 #include "charset.h"
 
 #include <limits.h>
-#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define S64_DOCUMENT_WIRE_CHUNK 128u
@@ -449,7 +449,7 @@ S64DocumentResult s64_document_write_wire(
         return S64_DOCUMENT_SINK_ERROR;
     }
 
-    sprintf(order, "%ld", (long)document->order);
+    ltoa((long)document->order, order, 10);
     if (!emit(sink, context, order) || !emit(sink, context, "\n\n")) {
         return S64_DOCUMENT_SINK_ERROR;
     }
