@@ -19,7 +19,8 @@ For that reason the reliable baseline is **MARK mode**:
 - F6: Replace / Replace All;
 - F7: paste;
 - F8: toggle Word Wrap;
-- Ctrl+Left/Right or Commodore+Left/Right: move one word at a time;
+- Ctrl+Left/Right: move one word at a time;
+- Ctrl+Up/Down: page up/down;
 - Ctrl+Delete or Commodore+Delete: delete the character under the cursor (forward delete);
 - RUN/STOP: exit the current development shell (inside a prompt it cancels the prompt).
 
@@ -49,7 +50,7 @@ The input layer uses this state alongside buffered keyboard characters. Where fi
 - Ctrl+Z: Undo
 - Ctrl+Shift+Z: Redo
 
-Find, Replace, Go to line and local file commands have working prompt flows. Ctrl+Z and Ctrl+Shift+Z use the bounded base-C64 undo/redo transaction layer; ordinary consecutive typing is coalesced into one undo step. On a physical C64 keyboard, Commodore+F1 creates a new document, Commodore+F3 opens, Commodore+F5 saves and Commodore+F7 invokes Save As. For navigation/editing, both CTRL and Commodore modifiers are accepted with Left/Right for word movement and with Delete for forward delete. This intentionally accommodates VICE symbolic mappings. In VICE's stock GTK symbolic map, host Left Ctrl maps to C64 CTRL and Tab maps to the Commodore key. Modifier+cursor/delete commands are decoded from the raw C64 keyboard-matrix key so the KERNAL's modifier-specific PETSCII tables cannot reverse or transform the intended direction. REU-backed multi-level history remains a later enhancement. A distinct modern USB Delete key remains a C64U hardware-validation item because firmware may present it through the C64 keyboard abstraction rather than as a unique key code.
+Find, Replace, Go to line and local file commands have working prompt flows. Ctrl+Z and Ctrl+Shift+Z use the bounded base-C64 undo/redo transaction layer; ordinary consecutive typing is coalesced into one undo step. On a physical C64 keyboard, Commodore+F1 creates a new document, Commodore+F3 opens, Commodore+F5 saves and Commodore+F7 invokes Save As. Navigation uses C64 CTRL with Left/Right for word movement and Up/Down for page movement; forward delete accepts either CTRL+Delete or Commodore+Delete. In VICE's stock GTK symbolic map, host Left Ctrl maps to C64 CTRL and Tab maps to the Commodore key. Modifier+cursor/delete commands are decoded from the raw C64 keyboard-matrix key so the KERNAL's modifier-specific PETSCII tables cannot reverse or transform the intended direction. REU-backed multi-level history remains a later enhancement. A distinct modern USB Delete key remains a C64U hardware-validation item because firmware may present it through the C64 keyboard abstraction rather than as a unique key code.
 
 ## Validation rule
 
@@ -62,4 +63,4 @@ References:
 
 ### VICE symbolic modifier note
 
-The C64 has only physical Cursor Right and Cursor Down keys; Cursor Left and Cursor Up are the shifted forms of those keys. Consequently, Commodore+Left/Up also contains SHIFT at the C64 level. Normally SHIFT+Commodore toggles the C64 character set, which can make the editor appear to switch all text to capitals/graphics. SEE64YOU temporarily disables that KERNAL charset-toggle feature while the editor is running and restores the prior setting on exit.
+The C64 has only physical Cursor Right and Cursor Down keys; Cursor Left and Cursor Up are the shifted forms of those keys. Consequently, Commodore+Left/Up also contains SHIFT at the C64 level. SHIFT+Commodore is the C64's character-set toggle, which is why Tab+Left/Up in VICE symbolic mode can make the screen appear to switch case/graphics. SEE64YOU therefore uses C64 CTRL, not Commodore, for arrow-based navigation commands. Tab/Commodore remains valid with Delete because that combination does not require SHIFT.
