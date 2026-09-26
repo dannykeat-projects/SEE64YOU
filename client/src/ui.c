@@ -11,7 +11,6 @@ static unsigned char http_ready;
 static unsigned char dos_ready;
 static unsigned char header_rendered;
 static unsigned char status_cache_valid;
-static unsigned char status_refresh_count;
 static unsigned char body_rows;
 static unsigned char cursor_position_valid;
 static unsigned char cursor_col;
@@ -401,7 +400,6 @@ void s64_ui_init(void)
 
     header_rendered = 0u;
     status_cache_valid = 0u;
-    status_refresh_count = 0u;
     body_rows = 0u;
     cursor_position_valid = 0u;
 }
@@ -462,7 +460,6 @@ void s64_ui_render_append(
     }
 
     if (row >= STATUS_ROW) {
-        status_refresh_count = 0u;
         s64_ui_render(editor);
         return;
     }
@@ -473,16 +470,11 @@ void s64_ui_render_append(
     }
 
     if (value == '\n') {
-        status_refresh_count = 0u;
         render_status(editor);
         gotoxy(col, row);
-    } else {
-        ++status_refresh_count;
-        if (update_status && status_refresh_count >= 8u) {
-            status_refresh_count = 0u;
-            render_status(editor);
-            gotoxy(col, row);
-        }
+    } else if (update_status && (editor->column & 7u) == 0u) {
+        render_status(editor);
+        gotoxy(col, row);
     }
 
     cursor_col = col;
