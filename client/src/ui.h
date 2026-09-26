@@ -3,6 +3,8 @@
 
 #include "editor.h"
 
+#define S64_UI_EDIT_CHARACTER 0x80u
+
 void s64_ui_init(void);
 void s64_ui_set_http_ready(unsigned char ready);
 void s64_ui_set_dos_ready(unsigned char ready);
