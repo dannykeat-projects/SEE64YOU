@@ -3,10 +3,6 @@
 
 #include "editor.h"
 
-void __fastcall__ s64_ui_status_line_fast(unsigned int value);
-void __fastcall__ s64_ui_status_column_fast(unsigned int value);
-void s64_ui_status_dirty_fast(void);
-
 void s64_ui_init(void);
 void s64_ui_set_http_ready(unsigned char ready);
 void s64_ui_set_dos_ready(unsigned char ready);
