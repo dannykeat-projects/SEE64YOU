@@ -431,11 +431,7 @@ void s64_ui_render(const S64Editor* editor)
     rendered_word_wrap = editor->word_wrap;
 }
 
-void s64_ui_render_append(
-    const S64Editor* editor,
-    unsigned char value,
-    unsigned char update_status
-)
+void s64_ui_render_append(const S64Editor* editor, unsigned char value)
 {
     unsigned char col = cursor_col;
     unsigned char row = cursor_row;
@@ -472,7 +468,7 @@ void s64_ui_render_append(
     if (value == '\n') {
         render_status(editor);
         gotoxy(col, row);
-    } else if (update_status && (editor->column & 7u) == 0u) {
+    } else if ((editor->column & 7u) == 0u) {
         render_status(editor);
         gotoxy(col, row);
     }
