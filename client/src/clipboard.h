@@ -1,7 +1,7 @@
 #ifndef SEE64YOU_CLIPBOARD_H
 #define SEE64YOU_CLIPBOARD_H
 
-#define S64_CLIPBOARD_CAPACITY 512u
+#define S64_CLIPBOARD_CAPACITY 384u
 
 typedef struct {
     unsigned char data[S64_CLIPBOARD_CAPACITY];
