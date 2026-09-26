@@ -18,7 +18,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 
 ## P0 - Editor essentials
 
-- [ ] Replace whole-editor redraws during typing with incremental updates (constant-time character/newline append rendering, native blinking cursor and cursor-only drawing are implemented; ordinary navigation avoids whole-document-prefix position rescans. VICE comparison on 2026-09-26 showed BASIC and SEE64YOU share the same first-line fast-touch-typing rollover losses, but only SEE64YOU accumulated latency. Direct C64 status updates fixed sustained typing. The local edit model fast path made Backspace fast even on a full page. Deep review after mid-line insertion remained slow found the key dispatch bug: the renderer's character-only affected-row mode was being requested for Backspace but not for ordinary inserted characters, so insertion still took the old scan/redraw path. The insertion dispatch now explicitly selects the character-only mode (named S64_UI_EDIT_CHARACTER) so short-line edits can start directly at the affected row and stop at that explicit line boundary. Existing external C64 editor research supports the same current-line-only strategy for typing edits. Focused editor/document tests, the cc65 C64 build and the full repository validator passed locally on 2026-09-27; the current PRG is ready for a manual full-page insertion retest in VICE).
+- [x] Replace whole-editor redraws during typing with incremental updates (validated in VICE on 2026-09-27 at `5da0c391`: continuous typing, mid-line insertion near the top and bottom of a full page, Backspace in the middle of the document, newline insertion/deletion, and editing after scrolling/Page Up/Down all performed well. The final path combines constant-time append/status updates, local editor position maintenance, direct affected-row character redraws, and conservative fallbacks for complex edits).
 - [x] Accurate vertical cursor movement preserving preferred column.
 - [x] Word wrap toggle and horizontal scrolling (F8; VICE validation pending).
 - [x] Home, End, Page Up/Page Down and word-navigation editor commands.
@@ -37,7 +37,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 
 These player-facing checks are assigned to the user where practical; automated source and regression checks remain part of development.
 
-- [ ] After incremental rendering: type continuously, insert/delete within a line, hold Backspace, move the cursor and scroll; confirm immediate display with no full-screen flicker or stale characters.
+- [x] After incremental rendering: VICE test passed 2026-09-27 on `5da0c391`; continuous typing, mid-line insert/delete, held Backspace, newline edits and editing after scrolling/Page Up/Down were all reported working well, with no responsiveness issue reported.
 - [ ] Retest the 2026-09-25 editor checkpoint in VICE: confirm a visible blinking cursor; type continuously through multiple wrapped screenfuls; use Left/Right and Up/Down across wrapped rows; then use Page Up to return to the preceding screen. Record separately whether append typing, navigation, Backspace and mid-document insertion remain slow.
 - [ ] After Shift handling: verify Shift+letter capitals, shifted punctuation, Caps Lock/Shift Lock behaviour, and unshifted input with both the emulated C64 keyboard and a modern USB keyboard where available.
 - [ ] Exercise New, Open, Save and Save As, including dirty-document and overwrite prompts; confirm saved source reopens exactly.
