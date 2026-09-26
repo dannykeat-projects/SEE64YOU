@@ -12,6 +12,7 @@ typedef struct {
     unsigned int view_column;
     unsigned int line;
     unsigned int column;
+    unsigned int position_cursor;
     unsigned int selection_anchor;
     unsigned int preferred_column;
     unsigned char view_cursor_row;

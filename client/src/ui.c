@@ -1,5 +1,4 @@
 #include <conio.h>
-#include <stdio.h>
 #include <string.h>
 #include "ui.h"
 
@@ -7,20 +6,25 @@
 #define EDITOR_FIRST_ROW 1u
 #define EDITOR_ROWS 23u
 #define STATUS_ROW 24u
+
+void __fastcall__ s64_ui_status_line_fast(unsigned int value);
+void __fastcall__ s64_ui_status_column_fast(unsigned int value);
+void s64_ui_status_dirty_fast(void);
+
 static unsigned char http_ready;
 static unsigned char dos_ready;
 static unsigned char header_rendered;
-static unsigned char status_cache_valid;
 static unsigned char body_rows;
+static unsigned char partial_first_row;
+static unsigned char partial_char_edit;
 static unsigned char cursor_position_valid;
 static unsigned char cursor_col;
 static unsigned char cursor_row;
 static unsigned int rendered_view_start;
 static unsigned int rendered_view_column;
 static unsigned char rendered_word_wrap;
-static unsigned char row_chars[SCREEN_COLUMNS];
+static unsigned char row_chars[SCREEN_COLUMNS + 1u];
 static unsigned char row_reverse[SCREEN_COLUMNS];
-static unsigned char status_cache[SCREEN_COLUMNS];
 
 static void clear_row(unsigned char row)
 {
@@ -68,6 +72,10 @@ static void flush_body_row(unsigned char row)
     unsigned char col = 0u;
     unsigned char reverse = 0u;
 
+    if (partial_first_row != 0u && row < partial_first_row) {
+        return;
+    }
+
     gotoxy(0u, row);
     revers(0);
     while (col < SCREEN_COLUMNS) {
@@ -100,64 +108,54 @@ static void finish_body_rows(
 
 static void render_status_text(const char* text)
 {
-    unsigned char col;
-    unsigned char length = (unsigned char)strlen(text);
-
-    if (length > SCREEN_COLUMNS) {
-        length = SCREEN_COLUMNS;
-    }
+    unsigned char col = 0u;
 
     revers(1);
-    col = 0u;
+    gotoxy(0u, STATUS_ROW);
+    while (col < SCREEN_COLUMNS && text[col] != '\0') {
+        cputc((unsigned char)text[col]);
+        ++col;
+    }
     while (col < SCREEN_COLUMNS) {
-        unsigned char value = col < length ? (unsigned char)text[col] : (unsigned char)' ';
-
-        if (status_cache_valid && status_cache[col] == value) {
-            ++col;
-            continue;
-        }
-
-        gotoxy(col, STATUS_ROW);
-
-        while (col < SCREEN_COLUMNS) {
-            value = col < length ? (unsigned char)text[col] : (unsigned char)' ';
-
-            if (status_cache_valid && status_cache[col] == value) {
-                break;
-            }
-
-            cputc(value);
-            status_cache[col] = value;
-            ++col;
-        }
+        cputc(' ');
+        ++col;
     }
     revers(0);
-    status_cache_valid = 1u;
 }
 
 static void render_status(const S64Editor* editor)
 {
-    char status[41];
-    const char* mode = editor->insert_mode ? "INS" : "OVR";
-    const char* dirty = editor->dirty ? " MOD" : "";
-    const char* wrap = editor->word_wrap ? "WRP" : "HOR";
-    const char* selection = editor->mark_mode
-        ? " MARK"
-        : (s64_editor_has_selection(editor) ? " SEL" : "");
-
-    sprintf(
-        status,
-        "Ln %u Col %u %s%s %s %s%s",
-        editor->line,
-        editor->column,
-        mode,
-        dirty,
-        dos_ready ? "DOS" : (http_ready ? "HTTP" : "OFF"),
-        wrap,
-        selection
+    memcpy(
+        row_chars,
+        "Ln 0000 Col 0000 INS     OFF  WRP       ",
+        SCREEN_COLUMNS
     );
+    row_chars[SCREEN_COLUMNS] = '\0';
 
-    render_status_text(status);
+    if (!editor->insert_mode) {
+        memcpy(&row_chars[17], "OVR", 3u);
+    }
+    if (editor->dirty) {
+        memcpy(&row_chars[20], " MOD", 4u);
+    }
+    if (dos_ready) {
+        memcpy(&row_chars[25], "DOS ", 4u);
+    } else if (http_ready) {
+        memcpy(&row_chars[25], "HTTP", 4u);
+    }
+    if (!editor->word_wrap) {
+        memcpy(&row_chars[30], "HOR", 3u);
+    }
+    if (editor->mark_mode) {
+        memcpy(&row_chars[33], " MARK", 5u);
+    } else if (s64_editor_has_selection(editor)) {
+        memcpy(&row_chars[33], " SEL ", 5u);
+    }
+
+    render_status_text((const char*)row_chars);
+    s64_ui_status_line_fast(editor->line);
+    s64_ui_status_column_fast(editor->column);
+
 }
 
 static unsigned int render_line_end(
@@ -191,7 +189,7 @@ static void render_body_wrapped(
     unsigned int position = editor->view_start;
     unsigned int length = s64_buffer_length(&editor->buffer);
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
-    unsigned int physical = position;
+    unsigned int physical;
     unsigned int selection_start = 0u;
     unsigned int selection_end = 0u;
     unsigned char has_selection = s64_editor_has_selection(editor);
@@ -202,6 +200,14 @@ static void render_body_wrapped(
     unsigned char previous_rows = body_rows;
     unsigned char rendered_rows = 0u;
 
+    row = EDITOR_FIRST_ROW;
+    if (partial_char_edit) {
+        position = cursor - editor->view_cursor_column;
+        rendered_rows = (unsigned char)(partial_first_row - EDITOR_FIRST_ROW);
+        row = partial_first_row;
+    }
+
+    physical = position;
     if (physical >= editor->buffer.gap_start) {
         physical += editor->buffer.gap_end - editor->buffer.gap_start;
     }
@@ -211,7 +217,7 @@ static void render_body_wrapped(
         selection_end = s64_editor_selection_end(editor);
     }
 
-    for (row = EDITOR_FIRST_ROW; row < STATUS_ROW; ++row) {
+    for (; row < STATUS_ROW; ++row) {
         prepare_row();
         col = 0u;
         line_break = 0u;
@@ -267,6 +273,14 @@ static void render_body_wrapped(
 
         flush_body_row(row);
         ++rendered_rows;
+
+        if (partial_char_edit
+            && row >= partial_first_row
+            && line_break
+            && col < SCREEN_COLUMNS - 1u) {
+            rendered_rows = previous_rows;
+            break;
+        }
 
         if (position >= length && found) {
             break;
@@ -399,8 +413,9 @@ void s64_ui_init(void)
     clrscr();
 
     header_rendered = 0u;
-    status_cache_valid = 0u;
     body_rows = 0u;
+    partial_first_row = 0u;
+    partial_char_edit = 0u;
     cursor_position_valid = 0u;
 }
 
@@ -421,7 +436,15 @@ void s64_ui_render(const S64Editor* editor)
 
     render_header();
     render_body(editor, &next_cursor_col, &next_cursor_row);
-    render_status(editor);
+    if (partial_first_row != 0u) {
+        s64_ui_status_line_fast(editor->line);
+        s64_ui_status_column_fast(editor->column);
+        if (editor->dirty) {
+            s64_ui_status_dirty_fast();
+        }
+    } else {
+        render_status(editor);
+    }
     gotoxy(next_cursor_col, next_cursor_row);
     cursor_col = next_cursor_col;
     cursor_row = next_cursor_row;
@@ -429,37 +452,74 @@ void s64_ui_render(const S64Editor* editor)
     rendered_view_start = editor->view_start;
     rendered_view_column = editor->view_column;
     rendered_word_wrap = editor->word_wrap;
+    partial_first_row = 0u;
+    partial_char_edit = 0u;
+}
+
+void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row)
+{
+    partial_char_edit = (unsigned char)(first_body_row & 0x80u);
+    first_body_row &= 0x7fu;
+
+    if (!editor->word_wrap
+        || editor->mark_mode
+        || s64_editor_has_selection(editor)
+        || rendered_view_start != editor->view_start
+        || rendered_view_column != editor->view_column
+        || rendered_word_wrap != editor->word_wrap
+        || first_body_row >= EDITOR_ROWS) {
+        partial_char_edit = 0u;
+        s64_ui_render(editor);
+        return;
+    }
+
+    partial_first_row = (unsigned char)(EDITOR_FIRST_ROW + first_body_row);
+    s64_ui_render(editor);
 }
 
 void s64_ui_render_append(const S64Editor* editor, unsigned char value)
 {
     unsigned char col = cursor_col;
     unsigned char row = cursor_row;
+    unsigned char visible_rows;
 
     if (!cursor_position_valid) {
         s64_ui_render(editor);
         return;
     }
 
-    gotoxy(col, row);
     revers(0);
-    cputc(value);
-
-    ++col;
-    if (col >= SCREEN_COLUMNS) {
+    if (value == '\n') {
         col = 0u;
         ++row;
-        if (row >= STATUS_ROW) {
-            s64_ui_render(editor);
-            return;
+    } else {
+        cputc(value);
+        ++col;
+        if (col >= SCREEN_COLUMNS) {
+            col = 0u;
+            ++row;
         }
-        prepare_row();
-        flush_body_row(row);
-        body_rows = (unsigned char)(row - EDITOR_FIRST_ROW + 1u);
     }
 
-    render_status(editor);
-    gotoxy(col, row);
+    if (row >= STATUS_ROW) {
+        s64_ui_render(editor);
+        return;
+    }
+
+    visible_rows = (unsigned char)(row - EDITOR_FIRST_ROW + 1u);
+    if (visible_rows > body_rows) {
+        body_rows = visible_rows;
+    }
+
+    s64_ui_status_column_fast(editor->column);
+    if (value == '\n') {
+        s64_ui_status_line_fast(editor->line);
+        gotoxy(col, row);
+    }
+    if (editor->dirty) {
+        s64_ui_status_dirty_fast();
+    }
+
     cursor_col = col;
     cursor_row = row;
 }
@@ -501,7 +561,6 @@ unsigned char s64_ui_prompt_text(const char* label, char* value, unsigned char c
     }
 
     value[0] = '\0';
-    status_cache_valid = 0u;
     clear_row(STATUS_ROW);
     revers(1);
     gotoxy(0u, STATUS_ROW);
@@ -545,7 +604,6 @@ unsigned char s64_ui_prompt_yes_no(const char* label)
 {
     unsigned char key;
 
-    status_cache_valid = 0u;
     clear_row(STATUS_ROW);
     revers(1);
     gotoxy(0u, STATUS_ROW);

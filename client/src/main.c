@@ -1,5 +1,4 @@
 #include <conio.h>
-#include <stdio.h>
 #include <string.h>
 #include <time.h>
 
@@ -27,6 +26,24 @@ static char find_query[SEARCH_TEXT_CAPACITY];
 static unsigned char find_query_valid;
 static clock_t last_recovery_write;
 static unsigned char recovery_error_shown;
+
+static char* append_unsigned(char* output, unsigned int value)
+{
+    char digits[5];
+    unsigned char count = 0u;
+
+    do {
+        digits[count++] = (char)('0' + (value % 10u));
+        value /= 10u;
+    } while (value != 0u);
+
+    while (count != 0u) {
+        *output++ = digits[--count];
+    }
+    *output = '\0';
+    return output;
+}
+
 
 static unsigned char local_storage_ready(void)
 {
@@ -408,7 +425,8 @@ static void prompt_replace(void)
         }
 
         s64_ui_render(&editor);
-        sprintf(message, "Replaced %u match%s", replaced, replaced == 1u ? "" : "es");
+        strcpy(message, "Replaced ");
+        strcat(append_unsigned(message + 9u, replaced), replaced == 1u ? " match" : " matches");
         s64_ui_message(message);
         return;
     }
@@ -425,7 +443,10 @@ int main(void)
     unsigned int previous_view_start;
     unsigned char previous_selection;
     unsigned char previous_mark_mode;
+    unsigned char previous_cursor_row;
     unsigned char cursor_only;
+    unsigned char inserted_value;
+    unsigned char removed_value;
 
     s64_editor_init(&editor);
     s64_clipboard_init(&clipboard);
@@ -446,12 +467,19 @@ int main(void)
 
         switch (input.type) {
             case S64_INPUT_CHARACTER:
+            case S64_INPUT_NEWLINE:
+                inserted_value = input.type == S64_INPUT_NEWLINE
+                    ? (unsigned char)'\n'
+                    : input.character;
                 previous_cursor = s64_buffer_cursor(&editor.buffer);
                 previous_length = s64_buffer_length(&editor.buffer);
                 previous_view_start = editor.view_start;
                 previous_selection = s64_editor_has_selection(&editor);
                 previous_mark_mode = editor.mark_mode;
-                if (!s64_editor_insert(&editor, input.character)) {
+                previous_cursor_row = editor.view_cursor_row;
+                if (!(input.type == S64_INPUT_NEWLINE
+                    ? s64_editor_newline(&editor)
+                    : s64_editor_insert(&editor, inserted_value))) {
                     s64_ui_message("Document buffer full");
                     continue;
                 }
@@ -460,7 +488,22 @@ int main(void)
                     && !previous_mark_mode
                     && editor.word_wrap
                     && editor.view_start == previous_view_start) {
-                    s64_ui_render_append(&editor, input.character);
+                    s64_ui_render_append(&editor, inserted_value);
+                    continue;
+                }
+                if (!previous_selection
+                    && !previous_mark_mode
+                    && editor.word_wrap
+                    && editor.view_start == previous_view_start) {
+                    s64_ui_render_edit(
+                        &editor,
+                        (unsigned char)(
+                            (input.type == S64_INPUT_CHARACTER ? S64_UI_EDIT_CHARACTER : 0u)
+                            | (previous_cursor_row < editor.view_cursor_row
+                                ? previous_cursor_row
+                                : editor.view_cursor_row)
+                        )
+                    );
                     continue;
                 }
                 break;
@@ -507,11 +550,41 @@ int main(void)
                 break;
 
             case S64_INPUT_BACKSPACE:
-                s64_editor_backspace(&editor);
-                break;
-            case S64_INPUT_NEWLINE:
-                if (!s64_editor_newline(&editor)) {
-                    s64_ui_message("Document buffer full");
+                previous_cursor = s64_buffer_cursor(&editor.buffer);
+                previous_length = s64_buffer_length(&editor.buffer);
+                previous_view_start = editor.view_start;
+                previous_selection = s64_editor_has_selection(&editor);
+                previous_mark_mode = editor.mark_mode;
+                previous_cursor_row = editor.view_cursor_row;
+                removed_value = previous_cursor > 0u
+                    ? s64_buffer_char_at(&editor.buffer, previous_cursor - 1u)
+                    : 0u;
+                if (!s64_editor_backspace(&editor)) {
+                    continue;
+                }
+                if (!previous_selection
+                    && !previous_mark_mode
+                    && editor.word_wrap
+                    && editor.view_start == previous_view_start) {
+                    if (previous_cursor == previous_length
+                        && removed_value != '\n') {
+                        gotoxy(
+                            editor.view_cursor_column,
+                            (unsigned char)(1u + editor.view_cursor_row)
+                        );
+                        cputc(' ');
+                        s64_ui_render_cursor(&editor);
+                    } else {
+                        s64_ui_render_edit(
+                            &editor,
+                            (unsigned char)(
+                                (removed_value == '\n' ? 0u : 0x80u)
+                                | (previous_cursor_row < editor.view_cursor_row
+                                    ? previous_cursor_row
+                                    : editor.view_cursor_row)
+                            )
+                        );
+                    }
                     continue;
                 }
                 break;

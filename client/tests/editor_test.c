@@ -87,14 +87,63 @@ int main(void)
     s64_editor_right(&editor);
     require(editor.column == 5u, "fixture column");
     s64_editor_up(&editor);
-    require(editor.column == 2u, "short line clamps vertical column");
+    require(editor.line == 2u && editor.column == 2u, "short line clamps vertical column");
     s64_editor_up(&editor);
-    require(editor.column == 5u, "vertical movement restores preferred column");
+    require(editor.line == 1u && editor.column == 5u, "vertical movement restores preferred column");
     s64_editor_down(&editor);
     s64_editor_down(&editor);
-    require(editor.column == 5u, "preferred column survives repeated vertical movement");
+    require(editor.line == 3u && editor.column == 5u, "preferred column survives repeated vertical movement");
     s64_editor_end(&editor);
     require(editor.column == 6u, "end moves to line end");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "ab\ncd");
+    require(editor.line == 2u && editor.column == 3u, "multiline typing position");
+    s64_editor_left(&editor);
+    require(editor.line == 2u && editor.column == 2u, "left updates position locally");
+    require(s64_editor_insert(&editor, 'X'), "mid-line insert succeeds");
+    require_text(&editor, "ab\ncXd", "mid-line insert content");
+    require(editor.line == 2u && editor.column == 3u, "mid-line insert updates position locally");
+    require(s64_editor_backspace(&editor), "mid-line backspace succeeds");
+    require_text(&editor, "ab\ncd", "mid-line backspace content");
+    require(editor.line == 2u && editor.column == 2u, "backspace updates position locally");
+    s64_editor_home(&editor);
+    require(editor.line == 2u && editor.column == 1u, "home reaches second-line start");
+    require(s64_editor_backspace(&editor), "backspace joins logical lines");
+    require_text(&editor, "abcd", "newline backspace joins lines");
+    require(editor.line == 1u && editor.column == 3u, "newline backspace restores previous line position");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "ab\ncd");
+    require(s64_editor_go_to_line(&editor, 1u), "go to first line for newline movement");
+    s64_editor_end(&editor);
+    require(editor.line == 1u && editor.column == 3u, "first line end position");
+    s64_editor_right(&editor);
+    require(editor.line == 2u && editor.column == 1u, "right across newline updates position locally");
+    s64_editor_left(&editor);
+    require(editor.line == 1u && editor.column == 3u, "left across newline updates position locally");
+    require(s64_editor_delete(&editor), "delete newline succeeds");
+    require_text(&editor, "abcd", "delete newline joins lines");
+    require(editor.line == 1u && editor.column == 3u, "delete keeps cursor position");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "ab\ncd");
+    require(s64_editor_go_to_line(&editor, 1u), "go to first line for overwrite");
+    s64_editor_end(&editor);
+    s64_editor_toggle_insert(&editor);
+    require(s64_editor_insert(&editor, 'X'), "overwrite newline with character");
+    require_text(&editor, "abXcd", "overwrite newline content");
+    require(editor.line == 1u && editor.column == 4u, "overwrite character updates position locally");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "abcd");
+    s64_editor_home(&editor);
+    s64_editor_right(&editor);
+    s64_editor_right(&editor);
+    s64_editor_toggle_insert(&editor);
+    require(s64_editor_newline(&editor), "overwrite character with newline");
+    require_text(&editor, "ab\nd", "overwrite with newline content");
+    require(editor.line == 2u && editor.column == 1u, "overwrite newline updates position locally");
 
     s64_editor_init(&editor);
     insert_text(&editor, "abcdef\nx\nabcdef");
@@ -122,6 +171,15 @@ int main(void)
     require(s64_buffer_cursor(&editor.buffer) == 9u, "word right skips repeated separators");
     s64_editor_word_left(&editor);
     require(s64_buffer_cursor(&editor.buffer) == 4u, "word left returns to previous word");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "one\ntwo");
+    s64_editor_word_left(&editor);
+    require(editor.line == 2u && editor.column == 1u, "word left reaches current line start");
+    s64_editor_word_left(&editor);
+    require(editor.line == 1u && editor.column == 1u, "word left crosses newline locally");
+    s64_editor_word_right(&editor);
+    require(editor.line == 2u && editor.column == 1u, "word right crosses newline locally");
 
     s64_editor_init(&editor);
     insert_text(&editor, "alpha beta alpha");
@@ -178,8 +236,10 @@ int main(void)
     insert_text(&editor, "123456789012345678901234567890123456789012345");
     s64_editor_up(&editor);
     require(s64_buffer_cursor(&editor.buffer) == 5u, "wrapped up moves one visual row");
+    require(editor.line == 1u && editor.column == 6u, "wrapped up preserves logical line position");
     s64_editor_down(&editor);
     require(s64_buffer_cursor(&editor.buffer) == 45u, "wrapped down restores visual column");
+    require(editor.line == 1u && editor.column == 46u, "wrapped down preserves logical line position");
 
     s64_editor_init(&editor);
     {
@@ -191,14 +251,26 @@ int main(void)
     require(editor.view_start == 80u, "wrapped viewport scrolls by visual rows");
     s64_editor_page_up(&editor);
     require(s64_buffer_cursor(&editor.buffer) == 80u, "page up moves through wrapped rows");
+    require(editor.line == 1u && editor.column == 81u, "page up preserves logical position");
     require(editor.view_start <= 80u, "page up reveals previous wrapped page");
 
     s64_editor_init(&editor);
     insert_text(&editor, "one\ntwo\nthree");
     require(s64_editor_go_to_line(&editor, 2u), "go to existing line");
     require(editor.line == 2u && editor.column == 1u, "go to line position");
+    s64_editor_right(&editor);
+    require(editor.line == 2u && editor.column == 2u, "go to line keeps incremental position synchronized");
     require(!s64_editor_go_to_line(&editor, 4u), "reject missing line");
-    require(editor.line == 2u && editor.column == 1u, "missing line preserves position");
+    require(editor.line == 2u && editor.column == 2u, "missing line preserves position");
+
+    s64_buffer_init(&editor.buffer);
+    require(s64_buffer_insert(&editor.buffer, 'n'), "load fixture first character");
+    require(s64_buffer_insert(&editor.buffer, 'e'), "load fixture second character");
+    require(s64_buffer_insert(&editor.buffer, 'w'), "load fixture third character");
+    require(s64_buffer_move_cursor(&editor.buffer, 0u), "load fixture starts at document beginning");
+    s64_editor_document_loaded(&editor);
+    s64_editor_right(&editor);
+    require(editor.line == 1u && editor.column == 2u, "document load resets incremental position tracking");
 
     s64_editor_init(&editor);
     insert_text(&editor, "hello");
