@@ -497,9 +497,12 @@ int main(void)
                     && editor.view_start == previous_view_start) {
                     s64_ui_render_edit(
                         &editor,
-                        previous_cursor_row < editor.view_cursor_row
-                            ? previous_cursor_row
-                            : editor.view_cursor_row
+                        (unsigned char)(
+                            (input.type == S64_INPUT_CHARACTER ? 0x80u : 0u)
+                            | (previous_cursor_row < editor.view_cursor_row
+                                ? previous_cursor_row
+                                : editor.view_cursor_row)
+                        )
                     );
                     continue;
                 }
