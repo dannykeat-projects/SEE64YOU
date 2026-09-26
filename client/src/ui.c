@@ -177,7 +177,8 @@ static unsigned int render_line_end(
 static void render_body_wrapped(
     const S64Editor* editor,
     unsigned char* cursor_col,
-    unsigned char* cursor_row
+    unsigned char* cursor_row,
+    unsigned char first_row
 )
 {
     unsigned int position = editor->view_start;
@@ -257,7 +258,9 @@ static void render_body_wrapped(
             found = 1u;
         }
 
-        flush_body_row(row);
+        if (row >= first_row) {
+            flush_body_row(row);
+        }
         ++rendered_rows;
 
         if (position >= length && found) {
@@ -376,7 +379,12 @@ static void render_body(
 )
 {
     if (editor->word_wrap) {
-        render_body_wrapped(editor, cursor_col, cursor_row);
+        render_body_wrapped(
+            editor,
+            cursor_col,
+            cursor_row,
+            EDITOR_FIRST_ROW
+        );
     } else {
         render_body_horizontal(editor, cursor_col, cursor_row);
     }
@@ -467,6 +475,48 @@ void s64_ui_render_append(const S64Editor* editor, unsigned char value)
 
     cursor_col = col;
     cursor_row = row;
+}
+
+void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row)
+{
+    unsigned char next_cursor_col = editor->view_cursor_column;
+    unsigned char next_cursor_row = (unsigned char)(
+        EDITOR_FIRST_ROW + editor->view_cursor_row
+    );
+    unsigned char first_row = (unsigned char)(
+        EDITOR_FIRST_ROW + first_body_row
+    );
+
+    if (!cursor_position_valid
+        || !editor->word_wrap
+        || editor->mark_mode
+        || s64_editor_has_selection(editor)
+        || rendered_view_start != editor->view_start
+        || rendered_view_column != editor->view_column
+        || rendered_word_wrap != editor->word_wrap
+        || first_body_row >= EDITOR_ROWS) {
+        s64_ui_render(editor);
+        return;
+    }
+
+    render_body_wrapped(
+        editor,
+        &next_cursor_col,
+        &next_cursor_row,
+        first_row
+    );
+    s64_ui_status_line_fast(editor->line);
+    s64_ui_status_column_fast(editor->column);
+    if (editor->dirty) {
+        s64_ui_status_dirty_fast();
+    }
+    gotoxy(next_cursor_col, next_cursor_row);
+
+    cursor_col = next_cursor_col;
+    cursor_row = next_cursor_row;
+    rendered_view_start = editor->view_start;
+    rendered_view_column = editor->view_column;
+    rendered_word_wrap = editor->word_wrap;
 }
 
 void s64_ui_render_cursor(const S64Editor* editor)
