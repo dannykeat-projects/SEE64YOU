@@ -38,7 +38,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 These player-facing checks are assigned to the user where practical; automated source and regression checks remain part of development.
 
 - [x] After incremental rendering: VICE test passed 2026-09-27 on `5da0c391`; continuous typing, mid-line insert/delete, held Backspace, newline edits and editing after scrolling/Page Up/Down were all reported working well, with no responsiveness issue reported.
-- [ ] Retest the 2026-09-25 editor checkpoint in VICE: confirm a visible blinking cursor; type continuously through multiple wrapped screenfuls; use Left/Right and Up/Down across wrapped rows; then use Page Up to return to the preceding screen. Record separately whether append typing, navigation, Backspace and mid-document insertion remain slow.
+- [ ] Retest cursor navigation in VICE: the 2026-09-27 repeat-overlay build keeps a solid reverse-video cursor visible while buffered arrow-key repeats are being consumed, while retaining the normal KERNAL blink when input is idle. Hold Left/Right/Up/Down across wrapped rows and a full page; confirm the cursor remains visible and movement tracks each repeated step correctly.
 - [ ] After Shift handling: verify Shift+letter capitals, shifted punctuation, Caps Lock/Shift Lock behaviour, and unshifted input with both the emulated C64 keyboard and a modern USB keyboard where available.
 - [ ] Exercise New, Open, Save and Save As, including dirty-document and overwrite prompts; confirm saved source reopens exactly.
 - [ ] Exercise recovery/autosave: create dirty edits, confirm `SEE64YOU.REC`, restart and recover/discard, then confirm Save/discard removes the snapshot.
