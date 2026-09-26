@@ -172,6 +172,74 @@ static void finish_content_edit(S64Editor* editor)
     s64_editor_ensure_cursor_visible(editor);
 }
 
+static void finish_local_edit(S64Editor* editor)
+{
+    editor->dirty = 1u;
+    editor->selection_anchor = s64_buffer_cursor(&editor->buffer);
+    editor->selection_valid = 0u;
+    editor->mark_mode = 0u;
+    reset_preferred_column(editor);
+    editor->position_cursor = s64_buffer_cursor(&editor->buffer);
+}
+
+static void finish_inserted_character(S64Editor* editor)
+{
+    unsigned int next_view_start;
+
+    finish_local_edit(editor);
+    ++editor->column;
+
+    if (!editor->word_wrap) {
+        s64_editor_ensure_cursor_visible(editor);
+        return;
+    }
+
+    editor->view_column = 0u;
+    ++editor->view_cursor_column;
+    if (editor->view_cursor_column >= VIEW_COLUMNS) {
+        editor->view_cursor_column = 0u;
+        ++editor->view_cursor_row;
+    }
+
+    if (editor->view_cursor_row >= VIEW_ROWS
+        && next_wrapped_row_start(
+            &editor->buffer,
+            editor->view_start,
+            &next_view_start
+        )) {
+        editor->view_start = next_view_start;
+        editor->view_cursor_row = VIEW_ROWS - 1u;
+    }
+}
+
+static void finish_backspaced_character(S64Editor* editor)
+{
+    finish_local_edit(editor);
+
+    if (editor->column > 1u) {
+        --editor->column;
+    }
+
+    if (!editor->word_wrap) {
+        s64_editor_ensure_cursor_visible(editor);
+        return;
+    }
+
+    editor->view_column = 0u;
+    if (editor->view_cursor_column > 0u) {
+        --editor->view_cursor_column;
+    } else if (editor->view_cursor_row > 0u) {
+        --editor->view_cursor_row;
+        editor->view_cursor_column = VIEW_COLUMNS - 1u;
+    } else {
+        /*
+         * Crossing above the current viewport is uncommon and needs the
+         * general visibility logic because view_start itself must move.
+         */
+        s64_editor_ensure_cursor_visible(editor);
+    }
+}
+
 static void finish_appended_value(S64Editor* editor, unsigned char value)
 {
     unsigned int next_view_start;
@@ -981,6 +1049,8 @@ static int editor_insert_value(
 
         if (appended) {
             finish_appended_value(editor, value);
+        } else if (value != '\n' && !had_selection) {
+            finish_inserted_character(editor);
         } else {
             finish_content_edit(editor);
         }
@@ -1019,8 +1089,8 @@ static int editor_insert_value(
 
     if (appended) {
         finish_appended_value(editor, value);
-    } else if (!had_selection) {
-        finish_content_edit(editor);
+    } else if (!had_selection && value != '\n') {
+        finish_inserted_character(editor);
     } else {
         finish_content_edit(editor);
     }
@@ -1066,17 +1136,23 @@ int s64_editor_backspace(S64Editor* editor)
     }
 
     captured = history_begin(editor, cursor - 1u, cursor);
-    s64_buffer_move_cursor(&editor->buffer, cursor - 1u);
-    s64_editor_recalculate_position(editor);
-    s64_buffer_move_cursor(&editor->buffer, cursor);
-    if (!s64_buffer_backspace(&editor->buffer)) {
-        if (captured) {
-            s64_history_reset(&editor->history);
+    if (s64_buffer_char_at(&editor->buffer, cursor - 1u) != '\n') {
+        if (!s64_buffer_backspace(&editor->buffer)) {
+            if (captured) {
+                s64_history_reset(&editor->history);
+            }
+            return 0;
         }
-        return 0;
+        finish_backspaced_character(editor);
+    } else {
+        if (!s64_buffer_backspace(&editor->buffer)) {
+            if (captured) {
+                s64_history_reset(&editor->history);
+            }
+            return 0;
+        }
+        finish_content_edit(editor);
     }
-
-    finish_content_edit(editor);
     history_commit(editor, 0u, 0u, captured);
     return 1;
 }
@@ -1104,14 +1180,23 @@ int s64_editor_delete(S64Editor* editor)
     }
 
     captured = history_begin(editor, cursor, cursor + 1u);
-    if (!s64_buffer_delete(&editor->buffer)) {
-        if (captured) {
-            s64_history_reset(&editor->history);
+    if (s64_buffer_char_at(&editor->buffer, cursor) != '\n') {
+        if (!s64_buffer_delete(&editor->buffer)) {
+            if (captured) {
+                s64_history_reset(&editor->history);
+            }
+            return 0;
         }
-        return 0;
+        finish_local_edit(editor);
+    } else {
+        if (!s64_buffer_delete(&editor->buffer)) {
+            if (captured) {
+                s64_history_reset(&editor->history);
+            }
+            return 0;
+        }
+        finish_content_edit(editor);
     }
-
-    finish_content_edit(editor);
     history_commit(editor, 0u, 0u, captured);
     return 1;
 }
