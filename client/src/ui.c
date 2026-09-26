@@ -443,12 +443,19 @@ void s64_ui_render_append(const S64Editor* editor, unsigned char value)
 
     gotoxy(col, row);
     revers(0);
-    cputc(value);
-
-    ++col;
-    if (col >= SCREEN_COLUMNS) {
+    if (value == '\n') {
         col = 0u;
         ++row;
+    } else {
+        cputc(value);
+        ++col;
+        if (col >= SCREEN_COLUMNS) {
+            col = 0u;
+            ++row;
+        }
+    }
+
+    if (col == 0u) {
         if (row >= STATUS_ROW) {
             s64_ui_render(editor);
             return;

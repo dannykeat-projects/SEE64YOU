@@ -18,7 +18,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 
 ## P0 - Editor essentials
 
-- [ ] Replace whole-editor redraws during typing with incremental updates (constant-time append rendering, native blinking cursor and cursor-only drawing are implemented; ordinary typing/editing plus Left/Right, Up/Down, Page Up/Down, Home/End and word navigation now avoid whole-document-prefix position rescans; focused/full host validation and the cc65 build passed 2026-09-26, including the 512-byte software-stack build needed to retain conventional C64 RAM fit; VICE responsiveness and stack-stability retest pending, while mid-document edits still use the general visible-body redraw).
+- [ ] Replace whole-editor redraws during typing with incremental updates (constant-time character append rendering, native blinking cursor and cursor-only drawing are implemented; ordinary typing/editing plus Left/Right, Up/Down, Page Up/Down, Home/End and word navigation avoid whole-document-prefix position rescans. VICE retest on 2026-09-26 found some missed keys on line 1 and unusable typing latency by line 3; appended newlines were still forcing a growing full-body redraw, so the append path now covers newlines too. Focused/full host validation and the cc65 rebuild pass; VICE responsiveness and 512-byte stack-stability rerun pending. Mid-document edits still use the general visible-body redraw).
 - [x] Accurate vertical cursor movement preserving preferred column.
 - [x] Word wrap toggle and horizontal scrolling (F8; VICE validation pending).
 - [x] Home, End, Page Up/Page Down and word-navigation editor commands.
