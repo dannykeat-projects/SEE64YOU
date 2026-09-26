@@ -46,6 +46,35 @@ static S64InputType s64_control_command(unsigned char key, unsigned char modifie
     }
 }
 
+static S64InputType s64_modifier_command(
+    unsigned char raw_key,
+    unsigned char modifiers
+)
+{
+    if ((modifiers & (S64_MOD_CONTROL | S64_MOD_COMMODORE)) == 0u) {
+        return S64_INPUT_NONE;
+    }
+
+    if (raw_key == S64_KEY_CURSOR_HORIZONTAL) {
+        return (modifiers & S64_MOD_SHIFT) != 0u
+            ? S64_INPUT_WORD_LEFT
+            : S64_INPUT_WORD_RIGHT;
+    }
+
+    if (raw_key == S64_KEY_DELETE) {
+        return S64_INPUT_DELETE;
+    }
+
+    if ((modifiers & S64_MOD_COMMODORE) != 0u
+        && raw_key == S64_KEY_CURSOR_VERTICAL) {
+        return (modifiers & S64_MOD_SHIFT) != 0u
+            ? S64_INPUT_PAGE_UP
+            : S64_INPUT_PAGE_DOWN;
+    }
+
+    return S64_INPUT_NONE;
+}
+
 void s64_input_read(S64InputEvent* event)
 {
     unsigned char key;
@@ -65,32 +94,9 @@ void s64_input_read(S64InputEvent* event)
         raw_key = S64_KEYCODE;
     }
 
-    if ((modifiers & (S64_MOD_CONTROL | S64_MOD_COMMODORE)) != 0u) {
-        if (raw_key == S64_KEY_CURSOR_HORIZONTAL) {
-            event->type = (modifiers & S64_MOD_SHIFT) != 0u
-                ? S64_INPUT_WORD_LEFT
-                : S64_INPUT_WORD_RIGHT;
-            return;
-        }
-        if (raw_key == S64_KEY_DELETE) {
-            event->type = S64_INPUT_DELETE;
-            return;
-        }
-
-        if (raw_key == S64_KEY_NONE) {
-            if (key == CH_CURS_LEFT) {
-                event->type = S64_INPUT_WORD_LEFT;
-                return;
-            }
-            if (key == CH_CURS_RIGHT) {
-                event->type = S64_INPUT_WORD_RIGHT;
-                return;
-            }
-            if (key == CH_DEL) {
-                event->type = S64_INPUT_DELETE;
-                return;
-            }
-        }
+    event->type = s64_modifier_command(raw_key, modifiers);
+    if (event->type != S64_INPUT_NONE) {
+        return;
     }
 
     if ((modifiers & S64_MOD_CONTROL) != 0u) {
@@ -101,13 +107,6 @@ void s64_input_read(S64InputEvent* event)
     }
 
     if ((modifiers & S64_MOD_COMMODORE) != 0u) {
-        if (raw_key == S64_KEY_CURSOR_VERTICAL) {
-            event->type = (modifiers & S64_MOD_SHIFT) != 0u
-                ? S64_INPUT_PAGE_UP
-                : S64_INPUT_PAGE_DOWN;
-            return;
-        }
-
         switch (key) {
             case CH_F1:
                 event->type = S64_INPUT_NEW;
