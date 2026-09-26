@@ -498,7 +498,7 @@ int main(void)
                     s64_ui_render_edit(
                         &editor,
                         (unsigned char)(
-                            (input.type == S64_INPUT_CHARACTER ? 0x80u : 0u)
+                            (input.type == S64_INPUT_CHARACTER ? S64_UI_EDIT_CHARACTER : 0u)
                             | (previous_cursor_row < editor.view_cursor_row
                                 ? previous_cursor_row
                                 : editor.view_cursor_row)
