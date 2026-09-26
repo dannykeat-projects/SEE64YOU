@@ -55,7 +55,7 @@ void s64_input_read(S64InputEvent* event)
     cursor(0);
     modifiers |= S64_SHFLAG;
 
-    if ((modifiers & S64_MOD_CONTROL) != 0u) {
+    if ((modifiers & (S64_MOD_CONTROL | S64_MOD_COMMODORE)) != 0u) {
         if (key == CH_CURS_LEFT) {
             event->type = S64_INPUT_WORD_LEFT;
             return;
@@ -64,7 +64,13 @@ void s64_input_read(S64InputEvent* event)
             event->type = S64_INPUT_WORD_RIGHT;
             return;
         }
+        if (key == CH_DEL) {
+            event->type = S64_INPUT_DELETE;
+            return;
+        }
+    }
 
+    if ((modifiers & S64_MOD_CONTROL) != 0u) {
         event->type = s64_control_command(key, modifiers);
         if (event->type != S64_INPUT_NONE) {
             return;
@@ -84,15 +90,6 @@ void s64_input_read(S64InputEvent* event)
                 return;
             case CH_F7:
                 event->type = S64_INPUT_SAVE_AS;
-                return;
-            case CH_DEL:
-                event->type = S64_INPUT_DELETE;
-                return;
-            case CH_CURS_LEFT:
-                event->type = S64_INPUT_HOME;
-                return;
-            case CH_CURS_RIGHT:
-                event->type = S64_INPUT_END;
                 return;
             case CH_CURS_UP:
                 event->type = S64_INPUT_PAGE_UP;
