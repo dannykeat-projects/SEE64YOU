@@ -42,7 +42,6 @@ typedef struct {
     unsigned char character;
 } S64InputEvent;
 
-unsigned char s64_input_pending(void);
 void s64_input_read(S64InputEvent* event);
 
 #endif
