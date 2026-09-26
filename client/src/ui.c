@@ -28,30 +28,16 @@ static unsigned char rendered_word_wrap;
 static unsigned char row_chars[SCREEN_COLUMNS + 1u];
 static unsigned char row_reverse[SCREEN_COLUMNS];
 
-static unsigned int cursor_screen_offset(void)
+static void toggle_editor_cursor(void)
 {
-    return (unsigned int)cursor_row * SCREEN_COLUMNS + cursor_col;
+    SCREEN_RAM[(unsigned int)cursor_row * SCREEN_COLUMNS + cursor_col] ^= 0x80u;
 }
 
 static void hide_editor_cursor(void)
 {
-    if (cursor_visible && cursor_position_valid
-        && cursor_col < SCREEN_COLUMNS
-        && cursor_row >= EDITOR_FIRST_ROW
-        && cursor_row < STATUS_ROW) {
-        SCREEN_RAM[cursor_screen_offset()] ^= 0x80u;
+    if (cursor_visible) {
+        toggle_editor_cursor();
         cursor_visible = 0u;
-    }
-}
-
-static void show_editor_cursor(void)
-{
-    if (!cursor_visible && cursor_position_valid
-        && cursor_col < SCREEN_COLUMNS
-        && cursor_row >= EDITOR_FIRST_ROW
-        && cursor_row < STATUS_ROW) {
-        SCREEN_RAM[cursor_screen_offset()] ^= 0x80u;
-        cursor_visible = 1u;
     }
 }
 
@@ -485,7 +471,6 @@ void s64_ui_render(const S64Editor* editor)
     rendered_word_wrap = editor->word_wrap;
     partial_first_row = 0u;
     partial_char_edit = 0u;
-    show_editor_cursor();
 }
 
 void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row)
@@ -555,7 +540,6 @@ void s64_ui_render_append(const S64Editor* editor, unsigned char value)
 
     cursor_col = col;
     cursor_row = row;
-    show_editor_cursor();
 }
 
 void s64_ui_render_cursor(const S64Editor* editor)
@@ -578,7 +562,8 @@ void s64_ui_render_cursor(const S64Editor* editor)
     gotoxy(col, row);
     cursor_col = col;
     cursor_row = row;
-    show_editor_cursor();
+    toggle_editor_cursor();
+    cursor_visible = 1u;
 }
 
 void s64_ui_message(const char* message)
