@@ -15,6 +15,7 @@
 #define LINE_TEXT_CAPACITY 6u
 #define AUTOSAVE_SECONDS 30UL
 #define AUTOSAVE_INTERVAL ((clock_t)(AUTOSAVE_SECONDS * (unsigned long)CLOCKS_PER_SEC))
+#define S64_SHIFT_MODE (*(volatile unsigned char*)0x0291u)
 
 static S64Editor editor;
 static S64Clipboard clipboard;
@@ -447,7 +448,9 @@ int main(void)
     unsigned char cursor_only;
     unsigned char inserted_value;
     unsigned char removed_value;
+    unsigned char saved_shift_mode = S64_SHIFT_MODE;
 
+    S64_SHIFT_MODE = 0x80u;
     s64_editor_init(&editor);
     s64_clipboard_init(&clipboard);
     s64_document_init(&document, &editor.buffer);
@@ -698,6 +701,7 @@ int main(void)
         }
     }
 
+    S64_SHIFT_MODE = saved_shift_mode;
     clrscr();
     cputs("SEE64YOU EXITED\r\n");
     return 0;
