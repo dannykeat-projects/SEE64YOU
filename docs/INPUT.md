@@ -49,7 +49,7 @@ The input layer uses this state alongside buffered keyboard characters. Where fi
 - Ctrl+Z: Undo
 - Ctrl+Shift+Z: Redo
 
-Find, Replace, Go to line and local file commands have working prompt flows. Ctrl+Z and Ctrl+Shift+Z use the bounded base-C64 undo/redo transaction layer; ordinary consecutive typing is coalesced into one undo step. On a physical C64 keyboard, Commodore+F1 creates a new document, Commodore+F3 opens, Commodore+F5 saves and Commodore+F7 invokes Save As. For navigation/editing, both CTRL and Commodore modifiers are accepted with Left/Right for word movement and with Delete for forward delete. This intentionally accommodates VICE symbolic mappings, where host Left Ctrl commonly acts as the C64 Commodore key while Tab acts as C64 CTRL. REU-backed multi-level history remains a later enhancement. A distinct modern USB Delete key remains a C64U hardware-validation item because firmware may present it through the C64 keyboard abstraction rather than as a unique key code.
+Find, Replace, Go to line and local file commands have working prompt flows. Ctrl+Z and Ctrl+Shift+Z use the bounded base-C64 undo/redo transaction layer; ordinary consecutive typing is coalesced into one undo step. On a physical C64 keyboard, Commodore+F1 creates a new document, Commodore+F3 opens, Commodore+F5 saves and Commodore+F7 invokes Save As. For navigation/editing, both CTRL and Commodore modifiers are accepted with Left/Right for word movement and with Delete for forward delete. This intentionally accommodates VICE symbolic mappings. In VICE's stock GTK symbolic map, host Left Ctrl maps to C64 CTRL and Tab maps to the Commodore key. Modifier+cursor/delete commands are decoded from the raw C64 keyboard-matrix key so the KERNAL's modifier-specific PETSCII tables cannot reverse or transform the intended direction. REU-backed multi-level history remains a later enhancement. A distinct modern USB Delete key remains a C64U hardware-validation item because firmware may present it through the C64 keyboard abstraction rather than as a unique key code.
 
 ## Validation rule
 
@@ -58,3 +58,8 @@ Do not assume PC-specific USB keys such as End or Page Down reach C64 software d
 References:
 - Commodore 64 Programmer's Reference Guide, SHFLAG at $028D.
 - cc65 `conio.h` / `cgetc()`.
+
+
+### VICE symbolic modifier note
+
+The C64 has only physical Cursor Right and Cursor Down keys; Cursor Left and Cursor Up are the shifted forms of those keys. Consequently, Commodore+Left/Up also contains SHIFT at the C64 level. Normally SHIFT+Commodore toggles the C64 character set, which can make the editor appear to switch all text to capitals/graphics. SEE64YOU temporarily disables that KERNAL charset-toggle feature while the editor is running and restores the prior setting on exit.
