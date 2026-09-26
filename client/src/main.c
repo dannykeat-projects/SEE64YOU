@@ -443,6 +443,7 @@ int main(void)
     unsigned int previous_view_start;
     unsigned char previous_selection;
     unsigned char previous_mark_mode;
+    unsigned char previous_cursor_row;
     unsigned char cursor_only;
     unsigned char inserted_value;
 
@@ -474,6 +475,7 @@ int main(void)
                 previous_view_start = editor.view_start;
                 previous_selection = s64_editor_has_selection(&editor);
                 previous_mark_mode = editor.mark_mode;
+                previous_cursor_row = editor.view_cursor_row;
                 if (!(input.type == S64_INPUT_NEWLINE
                     ? s64_editor_newline(&editor)
                     : s64_editor_insert(&editor, inserted_value))) {
@@ -486,6 +488,18 @@ int main(void)
                     && editor.word_wrap
                     && editor.view_start == previous_view_start) {
                     s64_ui_render_append(&editor, inserted_value);
+                    continue;
+                }
+                if (!previous_selection
+                    && !previous_mark_mode
+                    && editor.word_wrap
+                    && editor.view_start == previous_view_start) {
+                    s64_ui_render_edit(
+                        &editor,
+                        previous_cursor_row < editor.view_cursor_row
+                            ? previous_cursor_row
+                            : editor.view_cursor_row
+                    );
                     continue;
                 }
                 break;
@@ -532,7 +546,25 @@ int main(void)
                 break;
 
             case S64_INPUT_BACKSPACE:
-                s64_editor_backspace(&editor);
+                previous_view_start = editor.view_start;
+                previous_selection = s64_editor_has_selection(&editor);
+                previous_mark_mode = editor.mark_mode;
+                previous_cursor_row = editor.view_cursor_row;
+                if (!s64_editor_backspace(&editor)) {
+                    continue;
+                }
+                if (!previous_selection
+                    && !previous_mark_mode
+                    && editor.word_wrap
+                    && editor.view_start == previous_view_start) {
+                    s64_ui_render_edit(
+                        &editor,
+                        previous_cursor_row < editor.view_cursor_row
+                            ? previous_cursor_row
+                            : editor.view_cursor_row
+                    );
+                    continue;
+                }
                 break;
             case S64_INPUT_TOGGLE_INSERT:
                 s64_editor_toggle_insert(&editor);
