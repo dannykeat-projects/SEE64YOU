@@ -15,6 +15,7 @@ static unsigned char http_ready;
 static unsigned char dos_ready;
 static unsigned char header_rendered;
 static unsigned char body_rows;
+static unsigned char partial_first_row;
 static unsigned char cursor_position_valid;
 static unsigned char cursor_col;
 static unsigned char cursor_row;
@@ -69,6 +70,10 @@ static void flush_body_row(unsigned char row)
 {
     unsigned char col = 0u;
     unsigned char reverse = 0u;
+
+    if (partial_first_row != 0u && row < partial_first_row) {
+        return;
+    }
 
     gotoxy(0u, row);
     revers(0);
@@ -392,6 +397,7 @@ void s64_ui_init(void)
 
     header_rendered = 0u;
     body_rows = 0u;
+    partial_first_row = 0u;
     cursor_position_valid = 0u;
 }
 
@@ -412,7 +418,15 @@ void s64_ui_render(const S64Editor* editor)
 
     render_header();
     render_body(editor, &next_cursor_col, &next_cursor_row);
-    render_status(editor);
+    if (partial_first_row != 0u) {
+        s64_ui_status_line_fast(editor->line);
+        s64_ui_status_column_fast(editor->column);
+        if (editor->dirty) {
+            s64_ui_status_dirty_fast();
+        }
+    } else {
+        render_status(editor);
+    }
     gotoxy(next_cursor_col, next_cursor_row);
     cursor_col = next_cursor_col;
     cursor_row = next_cursor_row;
@@ -420,6 +434,24 @@ void s64_ui_render(const S64Editor* editor)
     rendered_view_start = editor->view_start;
     rendered_view_column = editor->view_column;
     rendered_word_wrap = editor->word_wrap;
+    partial_first_row = 0u;
+}
+
+void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row)
+{
+    if (!editor->word_wrap
+        || editor->mark_mode
+        || s64_editor_has_selection(editor)
+        || rendered_view_start != editor->view_start
+        || rendered_view_column != editor->view_column
+        || rendered_word_wrap != editor->word_wrap
+        || first_body_row >= EDITOR_ROWS) {
+        s64_ui_render(editor);
+        return;
+    }
+
+    partial_first_row = (unsigned char)(EDITOR_FIRST_ROW + first_body_row);
+    s64_ui_render(editor);
 }
 
 void s64_ui_render_append(const S64Editor* editor, unsigned char value)
