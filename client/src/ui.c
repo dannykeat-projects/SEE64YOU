@@ -16,6 +16,7 @@ static unsigned char dos_ready;
 static unsigned char header_rendered;
 static unsigned char body_rows;
 static unsigned char partial_first_row;
+static unsigned char partial_char_edit;
 static unsigned char cursor_position_valid;
 static unsigned char cursor_col;
 static unsigned char cursor_row;
@@ -265,6 +266,14 @@ static void render_body_wrapped(
         flush_body_row(row);
         ++rendered_rows;
 
+        if (partial_char_edit
+            && row >= partial_first_row
+            && line_break
+            && col < SCREEN_COLUMNS - 1u) {
+            rendered_rows = previous_rows;
+            break;
+        }
+
         if (position >= length && found) {
             break;
         }
@@ -398,6 +407,7 @@ void s64_ui_init(void)
     header_rendered = 0u;
     body_rows = 0u;
     partial_first_row = 0u;
+    partial_char_edit = 0u;
     cursor_position_valid = 0u;
 }
 
@@ -435,10 +445,14 @@ void s64_ui_render(const S64Editor* editor)
     rendered_view_column = editor->view_column;
     rendered_word_wrap = editor->word_wrap;
     partial_first_row = 0u;
+    partial_char_edit = 0u;
 }
 
 void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row)
 {
+    partial_char_edit = (unsigned char)(first_body_row & 0x80u);
+    first_body_row &= 0x7fu;
+
     if (!editor->word_wrap
         || editor->mark_mode
         || s64_editor_has_selection(editor)
@@ -446,6 +460,7 @@ void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row)
         || rendered_view_column != editor->view_column
         || rendered_word_wrap != editor->word_wrap
         || first_body_row >= EDITOR_ROWS) {
+        partial_char_edit = 0u;
         s64_ui_render(editor);
         return;
     }
