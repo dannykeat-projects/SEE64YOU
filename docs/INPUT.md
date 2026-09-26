@@ -19,6 +19,7 @@ For that reason the reliable baseline is **MARK mode**:
 - F6: Replace / Replace All;
 - F7: paste;
 - F8: toggle Word Wrap;
+- Commodore+Delete: delete the character under the cursor (forward delete);
 - RUN/STOP: exit the current development shell (inside a prompt it cancels the prompt).
 
 The eventual menus will expose the same commands, so function-key shortcuts are never mandatory.
@@ -47,7 +48,7 @@ The input layer uses this state alongside buffered keyboard characters. Where fi
 - Ctrl+Z: Undo
 - Ctrl+Shift+Z: Redo
 
-Find, Replace, Go to line and local file commands have working prompt flows. Ctrl+Z and Ctrl+Shift+Z use the bounded base-C64 undo/redo transaction layer; ordinary consecutive typing is coalesced into one undo step. On a physical C64 keyboard, Commodore+F1 creates a new document, Commodore+F3 opens, Commodore+F5 saves and Commodore+F7 invokes Save As. REU-backed multi-level history remains a later enhancement.
+Find, Replace, Go to line and local file commands have working prompt flows. Ctrl+Z and Ctrl+Shift+Z use the bounded base-C64 undo/redo transaction layer; ordinary consecutive typing is coalesced into one undo step. On a physical C64 keyboard, Commodore+F1 creates a new document, Commodore+F3 opens, Commodore+F5 saves, Commodore+F7 invokes Save As, and Commodore+Delete provides forward delete. REU-backed multi-level history remains a later enhancement. A distinct modern USB Delete key remains a C64U hardware-validation item because firmware may present it through the C64 keyboard abstraction rather than as a unique key code.
 
 ## Validation rule
 
