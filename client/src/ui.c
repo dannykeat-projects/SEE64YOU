@@ -6,6 +6,11 @@
 #define EDITOR_FIRST_ROW 1u
 #define EDITOR_ROWS 23u
 #define STATUS_ROW 24u
+
+void __fastcall__ s64_ui_status_line_fast(unsigned int value);
+void __fastcall__ s64_ui_status_column_fast(unsigned int value);
+void s64_ui_status_dirty_fast(void);
+
 static unsigned char http_ready;
 static unsigned char dos_ready;
 static unsigned char header_rendered;
@@ -97,25 +102,36 @@ static void finish_body_rows(
     body_rows = desired_rows;
 }
 
-static void render_status_cells(const unsigned char* cells)
+static void render_status_text(const char* text)
 {
-    unsigned char col = 0u;
+    unsigned char col;
+    unsigned char length = (unsigned char)strlen(text);
+
+    if (length > SCREEN_COLUMNS) {
+        length = SCREEN_COLUMNS;
+    }
 
     revers(1);
+    col = 0u;
     while (col < SCREEN_COLUMNS) {
-        if (status_cache_valid && status_cache[col] == cells[col]) {
+        unsigned char value = col < length ? (unsigned char)text[col] : (unsigned char)' ';
+
+        if (status_cache_valid && status_cache[col] == value) {
             ++col;
             continue;
         }
 
         gotoxy(col, STATUS_ROW);
+
         while (col < SCREEN_COLUMNS) {
-            if (status_cache_valid && status_cache[col] == cells[col]) {
+            value = col < length ? (unsigned char)text[col] : (unsigned char)' ';
+
+            if (status_cache_valid && status_cache[col] == value) {
                 break;
             }
 
-            cputc(cells[col]);
-            status_cache[col] = cells[col];
+            cputc(value);
+            status_cache[col] = value;
             ++col;
         }
     }
@@ -123,131 +139,35 @@ static void render_status_cells(const unsigned char* cells)
     status_cache_valid = 1u;
 }
 
-static void render_status_text(const char* text)
-{
-    unsigned char col = 0u;
-
-    memset(row_chars, ' ', SCREEN_COLUMNS);
-    while (col < SCREEN_COLUMNS && text[col] != '\0') {
-        row_chars[col] = (unsigned char)text[col];
-        ++col;
-    }
-    render_status_cells(row_chars);
-}
-
-static void status_number(unsigned int value, unsigned char* output)
-{
-    unsigned char digit;
-    unsigned char started = 0u;
-
-    digit = 0u;
-    while (value >= 1000u) {
-        value -= 1000u;
-        ++digit;
-    }
-    output[0] = digit ? (unsigned char)('0' + digit) : (unsigned char)' ';
-    started = digit != 0u;
-
-    digit = 0u;
-    while (value >= 100u) {
-        value -= 100u;
-        ++digit;
-    }
-    output[1] = (digit || started)
-        ? (unsigned char)('0' + digit)
-        : (unsigned char)' ';
-    started = (unsigned char)(started || digit != 0u);
-
-    digit = 0u;
-    while (value >= 10u) {
-        value -= 10u;
-        ++digit;
-    }
-    output[2] = (digit || started)
-        ? (unsigned char)('0' + digit)
-        : (unsigned char)' ';
-    output[3] = (unsigned char)('0' + (unsigned char)value);
-}
-
 static void render_status(const S64Editor* editor)
 {
-    memset(row_chars, ' ', SCREEN_COLUMNS);
+    const char* selection = editor->mark_mode
+        ? " MARK"
+        : (s64_editor_has_selection(editor) ? " SEL " : "     ");
 
-    row_chars[0] = 'L';
-    row_chars[1] = 'n';
-    status_number(editor->line, &row_chars[3]);
-
-    row_chars[8] = 'C';
-    row_chars[9] = 'o';
-    row_chars[10] = 'l';
-    status_number(editor->column, &row_chars[12]);
-
-    memcpy(&row_chars[17], editor->insert_mode ? "INS" : "OVR", 3u);
-    if (editor->dirty) {
-        memcpy(&row_chars[20], " MOD", 4u);
-    }
-
-    if (dos_ready) {
-        memcpy(&row_chars[25], "DOS ", 4u);
-    } else if (http_ready) {
-        memcpy(&row_chars[25], "HTTP", 4u);
-    } else {
-        memcpy(&row_chars[25], "OFF ", 4u);
-    }
-
-    memcpy(&row_chars[30], editor->word_wrap ? "WRP" : "HOR", 3u);
-    if (editor->mark_mode) {
-        memcpy(&row_chars[33], " MARK", 5u);
-    } else if (s64_editor_has_selection(editor)) {
-        memcpy(&row_chars[33], " SEL ", 5u);
-    }
-
-    render_status_cells(row_chars);
-}
-
-static void render_status_position(const S64Editor* editor)
-{
-    unsigned char digits[4];
-    unsigned char i;
-    unsigned char col;
-
-    if (!status_cache_valid) {
-        render_status(editor);
-        return;
-    }
+    render_status_text("Ln      Col                             ");
 
     revers(1);
-
-    status_number(editor->line, digits);
-    for (i = 0u; i < 4u; ++i) {
-        col = (unsigned char)(3u + i);
-        if (status_cache[col] != digits[i]) {
-            gotoxy(col, STATUS_ROW);
-            cputc(digits[i]);
-            status_cache[col] = digits[i];
-        }
-    }
-
-    status_number(editor->column, digits);
-    for (i = 0u; i < 4u; ++i) {
-        col = (unsigned char)(12u + i);
-        if (status_cache[col] != digits[i]) {
-            gotoxy(col, STATUS_ROW);
-            cputc(digits[i]);
-            status_cache[col] = digits[i];
-        }
-    }
-
-    if (editor->dirty && status_cache[21] != 'M') {
-        gotoxy(20u, STATUS_ROW);
-        cputs(" MOD");
-        status_cache[20] = ' ';
-        status_cache[21] = 'M';
-        status_cache[22] = 'O';
-        status_cache[23] = 'D';
-    }
-
+    gotoxy(17u, STATUS_ROW);
+    cputs(editor->insert_mode ? "INS" : "OVR");
+    gotoxy(20u, STATUS_ROW);
+    cputs(editor->dirty ? " MOD" : "    ");
+    gotoxy(25u, STATUS_ROW);
+    cputs(dos_ready ? "DOS " : (http_ready ? "HTTP" : "OFF "));
+    gotoxy(30u, STATUS_ROW);
+    cputs(editor->word_wrap ? "WRP" : "HOR");
+    gotoxy(33u, STATUS_ROW);
+    cputs(selection);
     revers(0);
+
+    s64_ui_status_line_fast(editor->line);
+    s64_ui_status_column_fast(editor->column);
+
+    /*
+     * The numeric helpers write screen RAM directly and intentionally bypass
+     * the text cache. Force the next general status render to rebuild it.
+     */
+    status_cache_valid = 0u;
 }
 
 static unsigned int render_line_end(
@@ -555,8 +475,15 @@ void s64_ui_render_append(const S64Editor* editor, unsigned char value)
         body_rows = visible_rows;
     }
 
-    render_status_position(editor);
-    gotoxy(col, row);
+    s64_ui_status_column_fast(editor->column);
+    if (value == '\n') {
+        s64_ui_status_line_fast(editor->line);
+        gotoxy(col, row);
+    }
+    if (editor->dirty) {
+        s64_ui_status_dirty_fast();
+    }
+    status_cache_valid = 0u;
 
     cursor_col = col;
     cursor_row = row;
