@@ -75,6 +75,11 @@ static unsigned int previous_wrapped_row_start(
     if (start == 0u) {
         return 0u;
     }
+
+    if (s64_buffer_char_at(buffer, start - 1u) != '\n') {
+        return start >= VIEW_COLUMNS ? start - VIEW_COLUMNS : 0u;
+    }
+
     return wrapped_row_start(buffer, start - 1u);
 }
 
@@ -913,11 +918,12 @@ void s64_editor_ensure_cursor_visible(S64Editor* editor)
     unsigned int i;
     unsigned int row = 0u;
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
-    unsigned int cursor_start = line_start(&editor->buffer, cursor);
-    unsigned int cursor_column = cursor - cursor_start;
+    unsigned int cursor_column = editor->column - 1u;
+    unsigned int cursor_start = cursor - cursor_column;
 
     if (editor->word_wrap) {
-        unsigned int cursor_row_start = wrapped_row_start(&editor->buffer, cursor);
+        unsigned int cursor_row_start = cursor
+            - (cursor_column % VIEW_COLUMNS);
         unsigned int row_start = editor->view_start;
         unsigned int previous;
 
@@ -1182,7 +1188,7 @@ void s64_editor_right(S64Editor* editor)
 void s64_editor_up(S64Editor* editor)
 {
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
-    unsigned int current_start = line_start(&editor->buffer, cursor);
+    unsigned int current_start;
     unsigned int previous_end;
     unsigned int previous_start;
     unsigned int desired_column;
@@ -1190,7 +1196,9 @@ void s64_editor_up(S64Editor* editor)
     s64_history_break_coalesce(&editor->history);
 
     if (editor->word_wrap) {
-        unsigned int current_row = wrapped_row_start(&editor->buffer, cursor);
+        unsigned int logical_column = editor->column - 1u;
+        unsigned int current_row = cursor
+            - (logical_column % VIEW_COLUMNS);
         unsigned int previous_row;
         unsigned int previous_end;
 
@@ -1199,7 +1207,9 @@ void s64_editor_up(S64Editor* editor)
         }
 
         desired_column = preferred_column(editor, cursor, current_row);
-        previous_row = previous_wrapped_row_start(&editor->buffer, current_row);
+        previous_row = logical_column >= VIEW_COLUMNS
+            ? current_row - VIEW_COLUMNS
+            : previous_wrapped_row_start(&editor->buffer, current_row);
         previous_end = wrapped_row_end(&editor->buffer, previous_row);
         s64_buffer_move_cursor(
             &editor->buffer,
@@ -1217,6 +1227,7 @@ void s64_editor_up(S64Editor* editor)
         return;
     }
 
+    current_start = line_start(&editor->buffer, cursor);
     if (current_start == 0u) {
         return;
     }
@@ -1243,8 +1254,8 @@ void s64_editor_up(S64Editor* editor)
 void s64_editor_down(S64Editor* editor)
 {
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
-    unsigned int current_start = line_start(&editor->buffer, cursor);
-    unsigned int current_end = line_end(&editor->buffer, cursor);
+    unsigned int current_start;
+    unsigned int current_end;
     unsigned int next_start;
     unsigned int next_end;
     unsigned int desired_column;
@@ -1252,7 +1263,9 @@ void s64_editor_down(S64Editor* editor)
     s64_history_break_coalesce(&editor->history);
 
     if (editor->word_wrap) {
-        unsigned int current_row = wrapped_row_start(&editor->buffer, cursor);
+        unsigned int logical_column = editor->column - 1u;
+        unsigned int current_row = cursor
+            - (logical_column % VIEW_COLUMNS);
         unsigned int next_row;
         unsigned int next_end;
 
@@ -1278,6 +1291,8 @@ void s64_editor_down(S64Editor* editor)
         return;
     }
 
+    current_start = line_start(&editor->buffer, cursor);
+    current_end = line_end(&editor->buffer, cursor);
     if (current_end >= s64_buffer_length(&editor->buffer)) {
         return;
     }
