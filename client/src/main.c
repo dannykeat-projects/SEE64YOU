@@ -327,7 +327,7 @@ static int parse_line_number(const char* text, unsigned int* line_number)
         }
 
         digit = (unsigned char)(*text - '0');
-        if (value > 6553u) {
+        if (value > 6553u || (value == 6553u && digit > 5u)) {
             return 0;
         }
 
