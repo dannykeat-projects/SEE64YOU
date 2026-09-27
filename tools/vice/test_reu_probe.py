@@ -112,11 +112,26 @@ def screen_codes(text: str) -> bytes:
             out.append(ord(ch))
     return bytes(out)
 
+def decode_screen(screen: bytes) -> str:
+    rows = []
+    for row in range(25):
+        chars = []
+        for value in screen[row * 40 : (row + 1) * 40]:
+            if 1 <= value <= 26:
+                chars.append(chr(ord("A") + value - 1))
+            elif 32 <= value <= 126:
+                chars.append(chr(value))
+            else:
+                chars.append(".")
+        rows.append("".join(chars).rstrip())
+    return "\n".join(rows)
+
 def run(port: int, size_kib: int, timeout: float) -> None:
     monitor = wait_for_monitor("127.0.0.1", port, timeout)
     expected_size = screen_codes(f"SIZE: {size_kib} KIB")
     expected_pass = screen_codes("PASS")
     deadline = time.monotonic() + timeout
+    screen = b""
     try:
         while time.monotonic() < deadline:
             screen = monitor.read_memory(SCREEN_START, SCREEN_START + SCREEN_SIZE - 1)
@@ -125,7 +140,10 @@ def run(port: int, size_kib: int, timeout: float) -> None:
                 return
             monitor.resume()
             time.sleep(0.05)
-        raise AssertionError(f"diagnostic never reported {size_kib} KiB PASS")
+        raise AssertionError(
+            f"diagnostic never reported {size_kib} KiB PASS\n"
+            f"screen:\n{decode_screen(screen)}"
+        )
     finally:
         monitor.quit()
         monitor.close()
