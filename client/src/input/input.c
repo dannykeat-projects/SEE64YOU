@@ -143,7 +143,7 @@ void s64_input_read(S64InputEvent* event)
     }
 
     key = (unsigned char)cgetc();
-    modifiers = S64_SHFLAG;
+    modifiers |= S64_SHFLAG;
 
     if ((modifiers & S64_MOD_CONTROL) != 0u) {
         event->type = s64_control_command(key, modifiers);
