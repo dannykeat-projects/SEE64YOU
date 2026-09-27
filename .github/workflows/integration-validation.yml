@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - integration-validation-2026-09-24
-      - infra/memory-headroom-guard
   workflow_dispatch:
 
 concurrency:
