@@ -697,19 +697,6 @@ int main(void)
                     continue;
                 }
                 break;
-            case S64_INPUT_FORMAT_HEADING1:
-                if (!s64_editor_format_heading(&editor, 1u)) {
-                    s64_ui_message("Cannot format heading");
-                    continue;
-                }
-                break;
-            case S64_INPUT_FORMAT_HEADING2:
-                if (!s64_editor_format_heading(&editor, 2u)) {
-                    s64_ui_message("Cannot format heading");
-                    continue;
-                }
-                break;
-
             case S64_INPUT_EXIT:
                 if (editor.dirty && !s64_ui_prompt_yes_no("Discard and exit? Y/N")) {
                     s64_ui_render(&editor);
