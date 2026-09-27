@@ -26,6 +26,7 @@ CL65 ?= cl65
 # linked in editor_format.c. The larger URL/link formatter remains host/module-tested
 # but unlinked because it does not fit while retaining the 1 KiB software stack.
 CFLAGS := -t c64 -Os -I src -DS64_NATIVE_PETSCII=1 -Wl -D,__STACKSIZE__=0x0400
+C64U_CFLAGS := -t c64 -Oirs -I src -DS64_NATIVE_PETSCII=1 -Wl -D,__STACKSIZE__=0x0400
 
 .PHONY: all c64u publisher editor-probe reu-probe reu-buffer-probe reu-editor-probe recovery-probe publisher-companion-fit clean
 
@@ -39,7 +40,7 @@ c64u: $(C64U_TARGET) $(C64U_CHAIN_TARGET)
 
 $(C64U_TARGET): $(C64U_SOURCES)
 	@mkdir -p build
-	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -m build/see64you-c64u.map -o $@ $(C64U_SOURCES)
+	$(CL65) $(C64U_CFLAGS) -DS64_REU_BUFFER=1 -m build/see64you-c64u.map -o $@ $(C64U_SOURCES)
 
 $(C64U_CHAIN_TARGET): $(C64U_TARGET)
 	cp $< $@
