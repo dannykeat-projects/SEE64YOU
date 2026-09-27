@@ -88,7 +88,7 @@ These player-facing checks are assigned to the user where practical; automated s
 - [ ] Large clipboard backed by REU.
 - [ ] Multi-level undo backed by REU.
 - [ ] Mouse selection/menu support where practical.
-- [ ] Detect capabilities and degrade cleanly on a conventional C64 where possible (base build now omits dormant formatting runtime code and restores a 1 KiB software stack; validation map leaves roughly 349 bytes below the 1 KiB stack at the current integration baseline).
+- [ ] Detect capabilities and degrade cleanly on a conventional C64 where possible (base build now omits dormant formatting runtime code and restores a 1 KiB software stack; validation map leaves roughly 465 bytes below the 1 KiB stack after removing redundant heading shortcut dispatch on 2026-09-27).
 
 ## P2 - Polish
 
