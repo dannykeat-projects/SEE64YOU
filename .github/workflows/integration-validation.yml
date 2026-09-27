@@ -21,11 +21,22 @@ jobs:
       - name: Build current C64 test PRG
         run: make -C client clean all
 
+      - name: Report current C64 memory map
+        run: cat client/build/see64you.map
+
       - name: Publish current C64 test PRG
         uses: actions/upload-artifact@v4
         with:
           name: see64you-prg
           path: client/build/see64you.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish current C64 memory map
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-map
+          path: client/build/see64you.map
           if-no-files-found: error
           retention-days: 30
 
