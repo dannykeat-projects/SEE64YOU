@@ -25,6 +25,7 @@ jobs:
       - name: Build C64U REU editor PRG
         run: |
           make -C client c64u
+          cat client/build/see64you-c64u.map
           python3 tools/check_memory_headroom.py client/build/see64you-c64u.map \
             --label "C64U editor" --min-headroom 1024
 
