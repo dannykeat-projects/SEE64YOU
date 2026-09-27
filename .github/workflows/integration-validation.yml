@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - integration-validation-2026-09-24
-      - feature/c64u-scrolling-prompts
   workflow_dispatch:
 
 concurrency:
