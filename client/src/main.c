@@ -84,18 +84,18 @@ static unsigned char restore_publisher_handoff(void)
 static void launch_publisher(void)
 {
     if (!s64_history_prepare_handoff(&editor.history)) {
-        s64_ui_message("Cannot prepare publish handoff");
+        s64_ui_message("Publish handoff failed");
         return;
     }
 
     if (!s64_editor_handoff_store(&editor, &document, &local_document)) {
         s64_ui_render(&editor);
-        s64_ui_message("Cannot store publish handoff");
+        s64_ui_message("Publish handoff failed");
         return;
     }
 
     clrscr();
-    cputs("OPENING SEE64YOU PUBLISHER...\r\n");
+    cputs("OPENING PUBLISHER...\r\n");
     s64_chain_publisher();
 }
 #endif
@@ -515,7 +515,6 @@ int main(void)
 #ifdef S64_REU_BUFFER
     if (restored_handoff) {
         defer_recovery_autosave();
-        s64_ui_message("Returned from publisher");
     } else {
         offer_recovery();
     }
