@@ -183,6 +183,9 @@ if command -v cl65 >/dev/null 2>&1 \
     echo "== REU editor diagnostic build =="
     make -C client reu-editor-probe
 
+    echo "== Recovery diagnostic build =="
+    make -C client recovery-probe
+
     if command -v x64sc >/dev/null 2>&1 \
         && command -v xvfb-run >/dev/null 2>&1 \
         && command -v python3 >/dev/null 2>&1 \
