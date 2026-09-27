@@ -83,7 +83,7 @@ static S64UciResult mock_execute(
     uint8_t opcode = parts[0].data[1];
 
     if (parts[0].data[0] != S64_DOS_TARGET_PRIMARY) {
-        return S64_UCI_TRANSPORT_ERROR;
+        return S64_UCI_PROTOCOL_ERROR;
     }
 
     if (opcode == 0x08u) {
@@ -98,7 +98,7 @@ static S64UciResult mock_execute(
 
     if (opcode == 0x02u) {
         if (part_count != 2u) {
-            return S64_UCI_TRANSPORT_ERROR;
+            return S64_UCI_PROTOCOL_ERROR;
         }
         if (parts[0].data[2] == 0x01u) {
             if (!file_exists || !part_equals(&parts[1], file_name)) {
@@ -123,7 +123,7 @@ static S64UciResult mock_execute(
         uint16_t delivered;
 
         if (open_mode != 1u || part_count != 1u) {
-            return S64_UCI_TRANSPORT_ERROR;
+            return S64_UCI_PROTOCOL_ERROR;
         }
         requested = (uint16_t)(
             parts[0].data[2] | ((uint16_t)parts[0].data[3] << 8)
@@ -148,7 +148,7 @@ static S64UciResult mock_execute(
     if (opcode == 0x05u) {
         if (open_mode != 2u || part_count != 2u
             || temp_length + parts[1].length > FILE_CAPACITY) {
-            return S64_UCI_TRANSPORT_ERROR;
+            return S64_UCI_PROTOCOL_ERROR;
         }
         memcpy(temp_data + temp_length, parts[1].data, parts[1].length);
         temp_length = (unsigned int)(temp_length + parts[1].length);
@@ -164,7 +164,7 @@ static S64UciResult mock_execute(
 
     if (opcode == 0x09u) {
         if (part_count != 2u) {
-            return S64_UCI_TRANSPORT_ERROR;
+            return S64_UCI_PROTOCOL_ERROR;
         }
         if (file_exists && part_equals(&parts[1], file_name)) {
             file_exists = 0u;
@@ -182,7 +182,7 @@ static S64UciResult mock_execute(
             || parts[2].data[0] != 0u
             || !temp_exists
             || !part_equals(&parts[1], temp_name)) {
-            return S64_UCI_TRANSPORT_ERROR;
+            return S64_UCI_PROTOCOL_ERROR;
         }
         copy_part(file_name, sizeof(file_name), &parts[3]);
         memcpy(file_data, temp_data, temp_length);
