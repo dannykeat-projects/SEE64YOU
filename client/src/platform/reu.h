@@ -8,6 +8,7 @@
  * that fit the configured device size.
  */
 uint8_t s64_reu_probe(void);
+uint16_t s64_reu_probe_banks(void);
 uint8_t s64_reu_store(
     uint8_t bank,
     uint16_t address,
