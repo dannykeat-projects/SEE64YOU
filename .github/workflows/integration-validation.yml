@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - integration-validation-2026-09-24
-      - feature/buffer-read-seam
   workflow_dispatch:
 
 concurrency:
