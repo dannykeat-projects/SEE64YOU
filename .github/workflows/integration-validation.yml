@@ -79,5 +79,27 @@ jobs:
           python3 tools/check_memory_headroom.py client/build/publisher-companion-fit.map \
             --label "C64U publisher companion" --min-headroom 1024
 
+      - name: Build C64U publisher PRG
+        run: |
+          make -C client publisher
+          python3 tools/check_memory_headroom.py client/build/see64you-publisher.map \
+            --label "C64U publisher" --min-headroom 1024
+
+      - name: Publish C64U publisher PRG
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-publisher-prg
+          path: client/build/see64you-publisher.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish C64U publisher memory map
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-publisher-map
+          path: client/build/see64you-publisher.map
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Run full validation
         run: sh ./tools/validate.sh
