@@ -1,4 +1,5 @@
 #include "editor.h"
+#include "editor_internal.h"
 
 #include <stdint.h>
 
@@ -6,7 +7,7 @@
 #define VIEW_ROWS 23u
 #define POSITION_INVALID (S64_BUFFER_CAPACITY + 1u)
 
-static unsigned int line_start(const S64Buffer* buffer, unsigned int position)
+unsigned int s64_editor_internal_line_start(const S64Buffer* buffer, unsigned int position)
 {
     while (position > 0u) {
         if (s64_buffer_char_at(buffer, position - 1u) == '\n') {
@@ -29,7 +30,7 @@ static unsigned int line_end(const S64Buffer* buffer, unsigned int position)
 
 static unsigned int wrapped_row_start(const S64Buffer* buffer, unsigned int position)
 {
-    unsigned int start = line_start(buffer, position);
+    unsigned int start = s64_editor_internal_line_start(buffer, position);
 
     return start + ((position - start) / VIEW_COLUMNS) * VIEW_COLUMNS;
 }
@@ -92,12 +93,12 @@ static unsigned char is_word_char(unsigned char value)
         || value == '_';
 }
 
-static void reset_preferred_column(S64Editor* editor)
+void s64_editor_internal_reset_preferred_column(S64Editor* editor)
 {
     editor->preferred_column_valid = 0u;
 }
 
-static void history_state(const S64Editor* editor, S64HistoryState* state)
+void s64_editor_internal_history_state(const S64Editor* editor, S64HistoryState* state)
 {
     state->cursor = s64_buffer_cursor(&editor->buffer);
     state->selection_anchor = editor->selection_anchor;
@@ -105,7 +106,7 @@ static void history_state(const S64Editor* editor, S64HistoryState* state)
     state->mark_mode = editor->mark_mode;
 }
 
-static unsigned char history_begin(
+unsigned char s64_editor_internal_history_begin(
     S64Editor* editor,
     unsigned int start,
     unsigned int end
@@ -113,7 +114,7 @@ static unsigned char history_begin(
 {
     S64HistoryState before;
 
-    history_state(editor, &before);
+    s64_editor_internal_history_state(editor, &before);
     return (unsigned char)s64_history_capture(
         &editor->history,
         &editor->buffer,
@@ -124,7 +125,7 @@ static unsigned char history_begin(
     );
 }
 
-static void history_commit(
+void s64_editor_internal_history_commit(
     S64Editor* editor,
     unsigned int current_length,
     unsigned char coalesce_insert,
@@ -137,7 +138,7 @@ static void history_commit(
         return;
     }
 
-    history_state(editor, &after);
+    s64_editor_internal_history_state(editor, &after);
     s64_history_commit(
         &editor->history,
         current_length,
@@ -146,7 +147,7 @@ static void history_commit(
     );
 }
 
-static void restore_history_state(
+void s64_editor_internal_restore_history_state(
     S64Editor* editor,
     const S64HistoryState* state
 )
@@ -155,7 +156,7 @@ static void restore_history_state(
     editor->selection_anchor = state->selection_anchor;
     editor->selection_valid = state->selection_valid;
     editor->mark_mode = state->mark_mode;
-    reset_preferred_column(editor);
+    s64_editor_internal_reset_preferred_column(editor);
     editor->position_cursor = POSITION_INVALID;
     s64_editor_recalculate_position(editor);
     s64_editor_ensure_cursor_visible(editor);
@@ -167,7 +168,7 @@ static void finish_content_edit(S64Editor* editor)
     editor->selection_anchor = s64_buffer_cursor(&editor->buffer);
     editor->selection_valid = 0u;
     editor->mark_mode = 0u;
-    reset_preferred_column(editor);
+    s64_editor_internal_reset_preferred_column(editor);
     s64_editor_recalculate_position(editor);
     s64_editor_ensure_cursor_visible(editor);
 }
@@ -178,7 +179,7 @@ static void finish_character_edit(S64Editor* editor, unsigned char inserted)
     editor->selection_anchor = s64_buffer_cursor(&editor->buffer);
     editor->selection_valid = 0u;
     editor->mark_mode = 0u;
-    reset_preferred_column(editor);
+    s64_editor_internal_reset_preferred_column(editor);
     editor->position_cursor = s64_buffer_cursor(&editor->buffer);
 
     if (inserted) {
@@ -198,7 +199,7 @@ static void finish_appended_value(S64Editor* editor, unsigned char value)
     editor->selection_anchor = s64_buffer_cursor(&editor->buffer);
     editor->selection_valid = 0u;
     editor->mark_mode = 0u;
-    reset_preferred_column(editor);
+    s64_editor_internal_reset_preferred_column(editor);
 
     if (value == '\n') {
         ++editor->line;
@@ -345,7 +346,7 @@ static void select_range(S64Editor* editor, unsigned int start, unsigned int len
     s64_buffer_move_cursor(&editor->buffer, start + length);
     editor->selection_valid = length != 0u;
     editor->mark_mode = 0u;
-    reset_preferred_column(editor);
+    s64_editor_internal_reset_preferred_column(editor);
     s64_editor_recalculate_position(editor);
     s64_editor_ensure_cursor_visible(editor);
 }
@@ -418,7 +419,7 @@ static int delete_selection(S64Editor* editor)
 
     editor->selection_anchor = start;
     editor->selection_valid = 0u;
-    reset_preferred_column(editor);
+    s64_editor_internal_reset_preferred_column(editor);
     editor->mark_mode = 0u;
     editor->dirty = 1u;
     editor->position_cursor = POSITION_INVALID;
@@ -485,7 +486,7 @@ int s64_editor_undo(S64Editor* editor)
         return 0;
     }
 
-    restore_history_state(editor, &state);
+    s64_editor_internal_restore_history_state(editor, &state);
     return 1;
 }
 
@@ -502,7 +503,7 @@ int s64_editor_redo(S64Editor* editor)
         return 0;
     }
 
-    restore_history_state(editor, &state);
+    s64_editor_internal_restore_history_state(editor, &state);
     return 1;
 }
 
@@ -539,7 +540,7 @@ void s64_editor_recalculate_position(S64Editor* editor)
                 --line;
             }
             column = position
-                - line_start(&editor->buffer, position)
+                - s64_editor_internal_line_start(&editor->buffer, position)
                 + 1u;
         } else if (column > 1u) {
             --column;
@@ -663,7 +664,7 @@ static int editor_insert_value(
         } else {
             finish_content_edit(editor);
         }
-        history_state(editor, &after);
+        s64_editor_internal_history_state(editor, &after);
         s64_history_extend_insert(&editor->history, &after);
         return 1;
     }
@@ -678,7 +679,7 @@ static int editor_insert_value(
         end = cursor + 1u;
     }
 
-    captured = history_begin(editor, start, end);
+    captured = s64_editor_internal_history_begin(editor, start, end);
 
     if (had_selection) {
         delete_selection(editor);
@@ -706,7 +707,7 @@ static int editor_insert_value(
     } else {
         finish_content_edit(editor);
     }
-    history_commit(
+    s64_editor_internal_history_commit(
         editor,
         1u,
         (unsigned char)(coalesce_insert && editor->insert_mode && !had_selection),
@@ -735,11 +736,11 @@ int s64_editor_backspace(S64Editor* editor)
     if (s64_editor_has_selection(editor)) {
         start = s64_editor_selection_start(editor);
         end = s64_editor_selection_end(editor);
-        captured = history_begin(editor, start, end);
+        captured = s64_editor_internal_history_begin(editor, start, end);
         if (!delete_selection(editor)) {
             return 0;
         }
-        history_commit(editor, 0u, 0u, captured);
+        s64_editor_internal_history_commit(editor, 0u, 0u, captured);
         return 1;
     }
 
@@ -747,7 +748,7 @@ int s64_editor_backspace(S64Editor* editor)
         return 0;
     }
 
-    captured = history_begin(editor, cursor - 1u, cursor);
+    captured = s64_editor_internal_history_begin(editor, cursor - 1u, cursor);
     if (s64_buffer_char_at(&editor->buffer, cursor - 1u) != '\n'
         && editor->word_wrap
         && editor->view_cursor_column > 0u) {
@@ -770,7 +771,7 @@ int s64_editor_backspace(S64Editor* editor)
         }
         finish_content_edit(editor);
     }
-    history_commit(editor, 0u, 0u, captured);
+    s64_editor_internal_history_commit(editor, 0u, 0u, captured);
     return 1;
 }
 
@@ -784,11 +785,11 @@ int s64_editor_delete(S64Editor* editor)
     if (s64_editor_has_selection(editor)) {
         start = s64_editor_selection_start(editor);
         end = s64_editor_selection_end(editor);
-        captured = history_begin(editor, start, end);
+        captured = s64_editor_internal_history_begin(editor, start, end);
         if (!delete_selection(editor)) {
             return 0;
         }
-        history_commit(editor, 0u, 0u, captured);
+        s64_editor_internal_history_commit(editor, 0u, 0u, captured);
         return 1;
     }
 
@@ -796,7 +797,7 @@ int s64_editor_delete(S64Editor* editor)
         return 0;
     }
 
-    captured = history_begin(editor, cursor, cursor + 1u);
+    captured = s64_editor_internal_history_begin(editor, cursor, cursor + 1u);
     if (!s64_buffer_delete(&editor->buffer)) {
         if (captured) {
             s64_history_reset(&editor->history);
@@ -805,7 +806,7 @@ int s64_editor_delete(S64Editor* editor)
     }
 
     finish_content_edit(editor);
-    history_commit(editor, 0u, 0u, captured);
+    s64_editor_internal_history_commit(editor, 0u, 0u, captured);
     return 1;
 }
 
@@ -818,7 +819,7 @@ void s64_editor_left(S64Editor* editor)
     if (cursor > 0u) {
         s64_buffer_move_cursor(&editor->buffer, cursor - 1u);
         s64_editor_recalculate_position(editor);
-        reset_preferred_column(editor);
+        s64_editor_internal_reset_preferred_column(editor);
         update_selection_after_move(editor);
         s64_editor_ensure_cursor_visible(editor);
     }
@@ -833,7 +834,7 @@ void s64_editor_right(S64Editor* editor)
     if (cursor < s64_buffer_length(&editor->buffer)) {
         s64_buffer_move_cursor(&editor->buffer, cursor + 1u);
         s64_editor_recalculate_position(editor);
-        reset_preferred_column(editor);
+        s64_editor_internal_reset_preferred_column(editor);
         update_selection_after_move(editor);
         s64_editor_ensure_cursor_visible(editor);
     }
@@ -877,14 +878,14 @@ void s64_editor_up(S64Editor* editor)
         return;
     }
 
-    current_start = line_start(&editor->buffer, cursor);
+    current_start = s64_editor_internal_line_start(&editor->buffer, cursor);
     if (current_start == 0u) {
         return;
     }
 
     desired_column = preferred_column(editor, cursor, current_start);
     previous_end = current_start - 1u;
-    previous_start = line_start(&editor->buffer, previous_end);
+    previous_start = s64_editor_internal_line_start(&editor->buffer, previous_end);
 
     if (previous_start + desired_column > previous_end) {
         s64_buffer_move_cursor(&editor->buffer, previous_end);
@@ -933,7 +934,7 @@ void s64_editor_down(S64Editor* editor)
         return;
     }
 
-    current_start = line_start(&editor->buffer, cursor);
+    current_start = s64_editor_internal_line_start(&editor->buffer, cursor);
     current_end = line_end(&editor->buffer, cursor);
     if (current_end >= s64_buffer_length(&editor->buffer)) {
         return;
@@ -959,9 +960,9 @@ void s64_editor_home(S64Editor* editor)
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
 
     s64_history_break_coalesce(&editor->history);
-    s64_buffer_move_cursor(&editor->buffer, line_start(&editor->buffer, cursor));
+    s64_buffer_move_cursor(&editor->buffer, s64_editor_internal_line_start(&editor->buffer, cursor));
     s64_editor_recalculate_position(editor);
-    reset_preferred_column(editor);
+    s64_editor_internal_reset_preferred_column(editor);
     update_selection_after_move(editor);
     s64_editor_ensure_cursor_visible(editor);
 }
@@ -973,7 +974,7 @@ void s64_editor_end(S64Editor* editor)
     s64_history_break_coalesce(&editor->history);
     s64_buffer_move_cursor(&editor->buffer, line_end(&editor->buffer, cursor));
     s64_editor_recalculate_position(editor);
-    reset_preferred_column(editor);
+    s64_editor_internal_reset_preferred_column(editor);
     update_selection_after_move(editor);
     s64_editor_ensure_cursor_visible(editor);
 }
@@ -1020,7 +1021,7 @@ void s64_editor_word_left(S64Editor* editor)
 
     s64_buffer_move_cursor(&editor->buffer, position);
     s64_editor_recalculate_position(editor);
-    reset_preferred_column(editor);
+    s64_editor_internal_reset_preferred_column(editor);
     update_selection_after_move(editor);
     s64_editor_ensure_cursor_visible(editor);
 }
@@ -1042,7 +1043,7 @@ void s64_editor_word_right(S64Editor* editor)
 
     s64_buffer_move_cursor(&editor->buffer, position);
     s64_editor_recalculate_position(editor);
-    reset_preferred_column(editor);
+    s64_editor_internal_reset_preferred_column(editor);
     update_selection_after_move(editor);
     s64_editor_ensure_cursor_visible(editor);
 }
@@ -1080,7 +1081,7 @@ int s64_editor_go_to_line(S64Editor* editor, unsigned int line_number)
     editor->line = line_number;
     editor->column = 1u;
     editor->position_cursor = s64_buffer_cursor(&editor->buffer);
-    reset_preferred_column(editor);
+    s64_editor_internal_reset_preferred_column(editor);
     update_selection_after_move(editor);
     s64_editor_ensure_cursor_visible(editor);
     return 1;
@@ -1162,7 +1163,7 @@ static int replace_selection_core(
     }
 
     if (record_history) {
-        captured = history_begin(editor, start, end);
+        captured = s64_editor_internal_history_begin(editor, start, end);
     }
 
     if (!delete_selection(editor)) {
@@ -1183,7 +1184,7 @@ static int replace_selection_core(
 
     finish_content_edit(editor);
     if (record_history) {
-        history_commit(editor, replacement_length, 0u, captured);
+        s64_editor_internal_history_commit(editor, replacement_length, 0u, captured);
     }
     return 1;
 }
@@ -1251,7 +1252,7 @@ int s64_editor_replace_all(
         return 1;
     }
 
-    captured = history_begin(editor, 0u, length);
+    captured = s64_editor_internal_history_begin(editor, 0u, length);
     position = 0u;
     while (find_forward_position(&editor->buffer, query, query_length, position, &found)) {
         select_range(editor, found, query_length);
@@ -1269,7 +1270,7 @@ int s64_editor_replace_all(
         position = s64_buffer_cursor(&editor->buffer);
     }
 
-    history_commit(
+    s64_editor_internal_history_commit(
         editor,
         s64_buffer_length(&editor->buffer),
         0u,
@@ -1315,7 +1316,7 @@ void s64_editor_select_all(S64Editor* editor)
     s64_history_break_coalesce(&editor->history);
     editor->selection_anchor = 0u;
     s64_buffer_move_cursor(&editor->buffer, s64_buffer_length(&editor->buffer));
-    reset_preferred_column(editor);
+    s64_editor_internal_reset_preferred_column(editor);
     editor->selection_valid = s64_buffer_length(&editor->buffer) != 0u;
     editor->mark_mode = 0u;
     s64_editor_recalculate_position(editor);
@@ -1360,7 +1361,7 @@ int s64_editor_cut(S64Editor* editor, S64Clipboard* clipboard)
 
     start = s64_editor_selection_start(editor);
     end = s64_editor_selection_end(editor);
-    captured = history_begin(editor, start, end);
+    captured = s64_editor_internal_history_begin(editor, start, end);
 
     if (!delete_selection(editor)) {
         if (captured) {
@@ -1369,7 +1370,7 @@ int s64_editor_cut(S64Editor* editor, S64Clipboard* clipboard)
         return 0;
     }
 
-    history_commit(editor, 0u, 0u, captured);
+    s64_editor_internal_history_commit(editor, 0u, 0u, captured);
     return 1;
 }
 
@@ -1395,7 +1396,7 @@ int s64_editor_paste(S64Editor* editor, const S64Clipboard* clipboard)
         return 0;
     }
 
-    captured = history_begin(editor, start, end);
+    captured = s64_editor_internal_history_begin(editor, start, end);
     if (selected != 0u && !delete_selection(editor)) {
         if (captured) {
             s64_history_reset(&editor->history);
@@ -1413,6 +1414,6 @@ int s64_editor_paste(S64Editor* editor, const S64Clipboard* clipboard)
     }
 
     finish_content_edit(editor);
-    history_commit(editor, clipboard->length, 0u, captured);
+    s64_editor_internal_history_commit(editor, clipboard->length, 0u, captured);
     return 1;
 }
