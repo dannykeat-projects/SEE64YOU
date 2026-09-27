@@ -89,6 +89,7 @@ static void launch_publisher(void)
     }
 
     if (!s64_editor_handoff_store(&editor, &document, &local_document)) {
+        s64_ui_render(&editor);
         s64_ui_message("Cannot store publish handoff");
         return;
     }
