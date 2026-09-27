@@ -16,17 +16,7 @@ typedef struct {
 #define S64_HISTORY_LEVELS 16u
 
 typedef struct {
-    unsigned int position;
-    unsigned int stored_length;
-    unsigned int current_length;
-    S64HistoryState before;
-    S64HistoryState after;
-    unsigned char slot;
-    unsigned char coalesce_insert;
-} S64HistoryEntry;
-
-typedef struct {
-    S64HistoryEntry entries[S64_HISTORY_LEVELS];
+    unsigned char start;
     unsigned char count;
     unsigned char cursor;
     unsigned char pending_valid;
