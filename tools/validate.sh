@@ -138,6 +138,18 @@ if command -v cl65 >/dev/null 2>&1 \
 
     echo "== cc65 C64 build =="
     make -C client clean all
+
+    echo "== REU diagnostic build =="
+    make -C client reu-probe
+
+    if command -v x64sc >/dev/null 2>&1; then
+        echo "== VICE REU hardware-layer tests =="
+        make -C client reu-probe-vice
+        sh ./tools/test_reu_vice.sh
+    else
+        echo "SKIP REU VICE tests (x64sc not found)"
+    fi
+
     rm -rf "$TMP_MODULE_DIR"
     TMP_MODULE_DIR=""
 else
