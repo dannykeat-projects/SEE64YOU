@@ -149,8 +149,9 @@ uint16_t s64_reu_probe_banks(void)
         }
 
         if (base_read == candidate_marker) {
-            (void)s64_reu_store(0u, 0u, &base_original, 1u);
-            return candidate;
+            return s64_reu_store(0u, 0u, &base_original, 1u)
+                ? (uint16_t)candidate
+                : 0u;
         }
 
         if (base_read != base_marker
