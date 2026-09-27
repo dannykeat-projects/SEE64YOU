@@ -138,6 +138,10 @@ if command -v cl65 >/dev/null 2>&1 \
 
     echo "== cc65 C64 build =="
     make -C client clean all
+
+    echo "== cc65 C64U REU editor build =="
+    make -C client c64u
+
     rm -rf "$TMP_MODULE_DIR"
     TMP_MODULE_DIR=""
 else
