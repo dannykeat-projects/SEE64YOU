@@ -109,6 +109,33 @@ int main(void)
     require(s64_buffer_char_at(&buffer, 99u) == (unsigned char)('A' + (99u % 26u)), "REU range keeps prefix");
     require(s64_buffer_char_at(&buffer, 100u) == (unsigned char)('A' + (200u % 26u)), "REU range keeps suffix");
 
+    /*
+     * Exercise overlapping DMA moves with an almost-full buffer. The physical
+     * source and destination ranges overlap when the gap is smaller than the
+     * transfer window, so load-before-store ordering must preserve the text.
+     */
+    s64_buffer_init(&buffer);
+    buffer.gap_start = 100u;
+    buffer.gap_end = 108u;
+    for (i = 0u; i < 100u; ++i) {
+        fake_reu[i] = (unsigned char)((i % 251u) + 1u);
+    }
+    for (i = 108u; i < S64_BUFFER_CAPACITY; ++i) {
+        fake_reu[i] = (unsigned char)(((i - 8u) % 251u) + 1u);
+    }
+
+    require(s64_buffer_move_cursor(&buffer, 260u), "move small REU gap right with overlap");
+    require(buffer.gap_start == 260u && buffer.gap_end == 268u, "right overlap keeps gap size");
+    require(s64_buffer_char_at(&buffer, 99u) == (unsigned char)((99u % 251u) + 1u), "right overlap keeps prefix");
+    require(s64_buffer_char_at(&buffer, 100u) == (unsigned char)((100u % 251u) + 1u), "right overlap keeps moved byte");
+    require(s64_buffer_char_at(&buffer, 259u) == (unsigned char)((259u % 251u) + 1u), "right overlap keeps moved tail");
+
+    require(s64_buffer_move_cursor(&buffer, 40u), "move small REU gap left with overlap");
+    require(buffer.gap_start == 40u && buffer.gap_end == 48u, "left overlap keeps gap size");
+    require(s64_buffer_char_at(&buffer, 39u) == (unsigned char)((39u % 251u) + 1u), "left overlap keeps prefix");
+    require(s64_buffer_char_at(&buffer, 40u) == (unsigned char)((40u % 251u) + 1u), "left overlap keeps moved byte");
+    require(s64_buffer_char_at(&buffer, 260u) == (unsigned char)((260u % 251u) + 1u), "left overlap keeps suffix");
+
     puts("REU buffer tests passed");
     return 0;
 }
