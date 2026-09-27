@@ -158,6 +158,9 @@ if command -v cl65 >/dev/null 2>&1 \
     echo "== cc65 C64U REU editor build =="
     make -C client c64u
 
+    echo "== Base editor diagnostic build =="
+    make -C client editor-probe
+
     echo "== REU diagnostic build =="
     make -C client reu-probe
 

@@ -20,14 +20,14 @@ This is the authoritative project work queue. Keep completed work concise and mo
 
 - [x] Replace whole-editor redraws during typing with incremental updates (validated in VICE on 2026-09-27 at `5da0c391`: continuous typing, mid-line insertion near the top and bottom of a full page, Backspace in the middle of the document, newline insertion/deletion, and editing after scrolling/Page Up/Down all performed well. The final path combines constant-time append/status updates, local editor position maintenance, direct affected-row character redraws, and conservative fallbacks for complex edits).
 - [x] Accurate vertical cursor movement preserving preferred column.
-- [x] Word wrap toggle and horizontal scrolling (F8; VICE validation pending).
+- [x] Word wrap toggle and horizontal scrolling (F8; base-C64 cc65 path validated under VICE 2026-09-28).
 - [x] Home, End, Page Up/Page Down and word-navigation editor commands.
 - [x] Selection model and visible selection.
 - [x] Cut/copy/paste using an application clipboard.
-- [ ] Undo/redo transaction history (bounded single-level RAM implementation with Ctrl+Z / Ctrl+Shift+Z and regression tests added; integration/VICE validation pending).
-- [x] Find / find next / find previous (UI flows implemented; VICE validation pending).
-- [x] Replace / replace all (UI flows implemented; VICE validation pending).
-- [x] Go to line (UI flow implemented; VICE validation pending).
+- [x] Undo/redo transaction history (bounded single-level RAM implementation with Ctrl+Z / Ctrl+Shift+Z plus host regression coverage; base-C64 cc65 undo/redo and saved-state dirty tracking validated under VICE 2026-09-28. C64U additionally uses the validated 16-level REU history backend).
+- [x] Find / find next / find previous (UI flows implemented; base-C64 cc65 editor path validated under VICE 2026-09-28).
+- [x] Replace / replace all (UI flows implemented; base-C64 cc65 editor path including undo/redo validated under VICE 2026-09-28).
+- [x] Go to line (UI flow implemented; existing and missing-line behaviour validated on the base-C64 cc65 path under VICE 2026-09-28).
 - [x] New/Open/Save/Save As using C64U-accessible storage (streamed canonical files, temporary-file replacement, overwrite detection and host tests implemented; C64U validation pending).
 - [x] Dirty-document confirmation before New, Open and Exit.
 - [ ] Recovery/autosave files (reserved `SEE64YOU.REC` snapshot, startup recovery prompt and active-edit refresh implemented with host tests; integration/C64U validation pending).
