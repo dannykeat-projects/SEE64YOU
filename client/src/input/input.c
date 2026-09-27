@@ -126,7 +126,6 @@ void s64_input_read(S64InputEvent* event)
     event->type = S64_INPUT_NONE;
     event->character = 0u;
 
-    cursor(1);
     for (;;) {
         modifiers = S64_SHFLAG;
         raw_key = S64_KEYCODE;
@@ -135,7 +134,6 @@ void s64_input_read(S64InputEvent* event)
             if (S64_KEY_COUNT != 0u) {
                 (void)cbm_k_getin();
             }
-            cursor(0);
             return;
         }
 
@@ -145,7 +143,6 @@ void s64_input_read(S64InputEvent* event)
     }
 
     key = (unsigned char)cgetc();
-    cursor(0);
     modifiers = S64_SHFLAG;
 
     if ((modifiers & S64_MOD_CONTROL) != 0u) {
