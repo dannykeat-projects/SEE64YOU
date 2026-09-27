@@ -194,6 +194,11 @@ int main(void)
     if (s64_buffer_cursor(&editor.buffer) != 5549u) {
         fail(18u);
     }
+    if (s64_editor_go_to_line(&editor, 999u)
+        || s64_buffer_cursor(&editor.buffer) != 5549u
+        || editor.line != 180u) {
+        fail(19u);
+    }
 
     DIAG_PROGRESS = 0x80u;
     DIAG_RESULT = DIAG_PASS;
