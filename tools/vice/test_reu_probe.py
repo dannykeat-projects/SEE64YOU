@@ -12,9 +12,10 @@ STX = 0x02
 CMD_MEMORY_GET = 0x01
 CMD_EXIT_MONITOR = 0xAA
 CMD_QUIT = 0xBB
-SCREEN_START = 0x0400
-SCREEN_SIZE = 40 * 25
-PROGRESS_ADDR = 0xC000
+
+DIAG_BASE = 0xC000
+DIAG_PASS = 0xA5
+DIAG_FAIL = 0x5A
 
 @dataclass(frozen=True)
 class Response:
@@ -104,48 +105,45 @@ def wait_for_monitor(host: str, port: int, timeout: float) -> ViceMonitor:
             time.sleep(0.1)
     raise RuntimeError(f"VICE monitor did not open: {last_error}")
 
-def screen_codes(text: str) -> bytes:
-    out = bytearray()
-    for ch in text:
-        if "A" <= ch <= "Z":
-            out.append(ord(ch) - ord("A") + 1)
-        else:
-            out.append(ord(ch))
-    return bytes(out)
-
-def decode_screen(screen: bytes) -> str:
-    rows = []
-    for row in range(25):
-        chars = []
-        for value in screen[row * 40 : (row + 1) * 40]:
-            if 1 <= value <= 26:
-                chars.append(chr(ord("A") + value - 1))
-            elif 32 <= value <= 126:
-                chars.append(chr(value))
-            else:
-                chars.append(".")
-        rows.append("".join(chars).rstrip())
-    return "\n".join(rows)
+def expected_banks(size_kib: int) -> int:
+    return size_kib // 64
 
 def run(port: int, size_kib: int, timeout: float) -> None:
     monitor = wait_for_monitor("127.0.0.1", port, timeout)
-    expected_size = screen_codes(f"SIZE: {size_kib} KIB")
-    expected_pass = screen_codes("PASS")
     deadline = time.monotonic() + timeout
-    screen = b""
+    state = bytes((0, 0, 0, 0))
     try:
         while time.monotonic() < deadline:
-            screen = monitor.read_memory(SCREEN_START, SCREEN_START + SCREEN_SIZE - 1)
-            if expected_size in screen and expected_pass in screen:
-                print(f"VICE REU {size_kib} KiB passed")
+            state = monitor.read_memory(DIAG_BASE, DIAG_BASE + 3)
+            progress, result, banks_lo, banks_hi = state
+            banks = banks_lo | (banks_hi << 8)
+
+            if result == DIAG_PASS:
+                expected = expected_banks(size_kib)
+                if banks != expected:
+                    raise AssertionError(
+                        f"REU {size_kib} KiB reported {banks} banks; expected {expected}"
+                    )
+                print(
+                    f"VICE REU {size_kib} KiB passed "
+                    f"(banks={banks}, progress=0x{progress:02x})"
+                )
                 return
+
+            if result == DIAG_FAIL:
+                raise AssertionError(
+                    f"REU {size_kib} KiB diagnostic failed "
+                    f"(progress=0x{progress:02x}, banks={banks})"
+                )
+
             monitor.resume()
             time.sleep(0.05)
-        progress = monitor.read_memory(PROGRESS_ADDR, PROGRESS_ADDR)[0]
+
+        progress, result, banks_lo, banks_hi = state
+        banks = banks_lo | (banks_hi << 8)
         raise AssertionError(
-            f"diagnostic never reported {size_kib} KiB PASS "
-            f"(progress=0x{progress:02x})\n"
-            f"screen:\n{decode_screen(screen)}"
+            f"REU {size_kib} KiB diagnostic timed out "
+            f"(progress=0x{progress:02x}, result=0x{result:02x}, banks={banks})"
         )
     finally:
         monitor.quit()
