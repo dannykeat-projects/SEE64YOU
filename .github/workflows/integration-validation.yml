@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - integration-validation-2026-09-24
+      - perf/reu-logical-cursor
   workflow_dispatch:
 
 concurrency:
