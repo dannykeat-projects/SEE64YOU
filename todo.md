@@ -65,7 +65,7 @@ These player-facing checks are assigned to the user where practical; automated s
 - [x] Define simple metadata + source-body representation.
 - [x] Implement safe minimal markup rendering on the standalone backend.
 - [ ] Freeze See64You Markup v1 after formatting UI/menu wiring and round-trip validation.
-- [x] Bold / italic / headings / lists / links formatting command core (UI/menu wiring and VICE validation pending).
+- [x] Bold / italic / headings / lists / links formatting command core (kept in separately validated `editor_format.c`; omitted from the conventional-C64 PRG until FORMAT UI wiring so dormant code does not consume base RAM).
 - [ ] C64 preview view.
 - [x] Preserve unsupported markup as text rather than corrupting it (verified by renderer regression coverage 2026-09-25).
 
@@ -88,7 +88,7 @@ These player-facing checks are assigned to the user where practical; automated s
 - [ ] Large clipboard backed by REU.
 - [ ] Multi-level undo backed by REU.
 - [ ] Mouse selection/menu support where practical.
-- [ ] Detect capabilities and degrade cleanly on a conventional C64 where possible.
+- [ ] Detect capabilities and degrade cleanly on a conventional C64 where possible (base build now omits dormant formatting runtime code and restores a 1 KiB software stack; validation map leaves roughly 3.2 KiB below the stack for subsequent conventional-C64 work).
 
 ## P2 - Polish
 
