@@ -8,6 +8,9 @@
 #include "input/input.h"
 #include "platform/dos.h"
 #include "platform/uci.h"
+#ifdef S64_REU_BUFFER
+#include "platform/reu.h"
+#endif
 #include "storage/local.h"
 #include "ui.h"
 
@@ -324,7 +327,7 @@ static int parse_line_number(const char* text, unsigned int* line_number)
         }
 
         digit = (unsigned char)(*text - '0');
-        if (value > 819u) {
+        if (value > 6553u) {
             return 0;
         }
 
@@ -447,6 +450,14 @@ int main(void)
     unsigned char cursor_only;
     unsigned char inserted_value;
     unsigned char removed_value;
+
+#ifdef S64_REU_BUFFER
+    if (!s64_reu_probe()) {
+        clrscr();
+        cputs("SEE64YOU C64U\r\nREU REQUIRED\r\n");
+        return 1;
+    }
+#endif
 
     s64_editor_init(&editor);
     s64_clipboard_init(&clipboard);
