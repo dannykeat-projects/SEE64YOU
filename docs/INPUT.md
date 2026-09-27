@@ -37,6 +37,7 @@ The C64 KERNAL maintains `SHFLAG` at `$028D`:
 The input layer uses this state alongside buffered keyboard characters. Where firmware/key mapping preserves the expected Control chord, See64You recognizes:
 
 - Ctrl+A: Select all
+- Ctrl+B: toggle bold markers around the selection (or insert an empty bold pair)
 - Ctrl+C: Copy
 - Ctrl+X: Cut
 - Ctrl+V: Paste
@@ -47,6 +48,8 @@ The input layer uses this state alongside buffered keyboard characters. Where fi
 - Ctrl+F: Find
 - Ctrl+G: Go to line
 - Ctrl+H: Replace
+- Ctrl+I: toggle italic markers around the selection (or insert an empty italic pair)
+- Ctrl+L: toggle list-item formatting on the current line
 - Ctrl+Z: Undo
 - Ctrl+Shift+Z: Redo
 
