@@ -17,8 +17,6 @@ void __fastcall__ s64_reu_kick(uint8_t command);
 static uint8_t probe_original;
 static uint8_t probe_value;
 static uint8_t probe_readback;
-static uint8_t probe_candidate_original;
-static uint8_t probe_base_read;
 
 static uint8_t s64_reu_transfer(
     uint8_t transfer_type,
@@ -115,8 +113,6 @@ uint8_t s64_reu_probe(void)
 uint16_t s64_reu_probe_banks(void)
 {
     uint16_t bank;
-    uint8_t value;
-
     /*
      * Mirror cc65's proven c64-reu.emd size probe. Stamp the first byte of all
      * 256 logical banks with the bank number, then read upward until aliasing
@@ -124,8 +120,8 @@ uint16_t s64_reu_probe_banks(void)
      * contents because it deliberately uses offset 0 of each logical bank.
      */
     for (bank = 256u; bank != 0u; --bank) {
-        value = (uint8_t)(bank - 1u);
-        if (!s64_reu_store(value, 0u, &value, 1u)) {
+        probe_value = (uint8_t)(bank - 1u);
+        if (!s64_reu_store(probe_value, 0u, &probe_value, 1u)) {
             return 0u;
         }
     }
