@@ -6,40 +6,18 @@
 
 #include <string.h>
 
-static S64HandoffRecord record;
-static const uint8_t invalid_magic[4] = {0u, 0u, 0u, 0u};
+extern S64HandoffRecord s64_editor_handoff_record;
 
-static unsigned char record_valid(void)
+#define record s64_editor_handoff_record
+
+static unsigned char record_header_valid(void)
 {
-    unsigned int length;
-
-    if (record.magic[0] != S64_HANDOFF_MAGIC_0
-        || record.magic[1] != S64_HANDOFF_MAGIC_1
-        || record.magic[2] != S64_HANDOFF_MAGIC_2
-        || record.magic[3] != S64_HANDOFF_MAGIC_3
-        || record.version != S64_HANDOFF_VERSION
-        || record.checksum != s64_handoff_record_checksum(&record)
-        || (record.flags & (uint8_t)~S64_HANDOFF_FLAGS_MASK) != 0u
-        || record.gap_start > record.gap_end
-        || record.gap_end > S64_BUFFER_CAPACITY
-        || record.history.start >= S64_HISTORY_LEVELS
-        || record.history.count > S64_HISTORY_LEVELS
-        || record.history.cursor > record.history.count
-        || record.history.pending_valid != 0u
-        || record.history.saved_valid > 1u
-        || (record.history.saved_valid
-            && record.history.saved_cursor > record.history.count)
-        || (record.document_type != S64_DOCUMENT_PAGE
-            && record.document_type != S64_DOCUMENT_POST)
-        || (record.document_status != S64_DOCUMENT_DRAFT
-            && record.document_status != S64_DOCUMENT_PUBLISHED)) {
-        return 0u;
-    }
-
-    length = (unsigned int)(
-        S64_BUFFER_CAPACITY - (record.gap_end - record.gap_start)
-    );
-    return record.cursor <= length;
+    return record.magic[0] == S64_HANDOFF_MAGIC_0
+        && record.magic[1] == S64_HANDOFF_MAGIC_1
+        && record.magic[2] == S64_HANDOFF_MAGIC_2
+        && record.magic[3] == S64_HANDOFF_MAGIC_3
+        && record.version == S64_HANDOFF_VERSION
+        && record.checksum == s64_handoff_record_checksum(&record);
 }
 
 int s64_editor_handoff_store(
@@ -48,21 +26,16 @@ int s64_editor_handoff_store(
     const S64LocalDocument* local
 )
 {
-    if (editor == 0 || document == 0 || local == 0
-        || document->body != &editor->buffer
-        || sizeof(S64HandoffRecord) > S64_REU_HANDOFF_CAPACITY) {
-        return 0;
-    }
-
-    memset(&record, 0, sizeof(record));
     record.magic[0] = S64_HANDOFF_MAGIC_0;
     record.magic[1] = S64_HANDOFF_MAGIC_1;
     record.magic[2] = S64_HANDOFF_MAGIC_2;
     record.magic[3] = S64_HANDOFF_MAGIC_3;
     record.version = S64_HANDOFF_VERSION;
+    record.flags = 0u;
     if (editor->dirty) record.flags |= S64_HANDOFF_FLAG_DIRTY;
     if (editor->insert_mode) record.flags |= S64_HANDOFF_FLAG_INSERT_MODE;
     if (editor->word_wrap) record.flags |= S64_HANDOFF_FLAG_WORD_WRAP;
+
     record.gap_start = editor->buffer.gap_start;
     record.gap_end = editor->buffer.gap_end;
     record.cursor = editor->buffer.cursor;
@@ -90,15 +63,13 @@ int s64_editor_handoff_restore(
     S64LocalDocument* local
 )
 {
-    if (editor == 0 || document == 0 || local == 0
-        || sizeof(S64HandoffRecord) > S64_REU_HANDOFF_CAPACITY
-        || !s64_reu_load(
+    if (!s64_reu_load(
             S64_REU_HANDOFF_BANK,
             S64_REU_HANDOFF_BASE,
             &record,
             (uint16_t)sizeof(record)
         )
-        || !record_valid()) {
+        || !record_header_valid()) {
         return 0;
     }
 
@@ -125,10 +96,14 @@ int s64_editor_handoff_restore(
 
 int s64_editor_handoff_clear(void)
 {
+    record.magic[0] = 0u;
+    record.magic[1] = 0u;
+    record.magic[2] = 0u;
+    record.magic[3] = 0u;
     return s64_reu_store(
         S64_REU_HANDOFF_BANK,
         S64_REU_HANDOFF_BASE,
-        invalid_magic,
-        (uint16_t)sizeof(invalid_magic)
+        record.magic,
+        (uint16_t)sizeof(record.magic)
     );
 }
