@@ -98,7 +98,7 @@ The formatting core now implements these source transformations:
 - List Item toggles `- ` at the start of the current logical line.
 - Link requires selected label text and an `http://` or `https://` URL, producing `[label](url)`. Labels/new URLs that would break this deliberately small syntax are rejected instead of escaped ambiguously.
 
-Every transformation checks buffer capacity before insertion and is designed to complete fully or leave the source unchanged. The FORMAT menu/UI bindings are still pending, so the subset is not frozen as Markup v1 yet.
+Every transformation checks buffer capacity before insertion and is designed to complete fully or leave the source unchanged. Keyboard bindings are live for Bold, Italic, Heading 1/2 and List Item; a full FORMAT menu and link prompt are still pending, so the subset is not frozen as Markup v1 yet. The isolated URL/link formatter remains host-tested but is not linked into the conventional-C64 build because doing so overflowed the C64 BSS memory area by 936 bytes while retaining the 1 KiB software stack.
 
 ## Large documents
 
