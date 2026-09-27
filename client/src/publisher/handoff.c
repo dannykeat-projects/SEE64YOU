@@ -79,14 +79,16 @@ static uint8_t text_valid(
 static uint16_t record_checksum(const S64HandoffRecord* value)
 {
     const uint8_t* bytes = (const uint8_t*)value;
-    uint16_t sum = 0x6411u;
+    uint8_t sum1 = 0x64u;
+    uint8_t sum2 = 0x11u;
     uint16_t i;
 
     for (i = 0u; i < (uint16_t)offsetof(S64HandoffRecord, checksum); ++i) {
-        sum = (uint16_t)((sum << 1) ^ bytes[i] ^ (uint8_t)i);
+        sum1 = (uint8_t)(sum1 + bytes[i]);
+        sum2 = (uint8_t)(sum2 + sum1);
     }
 
-    return sum;
+    return (uint16_t)(((uint16_t)sum2 << 8) | sum1);
 }
 
 static uint8_t history_valid(const S64History* history)
