@@ -29,8 +29,11 @@ fi
 if command -v python3 >/dev/null 2>&1; then
     echo "== Secure relay tests =="
     python3 -m unittest discover -s relay/tests -p 'test_*.py'
+
+    echo "== Memory map guard tests =="
+    python3 tools/tests/memory_map_test.py
 else
-    echo "SKIP secure relay tests (python3 not found)"
+    echo "SKIP Python tests (python3 not found)"
 fi
 
 echo "== Host charset tests =="
@@ -157,6 +160,16 @@ if command -v cl65 >/dev/null 2>&1 \
 
     echo "== cc65 C64U REU editor build =="
     make -C client c64u
+
+    if command -v python3 >/dev/null 2>&1; then
+        echo "== C64 memory headroom =="
+        python3 tools/check_memory_headroom.py client/build/see64you.map \
+            --label "Base C64" --min-headroom 256
+        python3 tools/check_memory_headroom.py client/build/see64you-c64u.map \
+            --label "C64U" --min-headroom 1024
+    else
+        echo "SKIP memory headroom checks (python3 not found)"
+    fi
 
     echo "== Base editor diagnostic build =="
     make -C client editor-probe
