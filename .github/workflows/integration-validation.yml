@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - integration-validation-2026-09-24
+      - cleanup/remove-heading-shortcuts
   workflow_dispatch:
 
 concurrency:
