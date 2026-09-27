@@ -13,6 +13,7 @@ static void require(int condition, const char* message)
 int main(void)
 {
     S64Buffer buffer;
+    unsigned char readback[4];
 
     s64_buffer_init(&buffer);
     require(s64_buffer_length(&buffer) == 0u, "new buffer is empty");
@@ -30,6 +31,14 @@ int main(void)
     require(s64_buffer_char_at(&buffer, 1u) == 'X', "middle insert X");
     require(s64_buffer_char_at(&buffer, 2u) == 'B', "middle insert B");
     require(s64_buffer_char_at(&buffer, 3u) == 'C', "middle insert C");
+
+    require(s64_buffer_read(&buffer, 0u, readback, sizeof(readback)) == 4u, "read across gap");
+    require(readback[0] == 'A' && readback[1] == 'X'
+        && readback[2] == 'B' && readback[3] == 'C', "read preserves logical order");
+    require(s64_buffer_read(&buffer, 1u, readback, 2u) == 2u, "bounded partial read");
+    require(readback[0] == 'X' && readback[1] == 'B', "partial read content");
+    require(s64_buffer_find_byte(&buffer, 0u, 'B') == 2u, "find byte across gap");
+    require(s64_buffer_find_byte(&buffer, 0u, 'Z') == 4u, "missing byte returns length");
 
     require(s64_buffer_backspace(&buffer), "backspace middle insert");
     require(s64_buffer_length(&buffer) == 3u, "length after backspace");
