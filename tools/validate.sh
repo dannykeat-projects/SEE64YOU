@@ -144,7 +144,7 @@ if command -v cl65 >/dev/null 2>&1 \
 
     if command -v x64sc >/dev/null 2>&1; then
         echo "== VICE REU hardware-layer tests =="
-        make -C client reu-probe-vice
+        make -C client reu-probe-vice reu-probe-vice-smoke
         sh ./tools/test_reu_vice.sh
     else
         echo "SKIP REU VICE tests (x64sc not found)"
