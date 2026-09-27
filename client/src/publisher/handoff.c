@@ -32,11 +32,8 @@ typedef struct {
     uint16_t checksum;
 } S64HandoffRecord;
 
-typedef char S64HandoffRecordFits[
-    sizeof(S64HandoffRecord) <= S64_REU_HANDOFF_CAPACITY ? 1 : -1
-];
-
 static S64HandoffRecord record;
+static const uint8_t invalid_magic[4] = {0u, 0u, 0u, 0u};
 
 static void copy_text(
     char* destination,
@@ -190,7 +187,8 @@ int s64_handoff_validate(const S64PublisherHandoff* handoff)
 
 int s64_handoff_store(const S64PublisherHandoff* handoff)
 {
-    if (!s64_handoff_validate(handoff)) {
+    if (sizeof(S64HandoffRecord) > S64_REU_HANDOFF_CAPACITY
+        || !s64_handoff_validate(handoff)) {
         return 0;
     }
 
@@ -224,7 +222,8 @@ int s64_handoff_store(const S64PublisherHandoff* handoff)
 
 int s64_handoff_load(S64PublisherHandoff* handoff)
 {
-    if (handoff == 0
+    if (sizeof(S64HandoffRecord) > S64_REU_HANDOFF_CAPACITY
+        || handoff == 0
         || !s64_reu_load(
             S64_REU_HANDOFF_BANK,
             S64_REU_HANDOFF_BASE,
@@ -259,8 +258,6 @@ int s64_handoff_load(S64PublisherHandoff* handoff)
 
 int s64_handoff_clear(void)
 {
-    static const uint8_t invalid_magic[4] = {0u, 0u, 0u, 0u};
-
     return s64_reu_store(
         S64_REU_HANDOFF_BANK,
         S64_REU_HANDOFF_BASE,
