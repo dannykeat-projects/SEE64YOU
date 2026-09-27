@@ -274,6 +274,31 @@ int main(void)
     require(editor.line == 2u && editor.column == 1u, "go to line position");
     s64_editor_right(&editor);
     require(editor.line == 2u && editor.column == 2u, "go to line keeps incremental position synchronized");
+    require(s64_editor_go_to_line(&editor, 2u), "go to current line");
+    require(
+        s64_buffer_cursor(&editor.buffer) == 4u
+            && editor.line == 2u
+            && editor.column == 1u,
+        "go to current line returns to line start"
+    );
+    require(s64_editor_go_to_line(&editor, 3u), "go forward from current line");
+    require(
+        s64_buffer_cursor(&editor.buffer) == 8u
+            && editor.line == 3u
+            && editor.column == 1u,
+        "forward go to line position"
+    );
+    require(s64_editor_go_to_line(&editor, 2u), "go backward from current line");
+    require(
+        s64_buffer_cursor(&editor.buffer) == 4u
+            && editor.line == 2u
+            && editor.column == 1u,
+        "backward go to line position"
+    );
+    require(s64_editor_go_to_line(&editor, 1u), "go directly to first line");
+    require(s64_buffer_cursor(&editor.buffer) == 0u, "first line starts at zero");
+    require(s64_editor_go_to_line(&editor, 2u), "return to second line");
+    s64_editor_right(&editor);
     require(!s64_editor_go_to_line(&editor, 4u), "reject missing line");
     require(editor.line == 2u && editor.column == 2u, "missing line preserves position");
 
