@@ -14,10 +14,10 @@ EDITOR_PROBE_SOURCES := diagnostics/editor_probe.c src/buffer.c src/history.c sr
 REU_PROBE_SOURCES := diagnostics/reu_probe.c src/platform/reu.c src/platform/reu_dma.s
 REU_BUFFER_PROBE_SOURCES := diagnostics/reu_buffer_probe.c src/buffer_reu.c src/platform/reu.c src/platform/reu_dma.s
 REU_EDITOR_PROBE_SOURCES := diagnostics/reu_editor_probe.c src/buffer_reu.c src/history_reu.c src/clipboard.c src/editor.c src/platform/reu.c src/platform/reu_dma.s
-PUBLISH_PROFILE_SOURCES := $(C64U_SOURCES) src/publisher/destination.c src/publisher/state.c
+PUBLISH_PROFILE_SOURCES := $(C64U_SOURCES) diagnostics/publisher_fit_state.c src/publisher/destination.c src/publisher/state.c
 PUBLISH_HTTP_SOURCES := $(PUBLISH_PROFILE_SOURCES) src/platform/http.c
-PUBLISH_STANDALONE_SOURCES := $(PUBLISH_HTTP_SOURCES) src/publisher/relay.c src/publisher/standalone.c src/publisher/standalone_documents.c
-PUBLISH_WORDPRESS_SOURCES := $(PUBLISH_HTTP_SOURCES) src/publisher/relay.c src/publisher/wordpress.c src/publisher/wordpress_documents.c
+PUBLISH_STANDALONE_SOURCES := $(PUBLISH_HTTP_SOURCES) diagnostics/publisher_fit_standalone.c src/publisher/relay.c src/publisher/standalone.c src/publisher/standalone_documents.c
+PUBLISH_WORDPRESS_SOURCES := $(PUBLISH_HTTP_SOURCES) diagnostics/publisher_fit_wordpress.c src/publisher/relay.c src/publisher/wordpress.c src/publisher/wordpress_documents.c
 
 CL65 ?= cl65
 # Keep the active conventional-C64 editor inside base RAM. Basic formatting is
