@@ -44,6 +44,11 @@ echo "== Host gap-buffer tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/buffer_test.c client/src/buffer.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host REU gap-buffer tests =="
+cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
+    client/tests/reu_buffer_test.c client/src/buffer_reu.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host editor tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/editor_test.c client/src/buffer.c client/src/history.c client/src/clipboard.c client/src/editor.c client/src/editor_format.c client/src/editor_format_link.c -o "$TMP_BIN"
 "$TMP_BIN"
@@ -126,6 +131,10 @@ if command -v cl65 >/dev/null 2>&1 \
             -o "$TMP_MODULE_DIR/$base.s" "$source"
         ca65 -t c64 -o "$TMP_MODULE_DIR/$base.o" "$TMP_MODULE_DIR/$base.s"
     done
+
+    cc65 -t c64 -Oirs -DS64_NATIVE_PETSCII=1 -DS64_REU_BUFFER=1 -I client/src \
+        -o "$TMP_MODULE_DIR/buffer_reu.s" client/src/buffer_reu.c
+    ca65 -t c64 -o "$TMP_MODULE_DIR/buffer_reu.o" "$TMP_MODULE_DIR/buffer_reu.s"
 
     echo "== cc65 C64 build =="
     make -C client clean all
