@@ -38,6 +38,24 @@ typedef char S64HandoffRecordFits[
 
 static S64HandoffRecord record;
 
+static void copy_text(
+    char* destination,
+    uint16_t capacity,
+    const char* source
+)
+{
+    uint16_t i = 0u;
+
+    while (i + 1u < capacity && source[i] != '\0') {
+        destination[i] = source[i];
+        ++i;
+    }
+    destination[i] = '\0';
+    while (++i < capacity) {
+        destination[i] = '\0';
+    }
+}
+
 static uint8_t text_valid(
     const char* text,
     uint16_t capacity
@@ -142,10 +160,10 @@ int s64_handoff_capture(
     handoff->document_type = document->type;
     handoff->document_status = document->status;
     handoff->order = document->order;
-    memcpy(handoff->slug, document->slug, sizeof(handoff->slug));
-    memcpy(handoff->title, document->title, sizeof(handoff->title));
-    memcpy(handoff->date, document->date, sizeof(handoff->date));
-    memcpy(handoff->filename, filename, sizeof(handoff->filename));
+    copy_text(handoff->slug, sizeof(handoff->slug), document->slug);
+    copy_text(handoff->title, sizeof(handoff->title), document->title);
+    copy_text(handoff->date, sizeof(handoff->date), document->date);
+    copy_text(handoff->filename, sizeof(handoff->filename), filename);
 
     return s64_handoff_validate(handoff);
 }
