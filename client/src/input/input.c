@@ -37,8 +37,6 @@ static S64InputType s64_control_command(unsigned char key, unsigned char modifie
         case 0x01u: return S64_INPUT_SELECT_ALL; /* Ctrl+A */
         case 0x02u: return S64_INPUT_FORMAT_BOLD;/* Ctrl+B */
         case 0x03u: return S64_INPUT_COPY;       /* Ctrl+C */
-        case 0x05u: return S64_INPUT_FORMAT_HEADING2; /* Ctrl+2 / white */
-
         case 0x06u: return S64_INPUT_FIND;       /* Ctrl+F */
         case 0x07u: return S64_INPUT_GOTO_LINE;  /* Ctrl+G */
         case 0x08u: return S64_INPUT_REPLACE;    /* Ctrl+H */
@@ -51,7 +49,6 @@ static S64InputType s64_control_command(unsigned char key, unsigned char modifie
             : S64_INPUT_SAVE;                   /* Ctrl+Shift+S / Ctrl+S */
         case 0x16u: return S64_INPUT_PASTE;       /* Ctrl+V */
         case 0x18u: return S64_INPUT_CUT;         /* Ctrl+X */
-        case 0x90u: return S64_INPUT_FORMAT_HEADING1; /* Ctrl+1 / black */
         case 0x1Au: return (modifiers & S64_MOD_SHIFT) != 0u
             ? S64_INPUT_REDO
             : S64_INPUT_UNDO;                    /* Ctrl+Shift+Z / Ctrl+Z */
