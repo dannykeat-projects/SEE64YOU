@@ -563,7 +563,8 @@ void s64_ui_render_cursor(const S64Editor* editor)
     }
 
     hide_editor_cursor();
-    render_status(editor);
+    s64_ui_status_line_fast(editor->line);
+    s64_ui_status_column_fast(editor->column);
     gotoxy(col, row);
     cursor_col = col;
     cursor_row = row;
