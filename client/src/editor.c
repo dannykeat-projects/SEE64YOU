@@ -1048,6 +1048,47 @@ void s64_editor_word_right(S64Editor* editor)
     s64_editor_ensure_cursor_visible(editor);
 }
 
+#ifndef S64_REU_BUFFER
+int s64_editor_go_to_line(S64Editor* editor, unsigned int line_number)
+{
+    unsigned int i;
+    unsigned int current_line = 1u;
+    unsigned int length = s64_buffer_length(&editor->buffer);
+
+    s64_history_break_coalesce(&editor->history);
+
+    if (line_number == 0u) {
+        return 0;
+    }
+
+    if (line_number == 1u) {
+        s64_buffer_move_cursor(&editor->buffer, 0u);
+    } else {
+        for (i = 0u; i < length; ++i) {
+            if (s64_buffer_char_at(&editor->buffer, i) == '\n') {
+                ++current_line;
+                if (current_line == line_number) {
+                    s64_buffer_move_cursor(&editor->buffer, i + 1u);
+                    break;
+                }
+            }
+        }
+
+        if (current_line != line_number) {
+            return 0;
+        }
+    }
+
+    editor->line = line_number;
+    editor->column = 1u;
+    editor->position_cursor = s64_buffer_cursor(&editor->buffer);
+    s64_editor_internal_reset_preferred_column(editor);
+    update_selection_after_move(editor);
+    s64_editor_ensure_cursor_visible(editor);
+    return 1;
+}
+
+#else
 int s64_editor_go_to_line(S64Editor* editor, unsigned int line_number)
 {
     unsigned int position;
@@ -1114,6 +1155,8 @@ int s64_editor_go_to_line(S64Editor* editor, unsigned int line_number)
     s64_editor_ensure_cursor_visible(editor);
     return 1;
 }
+
+#endif
 
 int s64_editor_find_next(S64Editor* editor, const char* query, unsigned char wrap)
 {
