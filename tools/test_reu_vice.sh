@@ -4,6 +4,7 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 VICE_BIN=${VICE_BIN:-x64sc}
 PRG="$ROOT/client/build/reu-probe-vice.prg"
+SMOKE_PRG="$ROOT/client/build/reu-probe-vice-smoke.prg"
 ROM_DIR=${S64_VICE_ROM_DIR:-/tmp/see64you-roms}
 OPEN_ROMS_COMMIT=ad178dbe4d48cd6a317737a8e0e7e662f7e33d32
 
@@ -12,8 +13,8 @@ if ! command -v "$VICE_BIN" >/dev/null 2>&1; then
     exit 0
 fi
 
-if [ ! -f "$PRG" ]; then
-    echo "REU VICE test PRG not found: $PRG" >&2
+if [ ! -f "$PRG" ] || [ ! -f "$SMOKE_PRG" ]; then
+    echo "REU VICE test PRG is missing" >&2
     exit 1
 fi
 
@@ -46,6 +47,7 @@ prepare_roms() {
 run_vice() {
     size_kib=$1
     log=$2
+    program=$3
 
     if command -v xvfb-run >/dev/null 2>&1; then
         timeout 20s xvfb-run -a "$VICE_BIN" \
@@ -59,7 +61,7 @@ run_vice() {
             -reu \
             -reusize "$size_kib" \
             -autostartprgmode 1 \
-            -autostart "$PRG" \
+            -autostart "$program" \
             >"$log" 2>&1
     else
         timeout 20s "$VICE_BIN" \
@@ -73,7 +75,7 @@ run_vice() {
             -reu \
             -reusize "$size_kib" \
             -autostartprgmode 1 \
-            -autostart "$PRG" \
+            -autostart "$program" \
             >"$log" 2>&1
     fi
 }
@@ -84,7 +86,7 @@ run_case() {
     log=$(mktemp)
 
     set +e
-    run_vice "$size_kib" "$log"
+    run_vice "$size_kib" "$log" "$PRG"
     actual=$?
     set -e
 
@@ -100,6 +102,20 @@ run_case() {
 }
 
 prepare_roms
+
+smoke_log=$(mktemp)
+set +e
+run_vice 128 "$smoke_log" "$SMOKE_PRG"
+smoke_result=$?
+set -e
+if [ "$smoke_result" -ne 11 ]; then
+    echo "FAIL VICE debug-cart smoke: expected exit 11, got $smoke_result" >&2
+    cat "$smoke_log" >&2
+    rm -f "$smoke_log"
+    exit 1
+fi
+rm -f "$smoke_log"
+echo "OK VICE debug-cart smoke"
 
 run_case 128 1
 run_case 256 2
