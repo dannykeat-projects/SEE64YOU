@@ -25,8 +25,13 @@ int main(void)
 {
     uint16_t banks;
 
+    DIAG_PROGRESS = 0x01u;
     clrscr();
-    cputs("SEE64YOU REU TEST\r\n\r\n");
+    DIAG_PROGRESS = 0x02u;
+    gotoxy(0u, 0u);
+    cputs("SEE64YOU REU TEST");
+    DIAG_PROGRESS = 0x03u;
+    gotoxy(0u, 2u);
 
     DIAG_PROGRESS = 0x10u;
     dma_scratch = 0x5Au;
@@ -37,7 +42,8 @@ int main(void)
         }
     }
     DIAG_PROGRESS = 0x11u;
-    cputs("OK\r\n");
+    cputs("OK");
+    gotoxy(0u, 3u);
 
     dma_scratch = 0u;
     DIAG_PROGRESS = 0x12u;
@@ -48,19 +54,23 @@ int main(void)
         }
     }
     DIAG_PROGRESS = 0x13u;
-    cputs("OK\r\n");
+    cputs("OK");
+    gotoxy(0u, 4u);
 
     if (dma_scratch != 0x5Au) {
-        cputs("ROUNDTRIP FAIL\r\n");
+        cputs("ROUNDTRIP FAIL");
         for (;;) {
         }
     }
     DIAG_PROGRESS = 0x14u;
-    cputs("DMA ROUNDTRIP OK\r\n");
+    cputs("DMA ROUNDTRIP OK");
+    gotoxy(0u, 5u);
 
     DIAG_PROGRESS = 0x20u;
     if (!s64_reu_probe()) {
-        cputs("REU: NOT DETECTED\r\nFAIL\r\n");
+        cputs("REU: NOT DETECTED");
+        gotoxy(0u, 6u);
+        cputs("FAIL");
         return 1;
     }
 
@@ -68,16 +78,22 @@ int main(void)
     DIAG_PROGRESS = 0x30u;
     banks = s64_reu_probe_banks();
     if (banks == 0u) {
-        cputs("REU: SIZE UNKNOWN\r\nFAIL\r\n");
+        cputs("REU: SIZE UNKNOWN");
+        gotoxy(0u, 6u);
+        cputs("FAIL");
         return 2;
     }
 
     DIAG_PROGRESS = 0x31u;
+    gotoxy(0u, 5u);
     cputs("BANKS: ");
     print_unsigned(banks);
-    cputs("\r\nSIZE: ");
+    gotoxy(0u, 6u);
+    cputs("SIZE: ");
     print_unsigned((unsigned int)(banks * 64u));
-    cputs(" KIB\r\nPASS\r\n");
+    cputs(" KIB");
+    gotoxy(0u, 7u);
+    cputs("PASS");
 
     for (;;) {
     }
