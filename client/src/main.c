@@ -13,7 +13,7 @@
 #include "platform/uci.h"
 #ifdef S64_REU_BUFFER
 #include "platform/reu.h"
-#include "publisher/handoff.h"
+#include "publisher/editor_handoff.h"
 #endif
 #include "storage/local.h"
 #include "ui.h"
@@ -36,10 +36,6 @@ static char find_query[SEARCH_TEXT_CAPACITY];
 static unsigned char find_query_valid;
 static clock_t last_recovery_write;
 static unsigned char recovery_error_shown;
-#ifdef S64_REU_BUFFER
-static S64PublisherHandoff publisher_handoff;
-#endif
-
 static char* append_unsigned(char* output, unsigned int value)
 {
     char digits[5];
@@ -80,29 +76,13 @@ static void show_local_result(S64LocalResult result)
 #ifdef S64_REU_BUFFER
 static unsigned char restore_publisher_handoff(void)
 {
-    if (!s64_handoff_load(&publisher_handoff)) {
+    if (!s64_editor_handoff_restore(&editor, &document, &local_document)) {
         return 0u;
     }
 
-    if (!s64_handoff_apply_document(
-            &publisher_handoff,
-            &editor.buffer,
-            &document
-        )) {
-        (void)s64_handoff_clear();
-        return 0u;
-    }
-
-    editor.history = publisher_handoff.history;
-    editor.dirty = (publisher_handoff.flags & S64_HANDOFF_FLAG_DIRTY) != 0u;
-    editor.insert_mode =
-        (publisher_handoff.flags & S64_HANDOFF_FLAG_INSERT_MODE) != 0u;
-    editor.word_wrap =
-        (publisher_handoff.flags & S64_HANDOFF_FLAG_WORD_WRAP) != 0u;
-    strcpy(local_document.filename, publisher_handoff.filename);
     s64_editor_recalculate_position(&editor);
     s64_editor_ensure_cursor_visible(&editor);
-    (void)s64_handoff_clear();
+    (void)s64_editor_handoff_clear();
     return 1u;
 }
 
@@ -113,17 +93,7 @@ static void launch_publisher(void)
         return;
     }
 
-    if (!s64_handoff_capture(
-            &publisher_handoff,
-            &editor.buffer,
-            &document,
-            &editor.history,
-            local_document.filename,
-            editor.dirty,
-            editor.insert_mode,
-            editor.word_wrap
-        )
-        || !s64_handoff_store(&publisher_handoff)) {
+    if (!s64_editor_handoff_store(&editor, &document, &local_document)) {
         s64_ui_message("Cannot store publish handoff");
         return;
     }
@@ -131,7 +101,7 @@ static void launch_publisher(void)
     clrscr();
     cputs("OPENING SEE64YOU PUBLISHER...\r\n");
     if (exec(S64_PUBLISHER_PROGRAM, 0) < 0) {
-        (void)s64_handoff_clear();
+        (void)s64_editor_handoff_clear();
         s64_ui_render(&editor);
         s64_ui_message("Publisher not found: S64PUB.PRG");
     }
