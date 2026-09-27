@@ -46,6 +46,8 @@ The UI baseline is 40x25:
 - rows 1-23: editor viewport
 - row 24: status
 
+The conventional-C64 runtime is linked conservatively: implemented feature cores that have no active UI path yet may live in separate translation units and remain host/cc65-module tested without being linked into the shipping PRG. This prevents dormant functionality from consuming scarce base RAM. Formatting currently follows this pattern in `editor_format.c`; splitting it restored the software stack from 512 bytes to 1 KiB while preserving formatting regression coverage.
+
 The first implementation prioritises correctness and a runnable shell. Incremental rendering and selection follow after baseline VICE validation.
 
 ## Transport
