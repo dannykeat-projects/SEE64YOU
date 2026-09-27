@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - integration-validation-2026-09-24
-      - feature/heading-shortcuts
   workflow_dispatch:
 
 concurrency:
