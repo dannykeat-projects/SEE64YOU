@@ -555,6 +555,41 @@ void s64_ui_message(const char* message)
     render_status_text(message);
 }
 
+#ifdef S64_REU_BUFFER
+static void render_scrolling_prompt(
+    const char* label,
+    const char* value,
+    unsigned char length,
+    unsigned char label_length
+)
+{
+    unsigned char visible = (unsigned char)(SCREEN_COLUMNS - label_length - 1u);
+    unsigned char start = length > visible
+        ? (unsigned char)(length - visible)
+        : 0u;
+    unsigned char shown = 0u;
+
+    clear_row(STATUS_ROW);
+    revers(1);
+    gotoxy(0u, STATUS_ROW);
+    cputs(label);
+
+    while (shown < visible && (unsigned char)(start + shown) < length) {
+        cputc((unsigned char)value[start + shown]);
+        ++shown;
+    }
+    while (shown < visible) {
+        cputc(' ');
+        ++shown;
+    }
+
+    gotoxy(
+        (unsigned char)(label_length + (length - start)),
+        STATUS_ROW
+    );
+}
+#endif
+
 unsigned char s64_ui_prompt_text(const char* label, char* value, unsigned char capacity)
 {
     unsigned char key;
@@ -566,10 +601,14 @@ unsigned char s64_ui_prompt_text(const char* label, char* value, unsigned char c
     }
 
     value[0] = '\0';
+#ifdef S64_REU_BUFFER
+    render_scrolling_prompt(label, value, length, label_length);
+#else
     clear_row(STATUS_ROW);
     revers(1);
     gotoxy(0u, STATUS_ROW);
     cputs(label);
+#endif
 
     for (;;) {
         key = (unsigned char)cgetc();
@@ -589,18 +628,31 @@ unsigned char s64_ui_prompt_text(const char* label, char* value, unsigned char c
         if (key == CH_DEL) {
             if (length > 0u) {
                 --length;
+                value[length] = '\0';
+#ifdef S64_REU_BUFFER
+                render_scrolling_prompt(label, value, length, label_length);
+#else
                 gotoxy((unsigned char)(label_length + length), STATUS_ROW);
                 cputc(' ');
                 gotoxy((unsigned char)(label_length + length), STATUS_ROW);
+#endif
             }
             continue;
         }
 
         if (key >= 0x20u && key <= 0x7eu
             && length + 1u < capacity
-            && label_length + length < SCREEN_COLUMNS) {
+#ifndef S64_REU_BUFFER
+            && label_length + length < SCREEN_COLUMNS
+#endif
+        ) {
             value[length++] = (char)key;
+            value[length] = '\0';
+#ifdef S64_REU_BUFFER
+            render_scrolling_prompt(label, value, length, label_length);
+#else
             cputc(key);
+#endif
         }
     }
 }
