@@ -85,6 +85,7 @@ These player-facing checks are assigned to the user where practical; automated s
 ## P1 - C64U enhancements
 
 - [ ] REU-backed document storage for substantially larger files (renderer storage seam implemented and validated; a dormant cc65-checked REU DMA layer now provides probe/load/store primitives plus non-destructive bank-count detection from 128 KiB through 16 MiB without increasing the current PRG. Next build the REU-backed buffer implementation while preserving the fast 4 KiB conventional-C64 fallback).
+- [ ] Validate REU hardware layer in VICE across representative sizes and later on C64U hardware (`see64you-reu-probe` diagnostic PRG built/published by integration CI).
 - [ ] Large clipboard backed by REU.
 - [ ] Multi-level undo backed by REU.
 - [ ] Mouse selection/menu support where practical.
