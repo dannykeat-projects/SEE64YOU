@@ -3,6 +3,7 @@
 #include "platform/http.h"
 #include "platform/reu.h"
 #include "publisher/destination.h"
+#include "publisher/handoff.h"
 #include "publisher/state.h"
 #include "publisher/standalone.h"
 #include "publisher/wordpress.h"
@@ -18,6 +19,7 @@ static S64HttpTransport http;
 static S64PublishDestination destination;
 static S64PublishState publish_state;
 static S64PublisherSession session;
+static S64PublisherHandoff handoff;
 static char url[S64_DESTINATION_URL_CAPACITY];
 
 int main(void)
@@ -32,10 +34,12 @@ int main(void)
     s64_standalone_session_clear(&session.standalone);
     s64_wordpress_session_clear(&session.wordpress);
 
-    body.gap_start = 0u;
-    body.gap_end = S64_BUFFER_CAPACITY;
-    body.cursor = 0u;
-    s64_document_init(&document, &body);
+    s64_handoff_init(&handoff);
+    if (!s64_handoff_load(&handoff)
+        || !s64_handoff_apply_document(&handoff, &body, &document)) {
+        s64_buffer_init(&body);
+        s64_document_init(&document, &body);
+    }
     url[0] = '\0';
 
     return 0;
