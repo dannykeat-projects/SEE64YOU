@@ -84,11 +84,11 @@ These player-facing checks are assigned to the user where practical; automated s
 
 ## P1 - C64U enhancements
 
-- [ ] REU-backed document storage for substantially larger files (renderer storage seam implemented and validated: row rendering now uses logical chunk reads/byte search through `buffer.c`, costing only 38 bytes of code and leaving about 427 bytes before the 1 KiB stack; next extend the internal storage implementation while preserving the fast 4 KiB conventional-C64 fallback).
+- [ ] REU-backed document storage for substantially larger files (renderer storage seam implemented and validated; a dormant cc65-checked REU DMA layer now provides probe/load/store primitives without increasing the current PRG. Next build the REU-backed buffer implementation while preserving the fast 4 KiB conventional-C64 fallback).
 - [ ] Large clipboard backed by REU.
 - [ ] Multi-level undo backed by REU.
 - [ ] Mouse selection/menu support where practical.
-- [ ] Detect capabilities and degrade cleanly on a conventional C64 where possible (base build now omits dormant formatting runtime code and restores a 1 KiB software stack; validation map leaves roughly 465 bytes below the 1 KiB stack after removing redundant heading shortcut dispatch on 2026-09-27).
+- [ ] Detect capabilities and degrade cleanly on a conventional C64 where possible (base build now omits dormant formatting runtime code and restores a 1 KiB software stack; current validated base build leaves roughly 427 bytes below the 1 KiB stack; REU support remains dormant until capability-gated).
 
 ## P2 - Polish
 
