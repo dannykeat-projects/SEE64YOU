@@ -7,6 +7,8 @@
 #include "platform/reu.h"
 
 static unsigned char fake_reu[S64_BUFFER_CAPACITY];
+static unsigned long reu_loads;
+static unsigned long reu_stores;
 
 uint8_t s64_reu_probe(void)
 {
@@ -25,6 +27,7 @@ uint8_t s64_reu_store(
     uint16_t length
 )
 {
+    ++reu_stores;
     if (bank != 0u || source == 0
         || (unsigned long)address + length > S64_BUFFER_CAPACITY) {
         return 0u;
@@ -41,6 +44,7 @@ uint8_t s64_reu_load(
     uint16_t length
 )
 {
+    ++reu_loads;
     if (bank != 0u || destination == 0
         || (unsigned long)address + length > S64_BUFFER_CAPACITY) {
         return 0u;
@@ -99,7 +103,14 @@ int main(void)
         );
     }
 
-    require(s64_buffer_move_cursor(&buffer, 0u), "move REU logical cursor to start");
+    {
+        unsigned long loads_before = reu_loads;
+        unsigned long stores_before = reu_stores;
+
+        require(s64_buffer_move_cursor(&buffer, 0u), "move REU logical cursor to start");
+        require(reu_loads == loads_before && reu_stores == stores_before,
+            "logical cursor move performs no REU transfer");
+    }
     require(s64_buffer_cursor(&buffer) == 0u, "logical cursor moves independently");
     require(buffer.gap_start == 300u, "navigation leaves REU gap in place");
     require(s64_buffer_char_at(&buffer, 0u) == 'A', "lazy move keeps first byte");
