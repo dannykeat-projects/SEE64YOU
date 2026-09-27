@@ -15,6 +15,12 @@
 #define S64_REU_TRANSFER_TO_REU     0x00u
 #define S64_REU_TRANSFER_FROM_REU   0x01u
 
+static uint8_t probe_original;
+static uint8_t probe_value;
+static uint8_t probe_readback;
+static uint8_t probe_candidate_original;
+static uint8_t probe_base_read;
+
 static uint8_t s64_reu_transfer(
     uint8_t transfer_type,
     uint8_t bank,
@@ -88,29 +94,29 @@ uint8_t s64_reu_load(
 
 uint8_t s64_reu_probe(void)
 {
-    uint8_t original;
-    uint8_t probe = 0xA5u;
-    uint8_t readback = 0u;
     uint8_t restored;
 
     /*
-     * Exercise one byte in bank 0 rather than trusting register echo alone.
-     * The original byte is restored before returning.
+     * Keep DMA scratch outside the cc65 software stack. Exercise one byte in
+     * bank 0 rather than trusting register echo alone, then restore it.
      */
-    if (!s64_reu_load(0u, 0u, &original, 1u)) {
+    probe_value = 0xA5u;
+    probe_readback = 0u;
+
+    if (!s64_reu_load(0u, 0u, &probe_original, 1u)) {
         return 0u;
     }
-    if (!s64_reu_store(0u, 0u, &probe, 1u)) {
+    if (!s64_reu_store(0u, 0u, &probe_value, 1u)) {
         return 0u;
     }
 
-    if (!s64_reu_load(0u, 0u, &readback, 1u)) {
-        (void)s64_reu_store(0u, 0u, &original, 1u);
+    if (!s64_reu_load(0u, 0u, &probe_readback, 1u)) {
+        (void)s64_reu_store(0u, 0u, &probe_original, 1u);
         return 0u;
     }
 
-    restored = s64_reu_store(0u, 0u, &original, 1u);
-    return restored && readback == probe;
+    restored = s64_reu_store(0u, 0u, &probe_original, 1u);
+    return restored && probe_readback == probe_value;
 }
 
 uint16_t s64_reu_probe_banks(void)
@@ -118,46 +124,44 @@ uint16_t s64_reu_probe_banks(void)
     static const uint8_t candidates[] = {
         2u, 4u, 8u, 16u, 32u, 64u, 128u
     };
-    uint8_t base_original;
-    uint8_t candidate_original;
-    uint8_t base_marker = 0x5Au;
-    uint8_t candidate_marker = 0xA5u;
-    uint8_t base_read;
     uint8_t candidate;
     uint8_t i;
 
-    if (!s64_reu_load(0u, 0u, &base_original, 1u)) {
+    probe_value = 0x5Au;
+    probe_readback = 0xA5u;
+
+    if (!s64_reu_load(0u, 0u, &probe_original, 1u)) {
         return 0u;
     }
 
     for (i = 0u; i < (uint8_t)sizeof(candidates); ++i) {
         candidate = candidates[i];
 
-        if (!s64_reu_load(candidate, 0u, &candidate_original, 1u)) {
+        if (!s64_reu_load(candidate, 0u, &probe_candidate_original, 1u)) {
             return 0u;
         }
-        if (!s64_reu_store(0u, 0u, &base_marker, 1u)) {
+        if (!s64_reu_store(0u, 0u, &probe_value, 1u)) {
             return 0u;
         }
-        if (!s64_reu_store(candidate, 0u, &candidate_marker, 1u)) {
-            (void)s64_reu_store(0u, 0u, &base_original, 1u);
+        if (!s64_reu_store(candidate, 0u, &probe_readback, 1u)) {
+            (void)s64_reu_store(0u, 0u, &probe_original, 1u);
             return 0u;
         }
-        if (!s64_reu_load(0u, 0u, &base_read, 1u)) {
-            (void)s64_reu_store(candidate, 0u, &candidate_original, 1u);
-            (void)s64_reu_store(0u, 0u, &base_original, 1u);
+        if (!s64_reu_load(0u, 0u, &probe_base_read, 1u)) {
+            (void)s64_reu_store(candidate, 0u, &probe_candidate_original, 1u);
+            (void)s64_reu_store(0u, 0u, &probe_original, 1u);
             return 0u;
         }
 
-        if (base_read == candidate_marker) {
-            return s64_reu_store(0u, 0u, &base_original, 1u)
+        if (probe_base_read == probe_readback) {
+            return s64_reu_store(0u, 0u, &probe_original, 1u)
                 ? (uint16_t)candidate
                 : 0u;
         }
 
-        if (base_read != base_marker
-            || !s64_reu_store(candidate, 0u, &candidate_original, 1u)
-            || !s64_reu_store(0u, 0u, &base_original, 1u)) {
+        if (probe_base_read != probe_value
+            || !s64_reu_store(candidate, 0u, &probe_candidate_original, 1u)
+            || !s64_reu_store(0u, 0u, &probe_original, 1u)) {
             return 0u;
         }
     }
