@@ -148,6 +148,9 @@ if command -v cl65 >/dev/null 2>&1 \
     echo "== REU buffer diagnostic build =="
     make -C client reu-buffer-probe
 
+    echo "== REU editor diagnostic build =="
+    make -C client reu-editor-probe
+
     if command -v x64sc >/dev/null 2>&1 \
         && command -v xvfb-run >/dev/null 2>&1 \
         && command -v python3 >/dev/null 2>&1 \
