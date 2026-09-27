@@ -12,6 +12,7 @@
 
 #define S64_REU_COMMAND_EXECUTE     0x80u
 #define S64_REU_COMMAND_IMMEDIATE   0x10u
+#define S64_REU_COMMAND_AUTOLOAD     0x20u
 #define S64_REU_TRANSFER_TO_REU     0x00u
 #define S64_REU_TRANSFER_FROM_REU   0x01u
 
@@ -53,6 +54,7 @@ static uint8_t s64_reu_transfer(
      */
     S64_REU_COMMAND = (uint8_t)(
         S64_REU_COMMAND_EXECUTE
+        | S64_REU_COMMAND_AUTOLOAD
         | S64_REU_COMMAND_IMMEDIATE
         | transfer_type
     );
