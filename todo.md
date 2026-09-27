@@ -84,7 +84,7 @@ These player-facing checks are assigned to the user where practical; automated s
 
 ## P1 - C64U enhancements
 
-- [ ] REU-backed document storage for substantially larger files (renderer storage seam and dormant REU DMA/capacity layer are implemented. A separate 60 KiB REU gap-buffer backend now mirrors the existing buffer API with chunked DMA, a 64-byte read window and host regression tests; it is not yet selected by the main editor. Next build/measure an enhanced C64U editor variant and validate responsiveness before making REU storage user-facing).
+- [ ] REU-backed document storage for substantially larger files (renderer storage seam, REU DMA/capacity layer and 60 KiB REU gap-buffer backend are implemented. A separate `see64you-c64u.prg` now links that backend and requires a detected REU at startup; validation leaves about 3.7 KiB conventional-RAM headroom while the base PRG remains unchanged. Next validate editing responsiveness/large-file behaviour in VICE and later on C64U hardware before making this the preferred C64U build).
 - [ ] Large clipboard backed by REU.
 - [ ] Multi-level undo backed by REU.
 - [ ] Mouse selection/menu support where practical.
