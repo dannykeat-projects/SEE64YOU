@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - integration-validation-2026-09-24
-      - infra/publish-c64-memory-map
   workflow_dispatch:
 
 concurrency:
