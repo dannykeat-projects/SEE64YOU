@@ -48,7 +48,7 @@ These player-facing checks are assigned to the user where practical; automated s
 ## P0 - Publishing
 
 - [ ] Normalize C64 PETSCII text at external ASCII boundaries before end-to-end publishing (canonical .s64 plus UCI HTTP/DOS command/status/string conversion implemented with regression coverage; self-hosted/C64U validation pending).
-- [ ] Implement C64U HTTP transport behind the publisher interface (bounded UCI/HTTP layer plus standalone login/save/delete operations implemented and host-tested; UI/hardware wiring pending).
+- [ ] Implement C64U HTTP transport behind the publisher interface (bounded UCI/HTTP layer plus standalone and WordPress publisher cores are implemented and host-tested. A single C64U publisher companion runtime containing both backends, destination/state, relay, HTTP/UCI and REU document access now fits with 7,969 bytes free before $CC00; editor↔publisher handoff/UI and hardware validation remain).
 - [x] Add bounded UCI/HTTP-target capability probe from the published interface.
 - [ ] Verify current C64U UCI HTTP behaviour on target hardware.
 - [ ] Standalone login from C64U and token handling (bounded login/session logic implemented and host-tested; direct plaintext login requires explicit trusted-LAN opt-in; UI/hardware validation pending).
@@ -58,7 +58,7 @@ These player-facing checks are assigned to the user where practical; automated s
 - [ ] WordPress Application Password configuration and connection test (plugin connection endpoint, bounded C64 credential session and host regression tests implemented; WordPress-instance and C64U validation pending).
 - [ ] List/open/publish/update/unpublish/delete WordPress pages and posts (C64-safe plugin protocol and bounded client CRUD core implemented with regression tests; real WordPress-instance, C64U and UI validation pending).
 - [ ] Friendly error mapping for network, auth and server failures (short C64-facing result messages implemented; UI wiring pending).
-- [ ] Publishing destination setup UI (backend-neutral active destination model, bounded endpoint URL construction and remote-identity state implemented/host-tested; interactive C64 UI and persistence pending).
+- [ ] Publishing destination setup UI (backend-neutral active destination model, bounded endpoint URL construction and remote-identity state implemented/host-tested. The separate publisher-companion architecture is now proven to fit comfortably; interactive C64U setup, persistence and editor↔companion handoff remain).
 
 ## P1 - Document format
 

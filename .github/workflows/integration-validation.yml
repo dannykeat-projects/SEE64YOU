@@ -73,5 +73,11 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Measure publisher companion fit
+        run: |
+          make -C client publisher-companion-fit
+          python3 tools/check_memory_headroom.py client/build/publisher-companion-fit.map \
+            --label "C64U publisher companion" --min-headroom 1024
+
       - name: Run full validation
         run: sh ./tools/validate.sh
