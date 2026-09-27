@@ -1,9 +1,6 @@
 #include <conio.h>
 #include <string.h>
 #include <time.h>
-#ifdef S64_REU_BUFFER
-#include <unistd.h>
-#endif
 
 #include "clipboard.h"
 #include "document.h"
@@ -12,6 +9,7 @@
 #include "platform/dos.h"
 #include "platform/uci.h"
 #ifdef S64_REU_BUFFER
+#include "platform/chain.h"
 #include "platform/reu.h"
 #include "publisher/editor_handoff.h"
 #endif
@@ -22,9 +20,6 @@
 #define LINE_TEXT_CAPACITY 6u
 #define AUTOSAVE_SECONDS 30UL
 #define AUTOSAVE_INTERVAL ((clock_t)(AUTOSAVE_SECONDS * (unsigned long)CLOCKS_PER_SEC))
-#ifdef S64_REU_BUFFER
-#define S64_PUBLISHER_PROGRAM "S64PUB.PRG"
-#endif
 
 static S64Editor editor;
 static S64Clipboard clipboard;
@@ -100,11 +95,7 @@ static void launch_publisher(void)
 
     clrscr();
     cputs("OPENING SEE64YOU PUBLISHER...\r\n");
-    if (exec(S64_PUBLISHER_PROGRAM, 0) < 0) {
-        (void)s64_editor_handoff_clear();
-        s64_ui_render(&editor);
-        s64_ui_message("Publisher not found: S64PUB.PRG");
-    }
+    s64_chain_publisher();
 }
 #endif
 
