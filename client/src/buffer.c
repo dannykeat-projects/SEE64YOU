@@ -76,22 +76,9 @@ unsigned int s64_buffer_find_byte(
 )
 {
     unsigned int length = s64_buffer_length(buffer);
-    unsigned int physical = start;
 
-    if (start >= length) {
-        return length;
-    }
-
-    if (physical >= buffer->gap_start) {
-        physical += buffer->gap_end - buffer->gap_start;
-    }
-
-    while (start < length && buffer->data[physical] != value) {
+    while (start < length && s64_buffer_char_at(buffer, start) != value) {
         ++start;
-        ++physical;
-        if (physical == buffer->gap_start) {
-            physical = buffer->gap_end;
-        }
     }
 
     return start;
