@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - integration-validation-2026-09-24
-      - perf/reu-history-metadata
   workflow_dispatch:
 
 concurrency:
