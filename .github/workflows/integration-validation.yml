@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - integration-validation-2026-09-24
+      - feature/reu-vice-validation
   workflow_dispatch:
 
 concurrency:
@@ -21,6 +22,9 @@ jobs:
       - name: Build current C64 test PRG
         run: make -C client clean all
 
+      - name: Build REU diagnostic PRG
+        run: make -C client reu-probe
+
       - name: Report current C64 memory map
         run: cat client/build/see64you.map
 
@@ -37,6 +41,14 @@ jobs:
         with:
           name: see64you-map
           path: client/build/see64you.map
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish REU diagnostic PRG
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-reu-probe
+          path: client/build/reu-probe.prg
           if-no-files-found: error
           retention-days: 30
 
