@@ -16,6 +16,8 @@ unsigned int s64_buffer_length(const S64Buffer* buffer);
 unsigned int s64_buffer_cursor(const S64Buffer* buffer);
 unsigned int s64_buffer_free(const S64Buffer* buffer);
 unsigned char s64_buffer_char_at(const S64Buffer* buffer, unsigned int index);
+unsigned int s64_buffer_read(const S64Buffer* buffer, unsigned int start, unsigned char* output, unsigned int capacity);
+unsigned int s64_buffer_find_byte(const S64Buffer* buffer, unsigned int start, unsigned char value);
 int s64_buffer_move_cursor(S64Buffer* buffer, unsigned int position);
 int s64_buffer_insert(S64Buffer* buffer, unsigned char value);
 int s64_buffer_backspace(S64Buffer* buffer);
