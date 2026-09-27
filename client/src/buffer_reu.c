@@ -1,11 +1,11 @@
 #include "buffer.h"
 #include "platform/reu.h"
+#include "platform/reu_layout.h"
 
 #ifndef S64_REU_BUFFER
 #error "buffer_reu.c requires S64_REU_BUFFER"
 #endif
 
-#define S64_REU_BUFFER_BANK 0u
 #define S64_REU_WINDOW_SIZE 64u
 
 static unsigned char reu_window[S64_REU_WINDOW_SIZE];
@@ -54,13 +54,13 @@ static int move_gap(S64Buffer* buffer, unsigned int position)
         destination = buffer->gap_end - chunk;
 
         if (!s64_reu_load(
-                S64_REU_BUFFER_BANK,
+                S64_REU_DOCUMENT_BANK,
                 (uint16_t)source,
                 reu_window,
                 (uint16_t)chunk
             )
             || !s64_reu_store(
-                S64_REU_BUFFER_BANK,
+                S64_REU_DOCUMENT_BANK,
                 (uint16_t)destination,
                 reu_window,
                 (uint16_t)chunk
@@ -81,13 +81,13 @@ static int move_gap(S64Buffer* buffer, unsigned int position)
         destination = buffer->gap_start;
 
         if (!s64_reu_load(
-                S64_REU_BUFFER_BANK,
+                S64_REU_DOCUMENT_BANK,
                 (uint16_t)source,
                 reu_window,
                 (uint16_t)chunk
             )
             || !s64_reu_store(
-                S64_REU_BUFFER_BANK,
+                S64_REU_DOCUMENT_BANK,
                 (uint16_t)destination,
                 reu_window,
                 (uint16_t)chunk
@@ -119,7 +119,7 @@ static unsigned char load_window(
     }
 
     if (!s64_reu_load(
-            S64_REU_BUFFER_BANK,
+            S64_REU_DOCUMENT_BANK,
             (uint16_t)physical,
             reu_window,
             (uint16_t)count
@@ -211,7 +211,7 @@ unsigned int s64_buffer_read(
         }
 
         if (!s64_reu_load(
-                S64_REU_BUFFER_BANK,
+                S64_REU_DOCUMENT_BANK,
                 (uint16_t)start,
                 output,
                 (uint16_t)first
@@ -221,7 +221,7 @@ unsigned int s64_buffer_read(
 
         if (first < count
             && !s64_reu_load(
-                S64_REU_BUFFER_BANK,
+                S64_REU_DOCUMENT_BANK,
                 (uint16_t)buffer->gap_end,
                 output + first,
                 (uint16_t)(count - first)
@@ -229,7 +229,7 @@ unsigned int s64_buffer_read(
             return 0u;
         }
     } else if (!s64_reu_load(
-            S64_REU_BUFFER_BANK,
+            S64_REU_DOCUMENT_BANK,
             (uint16_t)(start + gap_size),
             output,
             (uint16_t)count
@@ -299,7 +299,7 @@ int s64_buffer_insert(S64Buffer* buffer, unsigned char value)
     invalidate_window(buffer);
     reu_insert_value = value;
     if (!s64_reu_store(
-            S64_REU_BUFFER_BANK,
+            S64_REU_DOCUMENT_BANK,
             (uint16_t)buffer->gap_start,
             &reu_insert_value,
             1u
