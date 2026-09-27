@@ -9,6 +9,7 @@
 #define S64_REU_WINDOW_SIZE 64u
 
 static unsigned char reu_window[S64_REU_WINDOW_SIZE];
+static unsigned char reu_insert_value;
 static const S64Buffer* reu_window_owner;
 static unsigned int reu_window_start;
 static unsigned char reu_window_length;
@@ -265,10 +266,11 @@ int s64_buffer_insert(S64Buffer* buffer, unsigned char value)
     }
 
     invalidate_window(buffer);
+    reu_insert_value = value;
     if (!s64_reu_store(
             S64_REU_BUFFER_BANK,
             (uint16_t)buffer->gap_start,
-            &value,
+            &reu_insert_value,
             1u
         )) {
         return 0;
