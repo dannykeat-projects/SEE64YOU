@@ -426,6 +426,7 @@ void s64_ui_init(void)
     bordercolor(COLOR_BLUE);
     textcolor(COLOR_LIGHTBLUE);
     clrscr();
+    cursor(0);
 
     header_rendered = 0u;
     body_rows = 0u;
@@ -471,6 +472,8 @@ void s64_ui_render(const S64Editor* editor)
     rendered_word_wrap = editor->word_wrap;
     partial_first_row = 0u;
     partial_char_edit = 0u;
+    toggle_editor_cursor();
+    cursor_visible = 1u;
 }
 
 void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row)
@@ -540,6 +543,8 @@ void s64_ui_render_append(const S64Editor* editor, unsigned char value)
 
     cursor_col = col;
     cursor_row = row;
+    toggle_editor_cursor();
+    cursor_visible = 1u;
 }
 
 void s64_ui_render_cursor(const S64Editor* editor)
