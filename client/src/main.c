@@ -1,6 +1,9 @@
 #include <conio.h>
 #include <string.h>
 #include <time.h>
+#ifdef S64_REU_BUFFER
+#include <unistd.h>
+#endif
 
 #include "clipboard.h"
 #include "document.h"
@@ -10,6 +13,7 @@
 #include "platform/uci.h"
 #ifdef S64_REU_BUFFER
 #include "platform/reu.h"
+#include "publisher/handoff.h"
 #endif
 #include "storage/local.h"
 #include "ui.h"
@@ -18,6 +22,9 @@
 #define LINE_TEXT_CAPACITY 6u
 #define AUTOSAVE_SECONDS 30UL
 #define AUTOSAVE_INTERVAL ((clock_t)(AUTOSAVE_SECONDS * (unsigned long)CLOCKS_PER_SEC))
+#ifdef S64_REU_BUFFER
+#define S64_PUBLISHER_PROGRAM "S64PUB.PRG"
+#endif
 
 static S64Editor editor;
 static S64Clipboard clipboard;
@@ -29,6 +36,9 @@ static char find_query[SEARCH_TEXT_CAPACITY];
 static unsigned char find_query_valid;
 static clock_t last_recovery_write;
 static unsigned char recovery_error_shown;
+#ifdef S64_REU_BUFFER
+static S64PublisherHandoff publisher_handoff;
+#endif
 
 static char* append_unsigned(char* output, unsigned int value)
 {
@@ -66,6 +76,67 @@ static void show_local_result(S64LocalResult result)
 {
     s64_ui_message(s64_local_result_message(&local_document, result));
 }
+
+#ifdef S64_REU_BUFFER
+static unsigned char restore_publisher_handoff(void)
+{
+    if (!s64_handoff_load(&publisher_handoff)) {
+        return 0u;
+    }
+
+    if (!s64_handoff_apply_document(
+            &publisher_handoff,
+            &editor.buffer,
+            &document
+        )) {
+        (void)s64_handoff_clear();
+        return 0u;
+    }
+
+    editor.history = publisher_handoff.history;
+    editor.dirty = (publisher_handoff.flags & S64_HANDOFF_FLAG_DIRTY) != 0u;
+    editor.insert_mode =
+        (publisher_handoff.flags & S64_HANDOFF_FLAG_INSERT_MODE) != 0u;
+    editor.word_wrap =
+        (publisher_handoff.flags & S64_HANDOFF_FLAG_WORD_WRAP) != 0u;
+    strcpy(local_document.filename, publisher_handoff.filename);
+    s64_editor_recalculate_position(&editor);
+    s64_editor_ensure_cursor_visible(&editor);
+    (void)s64_handoff_clear();
+    return 1u;
+}
+
+static void launch_publisher(void)
+{
+    if (!s64_history_prepare_handoff(&editor.history)) {
+        s64_ui_message("Cannot prepare publish handoff");
+        return;
+    }
+
+    if (!s64_handoff_capture(
+            &publisher_handoff,
+            &editor.buffer,
+            &document,
+            &editor.history,
+            local_document.filename,
+            editor.dirty,
+            editor.insert_mode,
+            editor.word_wrap
+        )
+        || !s64_handoff_store(&publisher_handoff)) {
+        s64_ui_message("Cannot store publish handoff");
+        return;
+    }
+
+    clrscr();
+    cputs("OPENING SEE64YOU PUBLISHER...\r\n");
+    if (exec(S64_PUBLISHER_PROGRAM, 0) < 0) {
+        (void)s64_handoff_clear();
+        s64_ui_render(&editor);
+        s64_ui_message("Publisher not found: S64PUB.PRG");
+    }
+}
+#endif
 
 static void arm_recovery_autosave(void)
 {
@@ -456,8 +527,9 @@ int main(void)
     unsigned char cursor_only;
     unsigned char inserted_value;
     unsigned char removed_value;
-
 #ifdef S64_REU_BUFFER
+    unsigned char restored_handoff;
+
     if (!s64_reu_probe() || s64_reu_probe_banks() < 2u) {
         clrscr();
         cputs("SEE64YOU C64U\r\n128K REU REQUIRED\r\n");
@@ -470,12 +542,24 @@ int main(void)
     s64_document_init(&document, &editor.buffer);
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
     s64_local_init(&local_document, &dos, &document);
+#ifdef S64_REU_BUFFER
+    restored_handoff = restore_publisher_handoff();
+#endif
     s64_ui_init();
     s64_uci_probe_capabilities(&uci_capabilities);
     s64_ui_set_http_ready(uci_capabilities.http_target);
     s64_ui_set_dos_ready(uci_capabilities.dos_target);
     s64_ui_render(&editor);
+#ifdef S64_REU_BUFFER
+    if (restored_handoff) {
+        defer_recovery_autosave();
+        s64_ui_message("Returned from publisher");
+    } else {
+        offer_recovery();
+    }
+#else
     offer_recovery();
+#endif
 
     while (running) {
         maybe_autosave();
@@ -662,6 +746,11 @@ int main(void)
             case S64_INPUT_SAVE_AS:
                 save_as_document();
                 continue;
+#ifdef S64_REU_BUFFER
+            case S64_INPUT_PUBLISH:
+                launch_publisher();
+                continue;
+#endif
             case S64_INPUT_FIND:
                 prompt_find(0u);
                 continue;
