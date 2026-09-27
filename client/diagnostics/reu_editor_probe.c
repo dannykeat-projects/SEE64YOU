@@ -64,14 +64,19 @@ int main(void)
 
     DIAG_PROGRESS = 0x20u;
     for (i = 0u; i < 6000u; ++i) {
-        if (!s64_editor_insert(&editor, fixture_value(i))) {
+        if (!s64_buffer_insert(&editor.buffer, fixture_value(i))) {
             fail(2u);
         }
     }
+    if (!s64_buffer_move_cursor(&editor.buffer, 0u)) {
+        fail(2u);
+    }
+    s64_editor_document_loaded(&editor);
 
     if (s64_buffer_length(&editor.buffer) != 6000u
-        || editor.line != 194u
-        || editor.column != 18u
+        || s64_buffer_cursor(&editor.buffer) != 0u
+        || editor.line != 1u
+        || editor.column != 1u
         || s64_buffer_char_at(&editor.buffer, 4095u) != fixture_value(4095u)
         || s64_buffer_char_at(&editor.buffer, 4096u) != fixture_value(4096u)
         || s64_buffer_char_at(&editor.buffer, 5999u) != fixture_value(5999u)) {
