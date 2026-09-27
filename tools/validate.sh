@@ -92,6 +92,14 @@ echo "== Host publisher state tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/publisher_state_test.c client/src/document.c client/src/charset.c client/src/buffer.c client/src/publisher/destination.c client/src/publisher/state.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host publisher REU handoff tests =="
+cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
+    client/tests/publisher_handoff_test.c client/src/buffer_reu.c \
+    client/src/clipboard.c client/src/history_reu.c client/src/editor.c \
+    client/src/document.c client/src/charset.c client/src/publisher/handoff.c \
+    -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host relay client tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/relay_test.c client/src/charset.c client/src/platform/http.c client/src/publisher/relay.c -o "$TMP_BIN"
 "$TMP_BIN"
