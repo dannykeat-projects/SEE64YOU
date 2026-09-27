@@ -9,7 +9,12 @@
 
 #ifdef S64_REU_BUFFER
 #define S64_CLIPBOARD_TRANSFER_SIZE 64u
+#define S64_EDITOR_SCAN_CHUNK 128u
+#define S64_EDITOR_SEARCH_QUERY_MAX 32u
 static unsigned char clipboard_transfer[S64_CLIPBOARD_TRANSFER_SIZE];
+static unsigned char editor_scan[
+    S64_EDITOR_SCAN_CHUNK + S64_EDITOR_SEARCH_QUERY_MAX - 1u
+];
 #endif
 
 unsigned int s64_editor_internal_line_start(const S64Buffer* buffer, unsigned int position)
@@ -300,6 +305,44 @@ static int find_forward_position(
         return 0;
     }
 
+#ifdef S64_REU_BUFFER
+    if (query_length <= S64_EDITOR_SEARCH_QUERY_MAX) {
+        position = start;
+        while (position <= last) {
+            unsigned int starts = last - position + 1u;
+            unsigned int read_count;
+            unsigned int i;
+
+            if (starts > S64_EDITOR_SCAN_CHUNK) {
+                starts = S64_EDITOR_SCAN_CHUNK;
+            }
+            read_count = starts + query_length - 1u;
+            if (s64_buffer_read(
+                    buffer,
+                    position,
+                    editor_scan,
+                    read_count
+                ) != read_count) {
+                return 0;
+            }
+
+            for (i = 0u; i < starts; ++i) {
+                unsigned int q = 0u;
+                while (q < query_length
+                    && editor_scan[i + q] == (unsigned char)query[q]) {
+                    ++q;
+                }
+                if (q == query_length) {
+                    *found = position + i;
+                    return 1;
+                }
+            }
+            position += starts;
+        }
+        return 0;
+    }
+#endif
+
     for (position = start; position <= last; ++position) {
         if (matches_at(buffer, position, query, query_length)) {
             *found = position;
@@ -329,6 +372,47 @@ static int find_backward_position(
     if (position > length - query_length) {
         position = length - query_length;
     }
+
+#ifdef S64_REU_BUFFER
+    if (query_length <= S64_EDITOR_SEARCH_QUERY_MAX) {
+        for (;;) {
+            unsigned int block_start = position >= S64_EDITOR_SCAN_CHUNK - 1u
+                ? position - (S64_EDITOR_SCAN_CHUNK - 1u)
+                : 0u;
+            unsigned int starts = position - block_start + 1u;
+            unsigned int read_count = starts + query_length - 1u;
+            unsigned int i = starts;
+
+            if (s64_buffer_read(
+                    buffer,
+                    block_start,
+                    editor_scan,
+                    read_count
+                ) != read_count) {
+                return 0;
+            }
+
+            while (i != 0u) {
+                unsigned int q = 0u;
+                --i;
+                while (q < query_length
+                    && editor_scan[i + q] == (unsigned char)query[q]) {
+                    ++q;
+                }
+                if (q == query_length) {
+                    *found = block_start + i;
+                    return 1;
+                }
+            }
+
+            if (block_start == 0u) {
+                break;
+            }
+            position = block_start - 1u;
+        }
+        return 0;
+    }
+#endif
 
     for (;;) {
         if (matches_at(buffer, position, query, query_length)) {
@@ -526,6 +610,42 @@ void s64_editor_recalculate_position(S64Editor* editor)
         column = 1u;
     }
 
+#ifdef S64_REU_BUFFER
+    while (position < cursor) {
+        unsigned int count = cursor - position;
+        unsigned int i;
+
+        if (count > S64_EDITOR_SCAN_CHUNK) {
+            count = S64_EDITOR_SCAN_CHUNK;
+        }
+        if (s64_buffer_read(
+                &editor->buffer,
+                position,
+                editor_scan,
+                count
+            ) != count) {
+            value = s64_buffer_char_at(&editor->buffer, position);
+            if (value == '\n') {
+                ++line;
+                column = 1u;
+            } else {
+                ++column;
+            }
+            ++position;
+            continue;
+        }
+
+        for (i = 0u; i < count; ++i) {
+            if (editor_scan[i] == '\n') {
+                ++line;
+                column = 1u;
+            } else {
+                ++column;
+            }
+        }
+        position += count;
+    }
+#else
     while (position < cursor) {
         value = s64_buffer_char_at(&editor->buffer, position);
         if (value == '\n') {
@@ -536,6 +656,7 @@ void s64_editor_recalculate_position(S64Editor* editor)
         }
         ++position;
     }
+#endif
 
     while (position > cursor) {
         --position;
