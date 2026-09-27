@@ -5,21 +5,153 @@
 #error "history_reu.c requires S64_REU_BUFFER"
 #endif
 
-#define S64_REU_HISTORY_BANK 0u
-#define S64_REU_HISTORY_BASE 61440u
+#define S64_REU_HISTORY_PAYLOAD_BANK 0u
+#define S64_REU_HISTORY_PAYLOAD_BASE 61440u
+#define S64_REU_HISTORY_META_BANK 1u
+#define S64_REU_HISTORY_META_BASE 61440u
 #define S64_HISTORY_TRANSFER_SIZE 64u
-#define S64_HISTORY_SLOT_NONE 0xffu
+#define S64_HISTORY_LEVEL_MASK 0x0fu
+
+typedef struct {
+    unsigned int position;
+    unsigned int stored_length;
+    unsigned int current_length;
+    S64HistoryState before;
+    S64HistoryState after;
+    unsigned char coalesce_insert;
+} S64HistoryEntry;
 
 static unsigned char history_target[S64_HISTORY_TRANSFER_SIZE];
 static unsigned char history_current[S64_HISTORY_TRANSFER_SIZE];
+static S64HistoryEntry history_entry;
+static unsigned char history_entry_slot;
+static unsigned char history_entry_valid;
+static unsigned char history_entry_dirty;
 
-static unsigned int payload_address(unsigned char slot, unsigned int offset)
+static unsigned char physical_slot(
+    const S64History* history,
+    unsigned char logical_index
+)
+{
+    return (unsigned char)(
+        (history->start + logical_index) & S64_HISTORY_LEVEL_MASK
+    );
+}
+
+static unsigned int payload_address(
+    unsigned char slot,
+    unsigned int offset
+)
 {
     return (unsigned int)(
-        S64_REU_HISTORY_BASE
+        S64_REU_HISTORY_PAYLOAD_BASE
         + ((unsigned int)slot * S64_HISTORY_CAPACITY)
         + offset
     );
+}
+
+static unsigned int metadata_address(unsigned char slot)
+{
+    return (unsigned int)(
+        S64_REU_HISTORY_META_BASE
+        + ((unsigned int)slot * (unsigned int)sizeof(S64HistoryEntry))
+    );
+}
+
+static unsigned char metadata_load(
+    unsigned char slot,
+    S64HistoryEntry* entry
+)
+{
+    return s64_reu_load(
+        S64_REU_HISTORY_META_BANK,
+        (uint16_t)metadata_address(slot),
+        entry,
+        (uint16_t)sizeof(S64HistoryEntry)
+    );
+}
+
+static unsigned char metadata_store(
+    unsigned char slot,
+    const S64HistoryEntry* entry
+)
+{
+    return s64_reu_store(
+        S64_REU_HISTORY_META_BANK,
+        (uint16_t)metadata_address(slot),
+        entry,
+        (uint16_t)sizeof(S64HistoryEntry)
+    );
+}
+
+static unsigned char flush_entry(void)
+{
+    if (!history_entry_valid || !history_entry_dirty) {
+        return 1u;
+    }
+
+    if (!metadata_store(history_entry_slot, &history_entry)) {
+        return 0u;
+    }
+
+    history_entry_dirty = 0u;
+    return 1u;
+}
+
+static void discard_entry_cache(void)
+{
+    history_entry_valid = 0u;
+    history_entry_dirty = 0u;
+}
+
+static S64HistoryEntry* load_entry(
+    const S64History* history,
+    unsigned char logical_index
+)
+{
+    unsigned char slot;
+
+    if (history == 0 || logical_index >= history->count) {
+        return 0;
+    }
+
+    slot = physical_slot(history, logical_index);
+    if (history_entry_valid && history_entry_slot == slot) {
+        return &history_entry;
+    }
+
+    if (!flush_entry() || !metadata_load(slot, &history_entry)) {
+        discard_entry_cache();
+        return 0;
+    }
+
+    history_entry_slot = slot;
+    history_entry_valid = 1u;
+    history_entry_dirty = 0u;
+    return &history_entry;
+}
+
+static S64HistoryEntry* create_entry(
+    const S64History* history,
+    unsigned char logical_index
+)
+{
+    if (!flush_entry()) {
+        discard_entry_cache();
+        return 0;
+    }
+
+    history_entry_slot = physical_slot(history, logical_index);
+    history_entry_valid = 1u;
+    history_entry_dirty = 1u;
+    return &history_entry;
+}
+
+static void mark_entry_dirty(void)
+{
+    if (history_entry_valid) {
+        history_entry_dirty = 1u;
+    }
 }
 
 static unsigned char payload_load(
@@ -34,7 +166,7 @@ static unsigned char payload_load(
     }
 
     return s64_reu_load(
-        S64_REU_HISTORY_BANK,
+        S64_REU_HISTORY_PAYLOAD_BANK,
         (uint16_t)payload_address(slot, offset),
         data,
         (uint16_t)length
@@ -53,7 +185,7 @@ static unsigned char payload_store(
     }
 
     return s64_reu_store(
-        S64_REU_HISTORY_BANK,
+        S64_REU_HISTORY_PAYLOAD_BANK,
         (uint16_t)payload_address(slot, offset),
         data,
         (uint16_t)length
@@ -70,45 +202,24 @@ static void update_dirty(const S64History* history, unsigned char* dirty)
         || history->cursor != history->saved_cursor;
 }
 
-static void discard_redo(S64History* history)
+static unsigned char prepare_capture(S64History* history)
 {
-    if (history->cursor >= history->count) {
-        return;
+    if (!flush_entry()) {
+        return 0u;
     }
 
-    if (history->saved_valid && history->saved_cursor > history->cursor) {
-        history->saved_valid = 0u;
-    }
-    history->count = history->cursor;
-}
-
-static unsigned char slot_in_use(
-    const S64History* history,
-    unsigned char slot
-)
-{
-    unsigned char i;
-
-    for (i = 0u; i < history->count; ++i) {
-        if (history->entries[i].slot == slot) {
-            return 1u;
+    if (history->cursor < history->count) {
+        if (history->saved_valid
+            && history->saved_cursor > history->cursor) {
+            history->saved_valid = 0u;
         }
+        history->count = history->cursor;
     }
-    return 0u;
-}
-
-static unsigned char allocate_slot(S64History* history)
-{
-    unsigned char i;
-    unsigned char slot;
-
-    discard_redo(history);
 
     if (history->count >= S64_HISTORY_LEVELS) {
-        slot = history->entries[0].slot;
-        for (i = 1u; i < history->count; ++i) {
-            history->entries[i - 1u] = history->entries[i];
-        }
+        history->start = (unsigned char)(
+            (history->start + 1u) & S64_HISTORY_LEVEL_MASK
+        );
         --history->count;
         if (history->cursor > 0u) {
             --history->cursor;
@@ -121,20 +232,15 @@ static unsigned char allocate_slot(S64History* history)
                 --history->saved_cursor;
             }
         }
-        return slot;
     }
 
-    for (slot = 0u; slot < S64_HISTORY_LEVELS; ++slot) {
-        if (!slot_in_use(history, slot)) {
-            return slot;
-        }
-    }
-
-    return S64_HISTORY_SLOT_NONE;
+    discard_entry_cache();
+    return 1u;
 }
 
 static int capture_payload(
-    S64HistoryEntry* entry,
+    const S64HistoryEntry* entry,
+    unsigned char slot,
     const S64Buffer* buffer
 )
 {
@@ -153,7 +259,7 @@ static int capture_payload(
                 count
             ) != count
             || !payload_store(
-                entry->slot,
+                slot,
                 offset,
                 history_current,
                 count
@@ -166,7 +272,11 @@ static int capture_payload(
     return 1;
 }
 
-static int swap_range(S64HistoryEntry* entry, S64Buffer* buffer)
+static int swap_range(
+    S64HistoryEntry* entry,
+    unsigned char slot,
+    S64Buffer* buffer
+)
 {
     unsigned int offset;
     unsigned int common;
@@ -209,7 +319,7 @@ static int swap_range(S64HistoryEntry* entry, S64Buffer* buffer)
                 count
             ) != count
             || !payload_load(
-                entry->slot,
+                slot,
                 offset,
                 history_target,
                 count
@@ -225,7 +335,7 @@ static int swap_range(S64HistoryEntry* entry, S64Buffer* buffer)
         }
 
         if (!payload_store(
-                entry->slot,
+                slot,
                 offset,
                 history_current,
                 count
@@ -245,7 +355,7 @@ static int swap_range(S64HistoryEntry* entry, S64Buffer* buffer)
                 count = S64_HISTORY_TRANSFER_SIZE;
             }
             if (!payload_load(
-                    entry->slot,
+                    slot,
                     offset,
                     history_target,
                     count
@@ -275,7 +385,7 @@ static int swap_range(S64HistoryEntry* entry, S64Buffer* buffer)
                     count
                 ) != count
                 || !payload_store(
-                    entry->slot,
+                    slot,
                     offset,
                     history_current,
                     count
@@ -298,6 +408,7 @@ static int swap_range(S64HistoryEntry* entry, S64Buffer* buffer)
     entry->current_length = entry->stored_length;
     entry->stored_length = old_current_length;
     entry->coalesce_insert = 0u;
+    mark_entry_dirty();
     return 1;
 }
 
@@ -308,11 +419,17 @@ void s64_history_init(S64History* history)
 
 void s64_history_reset(S64History* history)
 {
+    if (history == 0) {
+        return;
+    }
+
+    history->start = 0u;
     history->count = 0u;
     history->cursor = 0u;
     history->pending_valid = 0u;
     history->saved_valid = 0u;
     history->saved_cursor = 0u;
+    discard_entry_cache();
 }
 
 int s64_history_capture(
@@ -345,22 +462,26 @@ int s64_history_capture(
     }
 
     history->pending_valid = 0u;
-    slot = allocate_slot(history);
-    if (slot == S64_HISTORY_SLOT_NONE) {
+    if (!prepare_capture(history)) {
         s64_history_reset(history);
         return 0;
     }
 
-    entry = &history->entries[history->count];
+    slot = physical_slot(history, history->count);
+    entry = create_entry(history, history->count);
+    if (entry == 0) {
+        s64_history_reset(history);
+        return 0;
+    }
+
     entry->position = start;
     entry->stored_length = end - start;
     entry->current_length = 0u;
     entry->before = *before;
     entry->after = *before;
-    entry->slot = slot;
     entry->coalesce_insert = 0u;
 
-    if (!capture_payload(entry, buffer)) {
+    if (!capture_payload(entry, slot, buffer)) {
         s64_history_reset(history);
         return 0;
     }
@@ -376,7 +497,7 @@ void s64_history_commit(
     unsigned char coalesce_insert
 )
 {
-    S64HistoryEntry* entry;
+    unsigned char slot;
 
     if (history == 0 || after == 0 || !history->pending_valid
         || current_length > S64_HISTORY_CAPACITY) {
@@ -386,10 +507,17 @@ void s64_history_commit(
         return;
     }
 
-    entry = &history->entries[history->count];
-    entry->current_length = current_length;
-    entry->after = *after;
-    entry->coalesce_insert = coalesce_insert ? 1u : 0u;
+    slot = physical_slot(history, history->count);
+    if (!history_entry_valid || history_entry_slot != slot) {
+        s64_history_reset(history);
+        return;
+    }
+
+    history_entry.current_length = current_length;
+    history_entry.after = *after;
+    history_entry.coalesce_insert = coalesce_insert ? 1u : 0u;
+    mark_entry_dirty();
+
     ++history->count;
     history->cursor = history->count;
     history->pending_valid = 0u;
@@ -400,7 +528,7 @@ unsigned char s64_history_can_extend_insert(
     unsigned int cursor
 )
 {
-    const S64HistoryEntry* entry;
+    S64HistoryEntry* entry;
 
     if (history == 0 || history->pending_valid
         || history->cursor == 0u
@@ -408,7 +536,11 @@ unsigned char s64_history_can_extend_insert(
         return 0u;
     }
 
-    entry = &history->entries[history->cursor - 1u];
+    entry = load_entry(history, (unsigned char)(history->cursor - 1u));
+    if (entry == 0) {
+        return 0u;
+    }
+
     return entry->coalesce_insert
         && entry->stored_length == 0u
         && entry->position + entry->current_length == cursor
@@ -428,20 +560,35 @@ void s64_history_extend_insert(
         return;
     }
 
-    entry = &history->entries[history->cursor - 1u];
-    if (entry->current_length >= S64_HISTORY_CAPACITY) {
+    entry = load_entry(history, (unsigned char)(history->cursor - 1u));
+    if (entry == 0 || entry->current_length >= S64_HISTORY_CAPACITY) {
+        if (entry == 0) {
+            s64_history_reset(history);
+        }
         return;
     }
 
     ++entry->current_length;
     entry->after = *after;
+    mark_entry_dirty();
 }
 
 void s64_history_break_coalesce(S64History* history)
 {
-    if (history != 0 && history->cursor > 0u) {
-        history->entries[history->cursor - 1u].coalesce_insert = 0u;
+    S64HistoryEntry* entry;
+
+    if (history == 0 || history->cursor == 0u) {
+        return;
     }
+
+    entry = load_entry(history, (unsigned char)(history->cursor - 1u));
+    if (entry == 0) {
+        s64_history_reset(history);
+        return;
+    }
+
+    entry->coalesce_insert = 0u;
+    mark_entry_dirty();
 }
 
 void s64_history_mark_saved(S64History* history)
@@ -463,14 +610,18 @@ int s64_history_undo(
 )
 {
     S64HistoryEntry* entry;
+    unsigned char logical_index;
+    unsigned char slot;
 
     if (history == 0 || buffer == 0 || state == 0
         || history->pending_valid || history->cursor == 0u) {
         return 0;
     }
 
-    entry = &history->entries[history->cursor - 1u];
-    if (!swap_range(entry, buffer)) {
+    logical_index = (unsigned char)(history->cursor - 1u);
+    slot = physical_slot(history, logical_index);
+    entry = load_entry(history, logical_index);
+    if (entry == 0 || !swap_range(entry, slot, buffer)) {
         return 0;
     }
 
@@ -488,14 +639,18 @@ int s64_history_redo(
 )
 {
     S64HistoryEntry* entry;
+    unsigned char logical_index;
+    unsigned char slot;
 
     if (history == 0 || buffer == 0 || state == 0
         || history->pending_valid || history->cursor >= history->count) {
         return 0;
     }
 
-    entry = &history->entries[history->cursor];
-    if (!swap_range(entry, buffer)) {
+    logical_index = history->cursor;
+    slot = physical_slot(history, logical_index);
+    entry = load_entry(history, logical_index);
+    if (entry == 0 || !swap_range(entry, slot, buffer)) {
         return 0;
     }
 
