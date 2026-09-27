@@ -4,12 +4,14 @@ EDITOR_PROBE_TARGET := build/editor-probe.prg
 REU_PROBE_TARGET := build/reu-probe.prg
 REU_BUFFER_PROBE_TARGET := build/reu-buffer-probe.prg
 REU_EDITOR_PROBE_TARGET := build/reu-editor-probe.prg
+RECOVERY_PROBE_TARGET := build/recovery-probe.prg
 SOURCES := src/main.c src/charset.c src/buffer.c src/history.c src/clipboard.c src/document.c src/editor.c src/editor_format.c src/ui.c src/ui_status.s src/input/input.c src/platform/uci.c src/platform/dos.c src/storage/local.c
 C64U_SOURCES := $(filter-out src/buffer.c src/history.c,$(SOURCES)) src/buffer_reu.c src/history_reu.c src/platform/reu.c src/platform/reu_dma.s
 EDITOR_PROBE_SOURCES := diagnostics/editor_probe.c src/buffer.c src/history.c src/clipboard.c src/editor.c src/editor_format.c
 REU_PROBE_SOURCES := diagnostics/reu_probe.c src/platform/reu.c src/platform/reu_dma.s
 REU_BUFFER_PROBE_SOURCES := diagnostics/reu_buffer_probe.c src/buffer_reu.c src/platform/reu.c src/platform/reu_dma.s
 REU_EDITOR_PROBE_SOURCES := diagnostics/reu_editor_probe.c src/buffer_reu.c src/history_reu.c src/clipboard.c src/editor.c src/platform/reu.c src/platform/reu_dma.s
+RECOVERY_PROBE_SOURCES := diagnostics/recovery_probe.c src/buffer.c src/document.c src/charset.c src/platform/dos.c src/storage/local.c
 
 CL65 ?= cl65
 # Keep the active conventional-C64 editor inside base RAM. Basic formatting is
@@ -17,7 +19,7 @@ CL65 ?= cl65
 # but unlinked because it does not fit while retaining the 1 KiB software stack.
 CFLAGS := -t c64 -Os -I src -DS64_NATIVE_PETSCII=1 -Wl -D,__STACKSIZE__=0x0400
 
-.PHONY: all c64u editor-probe reu-probe reu-buffer-probe reu-editor-probe clean
+.PHONY: all c64u editor-probe reu-probe reu-buffer-probe reu-editor-probe recovery-probe clean
 
 all: $(TARGET)
 
@@ -48,6 +50,12 @@ reu-buffer-probe: $(REU_BUFFER_PROBE_TARGET)
 $(REU_BUFFER_PROBE_TARGET): $(REU_BUFFER_PROBE_SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -m build/reu-buffer-probe.map -o $@ $(REU_BUFFER_PROBE_SOURCES)
+
+recovery-probe: $(RECOVERY_PROBE_TARGET)
+
+$(RECOVERY_PROBE_TARGET): $(RECOVERY_PROBE_SOURCES)
+	@mkdir -p build
+	$(CL65) $(CFLAGS) -m build/recovery-probe.map -o $@ $(RECOVERY_PROBE_SOURCES)
 
 reu-editor-probe: $(REU_EDITOR_PROBE_TARGET)
 
