@@ -2,8 +2,7 @@
 
 #ifdef S64_REU_BUFFER
 #include "platform/reu.h"
-
-#define S64_REU_CLIPBOARD_BANK 1u
+#include "platform/reu_layout.h"
 #endif
 
 void s64_clipboard_init(S64Clipboard* clipboard)
@@ -31,7 +30,7 @@ int s64_clipboard_write(
 
     return s64_reu_store(
         S64_REU_CLIPBOARD_BANK,
-        (unsigned int)offset,
+        (uint16_t)(S64_REU_CLIPBOARD_BASE + offset),
         data,
         (unsigned int)length
     );
@@ -58,7 +57,7 @@ unsigned int s64_clipboard_read(
 
     if (!s64_reu_load(
             S64_REU_CLIPBOARD_BANK,
-            (unsigned int)offset,
+            (uint16_t)(S64_REU_CLIPBOARD_BASE + offset),
             data,
             (unsigned int)count
         )) {

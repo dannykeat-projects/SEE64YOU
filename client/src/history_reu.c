@@ -1,14 +1,11 @@
 #include "history.h"
 #include "platform/reu.h"
+#include "platform/reu_layout.h"
 
 #ifndef S64_REU_BUFFER
 #error "history_reu.c requires S64_REU_BUFFER"
 #endif
 
-#define S64_REU_HISTORY_PAYLOAD_BANK 0u
-#define S64_REU_HISTORY_PAYLOAD_BASE 61440u
-#define S64_REU_HISTORY_META_BANK 1u
-#define S64_REU_HISTORY_META_BASE 61440u
 #define S64_HISTORY_TRANSFER_SIZE 64u
 #define S64_HISTORY_LEVEL_MASK 0x0fu
 
@@ -63,9 +60,16 @@ static unsigned char metadata_load(
     S64HistoryEntry* entry
 )
 {
+    unsigned int address = metadata_address(slot);
+
+    if ((unsigned long)address + sizeof(S64HistoryEntry)
+        > (unsigned long)S64_REU_HISTORY_META_LIMIT) {
+        return 0u;
+    }
+
     return s64_reu_load(
         S64_REU_HISTORY_META_BANK,
-        (uint16_t)metadata_address(slot),
+        (uint16_t)address,
         entry,
         (uint16_t)sizeof(S64HistoryEntry)
     );
@@ -76,9 +80,16 @@ static unsigned char metadata_store(
     const S64HistoryEntry* entry
 )
 {
+    unsigned int address = metadata_address(slot);
+
+    if ((unsigned long)address + sizeof(S64HistoryEntry)
+        > (unsigned long)S64_REU_HISTORY_META_LIMIT) {
+        return 0u;
+    }
+
     return s64_reu_store(
         S64_REU_HISTORY_META_BANK,
-        (uint16_t)metadata_address(slot),
+        (uint16_t)address,
         entry,
         (uint16_t)sizeof(S64HistoryEntry)
     );
@@ -600,6 +611,16 @@ void s64_history_mark_saved(S64History* history)
     history->saved_valid = 1u;
     history->saved_cursor = history->cursor;
     s64_history_break_coalesce(history);
+}
+
+int s64_history_prepare_handoff(S64History* history)
+{
+    if (history == 0 || history->pending_valid) {
+        return 0;
+    }
+
+    s64_history_break_coalesce(history);
+    return flush_entry() ? 1 : 0;
 }
 
 int s64_history_undo(
