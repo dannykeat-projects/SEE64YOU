@@ -2,7 +2,8 @@
 #define SEE64YOU_CLIPBOARD_H
 
 #ifdef S64_REU_BUFFER
-#define S64_CLIPBOARD_CAPACITY 61440u
+#include "platform/reu_layout.h"
+#define S64_CLIPBOARD_CAPACITY S64_REU_CLIPBOARD_CAPACITY
 
 typedef struct {
     unsigned int length;
