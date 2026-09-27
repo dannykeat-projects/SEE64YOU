@@ -3,6 +3,8 @@
 
 #include "platform/reu.h"
 
+static uint8_t dma_scratch;
+
 static void print_unsigned(unsigned int value)
 {
     char digits[6];
@@ -24,6 +26,31 @@ int main(void)
 
     clrscr();
     cputs("SEE64YOU REU TEST\r\n\r\n");
+
+    dma_scratch = 0x5Au;
+    cputs("STORE...");
+    if (!s64_reu_store(0u, 0u, &dma_scratch, 1u)) {
+        cputs("FAIL\r\n");
+        for (;;) {
+        }
+    }
+    cputs("OK\r\n");
+
+    dma_scratch = 0u;
+    cputs("LOAD....");
+    if (!s64_reu_load(0u, 0u, &dma_scratch, 1u)) {
+        cputs("FAIL\r\n");
+        for (;;) {
+        }
+    }
+    cputs("OK\r\n");
+
+    if (dma_scratch != 0x5Au) {
+        cputs("ROUNDTRIP FAIL\r\n");
+        for (;;) {
+        }
+    }
+    cputs("DMA ROUNDTRIP OK\r\n");
 
     if (!s64_reu_probe()) {
         cputs("REU: NOT DETECTED\r\nFAIL\r\n");
