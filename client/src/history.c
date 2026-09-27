@@ -216,6 +216,16 @@ void s64_history_mark_saved(S64History* history)
     history->coalesce_insert = 0u;
 }
 
+int s64_history_prepare_handoff(S64History* history)
+{
+    if (history == 0) {
+        return 0;
+    }
+
+    s64_history_break_coalesce(history);
+    return 1;
+}
+
 int s64_history_undo(
     S64History* history,
     S64Buffer* buffer,
