@@ -15,10 +15,15 @@ def run(port: int, timeout: float) -> None:
     monitor = wait_for_monitor("127.0.0.1", port, timeout)
     deadline = time.monotonic() + timeout
     state = bytes((0, 0, 0))
+    last_progress = None
     try:
         while time.monotonic() < deadline:
             state = monitor.read_memory(DIAG_BASE, DIAG_BASE + 2)
             progress, result, detail = state
+
+            if progress != last_progress:
+                last_progress = progress
+                deadline = time.monotonic() + timeout
 
             if result == DIAG_PASS:
                 print(
@@ -37,7 +42,7 @@ def run(port: int, timeout: float) -> None:
 
         progress, result, detail = state
         raise AssertionError(
-            "REU editor diagnostic timed out "
+            "REU editor diagnostic stalled "
             f"(progress=0x{progress:02x}, result=0x{result:02x}, detail={detail})"
         )
     finally:
