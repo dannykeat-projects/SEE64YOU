@@ -1,5 +1,7 @@
 #include "platform/chain.h"
 
+#pragma optimize(push, on)
+
 #include <device.h>
 #include <stdlib.h>
 
@@ -74,3 +76,5 @@ void s64_chain_publisher(void)
     txtptr = &chain_line;
     exit(0);
 }
+
+#pragma optimize(pop)
