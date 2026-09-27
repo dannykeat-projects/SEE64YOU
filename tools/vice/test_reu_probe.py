@@ -14,6 +14,7 @@ CMD_EXIT_MONITOR = 0xAA
 CMD_QUIT = 0xBB
 SCREEN_START = 0x0400
 SCREEN_SIZE = 40 * 25
+PROGRESS_ADDR = 0xC000
 
 @dataclass(frozen=True)
 class Response:
@@ -140,8 +141,10 @@ def run(port: int, size_kib: int, timeout: float) -> None:
                 return
             monitor.resume()
             time.sleep(0.05)
+        progress = monitor.read_memory(PROGRESS_ADDR, PROGRESS_ADDR)[0]
         raise AssertionError(
-            f"diagnostic never reported {size_kib} KiB PASS\n"
+            f"diagnostic never reported {size_kib} KiB PASS "
+            f"(progress=0x{progress:02x})\n"
             f"screen:\n{decode_screen(screen)}"
         )
     finally:
