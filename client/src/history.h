@@ -12,6 +12,28 @@ typedef struct {
     unsigned char mark_mode;
 } S64HistoryState;
 
+#ifdef S64_REU_BUFFER
+#define S64_HISTORY_LEVELS 16u
+
+typedef struct {
+    unsigned int position;
+    unsigned int stored_length;
+    unsigned int current_length;
+    S64HistoryState before;
+    S64HistoryState after;
+    unsigned char slot;
+    unsigned char coalesce_insert;
+} S64HistoryEntry;
+
+typedef struct {
+    S64HistoryEntry entries[S64_HISTORY_LEVELS];
+    unsigned char count;
+    unsigned char cursor;
+    unsigned char pending_valid;
+    unsigned char saved_valid;
+    unsigned char saved_cursor;
+} S64History;
+#else
 typedef struct {
     unsigned char data[S64_HISTORY_CAPACITY];
     unsigned int position;
@@ -24,6 +46,7 @@ typedef struct {
     unsigned char saved_side;
     unsigned char coalesce_insert;
 } S64History;
+#endif
 
 void s64_history_init(S64History* history);
 void s64_history_reset(S64History* history);
