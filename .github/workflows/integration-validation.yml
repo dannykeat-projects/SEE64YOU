@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: see64you-integration-validation
+  group: see64you-integration-validation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
