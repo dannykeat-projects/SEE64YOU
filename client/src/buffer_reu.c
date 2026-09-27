@@ -6,13 +6,13 @@
 #endif
 
 #define S64_REU_BUFFER_BANK 0u
-#define S64_REU_WINDOW_SIZE 64u
+#define S64_REU_WINDOW_SIZE 256u
 
 static unsigned char reu_window[S64_REU_WINDOW_SIZE];
 static unsigned char reu_insert_value;
 static const S64Buffer* reu_window_owner;
 static unsigned int reu_window_start;
-static unsigned char reu_window_length;
+static unsigned int reu_window_length;
 
 static void invalidate_window(const S64Buffer* buffer)
 {
@@ -65,7 +65,7 @@ static unsigned char load_window(
 
     reu_window_owner = buffer;
     reu_window_start = physical;
-    reu_window_length = (unsigned char)count;
+    reu_window_length = count;
     return 1u;
 }
 
