@@ -13,17 +13,26 @@ DIAG_FAIL = 0x5A
 
 def run(port: int, timeout: float) -> None:
     monitor = wait_for_monitor("127.0.0.1", port, timeout)
-    deadline = time.monotonic() + timeout
+    started = time.monotonic()
+    deadline = started + timeout
     state = bytes((0, 0, 0))
     last_progress = None
+    last_progress_at = started
     try:
         while time.monotonic() < deadline:
             state = monitor.read_memory(DIAG_BASE, DIAG_BASE + 2)
             progress, result, detail = state
 
             if progress != last_progress:
+                now = time.monotonic()
+                if last_progress is not None:
+                    print(
+                        f"REU editor progress 0x{last_progress:02x}->0x{progress:02x} "
+                        f"in {now - last_progress_at:.2f}s"
+                    )
                 last_progress = progress
-                deadline = time.monotonic() + timeout
+                last_progress_at = now
+                deadline = now + timeout
 
             if result == DIAG_PASS:
                 print(
