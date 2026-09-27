@@ -1,5 +1,6 @@
 #include <conio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "buffer.h"
 #include "charset.h"
@@ -17,6 +18,7 @@
 #define STATUS_ROW 24u
 #define PROMPT_CAPACITY S64_DESTINATION_BASE_URL_CAPACITY
 #define USERNAME_CAPACITY 61u
+#define S64_EDITOR_PROGRAM "SEE64YOU-C64U.PRG"
 
 typedef union {
     S64StandaloneSession standalone;
@@ -109,7 +111,7 @@ static void render(void)
     gotoxy(0u, 13u);
     cputs("2  TEST / LOGIN");
     gotoxy(0u, 15u);
-    cputs("RUN/STOP  EXIT TO BASIC");
+    cputs("RUN/STOP  RETURN TO EDITOR");
 
     clear_row(STATUS_ROW);
     gotoxy(0u, STATUS_ROW);
@@ -292,6 +294,21 @@ static void setup_destination(void)
     set_status("Destination configured");
 }
 
+static void return_to_editor(void)
+{
+    if (!s64_handoff_store(&handoff)) {
+        set_status("Cannot preserve editor handoff");
+        return;
+    }
+
+    clrscr();
+    cputs("RETURNING TO SEE64YOU EDITOR...\r\n");
+    if (exec(S64_EDITOR_PROGRAM, 0) < 0) {
+        render();
+        set_status("Editor not found: SEE64YOU-C64U.PRG");
+    }
+}
+
 static void connect_destination(void)
 {
     S64DestinationResult url_result;
@@ -432,15 +449,7 @@ int main(void)
         } else if (key == '2') {
             connect_destination();
         } else if (key == CH_STOP) {
-            break;
+            return_to_editor();
         }
     }
-
-    memset(prompt_buffer, 0, sizeof(prompt_buffer));
-    memset(username, 0, sizeof(username));
-    memset(&session, 0, sizeof(session));
-    memset(connection_url, 0, sizeof(connection_url));
-    clrscr();
-    cputs("SEE64YOU PUBLISHER EXITED\r\n");
-    return 0;
 }
