@@ -49,6 +49,12 @@ cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/tests/reu_buffer_test.c client/src/buffer_reu.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host REU editor clipboard tests =="
+cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
+    client/tests/reu_editor_clipboard_test.c client/src/buffer_reu.c \
+    client/src/clipboard.c client/src/history.c client/src/editor.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host editor tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/editor_test.c client/src/buffer.c client/src/history.c client/src/clipboard.c client/src/editor.c client/src/editor_format.c client/src/editor_format_link.c -o "$TMP_BIN"
 "$TMP_BIN"

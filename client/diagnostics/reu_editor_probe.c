@@ -13,6 +13,7 @@
 
 static S64Editor editor;
 static S64Clipboard clipboard;
+static unsigned char clipboard_readback[64];
 
 static unsigned char fixture_value(unsigned int index)
 {
@@ -55,7 +56,7 @@ int main(void)
     DIAG_RESULT = 0u;
     DIAG_DETAIL = 0u;
 
-    if (!s64_reu_probe()) {
+    if (!s64_reu_probe() || s64_reu_probe_banks() < 2u) {
         fail(1u);
     }
 
@@ -198,6 +199,24 @@ int main(void)
         || s64_buffer_cursor(&editor.buffer) != 5549u
         || editor.line != 180u) {
         fail(19u);
+    }
+
+    DIAG_PROGRESS = 0x78u;
+    s64_editor_select_all(&editor);
+    if (!s64_editor_copy(&editor, &clipboard)
+        || clipboard.length != 6005u
+        || s64_clipboard_read(
+            &clipboard,
+            4090u,
+            clipboard_readback,
+            sizeof(clipboard_readback)
+        ) != sizeof(clipboard_readback)) {
+        fail(20u);
+    }
+    for (i = 0u; i < sizeof(clipboard_readback); ++i) {
+        if (clipboard_readback[i] != fixture_value(4090u + i)) {
+            fail(21u);
+        }
     }
 
     DIAG_PROGRESS = 0x80u;

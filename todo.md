@@ -84,12 +84,12 @@ These player-facing checks are assigned to the user where practical; automated s
 
 ## P1 - C64U enhancements
 
-- [x] REU-backed document storage for substantially larger files (renderer storage seam, REU DMA/capacity layer and 60 KiB REU gap-buffer backend are implemented. The separate `see64you-c64u.prg` links that backend and requires a detected REU at startup; base-C64 memory remains unchanged).
+- [x] REU-backed document storage for substantially larger files (renderer storage seam, REU DMA/capacity layer and 60 KiB REU gap-buffer backend are implemented. The separate `see64you-c64u.prg` links that backend; with the REU clipboard it now requires at least a 128 KiB REU. Base-C64 memory remains unchanged).
 - [x] Validate REU DMA and capacity detection in VICE across 128 KiB, 256 KiB, 512 KiB, 1 MiB, 2 MiB, 4 MiB, 8 MiB and 16 MiB (binary-monitor matrix passes on the self-hosted runner).
 - [x] Validate REU-backed editor correctness in VICE with a 6,000-byte document (line/word navigation, edits beyond 4 KiB, selection/cut/paste, undo/redo and find/replace pass through the real editor core).
 - [ ] Validate and tune large-document interactive responsiveness on the C64U build before making it the preferred C64U path (REU-only incremental Go to line validated in VICE; 6,000-byte editor workload improved by about 15% while base-C64 memory remained unchanged. Search and history/edit restoration are the next measured hotspots).
 - [ ] Repeat REU/editor validation on real C64U hardware when available.
-- [ ] Large clipboard backed by REU.
+- [x] Large clipboard backed by REU (C64U build uses a 60 KiB clipboard in REU bank 1 while the base C64 keeps its 256-byte RAM clipboard. >256-byte copy/paste/cut passes host regression testing, and VICE validated copying the full ~6 KiB editor fixture plus reading clipboard data beyond 4 KiB).
 - [ ] Multi-level undo backed by REU.
 - [ ] Mouse selection/menu support where practical.
 - [ ] Detect capabilities and degrade cleanly on a conventional C64 where possible (base build now omits dormant formatting runtime code and restores a 1 KiB software stack; current validated base build leaves roughly 427 bytes below the 1 KiB stack; REU support remains dormant until capability-gated).
