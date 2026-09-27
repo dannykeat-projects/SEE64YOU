@@ -7,6 +7,11 @@
 #define VIEW_ROWS 23u
 #define POSITION_INVALID (S64_BUFFER_CAPACITY + 1u)
 
+#ifdef S64_REU_BUFFER
+#define S64_CLIPBOARD_TRANSFER_SIZE 64u
+static unsigned char clipboard_transfer[S64_CLIPBOARD_TRANSFER_SIZE];
+#endif
+
 unsigned int s64_editor_internal_line_start(const S64Buffer* buffer, unsigned int position)
 {
     while (position > 0u) {
@@ -1413,9 +1418,37 @@ int s64_editor_copy(const S64Editor* editor, S64Clipboard* clipboard)
         return 0;
     }
 
+#ifdef S64_REU_BUFFER
+    clipboard->length = 0u;
+    i = 0u;
+    while (i < length) {
+        unsigned int count = length - i;
+
+        if (count > S64_CLIPBOARD_TRANSFER_SIZE) {
+            count = S64_CLIPBOARD_TRANSFER_SIZE;
+        }
+        if (s64_buffer_read(
+                &editor->buffer,
+                start + i,
+                clipboard_transfer,
+                count
+            ) != count
+            || !s64_clipboard_write(
+                clipboard,
+                i,
+                clipboard_transfer,
+                count
+            )) {
+            clipboard->length = 0u;
+            return 0;
+        }
+        i += count;
+    }
+#else
     for (i = 0u; i < length; ++i) {
         clipboard->data[i] = s64_buffer_char_at(&editor->buffer, start + i);
     }
+#endif
     clipboard->length = length;
     return 1;
 }
@@ -1475,6 +1508,38 @@ int s64_editor_paste(S64Editor* editor, const S64Clipboard* clipboard)
         return 0;
     }
 
+#ifdef S64_REU_BUFFER
+    i = 0u;
+    while (i < clipboard->length) {
+        unsigned int j;
+        unsigned int count = clipboard->length - i;
+
+        if (count > S64_CLIPBOARD_TRANSFER_SIZE) {
+            count = S64_CLIPBOARD_TRANSFER_SIZE;
+        }
+        if (s64_clipboard_read(
+                clipboard,
+                i,
+                clipboard_transfer,
+                count
+            ) != count) {
+            if (captured) {
+                s64_history_reset(&editor->history);
+            }
+            return 0;
+        }
+
+        for (j = 0u; j < count; ++j) {
+            if (!s64_buffer_insert(&editor->buffer, clipboard_transfer[j])) {
+                if (captured) {
+                    s64_history_reset(&editor->history);
+                }
+                return 0;
+            }
+        }
+        i += count;
+    }
+#else
     for (i = 0u; i < clipboard->length; ++i) {
         if (!s64_buffer_insert(&editor->buffer, clipboard->data[i])) {
             if (captured) {
@@ -1483,6 +1548,7 @@ int s64_editor_paste(S64Editor* editor, const S64Clipboard* clipboard)
             return 0;
         }
     }
+#endif
 
     finish_content_edit(editor);
     s64_editor_internal_history_commit(editor, clipboard->length, 0u, captured);

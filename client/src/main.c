@@ -458,9 +458,9 @@ int main(void)
     unsigned char removed_value;
 
 #ifdef S64_REU_BUFFER
-    if (!s64_reu_probe()) {
+    if (!s64_reu_probe() || s64_reu_probe_banks() < 2u) {
         clrscr();
-        cputs("SEE64YOU C64U\r\nREU REQUIRED\r\n");
+        cputs("SEE64YOU C64U\r\n128K REU REQUIRED\r\n");
         return 1;
     }
 #endif
