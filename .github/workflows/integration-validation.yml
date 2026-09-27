@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - integration-validation-2026-09-24
+      - diagnostic/publisher-runtime-fit
   workflow_dispatch:
 
 concurrency:
@@ -72,6 +73,9 @@ jobs:
           path: client/build/reu-probe.prg
           if-no-files-found: error
           retention-days: 30
+
+      - name: Measure publisher runtime fit
+        run: sh ./tools/report_publisher_fit.sh
 
       - name: Run full validation
         run: sh ./tools/validate.sh
