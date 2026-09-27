@@ -44,6 +44,9 @@ static S64InputType s64_control_command(unsigned char key, unsigned char modifie
         case 0x0Cu: return S64_INPUT_FORMAT_LIST; /* Ctrl+L */
         case 0x0Eu: return S64_INPUT_NEW;        /* Ctrl+N */
         case 0x0Fu: return S64_INPUT_OPEN;       /* Ctrl+O */
+#ifdef S64_REU_BUFFER
+        case 0x10u: return S64_INPUT_PUBLISH;    /* Ctrl+P */
+#endif
         case 0x13u: return (modifiers & S64_MOD_SHIFT) != 0u
             ? S64_INPUT_SAVE_AS
             : S64_INPUT_SAVE;                   /* Ctrl+Shift+S / Ctrl+S */
