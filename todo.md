@@ -84,7 +84,7 @@ These player-facing checks are assigned to the user where practical; automated s
 
 ## P1 - C64U enhancements
 
-- [ ] REU-backed document storage for substantially larger files (first introduce a storage-access seam so the renderer/editor no longer require all document bytes to be directly addressable as `S64Buffer.data`; preserve the fast 4 KiB conventional-C64 fallback).
+- [ ] REU-backed document storage for substantially larger files (renderer storage seam implemented and validated: row rendering now uses logical chunk reads/byte search through `buffer.c`, costing only 38 bytes of code and leaving about 427 bytes before the 1 KiB stack; next extend the internal storage implementation while preserving the fast 4 KiB conventional-C64 fallback).
 - [ ] Large clipboard backed by REU.
 - [ ] Multi-level undo backed by REU.
 - [ ] Mouse selection/menu support where practical.
