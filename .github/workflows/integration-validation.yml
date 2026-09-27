@@ -25,6 +25,9 @@ jobs:
       - name: Build REU diagnostic PRG
         run: make -C client reu-probe
 
+      - name: Report VICE availability
+        run: command -v x64sc || command -v x64 || true
+
       - name: Report current C64 memory map
         run: cat client/build/see64you.map
 
