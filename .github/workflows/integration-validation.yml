@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - integration-validation-2026-09-24
+      - perf/incremental-go-to-line
   workflow_dispatch:
 
 concurrency:
