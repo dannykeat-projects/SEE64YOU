@@ -36,6 +36,72 @@ static unsigned int physical_position(
     );
 }
 
+static int move_gap(S64Buffer* buffer, unsigned int position)
+{
+    unsigned int distance;
+    unsigned int chunk;
+    unsigned int source;
+    unsigned int destination;
+
+    invalidate_window(buffer);
+
+    while (buffer->gap_start > position) {
+        distance = buffer->gap_start - position;
+        chunk = distance > S64_REU_WINDOW_SIZE
+            ? S64_REU_WINDOW_SIZE
+            : distance;
+        source = buffer->gap_start - chunk;
+        destination = buffer->gap_end - chunk;
+
+        if (!s64_reu_load(
+                S64_REU_BUFFER_BANK,
+                (uint16_t)source,
+                reu_window,
+                (uint16_t)chunk
+            )
+            || !s64_reu_store(
+                S64_REU_BUFFER_BANK,
+                (uint16_t)destination,
+                reu_window,
+                (uint16_t)chunk
+            )) {
+            return 0;
+        }
+
+        buffer->gap_start -= chunk;
+        buffer->gap_end -= chunk;
+    }
+
+    while (buffer->gap_start < position) {
+        distance = position - buffer->gap_start;
+        chunk = distance > S64_REU_WINDOW_SIZE
+            ? S64_REU_WINDOW_SIZE
+            : distance;
+        source = buffer->gap_end;
+        destination = buffer->gap_start;
+
+        if (!s64_reu_load(
+                S64_REU_BUFFER_BANK,
+                (uint16_t)source,
+                reu_window,
+                (uint16_t)chunk
+            )
+            || !s64_reu_store(
+                S64_REU_BUFFER_BANK,
+                (uint16_t)destination,
+                reu_window,
+                (uint16_t)chunk
+            )) {
+            return 0;
+        }
+
+        buffer->gap_start += chunk;
+        buffer->gap_end += chunk;
+    }
+
+    return 1;
+}
+
 static unsigned char load_window(
     const S64Buffer* buffer,
     unsigned int physical
@@ -73,6 +139,7 @@ void s64_buffer_init(S64Buffer* buffer)
 {
     buffer->gap_start = 0u;
     buffer->gap_end = S64_BUFFER_CAPACITY;
+    buffer->cursor = 0u;
     invalidate_window(buffer);
 }
 
@@ -85,7 +152,7 @@ unsigned int s64_buffer_length(const S64Buffer* buffer)
 
 unsigned int s64_buffer_cursor(const S64Buffer* buffer)
 {
-    return buffer->gap_start;
+    return buffer->cursor;
 }
 
 unsigned int s64_buffer_free(const S64Buffer* buffer)
@@ -181,87 +248,51 @@ unsigned int s64_buffer_find_byte(
 {
     unsigned int length = s64_buffer_length(buffer);
 
-    while (start < length && s64_buffer_char_at(buffer, start) != value) {
-        ++start;
+    invalidate_window(buffer);
+    while (start < length) {
+        unsigned int count = length - start;
+        unsigned int i;
+
+        if (count > S64_REU_WINDOW_SIZE) {
+            count = S64_REU_WINDOW_SIZE;
+        }
+        if (s64_buffer_read(
+                buffer,
+                start,
+                reu_window,
+                count
+            ) != count) {
+            return length;
+        }
+
+        for (i = 0u; i < count; ++i) {
+            if (reu_window[i] == value) {
+                return start + i;
+            }
+        }
+        start += count;
     }
 
-    return start;
+    return length;
 }
 
 int s64_buffer_move_cursor(S64Buffer* buffer, unsigned int position)
 {
-    unsigned int length = s64_buffer_length(buffer);
-    unsigned int distance;
-    unsigned int chunk;
-    unsigned int source;
-    unsigned int destination;
-
-    if (position > length) {
+    if (position > s64_buffer_length(buffer)) {
         return 0;
     }
 
-    invalidate_window(buffer);
-
-    while (buffer->gap_start > position) {
-        distance = buffer->gap_start - position;
-        chunk = distance > S64_REU_WINDOW_SIZE
-            ? S64_REU_WINDOW_SIZE
-            : distance;
-        source = buffer->gap_start - chunk;
-        destination = buffer->gap_end - chunk;
-
-        if (!s64_reu_load(
-                S64_REU_BUFFER_BANK,
-                (uint16_t)source,
-                reu_window,
-                (uint16_t)chunk
-            )
-            || !s64_reu_store(
-                S64_REU_BUFFER_BANK,
-                (uint16_t)destination,
-                reu_window,
-                (uint16_t)chunk
-            )) {
-            return 0;
-        }
-
-        buffer->gap_start -= chunk;
-        buffer->gap_end -= chunk;
-    }
-
-    while (buffer->gap_start < position) {
-        distance = position - buffer->gap_start;
-        chunk = distance > S64_REU_WINDOW_SIZE
-            ? S64_REU_WINDOW_SIZE
-            : distance;
-        source = buffer->gap_end;
-        destination = buffer->gap_start;
-
-        if (!s64_reu_load(
-                S64_REU_BUFFER_BANK,
-                (uint16_t)source,
-                reu_window,
-                (uint16_t)chunk
-            )
-            || !s64_reu_store(
-                S64_REU_BUFFER_BANK,
-                (uint16_t)destination,
-                reu_window,
-                (uint16_t)chunk
-            )) {
-            return 0;
-        }
-
-        buffer->gap_start += chunk;
-        buffer->gap_end += chunk;
-    }
-
+    buffer->cursor = position;
     return 1;
 }
 
 int s64_buffer_insert(S64Buffer* buffer, unsigned char value)
 {
     if (buffer->gap_start == buffer->gap_end) {
+        return 0;
+    }
+    if (buffer->gap_start != buffer->cursor
+        && !move_gap(buffer, buffer->cursor)) {
         return 0;
     }
 
@@ -277,23 +308,33 @@ int s64_buffer_insert(S64Buffer* buffer, unsigned char value)
     }
 
     ++buffer->gap_start;
+    ++buffer->cursor;
     return 1;
 }
 
 int s64_buffer_backspace(S64Buffer* buffer)
 {
-    if (buffer->gap_start == 0u) {
+    if (buffer->cursor == 0u) {
+        return 0;
+    }
+    if (buffer->gap_start != buffer->cursor
+        && !move_gap(buffer, buffer->cursor)) {
         return 0;
     }
 
     invalidate_window(buffer);
     --buffer->gap_start;
+    --buffer->cursor;
     return 1;
 }
 
 int s64_buffer_delete(S64Buffer* buffer)
 {
-    if (buffer->gap_end == S64_BUFFER_CAPACITY) {
+    if (buffer->cursor >= s64_buffer_length(buffer)) {
+        return 0;
+    }
+    if (buffer->gap_start != buffer->cursor
+        && !move_gap(buffer, buffer->cursor)) {
         return 0;
     }
 
@@ -318,11 +359,13 @@ int s64_buffer_delete_range(
         return 1;
     }
 
-    if (!s64_buffer_move_cursor(buffer, start)) {
+    if (buffer->gap_start != start
+        && !move_gap(buffer, start)) {
         return 0;
     }
 
     invalidate_window(buffer);
     buffer->gap_end = (unsigned int)(buffer->gap_end + (end - start));
+    buffer->cursor = start;
     return 1;
 }

@@ -9,6 +9,7 @@
 typedef struct {
     unsigned int gap_start;
     unsigned int gap_end;
+    unsigned int cursor;
 } S64Buffer;
 #else
 #define S64_BUFFER_CAPACITY 4096u
