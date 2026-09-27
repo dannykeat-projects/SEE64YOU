@@ -3,6 +3,14 @@
 
 #include <stddef.h>
 
+#ifdef S64_REU_BUFFER
+#define S64_BUFFER_CAPACITY 61440u
+
+typedef struct {
+    unsigned int gap_start;
+    unsigned int gap_end;
+} S64Buffer;
+#else
 #define S64_BUFFER_CAPACITY 4096u
 
 typedef struct {
@@ -10,6 +18,7 @@ typedef struct {
     unsigned int gap_start;
     unsigned int gap_end;
 } S64Buffer;
+#endif
 
 void s64_buffer_init(S64Buffer* buffer);
 unsigned int s64_buffer_length(const S64Buffer* buffer);
