@@ -53,6 +53,10 @@ int main(void)
     uint16_t banks;
     uint8_t result;
 
+#ifdef S64_VICE_DEBUG_SMOKE
+    finish_diagnostic(11u);
+#endif
+
     clrscr();
     cputs("SEE64YOU REU DIAGNOSTIC\r\n\r\n");
 
