@@ -1,5 +1,7 @@
 #include "publisher/editor_handoff.h"
 
+#pragma optimize(push, on)
+
 #include "platform/reu.h"
 #include "platform/reu_layout.h"
 #include "publisher/handoff_record.h"
@@ -107,3 +109,5 @@ int s64_editor_handoff_clear(void)
         (uint16_t)sizeof(record.magic)
     );
 }
+
+#pragma optimize(pop)
