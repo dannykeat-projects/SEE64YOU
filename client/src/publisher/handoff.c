@@ -2,35 +2,9 @@
 
 #include "platform/reu.h"
 #include "platform/reu_layout.h"
+#include "publisher/handoff_record.h"
 
-#include <stddef.h>
 #include <string.h>
-
-#define S64_HANDOFF_VERSION 1u
-#define S64_HANDOFF_MAGIC_0 'S'
-#define S64_HANDOFF_MAGIC_1 '6'
-#define S64_HANDOFF_MAGIC_2 '4'
-#define S64_HANDOFF_MAGIC_3 'H'
-#define S64_HANDOFF_FLAGS_MASK (S64_HANDOFF_FLAG_DIRTY \
-    | S64_HANDOFF_FLAG_INSERT_MODE | S64_HANDOFF_FLAG_WORD_WRAP)
-
-typedef struct {
-    char magic[4];
-    uint8_t version;
-    uint8_t flags;
-    uint16_t gap_start;
-    uint16_t gap_end;
-    uint16_t cursor;
-    uint8_t document_type;
-    uint8_t document_status;
-    int32_t order;
-    char slug[S64_DOCUMENT_SLUG_CAPACITY];
-    char title[S64_DOCUMENT_TITLE_CAPACITY];
-    char date[S64_DOCUMENT_DATE_CAPACITY];
-    char filename[S64_LOCAL_FILENAME_CAPACITY];
-    S64History history;
-    uint16_t checksum;
-} S64HandoffRecord;
 
 static S64HandoffRecord record;
 static const uint8_t invalid_magic[4] = {0u, 0u, 0u, 0u};
@@ -74,21 +48,6 @@ static uint8_t text_valid(
     }
 
     return 0u;
-}
-
-static uint16_t record_checksum(const S64HandoffRecord* value)
-{
-    const uint8_t* bytes = (const uint8_t*)value;
-    uint8_t sum1 = 0x64u;
-    uint8_t sum2 = 0x11u;
-    uint16_t i;
-
-    for (i = 0u; i < (uint16_t)offsetof(S64HandoffRecord, checksum); ++i) {
-        sum1 = (uint8_t)(sum1 + bytes[i]);
-        sum2 = (uint8_t)(sum2 + sum1);
-    }
-
-    return (uint16_t)(((uint16_t)sum2 << 8) | sum1);
 }
 
 static uint8_t history_valid(const S64History* history)
@@ -212,7 +171,7 @@ int s64_handoff_store(const S64PublisherHandoff* handoff)
     memcpy(record.date, handoff->date, sizeof(record.date));
     memcpy(record.filename, handoff->filename, sizeof(record.filename));
     record.history = handoff->history;
-    record.checksum = record_checksum(&record);
+    record.checksum = s64_handoff_record_checksum(&record);
 
     return s64_reu_store(
         S64_REU_HANDOFF_BANK,
@@ -237,7 +196,7 @@ int s64_handoff_load(S64PublisherHandoff* handoff)
         || record.magic[2] != S64_HANDOFF_MAGIC_2
         || record.magic[3] != S64_HANDOFF_MAGIC_3
         || record.version != S64_HANDOFF_VERSION
-        || record.checksum != record_checksum(&record)) {
+        || record.checksum != s64_handoff_record_checksum(&record)) {
         return 0;
     }
 
