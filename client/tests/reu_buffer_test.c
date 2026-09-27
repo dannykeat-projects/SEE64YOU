@@ -151,7 +151,7 @@ int main(void)
     require(s64_buffer_move_cursor(&buffer, 40u), "move logical cursor left without relocating gap");
     require(buffer.gap_start == 261u && buffer.gap_end == 268u, "left logical move leaves gap in place");
     require(s64_buffer_insert(&buffer, 0xfdu), "edit forces overlapping REU gap move left");
-    require(buffer.gap_start == 41u && buffer.gap_end == 48u, "left edit relocates gap and consumes one byte");
+    require(buffer.gap_start == 41u && buffer.gap_end == 47u, "left edit relocates gap and consumes one byte");
     require(s64_buffer_char_at(&buffer, 39u) == (unsigned char)((39u % 251u) + 1u), "left overlap keeps prefix");
     require(s64_buffer_char_at(&buffer, 40u) == 0xfdu, "left overlap inserts at logical cursor");
     require(s64_buffer_char_at(&buffer, 41u) == (unsigned char)((40u % 251u) + 1u), "left overlap keeps following byte");
