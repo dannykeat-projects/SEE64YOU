@@ -11,7 +11,6 @@
 #define S64_CLIPBOARD_TRANSFER_SIZE 64u
 #define S64_EDITOR_SCAN_CHUNK 128u
 #define S64_EDITOR_SEARCH_QUERY_MAX 32u
-static unsigned char clipboard_transfer[S64_CLIPBOARD_TRANSFER_SIZE];
 static unsigned char editor_scan[
     S64_EDITOR_SCAN_CHUNK + S64_EDITOR_SEARCH_QUERY_MAX - 1u
 ];
@@ -1551,13 +1550,13 @@ int s64_editor_copy(const S64Editor* editor, S64Clipboard* clipboard)
         if (s64_buffer_read(
                 &editor->buffer,
                 start + i,
-                clipboard_transfer,
+                editor_scan,
                 count
             ) != count
             || !s64_clipboard_write(
                 clipboard,
                 i,
-                clipboard_transfer,
+                editor_scan,
                 count
             )) {
             clipboard->length = 0u;
@@ -1641,7 +1640,7 @@ int s64_editor_paste(S64Editor* editor, const S64Clipboard* clipboard)
         if (s64_clipboard_read(
                 clipboard,
                 i,
-                clipboard_transfer,
+                editor_scan,
                 count
             ) != count) {
             if (captured) {
@@ -1651,7 +1650,7 @@ int s64_editor_paste(S64Editor* editor, const S64Clipboard* clipboard)
         }
 
         for (j = 0u; j < count; ++j) {
-            if (!s64_buffer_insert(&editor->buffer, clipboard_transfer[j])) {
+            if (!s64_buffer_insert(&editor->buffer, editor_scan[j])) {
                 if (captured) {
                     s64_history_reset(&editor->history);
                 }
