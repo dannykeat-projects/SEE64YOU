@@ -114,48 +114,28 @@ uint8_t s64_reu_probe(void)
 
 uint16_t s64_reu_probe_banks(void)
 {
-    static const uint8_t candidates[] = {
-        2u, 4u, 8u, 16u, 32u, 64u, 128u
-    };
-    uint8_t candidate;
-    uint8_t i;
+    uint16_t bank;
+    uint8_t value;
 
-    probe_value = 0x5Au;
-    probe_readback = 0xA5u;
-
-    if (!s64_reu_load(0u, 0u, &probe_original, 1u)) {
-        return 0u;
+    /*
+     * Mirror cc65's proven c64-reu.emd size probe. Stamp the first byte of all
+     * 256 logical banks with the bank number, then read upward until aliasing
+     * makes the stored value differ. Call this only before allocating REU
+     * contents because it deliberately uses offset 0 of each logical bank.
+     */
+    for (bank = 256u; bank != 0u; --bank) {
+        value = (uint8_t)(bank - 1u);
+        if (!s64_reu_store(value, 0u, &value, 1u)) {
+            return 0u;
+        }
     }
 
-    for (i = 0u; i < (uint8_t)sizeof(candidates); ++i) {
-        candidate = candidates[i];
-
-        if (!s64_reu_load(candidate, 0u, &probe_candidate_original, 1u)) {
+    for (bank = 0u; bank < 256u; ++bank) {
+        if (!s64_reu_load((uint8_t)bank, 0u, &probe_readback, 1u)) {
             return 0u;
         }
-        if (!s64_reu_store(0u, 0u, &probe_value, 1u)) {
-            return 0u;
-        }
-        if (!s64_reu_store(candidate, 0u, &probe_readback, 1u)) {
-            (void)s64_reu_store(0u, 0u, &probe_original, 1u);
-            return 0u;
-        }
-        if (!s64_reu_load(0u, 0u, &probe_base_read, 1u)) {
-            (void)s64_reu_store(candidate, 0u, &probe_candidate_original, 1u);
-            (void)s64_reu_store(0u, 0u, &probe_original, 1u);
-            return 0u;
-        }
-
-        if (probe_base_read == probe_readback) {
-            return s64_reu_store(0u, 0u, &probe_original, 1u)
-                ? (uint16_t)candidate
-                : 0u;
-        }
-
-        if (probe_base_read != probe_value
-            || !s64_reu_store(candidate, 0u, &probe_candidate_original, 1u)
-            || !s64_reu_store(0u, 0u, &probe_original, 1u)) {
-            return 0u;
+        if (probe_readback != (uint8_t)bank) {
+            return bank;
         }
     }
 
