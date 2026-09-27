@@ -65,7 +65,7 @@ These player-facing checks are assigned to the user where practical; automated s
 - [x] Define simple metadata + source-body representation.
 - [x] Implement safe minimal markup rendering on the standalone backend.
 - [ ] Freeze See64You Markup v1 after formatting UI/menu wiring and round-trip validation.
-- [x] Bold / italic / headings / lists / links formatting command core (basic formatting is isolated in `editor_format.c`; Ctrl+B, Ctrl+I, Ctrl+L and Ctrl+1/Ctrl+2 heading toggles are wired into the conventional-C64 runtime. The URL/link core remains host-tested but dormant: directly linking `editor_format_link.c` overflowed the C64 BSS memory area by 936 bytes with the 1 KiB stack on 2026-09-27, so link UI needs a different memory/overlay strategy).
+- [x] Bold / italic / headings / lists / links formatting command core (basic formatting is isolated in `editor_format.c`; Ctrl+B, Ctrl+I and Ctrl+L remain wired into the conventional-C64 runtime. Heading formatting remains available to the future Format menu, but Ctrl+1/Ctrl+2 were removed after VICE validation on 2026-09-27 because typing `#` / `##` is equally direct. The URL/link core remains host-tested but dormant: directly linking `editor_format_link.c` overflowed the C64 BSS memory area by 936 bytes with the 1 KiB stack on 2026-09-27, so link UI needs a different memory/overlay strategy).
 - [ ] C64 preview view.
 - [x] Preserve unsupported markup as text rather than corrupting it (verified by renderer regression coverage 2026-09-25).
 
@@ -88,7 +88,7 @@ These player-facing checks are assigned to the user where practical; automated s
 - [ ] Large clipboard backed by REU.
 - [ ] Multi-level undo backed by REU.
 - [ ] Mouse selection/menu support where practical.
-- [ ] Detect capabilities and degrade cleanly on a conventional C64 where possible (base build now omits dormant formatting runtime code and restores a 1 KiB software stack; validation map leaves roughly 3.2 KiB below the stack for subsequent conventional-C64 work).
+- [ ] Detect capabilities and degrade cleanly on a conventional C64 where possible (base build now omits dormant formatting runtime code and restores a 1 KiB software stack; validation map leaves roughly 349 bytes below the 1 KiB stack at the current integration baseline).
 
 ## P2 - Polish
 
