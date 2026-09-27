@@ -38,6 +38,8 @@ The input layer uses this state alongside buffered keyboard characters. Where fi
 
 - Ctrl+A: Select all
 - Ctrl+B: toggle bold markers around the selection (or insert an empty bold pair)
+- Ctrl+1: toggle heading level 1 on the current line
+- Ctrl+2: toggle heading level 2 on the current line
 - Ctrl+C: Copy
 - Ctrl+X: Cut
 - Ctrl+V: Paste

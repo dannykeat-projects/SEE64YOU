@@ -65,7 +65,7 @@ These player-facing checks are assigned to the user where practical; automated s
 - [x] Define simple metadata + source-body representation.
 - [x] Implement safe minimal markup rendering on the standalone backend.
 - [ ] Freeze See64You Markup v1 after formatting UI/menu wiring and round-trip validation.
-- [x] Bold / italic / headings / lists / links formatting command core (basic formatting is isolated in `editor_format.c`; Ctrl+B, Ctrl+I and Ctrl+L are now wired into the conventional-C64 runtime. Heading UI and the separately isolated URL/link path remain to be wired after their input/menu and memory strategy is settled).
+- [x] Bold / italic / headings / lists / links formatting command core (basic formatting is isolated in `editor_format.c`; Ctrl+B, Ctrl+I, Ctrl+L and Ctrl+1/Ctrl+2 heading toggles are wired into the conventional-C64 runtime. The separately isolated URL/link path remains dormant until its prompt/menu and memory strategy is settled).
 - [ ] C64 preview view.
 - [x] Preserve unsupported markup as text rather than corrupting it (verified by renderer regression coverage 2026-09-25).
 
