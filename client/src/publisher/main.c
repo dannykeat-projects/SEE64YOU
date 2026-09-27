@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "buffer.h"
+#include "charset.h"
 #include "document.h"
 #include "platform/http.h"
 #include "platform/reu.h"
@@ -150,6 +151,15 @@ static void render_prompt(
     );
 }
 
+static unsigned char prompt_printable(unsigned char key)
+{
+    uint8_t ascii;
+
+    return s64_charset_native_to_ascii(key, &ascii)
+        && ascii >= 0x20u
+        && ascii <= 0x7eu;
+}
+
 static unsigned char prompt_text(
     const char* label,
     char* value,
@@ -188,7 +198,7 @@ static unsigned char prompt_text(
             }
             continue;
         }
-        if (key >= 0x20u && key <= 0x7eu
+        if (prompt_printable(key)
             && length + 1u < capacity) {
             value[length++] = (char)key;
             value[length] = '\0';
@@ -428,6 +438,8 @@ int main(void)
 
     memset(prompt_buffer, 0, sizeof(prompt_buffer));
     memset(username, 0, sizeof(username));
+    memset(&session, 0, sizeof(session));
+    memset(connection_url, 0, sizeof(connection_url));
     clrscr();
     cputs("SEE64YOU PUBLISHER EXITED\r\n");
     return 0;
