@@ -194,6 +194,13 @@ if command -v cl65 >/dev/null 2>&1 \
     echo "== Recovery diagnostic build =="
     make -C client recovery-probe
 
+    echo "== C64U publisher build =="
+    make -C client publisher
+    if command -v python3 >/dev/null 2>&1; then
+        python3 tools/check_memory_headroom.py client/build/see64you-publisher.map \
+            --label "C64U publisher" --min-headroom 1024
+    fi
+
     if command -v x64sc >/dev/null 2>&1 \
         && command -v xvfb-run >/dev/null 2>&1 \
         && command -v python3 >/dev/null 2>&1 \
