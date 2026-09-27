@@ -64,7 +64,9 @@ void s64_history_extend_insert(
 );
 void s64_history_break_coalesce(S64History* history);
 void s64_history_mark_saved(S64History* history);
+#ifdef S64_REU_BUFFER
 int s64_history_prepare_handoff(S64History* history);
+#endif
 int s64_history_undo(
     S64History* history,
     S64Buffer* buffer,
