@@ -52,7 +52,13 @@ cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
 echo "== Host REU editor clipboard tests =="
 cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/tests/reu_editor_clipboard_test.c client/src/buffer_reu.c \
-    client/src/clipboard.c client/src/history.c client/src/editor.c -o "$TMP_BIN"
+    client/src/clipboard.c client/src/history_reu.c client/src/editor.c -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host REU multi-level history tests =="
+cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
+    client/tests/reu_history_test.c client/src/buffer_reu.c \
+    client/src/clipboard.c client/src/history_reu.c client/src/editor.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host editor tests =="
@@ -141,6 +147,10 @@ if command -v cl65 >/dev/null 2>&1 \
     cc65 -t c64 -Oirs -DS64_NATIVE_PETSCII=1 -DS64_REU_BUFFER=1 -I client/src \
         -o "$TMP_MODULE_DIR/buffer_reu.s" client/src/buffer_reu.c
     ca65 -t c64 -o "$TMP_MODULE_DIR/buffer_reu.o" "$TMP_MODULE_DIR/buffer_reu.s"
+
+    cc65 -t c64 -Oirs -DS64_NATIVE_PETSCII=1 -DS64_REU_BUFFER=1 -I client/src \
+        -o "$TMP_MODULE_DIR/history_reu.s" client/src/history_reu.c
+    ca65 -t c64 -o "$TMP_MODULE_DIR/history_reu.o" "$TMP_MODULE_DIR/history_reu.s"
 
     echo "== cc65 C64 build =="
     make -C client clean all

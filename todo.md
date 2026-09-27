@@ -90,7 +90,7 @@ These player-facing checks are assigned to the user where practical; automated s
 - [ ] Validate and tune large-document interactive responsiveness on the C64U build before making it the preferred C64U path (REU-only incremental Go to line validated in VICE; 6,000-byte editor workload improved by about 15% while base-C64 memory remained unchanged. Search and history/edit restoration are the next measured hotspots).
 - [ ] Repeat REU/editor validation on real C64U hardware when available.
 - [x] Large clipboard backed by REU (C64U build uses a 60 KiB clipboard in REU bank 1 while the base C64 keeps its 256-byte RAM clipboard. >256-byte copy/paste/cut passes host regression testing, and VICE validated copying the full ~6 KiB editor fixture plus reading clipboard data beyond 4 KiB).
-- [ ] Multi-level undo backed by REU.
+- [x] Multi-level undo backed by REU (C64U build keeps 16 undo/redo transactions in the final 4 KiB of REU bank 0, with 256-byte payloads per transaction; base C64 retains its existing single-level RAM history. Host tests cover redo branching, saved-state dirty tracking and ring rollover, and the real-REU 6,000-byte editor diagnostic passes with this backend).
 - [ ] Mouse selection/menu support where practical.
 - [ ] Detect capabilities and degrade cleanly on a conventional C64 where possible (base build now omits dormant formatting runtime code and restores a 1 KiB software stack; current validated base build leaves roughly 427 bytes below the 1 KiB stack; REU support remains dormant until capability-gated).
 
