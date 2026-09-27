@@ -178,21 +178,7 @@ static unsigned int render_line_end(
     unsigned int position
 )
 {
-    unsigned int length = s64_buffer_length(buffer);
-    unsigned int physical = position;
-
-    if (physical >= buffer->gap_start) {
-        physical += buffer->gap_end - buffer->gap_start;
-    }
-
-    while (position < length && buffer->data[physical] != '\n') {
-        ++position;
-        ++physical;
-        if (physical == buffer->gap_start) {
-            physical = buffer->gap_end;
-        }
-    }
-    return position;
+    return s64_buffer_find_byte(buffer, position, '\n');
 }
 
 static void render_body_wrapped(
@@ -204,9 +190,10 @@ static void render_body_wrapped(
     unsigned int position = editor->view_start;
     unsigned int length = s64_buffer_length(&editor->buffer);
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
-    unsigned int physical;
     unsigned int selection_start = 0u;
     unsigned int selection_end = 0u;
+    unsigned int read_count;
+    unsigned int logical;
     unsigned char has_selection = s64_editor_has_selection(editor);
     unsigned char found = 0u;
     unsigned char row;
@@ -220,11 +207,6 @@ static void render_body_wrapped(
         position = cursor - editor->view_cursor_column;
         rendered_rows = (unsigned char)(partial_first_row - EDITOR_FIRST_ROW);
         row = partial_first_row;
-    }
-
-    physical = position;
-    if (physical >= editor->buffer.gap_start) {
-        physical += editor->buffer.gap_end - editor->buffer.gap_start;
     }
 
     if (has_selection) {
@@ -243,38 +225,42 @@ static void render_body_wrapped(
             found = 1u;
         }
 
-        while (position < length && col < SCREEN_COLUMNS) {
-            if (!found && position == cursor) {
+        read_count = s64_buffer_read(
+            &editor->buffer,
+            position,
+            row_chars,
+            SCREEN_COLUMNS
+        );
+
+        while ((unsigned int)col < read_count) {
+            logical = position + col;
+
+            if (!found && logical == cursor) {
                 *cursor_row = row;
                 *cursor_col = col;
                 found = 1u;
             }
 
-            if (editor->buffer.data[physical] == '\n') {
-                ++position;
-                ++physical;
-                if (physical == editor->buffer.gap_start) {
-                    physical = editor->buffer.gap_end;
-                }
+            if (row_chars[col] == '\n') {
+                memset(&row_chars[col], ' ', SCREEN_COLUMNS - col);
+                position = logical + 1u;
                 line_break = 1u;
                 break;
             }
 
-            row_chars[col] = editor->buffer.data[physical];
             if (has_selection) {
                 row_reverse[col] = position_selected(
-                    position,
+                    logical,
                     has_selection,
                     selection_start,
                     selection_end
                 );
             }
-            ++position;
-            ++physical;
-            if (physical == editor->buffer.gap_start) {
-                physical = editor->buffer.gap_end;
-            }
             ++col;
+        }
+
+        if (!line_break) {
+            position += read_count;
         }
 
         if (!found
@@ -324,7 +310,7 @@ static void render_body_horizontal(
     unsigned int end;
     unsigned int display;
     unsigned int cursor_offset;
-    unsigned int physical;
+    unsigned int read_count;
     unsigned char has_selection = s64_editor_has_selection(editor);
     unsigned char found = 0u;
     unsigned char row;
@@ -363,29 +349,21 @@ static void render_body_horizontal(
             display = end;
         }
 
-        col = 0u;
-        if (display >= editor->buffer.gap_start) {
-            physical = display
-                + (editor->buffer.gap_end - editor->buffer.gap_start);
-        } else {
-            physical = display;
+        read_count = end - display;
+        if (read_count > SCREEN_COLUMNS) {
+            read_count = SCREEN_COLUMNS;
         }
-        while (display < end && col < SCREEN_COLUMNS) {
-            row_chars[col] = editor->buffer.data[physical];
-            if (has_selection) {
+        (void)s64_buffer_read(&editor->buffer, display, row_chars, read_count);
+
+        if (has_selection) {
+            for (col = 0u; (unsigned int)col < read_count; ++col) {
                 row_reverse[col] = position_selected(
-                    display,
+                    display + col,
                     has_selection,
                     selection_start,
                     selection_end
                 );
             }
-            ++display;
-            ++physical;
-            if (physical == editor->buffer.gap_start) {
-                physical = editor->buffer.gap_end;
-            }
-            ++col;
         }
 
         flush_body_row(row);
