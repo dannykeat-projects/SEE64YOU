@@ -1,5 +1,6 @@
 TARGET := build/see64you.prg
 C64U_TARGET := build/see64you-c64u.prg
+C64U_CHAIN_TARGET := build/SEE64YOU-C64U.PRG
 EDITOR_PROBE_TARGET := build/editor-probe.prg
 REU_PROBE_TARGET := build/reu-probe.prg
 REU_BUFFER_PROBE_TARGET := build/reu-buffer-probe.prg
@@ -7,8 +8,9 @@ REU_EDITOR_PROBE_TARGET := build/reu-editor-probe.prg
 RECOVERY_PROBE_TARGET := build/recovery-probe.prg
 PUBLISHER_COMPANION_FIT_TARGET := build/publisher-companion-fit.prg
 PUBLISHER_TARGET := build/see64you-publisher.prg
+PUBLISHER_CHAIN_TARGET := build/S64PUB.PRG
 SOURCES := src/main.c src/charset.c src/buffer.c src/history.c src/clipboard.c src/document.c src/editor.c src/editor_format.c src/ui.c src/ui_status.s src/input/input.c src/platform/uci.c src/platform/dos.c src/storage/local.c
-C64U_SOURCES := $(filter-out src/buffer.c src/history.c,$(SOURCES)) src/buffer_reu.c src/history_reu.c src/platform/reu.c src/platform/reu_dma.s
+C64U_SOURCES := $(filter-out src/buffer.c src/history.c,$(SOURCES)) src/buffer_reu.c src/history_reu.c src/platform/reu.c src/platform/reu_dma.s src/publisher/handoff.c
 EDITOR_PROBE_SOURCES := diagnostics/editor_probe.c src/buffer.c src/history.c src/clipboard.c src/editor.c src/editor_format.c
 REU_PROBE_SOURCES := diagnostics/reu_probe.c src/platform/reu.c src/platform/reu_dma.s
 REU_BUFFER_PROBE_SOURCES := diagnostics/reu_buffer_probe.c src/buffer_reu.c src/platform/reu.c src/platform/reu_dma.s
@@ -33,11 +35,14 @@ $(TARGET): $(SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -m build/see64you.map -o $@ $(SOURCES)
 
-c64u: $(C64U_TARGET)
+c64u: $(C64U_TARGET) $(C64U_CHAIN_TARGET)
 
 $(C64U_TARGET): $(C64U_SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -m build/see64you-c64u.map -o $@ $(C64U_SOURCES)
+
+$(C64U_CHAIN_TARGET): $(C64U_TARGET)
+	cp $< $@
 
 editor-probe: $(EDITOR_PROBE_TARGET)
 
@@ -57,11 +62,14 @@ $(REU_BUFFER_PROBE_TARGET): $(REU_BUFFER_PROBE_SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -m build/reu-buffer-probe.map -o $@ $(REU_BUFFER_PROBE_SOURCES)
 
-publisher: $(PUBLISHER_TARGET)
+publisher: $(PUBLISHER_TARGET) $(PUBLISHER_CHAIN_TARGET)
 
 $(PUBLISHER_TARGET): $(PUBLISHER_SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -m build/see64you-publisher.map -o $@ $(PUBLISHER_SOURCES)
+
+$(PUBLISHER_CHAIN_TARGET): $(PUBLISHER_TARGET)
+	cp $< $@
 
 publisher-companion-fit: $(PUBLISHER_COMPANION_FIT_TARGET)
 
