@@ -1,7 +1,5 @@
 #include "reu.h"
 
-#define S64_REU_STATUS          (*(volatile uint8_t*)0xDF00u)
-#define S64_REU_COMMAND         (*(volatile uint8_t*)0xDF01u)
 #define S64_REU_C64_ADDR_LO     (*(volatile uint8_t*)0xDF02u)
 #define S64_REU_C64_ADDR_HI     (*(volatile uint8_t*)0xDF03u)
 #define S64_REU_ADDR_LO         (*(volatile uint8_t*)0xDF04u)
@@ -11,11 +9,14 @@
 #define S64_REU_LENGTH_HI       (*(volatile uint8_t*)0xDF08u)
 #define S64_REU_ADDR_CONTROL    (*(volatile uint8_t*)0xDF0Au)
 
-#define S64_REU_STATUS_END_OF_BLOCK 0x40u
-#define S64_REU_COMMAND_EXECUTE     0x80u
-#define S64_REU_COMMAND_IMMEDIATE   0x10u
-#define S64_REU_TRANSFER_TO_REU     0x00u
-#define S64_REU_TRANSFER_FROM_REU   0x01u
+#define S64_REU_TRANSFER_TO_REU     0xECu
+#define S64_REU_TRANSFER_FROM_REU   0xEDu
+
+void __fastcall__ s64_reu_kick(uint8_t command);
+
+static uint8_t probe_original;
+static uint8_t probe_value;
+static uint8_t probe_readback;
 
 static uint8_t s64_reu_transfer(
     uint8_t transfer_type,
@@ -42,15 +43,12 @@ static uint8_t s64_reu_transfer(
     S64_REU_LENGTH_HI = (uint8_t)(length >> 8);
     S64_REU_ADDR_CONTROL = 0u;
 
-    /* Clear stale completion flags before starting the immediate DMA. */
-    (void)S64_REU_STATUS;
-    S64_REU_COMMAND = (uint8_t)(
-        S64_REU_COMMAND_EXECUTE
-        | S64_REU_COMMAND_IMMEDIATE
-        | transfer_type
-    );
-
-    return (S64_REU_STATUS & S64_REU_STATUS_END_OF_BLOCK) != 0u;
+    /*
+     * Use the same delayed-trigger sequence as cc65's c64-reu.emd driver.
+     * The assembly helper preserves the CPU memory configuration and flags.
+     */
+    s64_reu_kick(transfer_type);
+    return 1u;
 }
 
 uint8_t s64_reu_store(
@@ -87,77 +85,53 @@ uint8_t s64_reu_load(
 
 uint8_t s64_reu_probe(void)
 {
-    uint8_t original;
-    uint8_t probe = 0xA5u;
-    uint8_t readback = 0u;
     uint8_t restored;
 
     /*
-     * Exercise one byte in bank 0 rather than trusting register echo alone.
-     * The original byte is restored before returning.
+     * Keep DMA scratch outside the cc65 software stack. Exercise one byte in
+     * bank 0 rather than trusting register echo alone, then restore it.
      */
-    if (!s64_reu_load(0u, 0u, &original, 1u)) {
+    probe_value = 0xA5u;
+    probe_readback = 0u;
+
+    if (!s64_reu_load(0u, 0u, &probe_original, 1u)) {
         return 0u;
     }
-    if (!s64_reu_store(0u, 0u, &probe, 1u)) {
+    if (!s64_reu_store(0u, 0u, &probe_value, 1u)) {
         return 0u;
     }
 
-    if (!s64_reu_load(0u, 0u, &readback, 1u)) {
-        (void)s64_reu_store(0u, 0u, &original, 1u);
+    if (!s64_reu_load(0u, 0u, &probe_readback, 1u)) {
+        (void)s64_reu_store(0u, 0u, &probe_original, 1u);
         return 0u;
     }
 
-    restored = s64_reu_store(0u, 0u, &original, 1u);
-    return restored && readback == probe;
+    restored = s64_reu_store(0u, 0u, &probe_original, 1u);
+    return restored && probe_readback == probe_value;
 }
 
 uint16_t s64_reu_probe_banks(void)
 {
-    static const uint8_t candidates[] = {
-        2u, 4u, 8u, 16u, 32u, 64u, 128u
-    };
-    uint8_t base_original;
-    uint8_t candidate_original;
-    uint8_t base_marker = 0x5Au;
-    uint8_t candidate_marker = 0xA5u;
-    uint8_t base_read;
-    uint8_t candidate;
-    uint8_t i;
-
-    if (!s64_reu_load(0u, 0u, &base_original, 1u)) {
-        return 0u;
+    uint16_t bank;
+    /*
+     * Mirror cc65's proven c64-reu.emd size probe. Stamp the first byte of all
+     * 256 logical banks with the bank number, then read upward until aliasing
+     * makes the stored value differ. Call this only before allocating REU
+     * contents because it deliberately uses offset 0 of each logical bank.
+     */
+    for (bank = 256u; bank != 0u; --bank) {
+        probe_value = (uint8_t)(bank - 1u);
+        if (!s64_reu_store(probe_value, 0u, &probe_value, 1u)) {
+            return 0u;
+        }
     }
 
-    for (i = 0u; i < (uint8_t)sizeof(candidates); ++i) {
-        candidate = candidates[i];
-
-        if (!s64_reu_load(candidate, 0u, &candidate_original, 1u)) {
+    for (bank = 0u; bank < 256u; ++bank) {
+        if (!s64_reu_load((uint8_t)bank, 0u, &probe_readback, 1u)) {
             return 0u;
         }
-        if (!s64_reu_store(0u, 0u, &base_marker, 1u)) {
-            return 0u;
-        }
-        if (!s64_reu_store(candidate, 0u, &candidate_marker, 1u)) {
-            (void)s64_reu_store(0u, 0u, &base_original, 1u);
-            return 0u;
-        }
-        if (!s64_reu_load(0u, 0u, &base_read, 1u)) {
-            (void)s64_reu_store(candidate, 0u, &candidate_original, 1u);
-            (void)s64_reu_store(0u, 0u, &base_original, 1u);
-            return 0u;
-        }
-
-        if (base_read == candidate_marker) {
-            return s64_reu_store(0u, 0u, &base_original, 1u)
-                ? (uint16_t)candidate
-                : 0u;
-        }
-
-        if (base_read != base_marker
-            || !s64_reu_store(candidate, 0u, &candidate_original, 1u)
-            || !s64_reu_store(0u, 0u, &base_original, 1u)) {
-            return 0u;
+        if (probe_readback != (uint8_t)bank) {
+            return bank;
         }
     }
 

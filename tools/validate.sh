@@ -142,6 +142,19 @@ if command -v cl65 >/dev/null 2>&1 \
     echo "== cc65 C64U REU editor build =="
     make -C client c64u
 
+    echo "== REU diagnostic build =="
+    make -C client reu-probe
+
+    if command -v x64sc >/dev/null 2>&1 \
+        && command -v xvfb-run >/dev/null 2>&1 \
+        && command -v python3 >/dev/null 2>&1 \
+        && command -v curl >/dev/null 2>&1; then
+        echo "== VICE REU hardware validation =="
+        sh ./tools/test_reu_vice.sh
+    else
+        echo "SKIP REU VICE validation (x64sc/xvfb-run/python3/curl required)"
+    fi
+
     rm -rf "$TMP_MODULE_DIR"
     TMP_MODULE_DIR=""
 else
