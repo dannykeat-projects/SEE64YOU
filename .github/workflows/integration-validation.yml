@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - integration-validation-2026-09-24
+      - feature/reu-hardware-layer
   workflow_dispatch:
 
 concurrency:
