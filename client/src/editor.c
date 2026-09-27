@@ -1050,8 +1050,8 @@ void s64_editor_word_right(S64Editor* editor)
 
 int s64_editor_go_to_line(S64Editor* editor, unsigned int line_number)
 {
-    unsigned int i;
-    unsigned int current_line = 1u;
+    unsigned int position;
+    unsigned int current_line;
     unsigned int length = s64_buffer_length(&editor->buffer);
 
     s64_history_break_coalesce(&editor->history);
@@ -1061,26 +1061,54 @@ int s64_editor_go_to_line(S64Editor* editor, unsigned int line_number)
     }
 
     if (line_number == 1u) {
-        s64_buffer_move_cursor(&editor->buffer, 0u);
-    } else {
-        for (i = 0u; i < length; ++i) {
-            if (s64_buffer_char_at(&editor->buffer, i) == '\n') {
-                ++current_line;
-                if (current_line == line_number) {
-                    s64_buffer_move_cursor(&editor->buffer, i + 1u);
-                    break;
-                }
+        position = 0u;
+    } else if (editor->position_cursor != POSITION_INVALID
+        && editor->line > 0u) {
+        current_line = editor->line;
+        position = s64_editor_internal_line_start(
+            &editor->buffer,
+            s64_buffer_cursor(&editor->buffer)
+        );
+
+        while (current_line < line_number) {
+            position = s64_buffer_find_byte(&editor->buffer, position, '\n');
+            if (position >= length) {
+                return 0;
             }
+            ++position;
+            ++current_line;
         }
 
-        if (current_line != line_number) {
-            return 0;
+        while (current_line > line_number) {
+            if (position == 0u) {
+                return 0;
+            }
+            position = s64_editor_internal_line_start(
+                &editor->buffer,
+                position - 1u
+            );
+            --current_line;
         }
+    } else {
+        current_line = 1u;
+        position = 0u;
+        while (current_line < line_number) {
+            position = s64_buffer_find_byte(&editor->buffer, position, '\n');
+            if (position >= length) {
+                return 0;
+            }
+            ++position;
+            ++current_line;
+        }
+    }
+
+    if (!s64_buffer_move_cursor(&editor->buffer, position)) {
+        return 0;
     }
 
     editor->line = line_number;
     editor->column = 1u;
-    editor->position_cursor = s64_buffer_cursor(&editor->buffer);
+    editor->position_cursor = position;
     s64_editor_internal_reset_preferred_column(editor);
     update_selection_after_move(editor);
     s64_editor_ensure_cursor_visible(editor);
