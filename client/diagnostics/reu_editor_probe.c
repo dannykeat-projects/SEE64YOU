@@ -107,26 +107,38 @@ int main(void)
     if (!s64_editor_go_to_line(&editor, 180u)) {
         fail(7u);
     }
+    DIAG_PROGRESS = 0x41u;
     s64_editor_toggle_mark(&editor);
     for (i = 0u; i < 5u; ++i) {
         s64_editor_right(&editor);
     }
     s64_editor_toggle_mark(&editor);
-    if (!s64_editor_copy(&editor, &clipboard)
-        || clipboard.length != 5u
-        || !s64_editor_cut(&editor, &clipboard)
-        || s64_buffer_length(&editor.buffer) != 5996u
-        || !s64_editor_undo(&editor)
+    DIAG_PROGRESS = 0x42u;
+    if (!s64_editor_copy(&editor, &clipboard) || clipboard.length != 5u) {
+        fail(8u);
+    }
+    DIAG_PROGRESS = 0x43u;
+    if (!s64_editor_cut(&editor, &clipboard)
+        || s64_buffer_length(&editor.buffer) != 5996u) {
+        fail(8u);
+    }
+    DIAG_PROGRESS = 0x44u;
+    if (!s64_editor_undo(&editor)
         || s64_buffer_length(&editor.buffer) != 6001u) {
         fail(8u);
     }
+    DIAG_PROGRESS = 0x45u;
     require_fixture_range(5549u, 5u);
     if (!s64_editor_redo(&editor)
-        || s64_buffer_length(&editor.buffer) != 5996u
-        || !s64_editor_paste(&editor, &clipboard)
+        || s64_buffer_length(&editor.buffer) != 5996u) {
+        fail(10u);
+    }
+    DIAG_PROGRESS = 0x46u;
+    if (!s64_editor_paste(&editor, &clipboard)
         || s64_buffer_length(&editor.buffer) != 6001u) {
         fail(10u);
     }
+    DIAG_PROGRESS = 0x47u;
     require_fixture_range(5549u, 5u);
 
     DIAG_PROGRESS = 0x50u;
