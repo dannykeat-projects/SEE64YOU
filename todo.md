@@ -65,7 +65,7 @@ These player-facing checks are assigned to the user where practical; automated s
 - [x] Define simple metadata + source-body representation.
 - [x] Implement safe minimal markup rendering on the standalone backend.
 - [ ] Freeze See64You Markup v1 after formatting UI/menu wiring and round-trip validation.
-- [x] Bold / italic / headings / lists / links formatting command core (kept in separately validated `editor_format.c`; omitted from the conventional-C64 PRG until FORMAT UI wiring so dormant code does not consume base RAM).
+- [x] Bold / italic / headings / lists / links formatting command core (basic formatting is isolated in `editor_format.c`, while the larger URL/link path is isolated in `editor_format_link.c`; both remain host/cc65-module tested. A diagnostic build proves basic formatting fits with the restored 1 KiB stack, leaving link formatting dormant until a later memory/overlay step).
 - [ ] C64 preview view.
 - [x] Preserve unsupported markup as text rather than corrupting it (verified by renderer regression coverage 2026-09-25).
 
