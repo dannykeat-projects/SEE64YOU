@@ -4,7 +4,8 @@
 #include <stddef.h>
 
 #ifdef S64_REU_BUFFER
-#define S64_BUFFER_CAPACITY 61440u
+#include "platform/reu_layout.h"
+#define S64_BUFFER_CAPACITY S64_REU_DOCUMENT_CAPACITY
 
 typedef struct {
     unsigned int gap_start;
