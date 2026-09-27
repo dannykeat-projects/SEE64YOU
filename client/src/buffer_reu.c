@@ -248,11 +248,32 @@ unsigned int s64_buffer_find_byte(
 {
     unsigned int length = s64_buffer_length(buffer);
 
-    while (start < length && s64_buffer_char_at(buffer, start) != value) {
-        ++start;
+    invalidate_window(buffer);
+    while (start < length) {
+        unsigned int count = length - start;
+        unsigned int i;
+
+        if (count > S64_REU_WINDOW_SIZE) {
+            count = S64_REU_WINDOW_SIZE;
+        }
+        if (s64_buffer_read(
+                buffer,
+                start,
+                reu_window,
+                count
+            ) != count) {
+            return length;
+        }
+
+        for (i = 0u; i < count; ++i) {
+            if (reu_window[i] == value) {
+                return start + i;
+            }
+        }
+        start += count;
     }
 
-    return start;
+    return length;
 }
 
 int s64_buffer_move_cursor(S64Buffer* buffer, unsigned int position)
@@ -267,8 +288,11 @@ int s64_buffer_move_cursor(S64Buffer* buffer, unsigned int position)
 
 int s64_buffer_insert(S64Buffer* buffer, unsigned char value)
 {
-    if (buffer->gap_start == buffer->gap_end
-        || !move_gap(buffer, buffer->cursor)) {
+    if (buffer->gap_start == buffer->gap_end) {
+        return 0;
+    }
+    if (buffer->gap_start != buffer->cursor
+        && !move_gap(buffer, buffer->cursor)) {
         return 0;
     }
 
@@ -290,8 +314,11 @@ int s64_buffer_insert(S64Buffer* buffer, unsigned char value)
 
 int s64_buffer_backspace(S64Buffer* buffer)
 {
-    if (buffer->cursor == 0u
-        || !move_gap(buffer, buffer->cursor)) {
+    if (buffer->cursor == 0u) {
+        return 0;
+    }
+    if (buffer->gap_start != buffer->cursor
+        && !move_gap(buffer, buffer->cursor)) {
         return 0;
     }
 
@@ -303,8 +330,11 @@ int s64_buffer_backspace(S64Buffer* buffer)
 
 int s64_buffer_delete(S64Buffer* buffer)
 {
-    if (buffer->cursor >= s64_buffer_length(buffer)
-        || !move_gap(buffer, buffer->cursor)) {
+    if (buffer->cursor >= s64_buffer_length(buffer)) {
+        return 0;
+    }
+    if (buffer->gap_start != buffer->cursor
+        && !move_gap(buffer, buffer->cursor)) {
         return 0;
     }
 
@@ -329,7 +359,8 @@ int s64_buffer_delete_range(
         return 1;
     }
 
-    if (!move_gap(buffer, start)) {
+    if (buffer->gap_start != start
+        && !move_gap(buffer, start)) {
         return 0;
     }
 
