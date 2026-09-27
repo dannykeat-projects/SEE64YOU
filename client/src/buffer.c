@@ -1,5 +1,7 @@
 #include "buffer.h"
 
+#include <string.h>
+
 void s64_buffer_init(S64Buffer* buffer)
 {
     buffer->gap_start = 0u;
@@ -28,6 +30,71 @@ unsigned char s64_buffer_char_at(const S64Buffer* buffer, unsigned int index)
     }
 
     return buffer->data[index + (buffer->gap_end - buffer->gap_start)];
+}
+
+unsigned int s64_buffer_read(
+    const S64Buffer* buffer,
+    unsigned int start,
+    unsigned char* output,
+    unsigned int capacity
+)
+{
+    unsigned int length = s64_buffer_length(buffer);
+    unsigned int count;
+    unsigned int first;
+    unsigned int gap_size = buffer->gap_end - buffer->gap_start;
+
+    if (output == 0 || capacity == 0u || start >= length) {
+        return 0u;
+    }
+
+    count = length - start;
+    if (count > capacity) {
+        count = capacity;
+    }
+
+    if (start < buffer->gap_start) {
+        first = buffer->gap_start - start;
+        if (first > count) {
+            first = count;
+        }
+        memcpy(output, &buffer->data[start], first);
+        if (first < count) {
+            memcpy(output + first, &buffer->data[buffer->gap_end], count - first);
+        }
+    } else {
+        memcpy(output, &buffer->data[start + gap_size], count);
+    }
+
+    return count;
+}
+
+unsigned int s64_buffer_find_byte(
+    const S64Buffer* buffer,
+    unsigned int start,
+    unsigned char value
+)
+{
+    unsigned int length = s64_buffer_length(buffer);
+    unsigned int physical = start;
+
+    if (start >= length) {
+        return length;
+    }
+
+    if (physical >= buffer->gap_start) {
+        physical += buffer->gap_end - buffer->gap_start;
+    }
+
+    while (start < length && buffer->data[physical] != value) {
+        ++start;
+        ++physical;
+        if (physical == buffer->gap_start) {
+            physical = buffer->gap_end;
+        }
+    }
+
+    return start;
 }
 
 int s64_buffer_move_cursor(S64Buffer* buffer, unsigned int position)
