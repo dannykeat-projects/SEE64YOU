@@ -27,6 +27,11 @@ static unsigned char temp_exists;
 static unsigned char open_mode;
 static unsigned int read_offset;
 
+static S64Dos dos;
+static S64Buffer body;
+static S64Document document;
+static S64LocalDocument local;
+
 static void fail(unsigned char detail)
 {
     DIAG_DETAIL = detail;
@@ -203,10 +208,6 @@ int main(void)
         'R','e','c','o','v','e','r','y',' ',
         'b','o','d','y','\n','L','i','n','e',' ','2'
     };
-    S64Dos dos;
-    S64Buffer body;
-    S64Document document;
-    S64LocalDocument local;
     S64LocalResult result;
     uint8_t exists;
     unsigned int i;
