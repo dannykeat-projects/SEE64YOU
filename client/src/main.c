@@ -327,9 +327,15 @@ static int parse_line_number(const char* text, unsigned int* line_number)
         }
 
         digit = (unsigned char)(*text - '0');
+#ifdef S64_REU_BUFFER
         if (value > 6553u || (value == 6553u && digit > 5u)) {
             return 0;
         }
+#else
+        if (value > 819u) {
+            return 0;
+        }
+#endif
 
         value = (unsigned int)(value * 10u + digit);
         if (value > S64_BUFFER_CAPACITY + 1u) {
