@@ -10,6 +10,8 @@
 #define TEST_REU_BANK_SIZE 65536u
 
 static unsigned char fake_reu[TEST_REU_BANKS][TEST_REU_BANK_SIZE];
+static unsigned char saw_history_metadata_store;
+static unsigned char wrote_clipboard_region;
 
 uint8_t s64_reu_probe(void)
 {
@@ -28,6 +30,14 @@ uint8_t s64_reu_store(
     uint16_t length
 )
 {
+    if (bank == 1u) {
+        if (address >= S64_CLIPBOARD_CAPACITY) {
+            saw_history_metadata_store = 1u;
+        } else {
+            wrote_clipboard_region = 1u;
+        }
+    }
+
     if (bank >= TEST_REU_BANKS || source == 0
         || (unsigned long)address + length > TEST_REU_BANK_SIZE) {
         return 0u;
@@ -91,6 +101,12 @@ int main(void)
     unsigned int i;
 
     memset(fake_reu, 0, sizeof(fake_reu));
+    require(
+        sizeof(S64History) <= 8u,
+        "REU history bookkeeping stays compact in conventional RAM"
+    );
+    fake_reu[1][0] = 0x5au;
+    fake_reu[1][S64_CLIPBOARD_CAPACITY - 1u] = 0xa5u;
 
     s64_editor_init(&editor);
     require(s64_editor_insert(&editor, 'a'), "insert a");
@@ -171,6 +187,14 @@ int main(void)
     }
     require(s64_buffer_length(&editor.buffer) == 20u, "ring redo restores document");
     require(!s64_editor_redo(&editor), "ring redo exhausted");
+
+    require(saw_history_metadata_store, "history metadata is stored in REU bank 1");
+    require(!wrote_clipboard_region, "history metadata stays above clipboard region");
+    require(fake_reu[1][0] == 0x5au, "history preserves clipboard start");
+    require(
+        fake_reu[1][S64_CLIPBOARD_CAPACITY - 1u] == 0xa5u,
+        "history preserves clipboard end"
+    );
 
     puts("REU multi-level history tests passed");
     return 0;
