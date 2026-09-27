@@ -679,6 +679,25 @@ int main(void)
                 }
                 break;
 
+            case S64_INPUT_FORMAT_BOLD:
+                if (!s64_editor_format_bold(&editor)) {
+                    s64_ui_message("Cannot format bold");
+                    continue;
+                }
+                break;
+            case S64_INPUT_FORMAT_ITALIC:
+                if (!s64_editor_format_italic(&editor)) {
+                    s64_ui_message("Cannot format italic");
+                    continue;
+                }
+                break;
+            case S64_INPUT_FORMAT_LIST:
+                if (!s64_editor_format_list_item(&editor)) {
+                    s64_ui_message("Cannot format list");
+                    continue;
+                }
+                break;
+
             case S64_INPUT_EXIT:
                 if (editor.dirty && !s64_ui_prompt_yes_no("Discard and exit? Y/N")) {
                     s64_ui_render(&editor);
