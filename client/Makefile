@@ -2,8 +2,8 @@ TARGET := build/see64you.prg
 C64U_TARGET := build/see64you-c64u.prg
 REU_PROBE_TARGET := build/reu-probe.prg
 SOURCES := src/main.c src/charset.c src/buffer.c src/history.c src/clipboard.c src/document.c src/editor.c src/editor_format.c src/ui.c src/ui_status.s src/input/input.c src/platform/uci.c src/platform/dos.c src/storage/local.c
-C64U_SOURCES := $(filter-out src/buffer.c,$(SOURCES)) src/buffer_reu.c src/platform/reu.c
-REU_PROBE_SOURCES := diagnostics/reu_probe.c src/platform/reu.c
+C64U_SOURCES := $(filter-out src/buffer.c,$(SOURCES)) src/buffer_reu.c src/platform/reu.c src/platform/reu_dma.s
+REU_PROBE_SOURCES := diagnostics/reu_probe.c src/platform/reu.c src/platform/reu_dma.s
 
 CL65 ?= cl65
 # Keep the active conventional-C64 editor inside base RAM. Basic formatting is
