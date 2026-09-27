@@ -498,7 +498,10 @@ int main(void)
                     s64_ui_render_edit(
                         &editor,
                         (unsigned char)(
-                            (input.type == S64_INPUT_CHARACTER ? S64_UI_EDIT_CHARACTER : 0u)
+                            (input.type == S64_INPUT_CHARACTER
+                                && previous_cursor_row == editor.view_cursor_row
+                                ? S64_UI_EDIT_CHARACTER
+                                : 0u)
                             | (previous_cursor_row < editor.view_cursor_row
                                 ? previous_cursor_row
                                 : editor.view_cursor_row)
@@ -549,6 +552,12 @@ int main(void)
                 cursor_only = 1u;
                 break;
 
+            case S64_INPUT_DELETE:
+                if (!s64_editor_delete(&editor)) {
+                    continue;
+                }
+                break;
+
             case S64_INPUT_BACKSPACE:
                 previous_cursor = s64_buffer_cursor(&editor.buffer);
                 previous_length = s64_buffer_length(&editor.buffer);
@@ -578,7 +587,10 @@ int main(void)
                         s64_ui_render_edit(
                             &editor,
                             (unsigned char)(
-                                (removed_value == '\n' ? 0u : 0x80u)
+                                (removed_value != '\n'
+                                    && previous_cursor_row == editor.view_cursor_row
+                                    ? S64_UI_EDIT_CHARACTER
+                                    : 0u)
                                 | (previous_cursor_row < editor.view_cursor_row
                                     ? previous_cursor_row
                                     : editor.view_cursor_row)

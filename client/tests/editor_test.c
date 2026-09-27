@@ -114,6 +114,20 @@ int main(void)
     require(editor.line == 1u && editor.column == 3u, "newline backspace restores previous line position");
 
     s64_editor_init(&editor);
+    insert_text(&editor, "abcd");
+    s64_editor_home(&editor);
+    s64_editor_right(&editor);
+    require(editor.line == 1u && editor.column == 2u, "forward delete fixture position");
+    require(s64_editor_delete(&editor), "forward delete character succeeds");
+    require_text(&editor, "acd", "forward delete removes character at cursor");
+    require(editor.line == 1u && editor.column == 2u, "forward delete preserves logical position");
+    require(editor.view_cursor_row == 0u && editor.view_cursor_column == 1u, "forward delete preserves view cursor");
+    require(s64_editor_undo(&editor), "undo forward delete");
+    require_text(&editor, "abcd", "undo restores forward-deleted character");
+    require(s64_editor_redo(&editor), "redo forward delete");
+    require_text(&editor, "acd", "redo removes forward-deleted character again");
+
+    s64_editor_init(&editor);
     insert_text(&editor, "ab\ncd");
     require(s64_editor_go_to_line(&editor, 1u), "go to first line for newline movement");
     s64_editor_end(&editor);

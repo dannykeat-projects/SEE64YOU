@@ -31,14 +31,14 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] New/Open/Save/Save As using C64U-accessible storage (streamed canonical files, temporary-file replacement, overwrite detection and host tests implemented; C64U validation pending).
 - [x] Dirty-document confirmation before New, Open and Exit.
 - [ ] Recovery/autosave files (reserved `SEE64YOU.REC` snapshot, startup recovery prompt and active-edit refresh implemented with host tests; integration/C64U validation pending).
-- [ ] Finish/validate modern USB-keyboard shortcuts and C64-keyboard-friendly mappings (MARK/function-key baseline implemented; Shift+letter capitals confirmed in VICE 2026-09-25; shifted punctuation, lock keys and hardware mappings remain).
+- [ ] Finish/validate modern USB-keyboard shortcuts and C64-keyboard-friendly mappings (MARK/function-key baseline implemented; Shift+letter capitals confirmed in VICE 2026-09-25. VICE showed Ctrl+Arrow/Delete can produce no KERNAL buffered character at all, so waiting inside `cgetc()` prevented the earlier raw-key decoder from ever running. The input loop now polls raw matrix/modifier state before blocking, with a small repeat delay/rate for held Ctrl navigation. Ctrl+Left/Right, Ctrl+Up/Down and Ctrl/Commodore+Delete use this path. Base-C64 clipboard is temporarily bounded at 256 bytes to retain RAM headroom; REU-backed large clipboard remains planned. Shifted punctuation, lock keys, and final VICE/C64U shortcut validation remain).
 
 ## Manual VICE/C64U checks
 
 These player-facing checks are assigned to the user where practical; automated source and regression checks remain part of development.
 
 - [x] After incremental rendering: VICE test passed 2026-09-27 on `5da0c391`; continuous typing, mid-line insert/delete, held Backspace, newline edits and editing after scrolling/Page Up/Down were all reported working well, with no responsiveness issue reported.
-- [ ] Retest the 2026-09-25 editor checkpoint in VICE: confirm a visible blinking cursor; type continuously through multiple wrapped screenfuls; use Left/Right and Up/Down across wrapped rows; then use Page Up to return to the preceding screen. Record separately whether append typing, navigation, Backspace and mid-document insertion remain slow.
+- [x] Retest cursor/navigation/rendering in VICE: 2026-09-27 software-cursor + wrapped-row safety build reported working quite well. Word-by-word Ctrl navigation works, cursor visibility is much improved during navigation/typing, and no repeat of the transient disappearing-line issue was reported in this retest.
 - [ ] After Shift handling: verify Shift+letter capitals, shifted punctuation, Caps Lock/Shift Lock behaviour, and unshifted input with both the emulated C64 keyboard and a modern USB keyboard where available.
 - [ ] Exercise New, Open, Save and Save As, including dirty-document and overwrite prompts; confirm saved source reopens exactly.
 - [ ] Exercise recovery/autosave: create dirty edits, confirm `SEE64YOU.REC`, restart and recover/discard, then confirm Save/discard removes the snapshot.

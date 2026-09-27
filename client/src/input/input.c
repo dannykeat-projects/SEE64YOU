@@ -6,9 +6,21 @@
 #include "charset.h"
 
 #define S64_SHFLAG (*(volatile unsigned char*)0x028Du)
+#define S64_KEYCODE (*(volatile unsigned char*)0x00CBu)
+#define S64_KEY_COUNT (*(volatile unsigned char*)0x00C6u)
+#define S64_JIFFY_LOW (*(volatile unsigned char*)0x00A2u)
+#define S64_KEY_NONE 0x40u
+#define S64_KEY_DELETE 0x00u
+#define S64_KEY_CURSOR_HORIZONTAL 0x02u
+#define S64_KEY_CURSOR_VERTICAL 0x07u
 #define S64_MOD_SHIFT 0x01u
 #define S64_MOD_COMMODORE 0x02u
 #define S64_MOD_CONTROL 0x04u
+#define S64_REPEAT_DELAY 18u
+#define S64_REPEAT_RATE 4u
+
+static unsigned char modifier_repeat_state = 0xffu;
+static unsigned char modifier_repeat_tick;
 
 static unsigned char s64_is_printable(unsigned char key)
 {
@@ -41,30 +53,99 @@ static S64InputType s64_control_command(unsigned char key, unsigned char modifie
     }
 }
 
+static S64InputType s64_modifier_command(
+    unsigned char raw_key,
+    unsigned char modifiers
+)
+{
+    if ((modifiers & S64_MOD_CONTROL) != 0u) {
+        if (raw_key == S64_KEY_CURSOR_HORIZONTAL) {
+            return (modifiers & S64_MOD_SHIFT) != 0u
+                ? S64_INPUT_WORD_LEFT
+                : S64_INPUT_WORD_RIGHT;
+        }
+        if (raw_key == S64_KEY_CURSOR_VERTICAL) {
+            return (modifiers & S64_MOD_SHIFT) != 0u
+                ? S64_INPUT_PAGE_UP
+                : S64_INPUT_PAGE_DOWN;
+        }
+    }
+
+    if ((modifiers & (S64_MOD_CONTROL | S64_MOD_COMMODORE)) != 0u
+        && raw_key == S64_KEY_DELETE) {
+        return S64_INPUT_DELETE;
+    }
+
+    return S64_INPUT_NONE;
+}
+
+static unsigned char s64_modifier_ready(
+    unsigned char raw_key,
+    unsigned char modifiers,
+    S64InputType* command
+)
+{
+    unsigned char signature;
+    unsigned char now;
+    unsigned char interval;
+
+    *command = s64_modifier_command(raw_key, modifiers);
+    if (*command == S64_INPUT_NONE) {
+        modifier_repeat_state = 0xffu;
+        return 0u;
+    }
+
+    signature = (unsigned char)((raw_key << 3) | (modifiers & 0x07u));
+    now = S64_JIFFY_LOW;
+
+    if ((modifier_repeat_state & 0x7fu) != signature) {
+        modifier_repeat_state = signature;
+        modifier_repeat_tick = now;
+        return 1u;
+    }
+
+    interval = (modifier_repeat_state & 0x80u) != 0u
+        ? S64_REPEAT_RATE
+        : S64_REPEAT_DELAY;
+
+    if ((unsigned char)(now - modifier_repeat_tick) < interval) {
+        return 0u;
+    }
+
+    modifier_repeat_state = (unsigned char)(signature | 0x80u);
+    modifier_repeat_tick = now;
+    return 1u;
+}
+
 void s64_input_read(S64InputEvent* event)
 {
     unsigned char key;
+    unsigned char raw_key;
     unsigned char modifiers;
 
     event->type = S64_INPUT_NONE;
     event->character = 0u;
 
-    modifiers = S64_SHFLAG;
-    cursor(1);
+    for (;;) {
+        modifiers = S64_SHFLAG;
+        raw_key = S64_KEYCODE;
+
+        if (s64_modifier_ready(raw_key, modifiers, &event->type)) {
+            if (S64_KEY_COUNT != 0u) {
+                (void)cbm_k_getin();
+            }
+            return;
+        }
+
+        if (kbhit()) {
+            break;
+        }
+    }
+
     key = (unsigned char)cgetc();
-    cursor(0);
-    modifiers |= S64_SHFLAG;
+    modifiers = S64_SHFLAG;
 
     if ((modifiers & S64_MOD_CONTROL) != 0u) {
-        if (key == CH_CURS_LEFT) {
-            event->type = S64_INPUT_WORD_LEFT;
-            return;
-        }
-        if (key == CH_CURS_RIGHT) {
-            event->type = S64_INPUT_WORD_RIGHT;
-            return;
-        }
-
         event->type = s64_control_command(key, modifiers);
         if (event->type != S64_INPUT_NONE) {
             return;
@@ -84,18 +165,6 @@ void s64_input_read(S64InputEvent* event)
                 return;
             case CH_F7:
                 event->type = S64_INPUT_SAVE_AS;
-                return;
-            case CH_CURS_LEFT:
-                event->type = S64_INPUT_HOME;
-                return;
-            case CH_CURS_RIGHT:
-                event->type = S64_INPUT_END;
-                return;
-            case CH_CURS_UP:
-                event->type = S64_INPUT_PAGE_UP;
-                return;
-            case CH_CURS_DOWN:
-                event->type = S64_INPUT_PAGE_DOWN;
                 return;
             default:
                 break;
