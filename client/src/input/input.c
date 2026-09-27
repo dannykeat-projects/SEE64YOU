@@ -35,10 +35,13 @@ static S64InputType s64_control_command(unsigned char key, unsigned char modifie
 {
     switch (key) {
         case 0x01u: return S64_INPUT_SELECT_ALL; /* Ctrl+A */
+        case 0x02u: return S64_INPUT_FORMAT_BOLD;/* Ctrl+B */
         case 0x03u: return S64_INPUT_COPY;       /* Ctrl+C */
         case 0x06u: return S64_INPUT_FIND;       /* Ctrl+F */
         case 0x07u: return S64_INPUT_GOTO_LINE;  /* Ctrl+G */
         case 0x08u: return S64_INPUT_REPLACE;    /* Ctrl+H */
+        case 0x09u: return S64_INPUT_FORMAT_ITALIC;/* Ctrl+I */
+        case 0x0Cu: return S64_INPUT_FORMAT_LIST; /* Ctrl+L */
         case 0x0Eu: return S64_INPUT_NEW;        /* Ctrl+N */
         case 0x0Fu: return S64_INPUT_OPEN;       /* Ctrl+O */
         case 0x13u: return (modifiers & S64_MOD_SHIFT) != 0u
