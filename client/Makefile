@@ -24,8 +24,8 @@ REU_PROBE_SOURCES := diagnostics/reu_probe.c src/platform/reu.c src/platform/reu
 REU_BUFFER_PROBE_SOURCES := diagnostics/reu_buffer_probe.c src/buffer_reu.c src/platform/reu.c src/platform/reu_dma.s
 REU_EDITOR_PROBE_SOURCES := diagnostics/reu_editor_probe.c src/buffer_reu.c src/history_reu.c src/clipboard.c src/editor.c src/platform/reu.c src/platform/reu_dma.s
 RECOVERY_PROBE_SOURCES := diagnostics/recovery_probe.c src/buffer.c src/document.c src/charset.c src/platform/dos.c src/storage/local.c
-PUBLISHER_CORE_SOURCES := src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/http.c src/platform/reu.c src/platform/reu_dma.s src/publisher/destination.c src/publisher/state.c src/publisher/workspace.c src/publisher/handoff.c src/publisher/relay.c src/publisher/settings_bridge.c src/publisher/standalone.c src/publisher/wordpress.c
-PUBLISHER_DOCUMENT_SOURCES := src/publisher/standalone_documents.c src/publisher/wordpress_documents.c
+PUBLISHER_CORE_SOURCES := src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/http.c src/platform/reu.c src/platform/reu_dma.s src/publisher/destination.c src/publisher/state.c src/publisher/workspace.c src/publisher/handoff.c src/publisher/relay.c src/publisher/settings_bridge.c src/publisher/standalone.c
+PUBLISHER_DOCUMENT_SOURCES := src/publisher/standalone_documents.c
 PUBLISHER_COMPANION_FIT_SOURCES := diagnostics/publisher_companion_fit.c $(PUBLISHER_CORE_SOURCES) $(PUBLISHER_DOCUMENT_SOURCES)
 PUBLISHER_SOURCES := src/publisher/main.c src/platform/chain_editor.s $(PUBLISHER_CORE_SOURCES) $(PUBLISHER_DOCUMENT_SOURCES)
 SETTINGS_SOURCES := src/publisher/settings_main.c src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/destination.c src/publisher/settings_exchange.c src/publisher/settings_store.c
@@ -93,7 +93,7 @@ publisher: $(PUBLISHER_TARGET) $(PUBLISHER_CHAIN_TARGET) $(SETTINGS_TARGET) $(SE
 
 $(PUBLISHER_TARGET): $(PUBLISHER_SOURCES)
 	@mkdir -p build
-	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -m build/see64you-publisher.map -o $@ $(PUBLISHER_SOURCES)
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_STANDALONE_ONLY=1 -m build/see64you-publisher.map -o $@ $(PUBLISHER_SOURCES)
 
 $(PUBLISHER_CHAIN_TARGET): $(PUBLISHER_TARGET)
 	cp $< $@
@@ -111,7 +111,7 @@ publisher-companion-fit: $(PUBLISHER_COMPANION_FIT_TARGET)
 
 $(PUBLISHER_COMPANION_FIT_TARGET): $(PUBLISHER_COMPANION_FIT_SOURCES)
 	@mkdir -p build
-	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -m build/publisher-companion-fit.map -o $@ $(PUBLISHER_COMPANION_FIT_SOURCES)
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_STANDALONE_ONLY=1 -m build/publisher-companion-fit.map -o $@ $(PUBLISHER_COMPANION_FIT_SOURCES)
 
 recovery-probe: $(RECOVERY_PROBE_TARGET)
 
