@@ -14,6 +14,7 @@
 #define STATUS_ROW 24u
 
 static S64SettingsExchange settings;
+static S64SettingsExchange original_settings;
 static S64PublishDestination checked_destination;
 static S64Dos dos;
 static S64UciCapabilities capabilities;
@@ -151,7 +152,7 @@ static void choose_destination(void)
     clear_row(STATUS_ROW);
     gotoxy(0u, STATUS_ROW);
     revers(1);
-    cputs("0=NONE 1=STANDALONE 2=WORDPRESS");
+    cputs("0=NONE 1=STANDALONE");
     for (;;) {
         key = (unsigned char)cgetc();
         if (key == '0') {
@@ -162,10 +163,6 @@ static void choose_destination(void)
         }
         if (key == '1') {
             settings.destination_type = (uint8_t)S64_DESTINATION_STANDALONE;
-            break;
-        }
-        if (key == '2') {
-            settings.destination_type = (uint8_t)S64_DESTINATION_WORDPRESS;
             break;
         }
         if (key == CH_STOP) {
@@ -234,8 +231,8 @@ static void save_and_return(void)
 
 static void cancel_and_return(void)
 {
+    settings = original_settings;
     settings.state = S64_SETTINGS_STATE_READY;
-    settings.result = S64_SETTINGS_RESULT_OK;
     if (!s64_settings_exchange_store(&settings)) {
         set_status("Cannot preserve settings");
         return;
@@ -313,6 +310,7 @@ int main(void)
         settings.state = S64_SETTINGS_STATE_EDIT_REQUEST;
     }
 
+    original_settings = settings;
     status_text[0] = '\0';
     for (;;) {
         render();
