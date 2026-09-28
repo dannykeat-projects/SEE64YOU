@@ -10,6 +10,7 @@
 #include "platform/uci.h"
 #include "publisher/destination.h"
 #include "publisher/handoff.h"
+#include "publisher/preview.h"
 #include "publisher/relay.h"
 #include "publisher/state.h"
 #include "publisher/standalone.h"
@@ -138,7 +139,9 @@ static void render(void)
     cputs("5  DELETE REMOTE");
     gotoxy(0u, 17u);
     cputs("6 OPEN PAGE  7 OPEN POST");
-    gotoxy(0u, 19u);
+    gotoxy(0u, 18u);
+    cputs("8 PREVIEW");
+    gotoxy(0u, 20u);
     cputs("RUN/STOP  RETURN TO EDITOR");
 
     clear_row(STATUS_ROW);
@@ -754,6 +757,79 @@ static void list_open_remote(S64DocumentType type)
     set_status("Remote document opened");
 }
 
+static void preview_emit(
+    uint8_t row,
+    uint8_t column,
+    uint8_t value,
+    uint8_t style,
+    void* context
+)
+{
+    (void)context;
+    gotoxy(column, (unsigned char)(row + 2u));
+    revers((style & S64_PREVIEW_STYLE_REVERSE) != 0u);
+    cputc(value);
+}
+
+static void preview_document(void)
+{
+    S64PreviewState start;
+    S64PreviewState next;
+    uint8_t at_end;
+    unsigned char key;
+    unsigned int page = 1u;
+
+    s64_preview_init(&start);
+
+    for (;;) {
+        clrscr();
+        revers(1);
+        gotoxy(0u, 0u);
+        cputs(" SEE64YOU PREVIEW                      ");
+        revers(0);
+        print_value(1u, "", document.title[0] != '\0'
+            ? document.title : "(untitled)");
+
+        next = start;
+        if (!s64_preview_render_page(
+                &body,
+                &next,
+                preview_emit,
+                0,
+                &at_end
+            )) {
+            set_status("Preview failed");
+            revers(0);
+            return;
+        }
+        revers(0);
+
+        clear_row(STATUS_ROW);
+        gotoxy(0u, STATUS_ROW);
+        revers(1);
+        cputs(at_end
+            ? "R RESTART  STOP BACK"
+            : "SPACE/N NEXT  R RESTART  STOP BACK");
+        revers(0);
+
+        key = (unsigned char)cgetc();
+        if (key == CH_STOP) {
+            set_status("Preview closed");
+            return;
+        }
+        if (key == 'r' || key == 'R' || key == CH_HOME) {
+            s64_preview_init(&start);
+            page = 1u;
+            continue;
+        }
+        if (!at_end && (key == 'n' || key == 'N' || key == ' ')) {
+            start = next;
+            ++page;
+            continue;
+        }
+    }
+}
+
 static void connect_destination(void)
 {
     S64DestinationResult url_result;
@@ -920,6 +996,8 @@ int main(void)
             list_open_remote(S64_DOCUMENT_PAGE);
         } else if (key == '7') {
             list_open_remote(S64_DOCUMENT_POST);
+        } else if (key == '8') {
+            preview_document();
         } else if (key == CH_STOP) {
             return_to_editor();
         }

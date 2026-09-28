@@ -98,6 +98,12 @@ cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/src/publisher/settings_exchange.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host publisher preview tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src \
+    client/tests/publisher_preview_test.c client/src/buffer.c \
+    client/src/publisher/preview.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host publisher settings persistence tests =="
 cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/tests/publisher_settings_store_test.c \
@@ -158,6 +164,7 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/publisher/destination.c \
         client/src/publisher/state.c \
         client/src/publisher/workspace.c \
+        client/src/publisher/preview.c \
         client/src/publisher/relay.c \
         client/src/publisher/standalone.c \
         client/src/publisher/standalone_documents.c \
