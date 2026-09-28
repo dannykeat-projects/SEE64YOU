@@ -48,6 +48,8 @@ The UI baseline is 40x25:
 
 The conventional-C64 runtime is linked conservatively: implemented feature cores that have no active UI path yet may live in separate translation units and remain host/cc65-module tested without being linked into the shipping PRG. This prevents dormant functionality from consuming scarce base RAM. Formatting currently follows this pattern in `editor_format.c`; splitting it restored the software stack from 512 bytes to 1 KiB while preserving formatting regression coverage.
 
+C64U builds retain the same explicit memory-headroom gate rather than treating REU capacity as conventional address space. If future transition-only code makes that gate difficult to hold, a supported cc65 escape hatch is a custom linker segment with distinct load/run addresses: ship the block in ordinary PRG space, copy it to a known transient execution area only for the transition, and keep it out of the resident editor footprint. This is a contingency, not the default architecture; prefer the current editor/publisher module boundary while it fits and remains simpler.
+
 The first implementation prioritises correctness and a runnable shell. Incremental rendering and selection follow after baseline VICE validation.
 
 ## Transport
