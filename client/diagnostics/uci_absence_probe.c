@@ -23,7 +23,8 @@ int main(void)
 
     if (capabilities.interface_present) detail |= 0x01u;
     if (capabilities.dos_target) detail |= 0x02u;
-    if (capabilities.http_target) detail |= 0x04u;
+    if (capabilities.network_target) detail |= 0x04u;
+    if (capabilities.http_target) detail |= 0x08u;
 
     DIAG_DETAIL = detail;
     if (detail != 0u) {
