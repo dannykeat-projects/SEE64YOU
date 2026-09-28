@@ -115,6 +115,11 @@ int s64_settings_exchange_validate(const S64SettingsExchange* settings)
         return 0;
     }
 
+    if (settings->checksum == 0u
+        && (settings->state == S64_SETTINGS_STATE_LOAD_REQUEST
+            || settings->state == S64_SETTINGS_STATE_EDIT_REQUEST)) {
+        return 1;
+    }
     return settings->checksum == settings_checksum(settings);
 }
 
