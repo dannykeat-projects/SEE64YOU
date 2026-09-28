@@ -92,13 +92,6 @@ echo "== Host publisher state tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/publisher_state_test.c client/src/document.c client/src/charset.c client/src/buffer.c client/src/publisher/destination.c client/src/publisher/state.c -o "$TMP_BIN"
 "$TMP_BIN"
 
-echo "== Host publisher settings tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src \
-    client/tests/publisher_settings_test.c client/src/buffer.c client/src/document.c \
-    client/src/charset.c client/src/publisher/destination.c \
-    client/src/publisher/workspace.c client/src/publisher/settings.c -o "$TMP_BIN"
-"$TMP_BIN"
-
 echo "== Host publisher REU handoff tests =="
 cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/tests/publisher_handoff_test.c client/src/buffer_reu.c \
@@ -153,7 +146,6 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/publisher/state.c \
         client/src/publisher/workspace.c \
         client/src/publisher/relay.c \
-        client/src/publisher/settings.c \
         client/src/publisher/standalone.c \
         client/src/publisher/standalone_documents.c \
         client/src/publisher/wordpress.c \
