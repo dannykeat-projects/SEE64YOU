@@ -296,6 +296,7 @@ static void setup_destination(void)
 
 static void return_to_editor(void)
 {
+    handoff.flags |= S64_HANDOFF_FLAG_RETURN_TO_EDITOR;
     if (!s64_handoff_store(&handoff)) {
         set_status("Cannot preserve editor handoff");
         return;
