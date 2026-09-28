@@ -7,6 +7,7 @@ EDITOR_PRG="$ROOT/client/build/editor-probe.prg"
 UI_PRG="$ROOT/client/build/ui-probe.prg"
 INPUT_REPEAT_PRG="$ROOT/client/build/input-repeat-probe.prg"
 PUBLISHER_CHARSET_PRG="$ROOT/client/build/publisher-charset-probe.prg"
+UCI_ABSENCE_PRG="$ROOT/client/build/uci-absence-probe.prg"
 PUBLISHER_PRG="$ROOT/client/build/S64PUB.PRG"
 SETTINGS_PRG="$ROOT/client/build/S64CFG.PRG"
 EDITOR_CHAIN_PRG="$ROOT/client/build/S64EDIT.PRG"
@@ -22,7 +23,7 @@ if ! command -v "$VICE_BIN" >/dev/null 2>&1; then
     exit 0
 fi
 
-if [ ! -f "$PRG" ] || [ ! -f "$BUFFER_PRG" ] || [ ! -f "$EDITOR_PRG" ] || [ ! -f "$UI_PRG" ] || [ ! -f "$INPUT_REPEAT_PRG" ] || [ ! -f "$PUBLISHER_CHARSET_PRG" ] || [ ! -f "$PUBLISHER_PRG" ] || [ ! -f "$SETTINGS_PRG" ] || [ ! -f "$EDITOR_CHAIN_PRG" ] || [ ! -f "$REU_EDITOR_PRG" ] || [ ! -f "$RECOVERY_PRG" ]; then
+if [ ! -f "$PRG" ] || [ ! -f "$BUFFER_PRG" ] || [ ! -f "$EDITOR_PRG" ] || [ ! -f "$UI_PRG" ] || [ ! -f "$INPUT_REPEAT_PRG" ] || [ ! -f "$PUBLISHER_CHARSET_PRG" ] || [ ! -f "$UCI_ABSENCE_PRG" ] || [ ! -f "$PUBLISHER_PRG" ] || [ ! -f "$SETTINGS_PRG" ] || [ ! -f "$EDITOR_CHAIN_PRG" ] || [ ! -f "$REU_EDITOR_PRG" ] || [ ! -f "$RECOVERY_PRG" ]; then
     echo "VICE diagnostic PRG missing" >&2
     exit 1
 fi
