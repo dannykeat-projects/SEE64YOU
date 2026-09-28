@@ -5,6 +5,7 @@
 #include "publisher/settings_exchange.h"
 
 #define S64_SETTINGS_FILENAME "SEE64YOU.CFG"
+#define S64_SETTINGS_PROFILE_COUNT 4u
 
 typedef enum {
     S64_SETTINGS_STORE_OK = 0,
@@ -20,6 +21,18 @@ S64SettingsStoreResult s64_settings_store_load(
 
 S64SettingsStoreResult s64_settings_store_save(
     S64Dos* dos,
+    S64SettingsExchange* settings
+);
+
+S64SettingsStoreResult s64_settings_profile_load(
+    S64Dos* dos,
+    uint8_t slot,
+    S64SettingsExchange* settings
+);
+
+S64SettingsStoreResult s64_settings_profile_save(
+    S64Dos* dos,
+    uint8_t slot,
     S64SettingsExchange* settings
 );
 
