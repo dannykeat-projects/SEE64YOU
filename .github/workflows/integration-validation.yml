@@ -122,6 +122,7 @@ jobs:
           name: see64you-c64u-package
           path: |
             client/build/SEE64YOU-C64U.PRG
+            client/build/S64EDIT.PRG
             client/build/S64PUB.PRG
             client/build/S64CFG.PRG
           if-no-files-found: error
