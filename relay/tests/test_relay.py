@@ -1,6 +1,9 @@
+import http.client
+import io
 import json
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 
@@ -9,6 +12,7 @@ sys.path.insert(0, str(ROOT / "relay"))
 
 from see64you_relay import (  # noqa: E402
     RelayConfigError,
+    RelayHandler,
     build_upstream_url,
     client_allowed,
     load_config,
@@ -174,6 +178,155 @@ class RelayPolicyTests(unittest.TestCase):
         self.assertNotIn("X-See64You-Relay-Key", forwarded)
         self.assertNotIn("Host", forwarded)
         self.assertNotIn("Cookie", forwarded)
+
+
+class FakeUpstreamResponse:
+    def __init__(self, status=200, body=b'{"ok":true}', headers=None):
+        self.status = status
+        self.stream = io.BytesIO(body)
+        self.headers = HeaderBag(headers or {"Content-Type": "application/json"})
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def read(self, size=-1):
+        return self.stream.read(size)
+
+    def getcode(self):
+        return self.status
+
+
+class CapturingOpener:
+    def __init__(self):
+        self.requests = []
+        self.response_status = 201
+        self.response_body = b'{"ok":true}'
+        self.response_headers = {
+            "Content-Type": "application/json",
+            "Cache-Control": "private",
+        }
+
+    def open(self, request, timeout):
+        self.requests.append((request, timeout))
+        return FakeUpstreamResponse(
+            self.response_status,
+            self.response_body,
+            self.response_headers,
+        )
+
+
+class RelayHandlerIntegrationTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        path = write_config(
+            Path(self.temp.name),
+            listen_host="127.0.0.1",
+            listen_port=6464,
+            allowed_clients=["127.0.0.1/32"],
+            max_request_bytes=64,
+            max_response_bytes=128,
+        )
+        self.config = load_config(path)
+        self.opener = CapturingOpener()
+
+        class TestRelayHandler(RelayHandler):
+            pass
+
+        TestRelayHandler.config = self.config
+        TestRelayHandler.opener = self.opener
+        self.server = __import__("http.server").server.ThreadingHTTPServer(
+            ("127.0.0.1", 0),
+            TestRelayHandler,
+        )
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.port = self.server.server_address[1]
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=2)
+        self.temp.cleanup()
+
+    def request(self, method, target, *, key=VALID_KEY, body=b"", headers=None):
+        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=2)
+        outgoing = dict(headers or {})
+        if key is not None:
+            outgoing["X-See64You-Relay-Key"] = key
+        if body:
+            outgoing["Content-Length"] = str(len(body))
+        connection.request(method, target, body=body, headers=outgoing)
+        response = connection.getresponse()
+        payload = response.read()
+        result = (response.status, dict(response.getheaders()), payload)
+        connection.close()
+        return result
+
+    def test_authenticated_post_is_forwarded_with_safe_headers(self):
+        status, headers, body = self.request(
+            "POST",
+            "/api.php?action=save&ack=1",
+            body=b"document-body",
+            headers={
+                "Authorization": "Bearer site-token",
+                "Content-Type": "application/x-see64you",
+                "Accept": "application/json",
+                "Cookie": "never-forward=1",
+            },
+        )
+
+        self.assertEqual(status, 201)
+        self.assertEqual(body, b'{"ok":true}')
+        self.assertEqual(headers["Content-Type"], "application/json")
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertEqual(len(self.opener.requests), 1)
+
+        request, timeout = self.opener.requests[0]
+        self.assertEqual(
+            request.full_url,
+            "https://example.test/site/api.php?action=save&ack=1",
+        )
+        self.assertEqual(request.get_method(), "POST")
+        self.assertEqual(request.data, b"document-body")
+        self.assertEqual(request.get_header("Authorization"), "Bearer site-token")
+        self.assertEqual(
+            request.get_header("Content-type"),
+            "application/x-see64you",
+        )
+        self.assertEqual(request.get_header("Accept"), "application/json")
+        self.assertIsNone(request.get_header("X-see64you-relay-key"))
+        self.assertIsNone(request.get_header("Cookie"))
+        self.assertEqual(timeout, self.config.timeout_seconds)
+
+    def test_bad_relay_key_is_rejected_before_upstream(self):
+        status, _, body = self.request(
+            "GET",
+            "/api.php?action=list&type=page",
+            key="0" * 64,
+        )
+        self.assertEqual(status, 401)
+        self.assertIn(b"Relay authentication failed", body)
+        self.assertEqual(self.opener.requests, [])
+
+    def test_disallowed_path_is_rejected_before_upstream(self):
+        status, _, body = self.request("GET", "/wp-json/wp/v2/users")
+        self.assertEqual(status, 403)
+        self.assertIn(b"path is not allowed", body)
+        self.assertEqual(self.opener.requests, [])
+
+    def test_oversized_request_is_rejected_before_upstream(self):
+        status, _, body = self.request(
+            "POST",
+            "/api.php?action=save",
+            body=b"x" * 65,
+        )
+        self.assertEqual(status, 413)
+        self.assertIn(b"Request body too large", body)
+        self.assertEqual(self.opener.requests, [])
+
 
 
 if __name__ == "__main__":
