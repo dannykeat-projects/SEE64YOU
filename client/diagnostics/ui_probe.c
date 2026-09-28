@@ -53,14 +53,17 @@ int main(void)
     unsigned char i;
     unsigned char previous_row;
 
-    DIAG_PROGRESS = 0u;
+    DIAG_PROGRESS = 0x01u;
     DIAG_RESULT = 0u;
     DIAG_ACK = 0u;
     DIAG_DETAIL = 0u;
 
     s64_editor_init(&editor);
+    DIAG_PROGRESS = 0x02u;
     s64_ui_init();
+    DIAG_PROGRESS = 0x03u;
     s64_ui_render(&editor);
+    DIAG_PROGRESS = 0x04u;
 
     append_text(
         "0123456789012345678901234567890123456789012345\n"
@@ -68,6 +71,7 @@ int main(void)
         "2222222222",
         1u
     );
+    DIAG_PROGRESS = 0x05u;
     checkpoint(0x10u);
 
     if (!s64_editor_go_to_line(&editor, 2u)) {
