@@ -178,6 +178,9 @@ if command -v c1541 >/dev/null 2>&1; then
         +sound \
         -reu \
         -reusize 128 \
+        -virtualdev8 \
+        +drive8truedrive \
+        -autostart-handle-tde \
         -binarymonitor \
         -binarymonitoraddress "ip4://127.0.0.1:6514" \
         -autostart "$chain_disk:CHAINTEST" \
