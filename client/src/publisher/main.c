@@ -6,13 +6,10 @@
 #include "document.h"
 #include "platform/http.h"
 #include "platform/chain.h"
-#include "platform/dos.h"
 #include "platform/reu.h"
 #include "platform/uci.h"
 #include "publisher/destination.h"
 #include "publisher/handoff.h"
-#include "publisher/relay.h"
-#include "publisher/settings.h"
 #include "publisher/state.h"
 #include "publisher/standalone.h"
 #include "publisher/standalone_documents.h"
@@ -33,7 +30,6 @@ typedef union {
 static S64Buffer body;
 static S64Document document;
 static S64HttpTransport http;
-static S64Dos settings_dos;
 static S64UciCapabilities capabilities;
 static S64PublishDestination destination;
 static S64PublishState publish_state;
@@ -122,8 +118,6 @@ static void render(void)
         ? "ready" : "not connected");
     print_value(10u, "Remote: ", publish_state.remote_bound
         ? publish_state.remote_identity : "(new document)");
-    print_value(11u, "Relay: ", s64_relay_get_key()[0] != '\0'
-        ? "configured" : "off");
 
     gotoxy(0u, 12u);
     cputs("1  SET DESTINATION");
@@ -137,9 +131,7 @@ static void render(void)
     cputs("5  DELETE REMOTE");
     gotoxy(0u, 17u);
     cputs("6 OPEN PAGE  7 OPEN POST");
-    gotoxy(0u, 18u);
-    cputs("8  RELAY KEY");
-    gotoxy(0u, 20u);
+    gotoxy(0u, 19u);
     cputs("RUN/STOP  RETURN TO EDITOR");
 
     clear_row(STATUS_ROW);
@@ -272,49 +264,6 @@ static void clear_connection(void)
     s64_publish_state_clear_remote(&publish_state);
 }
 
-static void persist_settings(const char* success)
-{
-    S64PublishSettingsResult result;
-
-    if (!capabilities.dos_target) {
-        set_status("Configured; settings not saved");
-        return;
-    }
-
-    result = s64_publish_settings_save(
-        &settings_dos,
-        &destination,
-        s64_relay_get_key()
-    );
-    set_status(result == S64_PUBLISH_SETTINGS_OK
-        ? success
-        : s64_publish_settings_result_message(result));
-}
-
-static void configure_relay_key(void)
-{
-    if (!prompt_text(
-            "RELAY KEY: ",
-            WORK_PROMPT,
-            (unsigned char)S64_PUBLISH_SETTINGS_RELAY_CAPACITY,
-            1u
-        )) {
-        set_status("Relay key unchanged");
-        return;
-    }
-
-    if (!s64_relay_set_key(WORK_PROMPT)) {
-        memset(WORK_PROMPT, 0, S64_PUBLISH_SETTINGS_RELAY_CAPACITY);
-        set_status("Relay key must be 64 hex chars");
-        return;
-    }
-    memset(WORK_PROMPT, 0, S64_PUBLISH_SETTINGS_RELAY_CAPACITY);
-    clear_session();
-    persist_settings(s64_relay_get_key()[0] != '\0'
-        ? "Relay key configured"
-        : "Relay key disabled");
-}
-
 static void setup_destination(void)
 {
     unsigned char key;
@@ -368,7 +317,7 @@ static void setup_destination(void)
     }
 
     clear_connection();
-    persist_settings("Destination configured");
+    set_status("Destination configured");
 }
 
 static void sync_handoff_document(S64PublisherHandoff* target)
@@ -909,39 +858,13 @@ int main(void)
     }
 
     s64_http_init(&http, s64_uci_execute);
-    s64_dos_init(&settings_dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
     s64_uci_probe_capabilities(&capabilities);
     s64_destination_clear(&destination);
     s64_publish_state_init(&publish_state);
     memset(&session, 0, sizeof(session));
-    (void)s64_relay_set_key("");
     WORK_STATUS[0] = '\0';
     document_changed = 0u;
     document_replaced = 0u;
-
-    if (capabilities.dos_target) {
-        S64PublishSettingsResult settings_result;
-        unsigned char settings_found = 0u;
-
-        settings_result = s64_publish_settings_load(
-            &settings_dos,
-            &destination,
-            WORK_SECRET,
-            S64_PUBLISH_SETTINGS_RELAY_CAPACITY,
-            &settings_found
-        );
-        if (settings_result != S64_PUBLISH_SETTINGS_OK) {
-            set_status(s64_publish_settings_result_message(settings_result));
-        } else if (settings_found) {
-            if (!s64_relay_set_key(WORK_SECRET)) {
-                s64_destination_clear(&destination);
-                set_status("Publisher settings invalid");
-            } else {
-                set_status("Publisher settings loaded");
-            }
-        }
-        memset(WORK_SECRET, 0, S64_PUBLISH_SETTINGS_RELAY_CAPACITY);
-    }
 
     for (;;) {
         render();
@@ -961,8 +884,6 @@ int main(void)
             list_open_remote(S64_DOCUMENT_PAGE);
         } else if (key == '7') {
             list_open_remote(S64_DOCUMENT_POST);
-        } else if (key == '8') {
-            configure_relay_key();
         } else if (key == CH_STOP) {
             return_to_editor();
         }
