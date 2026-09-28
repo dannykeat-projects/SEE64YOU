@@ -30,10 +30,6 @@ typedef struct {
 #define response_header ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_HEADER_OFFSET])
 #define response_body ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_TEXT_OFFSET])
 
-typedef char S64WordPressWorkspaceFits[
-    (S64_PUBLISH_WORK_TEXT_OFFSET + S64_WORDPRESS_RESPONSE_CAPACITY
-        <= S64_PUBLISH_WORKSPACE_CAPACITY) ? 1 : -1
-];
 
 static const char base64_table[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
