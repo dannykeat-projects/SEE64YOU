@@ -1,6 +1,7 @@
 #include "standalone.h"
 #include "relay.h"
 #include "charset.h"
+#include "workspace.h"
 
 #include <string.h>
 
@@ -15,9 +16,14 @@ typedef struct {
     uint8_t invalid;
 } S64StandaloneTextSink;
 
-static char response_header[S64_HTTP_RESPONSE_HEADER_CAPACITY];
-static char login_response[S64_STANDALONE_LOGIN_RESPONSE_CAPACITY];
-static char authorization_header[S64_STANDALONE_AUTH_HEADER_CAPACITY];
+#define response_header ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_HEADER_OFFSET])
+#define login_response ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_TEXT_OFFSET])
+#define authorization_header ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_AUX_OFFSET])
+
+typedef char S64StandaloneWorkspaceFits[
+    (S64_PUBLISH_WORK_AUX_OFFSET + S64_STANDALONE_AUTH_HEADER_CAPACITY
+        <= S64_PUBLISH_WORKSPACE_CAPACITY) ? 1 : -1
+];
 
 static uint8_t s64_standalone_collect_text(
     const uint8_t* data,
@@ -249,7 +255,7 @@ S64StandaloneResult s64_standalone_add_authorization(
     }
 
     if (length == 0u || length >= S64_STANDALONE_TOKEN_CAPACITY
-        || prefix_length + length + 1u > sizeof(authorization_header)) {
+        || prefix_length + length + 1u > S64_STANDALONE_AUTH_HEADER_CAPACITY) {
         return S64_STANDALONE_INVALID_ARGUMENT;
     }
 
@@ -275,7 +281,7 @@ S64StandaloneResult s64_standalone_exchange_ack(
     }
 
     sink.data = login_response;
-    sink.capacity = (uint16_t)sizeof(login_response);
+    sink.capacity = (uint16_t)S64_STANDALONE_LOGIN_RESPONSE_CAPACITY;
     sink.length = 0u;
     sink.overflow = 0u;
     sink.invalid = 0u;
@@ -289,7 +295,7 @@ S64StandaloneResult s64_standalone_exchange_ack(
         s64_standalone_collect_text,
         &sink,
         response_header,
-        (uint16_t)sizeof(response_header),
+        (uint16_t)S64_HTTP_RESPONSE_HEADER_CAPACITY,
         0
     );
     if (http_result != S64_HTTP_OK) {
@@ -411,7 +417,7 @@ S64StandaloneResult s64_standalone_login(
     }
 
     sink.data = login_response;
-    sink.capacity = (uint16_t)sizeof(login_response);
+    sink.capacity = (uint16_t)S64_STANDALONE_LOGIN_RESPONSE_CAPACITY;
     sink.length = 0u;
     sink.overflow = 0u;
     sink.invalid = 0u;
@@ -425,7 +431,7 @@ S64StandaloneResult s64_standalone_login(
         s64_standalone_collect_text,
         &sink,
         response_header,
-        (uint16_t)sizeof(response_header),
+        (uint16_t)S64_HTTP_RESPONSE_HEADER_CAPACITY,
         &response_header_length
     );
     if (http_result != S64_HTTP_OK) {
