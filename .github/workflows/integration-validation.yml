@@ -95,6 +95,11 @@ jobs:
           python3 tools/check_memory_headroom.py client/build/see64you-publisher.map \
             --label "C64U publisher" --min-headroom 1024
 
+      - name: Check publishing settings helper memory
+        run: |
+          python3 tools/check_memory_headroom.py client/build/see64you-settings.map \
+            --label "C64U settings helper" --min-headroom 1024
+
       - name: Publish C64U publisher PRG
         uses: actions/upload-artifact@v4
         with:
@@ -111,13 +116,14 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish chained C64U application pair
+      - name: Publish chained C64U application package
         uses: actions/upload-artifact@v4
         with:
           name: see64you-c64u-package
           path: |
             client/build/SEE64YOU-C64U.PRG
             client/build/S64PUB.PRG
+            client/build/S64CFG.PRG
           if-no-files-found: error
           retention-days: 30
 
