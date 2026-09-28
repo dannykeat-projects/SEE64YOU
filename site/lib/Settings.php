@@ -55,6 +55,8 @@ final class S64Settings
             $updated[$key] = $value;
         }
 
+        $this->validateContrast($updated);
+
         $contents = "<?php\ndeclare(strict_types=1);\n\nreturn "
             . var_export($updated, true)
             . ";\n";
@@ -70,5 +72,49 @@ final class S64Settings
         }
 
         return $this->publicValues($updated);
+    }
+
+    private function validateContrast(array $config): void
+    {
+        if ((string)($config['theme'] ?? 'plain') === 'plain') {
+            return;
+        }
+
+        $background = (string)$config['background_color'];
+        foreach (['text_color', 'link_color', 'visited_color'] as $key) {
+            if ($this->contrastRatio((string)$config[$key], $background) < 4.5) {
+                throw new InvalidArgumentException('insufficient_contrast');
+            }
+        }
+    }
+
+    private function contrastRatio(string $foreground, string $background): float
+    {
+        $first = $this->relativeLuminance($foreground);
+        $second = $this->relativeLuminance($background);
+        $lighter = max($first, $second);
+        $darker = min($first, $second);
+
+        return ($lighter + 0.05) / ($darker + 0.05);
+    }
+
+    private function relativeLuminance(string $color): float
+    {
+        $channels = [
+            hexdec(substr($color, 1, 2)) / 255,
+            hexdec(substr($color, 3, 2)) / 255,
+            hexdec(substr($color, 5, 2)) / 255,
+        ];
+
+        foreach ($channels as &$channel) {
+            $channel = $channel <= 0.04045
+                ? $channel / 12.92
+                : (($channel + 0.055) / 1.055) ** 2.4;
+        }
+        unset($channel);
+
+        return 0.2126 * $channels[0]
+            + 0.7152 * $channels[1]
+            + 0.0722 * $channels[2];
     }
 }

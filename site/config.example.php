@@ -13,10 +13,10 @@ declare(strict_types=1);
 return [
     'site_title' => 'My See64You Site',
     'theme' => 'plain', // plain, simple, c64
-    'text_color' => '#a5a5ff',
+    'text_color' => '#b0b0ff',
     'background_color' => '#3e31a2',
     'link_color' => '#ffffff',
-    'visited_color' => '#c46cff',
+    'visited_color' => '#e49aff',
 
     // Leave empty to disable publishing API login until configured.
     'password_hash' => '',

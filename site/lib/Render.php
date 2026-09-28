@@ -95,13 +95,17 @@ function s64_theme_css(array $config): string
 
     if ($theme === 'c64') {
         return 'body{max-width:40em;margin:2em auto;padding:1em;font-family:monospace;'
-            . "color:$text;background:$background;line-height:1.35}"
-            . "a{color:$link}a:visited{color:$visited}nav{margin:1em 0}hr{border:0;border-top:1px solid $text}";
+            . "color:$text;background:$background;line-height:1.5}"
+            . "a{color:$link;text-decoration:underline}a:visited{color:$visited}"
+            . "a:focus-visible{outline:2px solid currentColor;outline-offset:2px}"
+            . "nav{margin:1em 0}hr{border:0;border-top:1px solid $text}";
     }
 
     return 'body{max-width:48em;margin:2em auto;padding:0 1em;font-family:system-ui,sans-serif;line-height:1.5;'
         . "color:$text;background:$background}"
-        . "a{color:$link}a:visited{color:$visited}nav{margin:1em 0}";
+        . "a{color:$link;text-decoration:underline}a:visited{color:$visited}"
+        . "a:focus-visible{outline:2px solid currentColor;outline-offset:2px}"
+        . "nav{margin:1em 0}";
 }
 
 function s64_render_layout(array $config, array $pages, string $title, string $content): void
@@ -110,7 +114,7 @@ function s64_render_layout(array $config, array $pages, string $title, string $c
     $pageTitle = htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $css = s64_theme_css($config);
 
-    echo "<!doctype html>\n<html><head><meta charset=\"utf-8\">";
+    echo "<!doctype html>\n<html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">";
     echo '<title>' . ($title === '' ? $siteTitle : $pageTitle . ' - ' . $siteTitle) . '</title>';
     if ($css !== '') {
         echo '<style>' . $css . '</style>';

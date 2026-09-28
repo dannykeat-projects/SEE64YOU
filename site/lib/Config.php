@@ -6,10 +6,10 @@ function s64_default_config(): array
     return [
         'site_title' => 'See64You',
         'theme' => 'plain',
-        'text_color' => '#a5a5ff',
+        'text_color' => '#b0b0ff',
         'background_color' => '#3e31a2',
         'link_color' => '#ffffff',
-        'visited_color' => '#c46cff',
+        'visited_color' => '#e49aff',
         'password_hash' => '',
         'token_secret' => '',
         'token_ttl' => 43200,

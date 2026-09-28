@@ -232,14 +232,41 @@ try {
     $visible = $settings->update([
         'site_title' => 'New title',
         'theme' => 'c64',
-        'text_color' => '#abcdef',
-        'background_color' => '#123456',
+        'text_color' => '#ffffff',
+        'background_color' => '#000000',
+        'link_color' => '#00ffff',
+        'visited_color' => '#ffccff',
     ]);
     check($visible['site_title'] === 'New title', 'settings title updates');
     check($visible['theme'] === 'c64', 'settings theme updates');
+    check($visible['text_color'] === '#ffffff', 'accessible text colour updates');
     $writtenConfig = require $configPath;
     check($writtenConfig['password_hash'] === 'keep-this-hash', 'settings preserve password hash');
     check($writtenConfig['token_secret'] === str_repeat('b', 64), 'settings preserve token secret');
+
+    $contrastRejected = false;
+    try {
+        $settings->update([
+            'theme' => 'c64',
+            'text_color' => '#777777',
+            'background_color' => '#777777',
+            'link_color' => '#777777',
+            'visited_color' => '#777777',
+        ]);
+    } catch (InvalidArgumentException $exception) {
+        $contrastRejected = $exception->getMessage() === 'insufficient_contrast';
+    }
+    check($contrastRejected, 'styled themes reject low-contrast colours');
+
+    $c64Css = s64_theme_css([
+        'theme' => 'c64',
+        'text_color' => '#b0b0ff',
+        'background_color' => '#3e31a2',
+        'link_color' => '#ffffff',
+        'visited_color' => '#e49aff',
+    ]);
+    check(str_contains($c64Css, 'line-height:1.5'), 'C64 theme uses readable line height');
+    check(str_contains($c64Css, 'focus-visible'), 'styled themes expose keyboard focus');
 
     check($documents->delete('page', 'hello-world'), 'document deletes');
     check($documents->get('page', 'hello-world') === null, 'deleted document is gone');

@@ -31,10 +31,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $config = [
             'site_title' => $siteTitle,
             'theme' => $theme,
-            'text_color' => '#a5a5ff',
+            'text_color' => '#b0b0ff',
             'background_color' => '#3e31a2',
             'link_color' => '#ffffff',
-            'visited_color' => '#c46cff',
+            'visited_color' => '#e49aff',
             'password_hash' => password_hash($password, PASSWORD_DEFAULT),
             'token_secret' => bin2hex(random_bytes(32)),
             'token_ttl' => 43200,
@@ -62,7 +62,7 @@ function h(string $value): string
 
 ?><!doctype html>
 <html>
-<head><meta charset="utf-8"><title>See64You setup</title></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>See64You setup</title></head>
 <body>
 <h1>See64You setup</h1>
 <?php if ($complete): ?>
