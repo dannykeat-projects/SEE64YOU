@@ -872,9 +872,11 @@ static void export_plain_text(void)
         );
     }
 
-    set_status(result == S64_PLAINTEXT_OK
-        ? "Text exported"
-        : s64_plaintext_result_message(result));
+    if (result == S64_PLAINTEXT_OK) {
+        set_status("Text exported");
+    } else {
+        set_status(s64_plaintext_result_message(result));
+    }
 }
 
 static void import_plain_text(void)
