@@ -14,6 +14,7 @@
 #include "publisher/state.h"
 #include "publisher/standalone.h"
 #include "publisher/standalone_documents.h"
+#include "publisher/settings_exchange.h"
 #include "publisher/wordpress.h"
 #include "publisher/wordpress_documents.h"
 #include "publisher/workspace.h"
@@ -44,6 +45,7 @@ static unsigned char document_changed;
 #define WORK_SECRET ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_MAIN_USERNAME_OFFSET])
 #define WORK_REMOTE_ID ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_MAIN_USERNAME_OFFSET])
 #define WORK_HANDOFF ((S64PublisherHandoff*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_HANDOFF_OFFSET])
+#define WORK_SETTINGS ((S64SettingsExchange*)&s64_publisher_workspace.bytes[0])
 #define WORK_SELECTION ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_SELECTION_OFFSET])
 
 static unsigned char selected_state;
@@ -121,7 +123,7 @@ static void render(void)
         ? publish_state.remote_identity : "(new document)");
 
     gotoxy(0u, 12u);
-    cputs("1  SET DESTINATION");
+    cputs("1  PUBLISHING SETTINGS");
     gotoxy(0u, 13u);
     cputs("2  TEST / LOGIN");
     gotoxy(0u, 14u);
@@ -132,9 +134,7 @@ static void render(void)
     cputs("5  DELETE REMOTE");
     gotoxy(0u, 17u);
     cputs("6 OPEN PAGE  7 OPEN POST");
-    gotoxy(0u, 18u);
-    cputs("8 RELAY KEY");
-    gotoxy(0u, 20u);
+    gotoxy(0u, 19u);
     cputs("RUN/STOP  RETURN TO EDITOR");
 
     clear_row(STATUS_ROW);
@@ -267,84 +267,6 @@ static void clear_connection(void)
     s64_publish_state_clear_remote(&publish_state);
 }
 
-static void configure_relay_key(void)
-{
-    if (!prompt_text(
-            "RELAY KEY: ",
-            WORK_PROMPT,
-            S64_RELAY_KEY_CAPACITY,
-            1u
-        )) {
-        set_status("Relay key unchanged");
-        return;
-    }
-
-    if (!s64_relay_set_key(WORK_PROMPT)) {
-        WORK_PROMPT[0] = '\0';
-        set_status("Relay key invalid");
-        return;
-    }
-
-    set_status(WORK_PROMPT[0] != '\0' ? "Relay key set" : "Relay key off");
-    WORK_PROMPT[0] = '\0';
-}
-
-static void setup_destination(void)
-{
-    unsigned char key;
-    S64DestinationType type;
-    S64DestinationResult result;
-    unsigned char allow_insecure;
-
-    clear_row(STATUS_ROW);
-    revers(1);
-    gotoxy(0u, STATUS_ROW);
-    cputs("1=STANDALONE 2=WORDPRESS STOP=CANCEL");
-
-    for (;;) {
-        key = (unsigned char)cgetc();
-        if (key == '1') {
-            type = S64_DESTINATION_STANDALONE;
-            break;
-        }
-        if (key == '2') {
-            type = S64_DESTINATION_WORDPRESS;
-            break;
-        }
-        if (key == CH_STOP) {
-            revers(0);
-            set_status("Destination unchanged");
-            return;
-        }
-    }
-    revers(0);
-
-    if (!prompt_text(
-            "SITE URL: ",
-            WORK_PROMPT,
-            (unsigned char)PROMPT_CAPACITY,
-            0u
-        )) {
-        set_status("Destination unchanged");
-        return;
-    }
-
-    allow_insecure = prompt_yes_no("ALLOW PLAIN HTTP? Y/N");
-    result = s64_destination_configure(
-        &destination,
-        type,
-        WORK_PROMPT,
-        allow_insecure
-    );
-    if (result != S64_DESTINATION_OK) {
-        set_status(s64_destination_result_message(result));
-        return;
-    }
-
-    clear_connection();
-    set_status("Destination configured");
-}
-
 static void sync_handoff_document(S64PublisherHandoff* target)
 {
     target->buffer = body;
@@ -361,13 +283,13 @@ static void mark_document_changed(void)
     document_changed = 1u;
 }
 
-static void return_to_editor(void)
+static unsigned char preserve_document_handoff(unsigned char returning)
 {
     S64PublisherHandoff* target = WORK_HANDOFF;
 
     if (!s64_handoff_load(target)) {
         set_status("Cannot reload editor handoff");
-        return;
+        return 0u;
     }
 
     sync_handoff_document(target);
@@ -375,18 +297,84 @@ static void return_to_editor(void)
         memset(&target->history, 0, sizeof(target->history));
         target->filename[0] = '\0';
     }
-    if (document_changed) {
-        target->flags |= S64_HANDOFF_FLAG_DIRTY;
+    if (document_changed) target->flags |= S64_HANDOFF_FLAG_DIRTY;
+    if (returning) {
+        target->flags |= S64_HANDOFF_FLAG_RETURN_TO_EDITOR;
+    } else {
+        target->flags &= (uint8_t)~S64_HANDOFF_FLAG_RETURN_TO_EDITOR;
     }
-    target->flags |= S64_HANDOFF_FLAG_RETURN_TO_EDITOR;
     if (!s64_handoff_store(target)) {
         set_status("Cannot preserve editor handoff");
+        return 0u;
+    }
+    return 1u;
+}
+
+static void return_to_editor(void)
+{
+    if (!preserve_document_handoff(1u)) return;
+    clrscr();
+    cputs("RETURNING TO SEE64YOU EDITOR...\r\n");
+    s64_chain_editor();
+}
+
+static void open_settings(void)
+{
+    if (!preserve_document_handoff(0u)) return;
+
+    if (!s64_settings_exchange_load(WORK_SETTINGS)) {
+        s64_settings_exchange_init(WORK_SETTINGS);
+        WORK_SETTINGS->destination_type = (uint8_t)destination.type;
+        WORK_SETTINGS->allow_insecure_http = destination.allow_insecure_http;
+        memcpy(WORK_SETTINGS->base_url, destination.base_url, sizeof(WORK_SETTINGS->base_url));
+    }
+    WORK_SETTINGS->state = S64_SETTINGS_STATE_EDIT_REQUEST;
+    WORK_SETTINGS->result = S64_SETTINGS_RESULT_OK;
+    if (!s64_settings_exchange_store(WORK_SETTINGS)) {
+        set_status("Cannot open publishing settings");
         return;
     }
 
     clrscr();
-    cputs("RETURNING TO SEE64YOU EDITOR...\r\n");
-    s64_chain_editor();
+    cputs("OPENING PUBLISHING SETTINGS...\r\n");
+    s64_chain_settings();
+}
+
+static unsigned char restore_settings(void)
+{
+    uint8_t result;
+
+    if (!s64_settings_exchange_load(WORK_SETTINGS)
+        || WORK_SETTINGS->state != S64_SETTINGS_STATE_READY) {
+        s64_settings_exchange_init(WORK_SETTINGS);
+        WORK_SETTINGS->state = S64_SETTINGS_STATE_LOAD_REQUEST;
+        if (!s64_settings_exchange_store(WORK_SETTINGS)) {
+            set_status("Settings handoff unavailable");
+            return 0u;
+        }
+        clrscr();
+        cputs("LOADING PUBLISHING SETTINGS...\r\n");
+        s64_chain_settings();
+        set_status("Settings helper unavailable");
+        return 0u;
+    }
+
+    result = WORK_SETTINGS->result;
+    s64_destination_clear(&destination);
+    if (WORK_SETTINGS->destination_type != (uint8_t)S64_DESTINATION_NONE) {
+        destination.type = (S64DestinationType)WORK_SETTINGS->destination_type;
+        destination.allow_insecure_http = WORK_SETTINGS->allow_insecure_http;
+        memcpy(destination.base_url, WORK_SETTINGS->base_url, sizeof(destination.base_url));
+    }
+    if (!s64_relay_set_key(WORK_SETTINGS->relay_key)) {
+        s64_destination_clear(&destination);
+        (void)s64_relay_set_key("");
+        set_status("Publisher settings invalid");
+        return 0u;
+    }
+
+    set_status(s64_settings_exchange_result_message(result));
+    return 1u;
 }
 
 static unsigned char publishing_ready(void)
@@ -887,16 +875,16 @@ int main(void)
     s64_destination_clear(&destination);
     s64_publish_state_init(&publish_state);
     memset(&session, 0, sizeof(session));
-    WORK_STATUS[0] = '\0';
     document_changed = 0u;
     document_replaced = 0u;
+    (void)restore_settings();
 
     for (;;) {
         render();
         key = (unsigned char)cgetc();
 
         if (key == '1') {
-            setup_destination();
+            open_settings();
         } else if (key == '2') {
             connect_destination();
         } else if (key == '3') {
@@ -909,8 +897,6 @@ int main(void)
             list_open_remote(S64_DOCUMENT_PAGE);
         } else if (key == '7') {
             list_open_remote(S64_DOCUMENT_POST);
-        } else if (key == '8') {
-            configure_relay_key();
         } else if (key == CH_STOP) {
             return_to_editor();
         }
