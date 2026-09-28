@@ -10,6 +10,7 @@
 #include "platform/uci.h"
 #include "publisher/destination.h"
 #include "publisher/handoff.h"
+#include "publisher/relay.h"
 #include "publisher/state.h"
 #include "publisher/standalone.h"
 #include "publisher/standalone_documents.h"
@@ -131,7 +132,9 @@ static void render(void)
     cputs("5  DELETE REMOTE");
     gotoxy(0u, 17u);
     cputs("6 OPEN PAGE  7 OPEN POST");
-    gotoxy(0u, 19u);
+    gotoxy(0u, 18u);
+    cputs("8 RELAY KEY");
+    gotoxy(0u, 20u);
     cputs("RUN/STOP  RETURN TO EDITOR");
 
     clear_row(STATUS_ROW);
@@ -262,6 +265,28 @@ static void clear_connection(void)
 {
     clear_session();
     s64_publish_state_clear_remote(&publish_state);
+}
+
+static void configure_relay_key(void)
+{
+    if (!prompt_text(
+            "RELAY KEY: ",
+            WORK_PROMPT,
+            S64_RELAY_KEY_CAPACITY,
+            1u
+        )) {
+        set_status("Relay key unchanged");
+        return;
+    }
+
+    if (!s64_relay_set_key(WORK_PROMPT)) {
+        WORK_PROMPT[0] = '\0';
+        set_status("Relay key invalid");
+        return;
+    }
+
+    set_status(WORK_PROMPT[0] != '\0' ? "Relay key set" : "Relay key off");
+    WORK_PROMPT[0] = '\0';
 }
 
 static void setup_destination(void)
@@ -884,6 +909,8 @@ int main(void)
             list_open_remote(S64_DOCUMENT_PAGE);
         } else if (key == '7') {
             list_open_remote(S64_DOCUMENT_POST);
+        } else if (key == '8') {
+            configure_relay_key();
         } else if (key == CH_STOP) {
             return_to_editor();
         }
