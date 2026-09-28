@@ -1,16 +1,24 @@
 #include "standalone_documents.h"
+#include "workspace.h"
 
 #include <stdio.h>
 #include <string.h>
 
 #define S64_LIST_PATH_CAPACITY 40u
 
-static char document_response_header[S64_HTTP_RESPONSE_HEADER_CAPACITY];
-static char list_path[S64_LIST_PATH_CAPACITY];
-static char list_type[8];
-static char list_status[12];
-static S64DocumentSummary list_summary;
-static S64DocumentWireReader open_reader;
+#define document_response_header ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_HEADER_OFFSET])
+#define list_path ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_DOC_OFFSET])
+#define list_type ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_DOC_OFFSET + 40u])
+#define list_status ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_DOC_OFFSET + 48u])
+#define list_summary (*(S64DocumentSummary*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_DOC_OFFSET + 64u])
+#define open_reader (*(S64DocumentWireReader*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_DOC_OFFSET])
+
+typedef char S64StandaloneDocumentWorkspaceFits[
+    (S64_PUBLISH_WORK_DOC_OFFSET + 64u + sizeof(S64DocumentSummary)
+        <= S64_PUBLISH_WORKSPACE_CAPACITY
+     && S64_PUBLISH_WORK_DOC_OFFSET + sizeof(S64DocumentWireReader)
+        <= S64_PUBLISH_WORKSPACE_CAPACITY) ? 1 : -1
+];
 
 typedef struct {
     S64HttpTransport* http;
@@ -60,7 +68,7 @@ static S64StandaloneResult query_list_string(
     S64HttpResult result;
     int written = sprintf(list_path, "documents%%%u/%s", (unsigned int)index, field);
 
-    if (written <= 0 || written >= (int)sizeof(list_path)) {
+    if (written <= 0 || written >= (int)S64_LIST_PATH_CAPACITY) {
         return S64_STANDALONE_PROTOCOL_ERROR;
     }
 
@@ -93,7 +101,7 @@ static S64StandaloneResult query_list_summary(
         index,
         "type",
         list_type,
-        (uint16_t)sizeof(list_type)
+        (uint16_t)8u
     );
     if (result != S64_STANDALONE_OK
         || !s64_document_type_from_name(list_type, &list_summary.type)) {
@@ -136,7 +144,7 @@ static S64StandaloneResult query_list_summary(
         index,
         "status",
         list_status,
-        (uint16_t)sizeof(list_status)
+        (uint16_t)12u
     );
     if (result != S64_STANDALONE_OK
         || !s64_document_status_from_name(list_status, &list_summary.status)) {
@@ -158,7 +166,7 @@ static S64StandaloneResult query_list_summary(
     }
 
     written = sprintf(list_path, "documents%%%u/order", (unsigned int)index);
-    if (written <= 0 || written >= (int)sizeof(list_path)) {
+    if (written <= 0 || written >= (int)S64_LIST_PATH_CAPACITY) {
         return S64_STANDALONE_PROTOCOL_ERROR;
     }
 
@@ -234,7 +242,7 @@ S64StandaloneResult s64_standalone_list_documents(
         &response_header_handle,
         &response_body_handle,
         document_response_header,
-        (uint16_t)sizeof(document_response_header),
+        (uint16_t)S64_HTTP_RESPONSE_HEADER_CAPACITY,
         &response_header_length
     );
     if (http_result != S64_HTTP_OK) {
@@ -343,7 +351,7 @@ S64StandaloneResult s64_standalone_open_document(
         s64_document_wire_reader_write,
         &open_reader,
         document_response_header,
-        (uint16_t)sizeof(document_response_header),
+        (uint16_t)S64_HTTP_RESPONSE_HEADER_CAPACITY,
         &response_header_length
     );
 
