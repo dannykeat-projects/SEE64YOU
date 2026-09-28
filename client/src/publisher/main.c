@@ -867,9 +867,7 @@ static void connect_destination(void)
     }
 #else
     set_status("WordPress deferred");
-}
 #endif
-
 }
 
 int main(void)
