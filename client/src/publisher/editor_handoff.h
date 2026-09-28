@@ -21,6 +21,4 @@ int s64_editor_handoff_restore(
     S64LocalDocument* local
 );
 
-int s64_editor_handoff_clear(void);
-
 #endif
