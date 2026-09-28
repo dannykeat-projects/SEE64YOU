@@ -48,5 +48,7 @@ typedef struct {
 } S64InputEvent;
 
 void s64_input_read(S64InputEvent* event);
+void s64_input_sync_repeat(void);
+void s64_input_restore_repeat(void);
 
 #endif
