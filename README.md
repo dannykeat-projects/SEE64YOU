@@ -29,7 +29,7 @@ tools/        Local validation/development helpers
 
 ## Current status
 
-The project is in its first implementation phase. The repository includes the initial editor core, flat-file web backend and WordPress integration scaffold. See `todo.md` for the authoritative work queue. Before merging the current implementation stack, follow `docs/LOCAL_TESTING.md` for the integration, VICE and C64U validation order.
+The editor, standalone flat-file backend, secure relay and C64U publishing modules are under active integration. The current C64U package uses separate editor, publisher and publishing-settings PRGs while presenting them as one application. The active publisher is Standalone-first; WordPress implementation/tests remain in the repository but WordPress-specific validation is deferred until the rest of the C64U path is working end-to-end. See `todo.md` for the authoritative work queue and `docs/LOCAL_TESTING.md` for validation order.
 
 ## Design principle
 
@@ -50,13 +50,22 @@ Requires [cc65](https://cc65.github.io/).
 make -C client
 ```
 
-Output:
+The conventional C64 output is:
 
 ```
 client/build/see64you.prg
 ```
 
-The integration validation workflow also publishes the current successful C64 build as the GitHub Actions artifact `see64you-prg`, so the latest integration version can be downloaded for manual VICE/C64U testing without rebuilding locally.
+For the C64U build, `make -C client c64u publisher` produces the editor plus internal chain targets:
+
+```
+client/build/SEE64YOU-C64U.PRG
+client/build/S64EDIT.PRG
+client/build/S64PUB.PRG
+client/build/S64CFG.PRG
+```
+
+`SEE64YOU-C64U.PRG` is the friendly entry point. The short aliases are deliberate CBM-DOS-safe internal chain names and are packaged together by CI. The integration workflow also publishes downloadable PRG artifacts for manual VICE/C64U testing.
 
 ## Running the standalone site locally
 

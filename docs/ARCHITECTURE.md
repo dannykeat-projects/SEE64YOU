@@ -69,7 +69,7 @@ HTTP handles survive a C64 reset in the Ultimate firmware, so the publishing ses
 
 The first standalone publisher operation is login. It lets the firmware build a URL-encoded `password` body, accepts the raw JSON response into a small bounded scratch buffer, stores only the returned bearer token and expiry, and frees request handles on success or failure. The normal site password is never retained in the session structure.
 
-The client keeps one active publishing destination in a fixed-buffer profile. The profile stores only backend type, normalized base URL and the explicit insecure-LAN opt-in; all Standalone and WordPress endpoint URLs are constructed centrally with bounded output buffers. UI code therefore never assembles backend paths or query strings itself.
+The client keeps one active publishing destination in a fixed-buffer profile. The profile stores only backend type, normalized base URL and the explicit insecure-LAN opt-in; the relay key is held separately from backend credentials. Endpoint URLs are constructed centrally with bounded output buffers. The active shipping C64U publisher is currently Standalone-first; WordPress client modules remain implemented and tested in source but are not linked into the resident publisher until the rest of the C64U path is working end-to-end.
 
 A separate small publishing-state structure tracks connection state and the current remote identity. For Standalone the identity is the canonical slug; for WordPress it is the numeric post ID. This lets the future UI distinguish create/update/delete safely. In particular, changing a Standalone slug after opening a remote document no longer qualifies as an in-place update, preventing an accidental duplicate file from masquerading as a rename.
 
@@ -101,7 +101,7 @@ The relay is deliberately constrained rather than acting as a general proxy:
 
 This protects the internet-facing leg, but the C64U-to-relay leg remains plaintext. It therefore belongs only on a trusted LAN, not public Wi-Fi or another untrusted local network.
 
-The C64U publisher can configure the relay key for the current publisher session. Durable destination/relay settings are not linked into the resident publisher yet: a direct Ultimate-DOS persistence prototype reduced publisher headroom below the required 1 KiB reserve, so persistence must use a compact helper/module boundary rather than weakening that guard.
+Persistent publishing configuration is handled by a separate C64U helper program, `S64CFG.PRG`. The resident publisher and helper exchange a bounded, checksummed settings record through a dedicated REU block. The helper owns Ultimate-DOS file I/O and persists the active destination URL, explicit plain-HTTP consent and relay key in `SEE64YOU.CFG`. RUN/STOP restores the original in-memory settings; Save writes through a temporary file before replacement. A direct persistence prototype inside the publisher was rejected because it fell below the 1 KiB memory reserve, so this helper boundary is intentional rather than a temporary workaround.
 
 Target hardware still needs to validate the exact UCI behaviour and keyboard/network integration. No transport is required for local document editing.
 

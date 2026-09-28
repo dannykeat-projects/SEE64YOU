@@ -54,8 +54,8 @@ Then choose the appropriate destination type in the C64U publisher and set its *
 http://192.168.1.10:6464
 ```
 
-Do not append `/api.php` or a WordPress REST path; the publisher constructs those endpoint paths itself. Use **8 RELAY KEY** in the publisher and enter the same 64-hex-character relay key from `config.json`. The relay maps the resulting `/api.php` or `/wp-json/see64you/` request onto the configured `upstream_base` and forwards it over verified HTTPS.
+Do not append `/api.php` or another backend path; the publisher constructs endpoint paths itself. Open **1 PUBLISHING SETTINGS**, choose the Standalone destination, set the relay machine's base URL, and enter the same 64-hex-character relay key from `config.json`. The relay maps the resulting `/api.php` request onto the configured `upstream_base` and forwards it over verified HTTPS.
 
-The relay key currently lasts for the publisher session. Durable publisher destination/relay persistence is intentionally deferred until it can be implemented without breaching the C64 publisher's 1 KiB memory-headroom guard.
+Destination URL, plain-HTTP consent and relay key are stored by the separate `S64CFG.PRG` settings helper in `SEE64YOU.CFG`. Keeping Ultimate-DOS persistence in that helper avoids consuming the resident publisher's RAM. RUN/STOP cancels unsaved settings changes; **S SAVE + RETURN** writes them and returns to the publisher.
 
-For WordPress, a root upstream such as `https://blog.example.com/` plus the allowed prefix `/wp-json/see64you/` lets the same relay serve the See64You WordPress adapter without becoming an arbitrary proxy.
+WordPress relay support remains implemented in source, but WordPress-specific client work is intentionally deferred until the standalone/general C64U path is working end-to-end.
