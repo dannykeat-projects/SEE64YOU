@@ -2,6 +2,7 @@
 
 #include "relay.h"
 #include "charset.h"
+#include "workspace.h"
 
 #include <string.h>
 
@@ -26,8 +27,13 @@ typedef struct {
     uint8_t invalid;
 } S64WordPressTextSink;
 
-static char response_header[S64_HTTP_RESPONSE_HEADER_CAPACITY];
-static char response_body[S64_WORDPRESS_RESPONSE_CAPACITY];
+#define response_header ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_HEADER_OFFSET])
+#define response_body ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_TEXT_OFFSET])
+
+typedef char S64WordPressWorkspaceFits[
+    (S64_PUBLISH_WORK_TEXT_OFFSET + S64_WORDPRESS_RESPONSE_CAPACITY
+        <= S64_PUBLISH_WORKSPACE_CAPACITY) ? 1 : -1
+];
 
 static const char base64_table[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -437,7 +443,7 @@ S64WordPressResult s64_wordpress_test_connection(
     }
 
     sink.data = response_body;
-    sink.capacity = (uint16_t)sizeof(response_body);
+    sink.capacity = (uint16_t)S64_WORDPRESS_RESPONSE_CAPACITY;
     sink.length = 0u;
     sink.overflow = 0u;
     sink.invalid = 0u;
@@ -451,7 +457,7 @@ S64WordPressResult s64_wordpress_test_connection(
         collect_text,
         &sink,
         response_header,
-        (uint16_t)sizeof(response_header),
+        (uint16_t)S64_HTTP_RESPONSE_HEADER_CAPACITY,
         0
     );
     if (http_result != S64_HTTP_OK) {
