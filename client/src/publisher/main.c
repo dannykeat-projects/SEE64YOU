@@ -15,6 +15,7 @@
 #include "publisher/standalone_documents.h"
 #include "publisher/wordpress.h"
 #include "publisher/wordpress_documents.h"
+#include "publisher/workspace.h"
 
 #define SCREEN_COLUMNS 40u
 #define STATUS_ROW 24u
@@ -29,18 +30,24 @@ typedef union {
 
 static S64Buffer body;
 static S64Document document;
-static S64PublisherHandoff handoff;
 static S64HttpTransport http;
 static S64UciCapabilities capabilities;
 static S64PublishDestination destination;
 static S64PublishState publish_state;
 static S64PublisherSession session;
-static char connection_url[S64_DESTINATION_URL_CAPACITY];
-static char operation_url[S64_DESTINATION_URL_CAPACITY];
-static char remote_id[S64_WORDPRESS_ID_CAPACITY];
-static char prompt_buffer[PROMPT_CAPACITY];
-static char username[USERNAME_CAPACITY];
 static char status_text[SCREEN_COLUMNS + 1u];
+static unsigned char document_changed;
+
+#define WORK_URL ((char*)&s64_publisher_workspace.bytes[0])
+#define WORK_PROMPT ((char*)&s64_publisher_workspace.bytes[0])
+#define WORK_USERNAME ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_MAIN_USERNAME_OFFSET])
+#define WORK_REMOTE_ID ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_MAIN_USERNAME_OFFSET])
+#define WORK_HANDOFF ((S64PublisherHandoff*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_HANDOFF_OFFSET])
+
+typedef char S64MainHandoffFits[
+    (S64_PUBLISH_WORK_HANDOFF_OFFSET + sizeof(S64PublisherHandoff)
+        <= S64_PUBLISH_WORKSPACE_CAPACITY) ? 1 : -1
+];
 
 static void clear_row(unsigned char row)
 {
@@ -110,7 +117,7 @@ static void render(void)
     print_value(9u, "Connection: ", publish_state.connected
         ? "ready" : "not connected");
     print_value(10u, "Remote: ", publish_state.remote_bound
-        ? publish_state.remote_identity : "(new document)");
+        ? publish_state.WORK_REMOTE_IDentity : "(new document)");
 
     gotoxy(0u, 12u);
     cputs("1  SET DESTINATION");
@@ -282,8 +289,8 @@ static void setup_destination(void)
 
     if (!prompt_text(
             "SITE URL: ",
-            prompt_buffer,
-            (unsigned char)sizeof(prompt_buffer),
+            WORK_PROMPT,
+            (unsigned char)PROMPT_CAPACITY,
             0u
         )) {
         set_status("Destination unchanged");
@@ -294,7 +301,7 @@ static void setup_destination(void)
     result = s64_destination_configure(
         &destination,
         type,
-        prompt_buffer,
+        WORK_PROMPT,
         allow_insecure
     );
     if (result != S64_DESTINATION_OK) {
@@ -306,28 +313,37 @@ static void setup_destination(void)
     set_status("Destination configured");
 }
 
-static void sync_handoff_document(void)
+static void sync_handoff_document(S64PublisherHandoff* target)
 {
-    handoff.buffer = body;
-    handoff.document_type = document.type;
-    handoff.document_status = document.status;
-    handoff.order = document.order;
-    memcpy(handoff.slug, document.slug, sizeof(handoff.slug));
-    memcpy(handoff.title, document.title, sizeof(handoff.title));
-    memcpy(handoff.date, document.date, sizeof(handoff.date));
+    target->buffer = body;
+    target->document_type = document.type;
+    target->document_status = document.status;
+    target->order = document.order;
+    memcpy(target->slug, document.slug, sizeof(target->slug));
+    memcpy(target->title, document.title, sizeof(target->title));
+    memcpy(target->date, document.date, sizeof(target->date));
 }
 
 static void mark_document_changed(void)
 {
-    handoff.flags |= S64_HANDOFF_FLAG_DIRTY;
-    sync_handoff_document();
+    document_changed = 1u;
 }
 
 static void return_to_editor(void)
 {
-    sync_handoff_document();
-    handoff.flags |= S64_HANDOFF_FLAG_RETURN_TO_EDITOR;
-    if (!s64_handoff_store(&handoff)) {
+    S64PublisherHandoff* target = WORK_HANDOFF;
+
+    if (!s64_handoff_load(target)) {
+        set_status("Cannot reload editor handoff");
+        return;
+    }
+
+    sync_handoff_document(target);
+    if (document_changed) {
+        target->flags |= S64_HANDOFF_FLAG_DIRTY;
+    }
+    target->flags |= S64_HANDOFF_FLAG_RETURN_TO_EDITOR;
+    if (!s64_handoff_store(target)) {
         set_status("Cannot preserve editor handoff");
         return;
     }
@@ -391,10 +407,10 @@ static void save_remote_document(void)
 
     url_result = s64_destination_save_url(
         &destination,
-        updating ? publish_state.remote_identity : 0,
+        updating ? publish_state.WORK_REMOTE_IDentity : 0,
         updating,
-        operation_url,
-        (uint16_t)sizeof(operation_url)
+        WORK_URL,
+        (uint16_t)S64_DESTINATION_URL_CAPACITY
     );
     if (url_result != S64_DESTINATION_OK) {
         set_status(s64_destination_result_message(url_result));
@@ -406,7 +422,7 @@ static void save_remote_document(void)
 
         result = s64_standalone_save_document(
             &http,
-            operation_url,
+            WORK_URL,
             destination.allow_insecure_http,
             &session.standalone,
             &document
@@ -429,13 +445,13 @@ static void save_remote_document(void)
 
         result = s64_wordpress_save_document(
             &http,
-            operation_url,
+            WORK_URL,
             destination.allow_insecure_http,
             &session.wordpress,
             &document,
             updating,
-            remote_id,
-            (uint16_t)sizeof(remote_id)
+            WORK_REMOTE_ID,
+            (uint16_t)S64_WORDPRESS_ID_CAPACITY
         );
         if (result != S64_WORDPRESS_OK) {
             set_status(s64_wordpress_result_message(result));
@@ -445,7 +461,7 @@ static void save_remote_document(void)
                 &publish_state,
                 &destination,
                 document.type,
-                remote_id
+                WORK_REMOTE_ID
             )) {
             set_status("Saved, but remote binding failed");
             return;
@@ -479,9 +495,9 @@ static void delete_remote_document(void)
     url_result = s64_destination_delete_url(
         &destination,
         publish_state.remote_type,
-        publish_state.remote_identity,
-        operation_url,
-        (uint16_t)sizeof(operation_url)
+        publish_state.WORK_REMOTE_IDentity,
+        WORK_URL,
+        (uint16_t)S64_DESTINATION_URL_CAPACITY
     );
     if (url_result != S64_DESTINATION_OK) {
         set_status(s64_destination_result_message(url_result));
@@ -493,11 +509,11 @@ static void delete_remote_document(void)
 
         result = s64_standalone_delete_document(
             &http,
-            operation_url,
+            WORK_URL,
             destination.allow_insecure_http,
             &session.standalone,
             publish_state.remote_type,
-            publish_state.remote_identity
+            publish_state.WORK_REMOTE_IDentity
         );
         if (result != S64_STANDALONE_OK) {
             set_status(s64_standalone_result_message(result));
@@ -508,7 +524,7 @@ static void delete_remote_document(void)
 
         result = s64_wordpress_delete_document(
             &http,
-            operation_url,
+            WORK_URL,
             destination.allow_insecure_http,
             &session.wordpress
         );
@@ -544,16 +560,6 @@ static void connect_destination(void)
         return;
     }
 
-    url_result = s64_destination_connection_url(
-        &destination,
-        connection_url,
-        (uint16_t)sizeof(connection_url)
-    );
-    if (url_result != S64_DESTINATION_OK) {
-        set_status(s64_destination_result_message(url_result));
-        return;
-    }
-
     clear_connection();
 
     if (destination.type == S64_DESTINATION_STANDALONE) {
@@ -561,22 +567,33 @@ static void connect_destination(void)
 
         if (!prompt_text(
                 "PASSWORD: ",
-                prompt_buffer,
-                (unsigned char)sizeof(prompt_buffer),
+                WORK_PROMPT,
+                (unsigned char)PROMPT_CAPACITY,
                 1u
             )) {
             set_status("Login cancelled");
             return;
         }
 
+        url_result = s64_destination_connection_url(
+            &destination,
+            WORK_URL,
+            (uint16_t)S64_DESTINATION_URL_CAPACITY
+        );
+        if (url_result != S64_DESTINATION_OK) {
+            memset(WORK_PROMPT, 0, PROMPT_CAPACITY);
+            set_status(s64_destination_result_message(url_result));
+            return;
+        }
+
         result = s64_standalone_login(
             &http,
-            connection_url,
-            prompt_buffer,
+            WORK_URL,
+            WORK_PROMPT,
             destination.allow_insecure_http,
             &session.standalone
         );
-        memset(prompt_buffer, 0, sizeof(prompt_buffer));
+        memset(WORK_PROMPT, 0, PROMPT_CAPACITY);
         if (result == S64_STANDALONE_OK) {
             s64_publish_state_set_connected(&publish_state, 1u);
             set_status("Standalone connection ready");
@@ -591,35 +608,45 @@ static void connect_destination(void)
 
         if (!prompt_text(
                 "USERNAME: ",
-                username,
-                (unsigned char)sizeof(username),
+                WORK_USERNAME,
+                (unsigned char)USERNAME_CAPACITY,
                 0u
             )
             || !prompt_text(
                 "APP PASSWORD: ",
-                prompt_buffer,
-                (unsigned char)sizeof(prompt_buffer),
+                WORK_PROMPT,
+                (unsigned char)PROMPT_CAPACITY,
                 1u
             )) {
-            memset(prompt_buffer, 0, sizeof(prompt_buffer));
+            memset(WORK_PROMPT, 0, PROMPT_CAPACITY);
             set_status("Login cancelled");
             return;
         }
 
         if (!s64_wordpress_session_configure(
                 &session.wordpress,
-                username,
-                prompt_buffer
+                WORK_USERNAME,
+                WORK_PROMPT
             )) {
-            memset(prompt_buffer, 0, sizeof(prompt_buffer));
+            memset(WORK_PROMPT, 0, PROMPT_CAPACITY);
             set_status("Invalid WordPress credentials");
             return;
         }
-        memset(prompt_buffer, 0, sizeof(prompt_buffer));
+        memset(WORK_PROMPT, 0, PROMPT_CAPACITY);
+
+        url_result = s64_destination_connection_url(
+            &destination,
+            WORK_URL,
+            (uint16_t)S64_DESTINATION_URL_CAPACITY
+        );
+        if (url_result != S64_DESTINATION_OK) {
+            set_status(s64_destination_result_message(url_result));
+            return;
+        }
 
         result = s64_wordpress_test_connection(
             &http,
-            connection_url,
+            WORK_URL,
             destination.allow_insecure_http,
             &session.wordpress
         );
@@ -647,9 +674,9 @@ int main(void)
         return 1;
     }
 
-    s64_handoff_init(&handoff);
-    if (!s64_handoff_load(&handoff)
-        || !s64_handoff_apply_document(&handoff, &body, &document)) {
+    s64_handoff_init(WORK_HANDOFF);
+    if (!s64_handoff_load(WORK_HANDOFF)
+        || !s64_handoff_apply_document(WORK_HANDOFF, &body, &document)) {
         cputs("SEE64YOU PUBLISHER\r\nNO EDITOR HANDOFF\r\n");
         cputs("RUN EDITOR FIRST\r\n");
         return 1;
@@ -661,6 +688,7 @@ int main(void)
     s64_publish_state_init(&publish_state);
     memset(&session, 0, sizeof(session));
     status_text[0] = '\0';
+    document_changed = 0u;
 
     for (;;) {
         render();
