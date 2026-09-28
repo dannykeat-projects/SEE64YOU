@@ -6,6 +6,7 @@ VICE_BIN=${VICE_BIN:-x64sc}
 EDITOR_PRG="$ROOT/client/build/editor-probe.prg"
 UI_PRG="$ROOT/client/build/ui-probe.prg"
 INPUT_REPEAT_PRG="$ROOT/client/build/input-repeat-probe.prg"
+PUBLISHER_CHARSET_PRG="$ROOT/client/build/publisher-charset-probe.prg"
 PRG="$ROOT/client/build/reu-probe.prg"
 BUFFER_PRG="$ROOT/client/build/reu-buffer-probe.prg"
 REU_EDITOR_PRG="$ROOT/client/build/reu-editor-probe.prg"
@@ -18,7 +19,7 @@ if ! command -v "$VICE_BIN" >/dev/null 2>&1; then
     exit 0
 fi
 
-if [ ! -f "$PRG" ] || [ ! -f "$BUFFER_PRG" ] || [ ! -f "$EDITOR_PRG" ] || [ ! -f "$UI_PRG" ] || [ ! -f "$INPUT_REPEAT_PRG" ] || [ ! -f "$REU_EDITOR_PRG" ] || [ ! -f "$RECOVERY_PRG" ]; then
+if [ ! -f "$PRG" ] || [ ! -f "$BUFFER_PRG" ] || [ ! -f "$EDITOR_PRG" ] || [ ! -f "$UI_PRG" ] || [ ! -f "$INPUT_REPEAT_PRG" ] || [ ! -f "$PUBLISHER_CHARSET_PRG" ] || [ ! -f "$REU_EDITOR_PRG" ] || [ ! -f "$RECOVERY_PRG" ]; then
     echo "VICE diagnostic PRG missing" >&2
     exit 1
 fi
@@ -131,6 +132,28 @@ if ! python3 "$ROOT/tools/vice/test_input_repeat.py" --port 6516 --timeout 20; t
 fi
 wait "$repeat_pid" 2>/dev/null || true
 echo "OK keyboard repeat regression"
+
+charset_log="/tmp/see64you-publisher-charset.log"
+xvfb-run -a "$VICE_BIN" \
+    -kernal "$ROM_DIR/kernal.rom" \
+    -basic "$ROM_DIR/basic.rom" \
+    -chargen "$ROM_DIR/chargen.rom" \
+    +sound \
+    -autostartprgmode 1 \
+    -binarymonitor \
+    -binarymonitoraddress "ip4://127.0.0.1:6515" \
+    -autostart "$PUBLISHER_CHARSET_PRG" \
+    >"$charset_log" 2>&1 &
+charset_pid=$!
+
+if ! python3 "$ROOT/tools/vice/test_publisher_charset.py" --port 6515 --timeout 20; then
+    kill "$charset_pid" 2>/dev/null || true
+    cat "$charset_log" >&2
+    wait "$charset_pid" 2>/dev/null || true
+    exit 1
+fi
+wait "$charset_pid" 2>/dev/null || true
+echo "OK PETSCII publisher wire-boundary regression"
 
 recovery_log="/tmp/see64you-recovery.log"
 xvfb-run -a "$VICE_BIN" \
