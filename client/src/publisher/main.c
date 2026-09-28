@@ -41,6 +41,7 @@ static unsigned char document_changed;
 #define WORK_URL ((char*)&s64_publisher_workspace.bytes[0])
 #define WORK_PROMPT ((char*)&s64_publisher_workspace.bytes[0])
 #define WORK_USERNAME ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_MAIN_USERNAME_OFFSET])
+#define WORK_SECRET ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_MAIN_USERNAME_OFFSET])
 #define WORK_REMOTE_ID ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_MAIN_USERNAME_OFFSET])
 #define WORK_HANDOFF ((S64PublisherHandoff*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_HANDOFF_OFFSET])
 
@@ -117,7 +118,7 @@ static void render(void)
     print_value(9u, "Connection: ", publish_state.connected
         ? "ready" : "not connected");
     print_value(10u, "Remote: ", publish_state.remote_bound
-        ? publish_state.WORK_REMOTE_IDentity : "(new document)");
+        ? publish_state.remote_identity : "(new document)");
 
     gotoxy(0u, 12u);
     cputs("1  SET DESTINATION");
@@ -407,7 +408,7 @@ static void save_remote_document(void)
 
     url_result = s64_destination_save_url(
         &destination,
-        updating ? publish_state.WORK_REMOTE_IDentity : 0,
+        updating ? publish_state.remote_identity : 0,
         updating,
         WORK_URL,
         (uint16_t)S64_DESTINATION_URL_CAPACITY
@@ -495,7 +496,7 @@ static void delete_remote_document(void)
     url_result = s64_destination_delete_url(
         &destination,
         publish_state.remote_type,
-        publish_state.WORK_REMOTE_IDentity,
+        publish_state.remote_identity,
         WORK_URL,
         (uint16_t)S64_DESTINATION_URL_CAPACITY
     );
@@ -513,7 +514,7 @@ static void delete_remote_document(void)
             destination.allow_insecure_http,
             &session.standalone,
             publish_state.remote_type,
-            publish_state.WORK_REMOTE_IDentity
+            publish_state.remote_identity
         );
         if (result != S64_STANDALONE_OK) {
             set_status(s64_standalone_result_message(result));
@@ -567,7 +568,7 @@ static void connect_destination(void)
 
         if (!prompt_text(
                 "PASSWORD: ",
-                WORK_PROMPT,
+                WORK_SECRET,
                 (unsigned char)PROMPT_CAPACITY,
                 1u
             )) {
@@ -581,7 +582,7 @@ static void connect_destination(void)
             (uint16_t)S64_DESTINATION_URL_CAPACITY
         );
         if (url_result != S64_DESTINATION_OK) {
-            memset(WORK_PROMPT, 0, PROMPT_CAPACITY);
+            memset(WORK_SECRET, 0, PROMPT_CAPACITY);
             set_status(s64_destination_result_message(url_result));
             return;
         }
@@ -589,11 +590,11 @@ static void connect_destination(void)
         result = s64_standalone_login(
             &http,
             WORK_URL,
-            WORK_PROMPT,
+            WORK_SECRET,
             destination.allow_insecure_http,
             &session.standalone
         );
-        memset(WORK_PROMPT, 0, PROMPT_CAPACITY);
+        memset(WORK_SECRET, 0, PROMPT_CAPACITY);
         if (result == S64_STANDALONE_OK) {
             s64_publish_state_set_connected(&publish_state, 1u);
             set_status("Standalone connection ready");
