@@ -183,7 +183,7 @@ if command -v c1541 >/dev/null 2>&1; then
         -autostart-handle-tde \
         -binarymonitor \
         -binarymonitoraddress "ip4://127.0.0.1:6514" \
-        -autostart "$chain_disk:CHAINTEST" \
+        -autostart "$chain_disk" \
         >"$chain_log" 2>&1 &
     chain_pid=$!
 
