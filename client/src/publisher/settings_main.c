@@ -15,6 +15,7 @@
 
 static S64SettingsExchange settings;
 static S64SettingsExchange original_settings;
+static S64SettingsExchange profile_settings;
 static S64PublishDestination checked_destination;
 static S64Dos dos;
 static S64UciCapabilities capabilities;
@@ -76,8 +77,10 @@ static void render(void)
     gotoxy(0u, 14u); cputs("3 TOGGLE PLAIN HTTP");
     gotoxy(0u, 15u); cputs("4 REPLACE RELAY KEY");
     gotoxy(0u, 16u); cputs("5 DISABLE RELAY KEY");
-    gotoxy(0u, 18u); cputs("S SAVE + RETURN");
-    gotoxy(0u, 19u); cputs("RUN/STOP CANCEL + RETURN");
+    gotoxy(0u, 17u); cputs("6 LOAD PROFILE");
+    gotoxy(0u, 18u); cputs("7 SAVE PROFILE");
+    gotoxy(0u, 20u); cputs("S SAVE + RETURN");
+    gotoxy(0u, 21u); cputs("RUN/STOP CANCEL + RETURN");
     clear_row(STATUS_ROW);
     gotoxy(0u, STATUS_ROW);
     revers(1); cputs(status_text); revers(0);
@@ -175,31 +178,129 @@ static void choose_destination(void)
     set_status("Destination type changed");
 }
 
-static uint8_t validate_settings(void)
+static uint8_t validate_values(S64SettingsExchange* target)
 {
     S64DestinationResult result;
-    if (settings.destination_type == (uint8_t)S64_DESTINATION_NONE) {
-        settings.base_url[0] = '\0';
-        settings.allow_insecure_http = 0u;
-        return s64_settings_exchange_values_valid(&settings) ? 1u : 0u;
+
+    if (target == 0) return 0u;
+    if (target->destination_type == (uint8_t)S64_DESTINATION_NONE) {
+        target->base_url[0] = '\0';
+        target->allow_insecure_http = 0u;
+        return s64_settings_exchange_values_valid(target) ? 1u : 0u;
     }
+
     result = s64_destination_configure(
         &checked_destination,
-        (S64DestinationType)settings.destination_type,
-        settings.base_url,
-        settings.allow_insecure_http
+        (S64DestinationType)target->destination_type,
+        target->base_url,
+        target->allow_insecure_http
     );
     if (result != S64_DESTINATION_OK) {
         set_status(s64_destination_result_message(result));
         return 0u;
     }
-    memcpy(settings.base_url, checked_destination.base_url, sizeof(settings.base_url));
-    settings.allow_insecure_http = checked_destination.allow_insecure_http;
-    if (!s64_settings_exchange_values_valid(&settings)) {
+    memcpy(
+        target->base_url,
+        checked_destination.base_url,
+        sizeof(target->base_url)
+    );
+    target->allow_insecure_http = checked_destination.allow_insecure_http;
+    if (!s64_settings_exchange_values_valid(target)) {
         set_status("Relay key invalid");
         return 0u;
     }
     return 1u;
+}
+
+static uint8_t validate_settings(void)
+{
+    return validate_values(&settings);
+}
+
+static uint8_t choose_profile_slot(void)
+{
+    unsigned char key;
+
+    clear_row(STATUS_ROW);
+    gotoxy(0u, STATUS_ROW);
+    revers(1);
+    cputs("PROFILE 1-4  STOP=CANCEL");
+
+    for (;;) {
+        key = (unsigned char)cgetc();
+        if (key >= '1' && key <= '4') {
+            revers(0);
+            return (uint8_t)(key - '1');
+        }
+        if (key == CH_STOP) {
+            revers(0);
+            return 0xffu;
+        }
+    }
+}
+
+static void load_profile(void)
+{
+    S64SettingsStoreResult result;
+    uint8_t slot;
+
+    if (!capabilities.dos_target) {
+        set_status("Settings storage unavailable");
+        return;
+    }
+
+    slot = choose_profile_slot();
+    if (slot == 0xffu) {
+        set_status("Profile load cancelled");
+        return;
+    }
+
+    result = s64_settings_profile_load(&dos, slot, &profile_settings);
+    if (result == S64_SETTINGS_STORE_NOT_FOUND) {
+        set_status("Profile slot is empty");
+        return;
+    }
+    if (result == S64_SETTINGS_STORE_INVALID) {
+        set_status("Profile data invalid");
+        return;
+    }
+    if (result != S64_SETTINGS_STORE_OK) {
+        set_status("Profile load failed");
+        return;
+    }
+    if (!validate_values(&profile_settings)) {
+        return;
+    }
+
+    settings = profile_settings;
+    settings.state = S64_SETTINGS_STATE_EDIT_REQUEST;
+    set_status("Profile loaded; S to use");
+}
+
+static void save_profile(void)
+{
+    S64SettingsStoreResult result;
+    uint8_t slot;
+
+    if (!capabilities.dos_target) {
+        set_status("Settings storage unavailable");
+        return;
+    }
+    if (!validate_settings()) return;
+
+    slot = choose_profile_slot();
+    if (slot == 0xffu) {
+        set_status("Profile save cancelled");
+        return;
+    }
+
+    profile_settings = settings;
+    result = s64_settings_profile_save(&dos, slot, &profile_settings);
+    if (result == S64_SETTINGS_STORE_OK) {
+        set_status("Profile saved");
+    } else {
+        set_status("Profile save failed");
+    }
 }
 
 static void return_to_publisher(void)
@@ -360,6 +461,10 @@ int main(void)
         } else if (key == '5') {
             settings.relay_key[0] = '\0';
             set_status("Relay key disabled");
+        } else if (key == '6') {
+            load_profile();
+        } else if (key == '7') {
+            save_profile();
         } else if (key == 's' || key == 'S') {
             save_and_return();
         } else if (key == CH_STOP) {
