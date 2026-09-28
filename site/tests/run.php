@@ -98,6 +98,45 @@ try {
         'formatting subset renders consistently'
     );
 
+    $markupV1Source = "# Heading one\n"
+        . "## Heading two\n"
+        . "- list **bold**\n"
+        . "- list *italic*\n"
+        . "[OpenAI](https://openai.com)\n"
+        . "### literal heading\n"
+        . "`literal code`\n"
+        . "~~literal strike~~";
+    $markupV1Document = [
+        'type' => 'page',
+        'slug' => 'markup-v1',
+        'title' => 'Markup v1',
+        'status' => 'draft',
+        'date' => '',
+        'order' => 0,
+        'body' => $markupV1Source,
+    ];
+    $markupV1Wire = S64Wire::serialize($markupV1Document);
+    $markupV1RoundTrip = S64Wire::parse($markupV1Wire);
+    check(
+        $markupV1RoundTrip['body'] === $markupV1Source,
+        'Markup v1 source round trips exactly through wire format'
+    );
+    $markupV1Rendered = s64_markup($markupV1RoundTrip['body']);
+    check(str_contains($markupV1Rendered, '<h1>Heading one</h1>'), 'Markup v1 h1 renders');
+    check(str_contains($markupV1Rendered, '<h2>Heading two</h2>'), 'Markup v1 h2 renders');
+    check(str_contains($markupV1Rendered, '<li>list <strong>bold</strong></li>'), 'Markup v1 bold list renders');
+    check(str_contains($markupV1Rendered, '<li>list <em>italic</em></li>'), 'Markup v1 italic list renders');
+    check(
+        str_contains($markupV1Rendered, '<a href="https://openai.com">OpenAI</a>'),
+        'Markup v1 HTTPS link renders'
+    );
+    check(
+        str_contains($markupV1Rendered, '<p>### literal heading</p>')
+            && str_contains($markupV1Rendered, '<p>`literal code`</p>')
+            && str_contains($markupV1Rendered, '<p>~~literal strike~~</p>'),
+        'Markup v1 unsupported constructs remain literal'
+    );
+
     $unsupportedSource = "### Heading three\n"
         . "`inline code`\n"
         . "~~strikethrough~~\n"

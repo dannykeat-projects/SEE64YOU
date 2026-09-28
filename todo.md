@@ -66,7 +66,7 @@ These player-facing checks are assigned to the user where practical; automated s
 
 - [x] Define simple metadata + source-body representation.
 - [x] Implement safe minimal markup rendering on the standalone backend.
-- [ ] Freeze See64You Markup v1 after formatting UI/menu wiring and round-trip validation.
+- [x] Freeze See64You Markup v1 (H1/H2, bold, italic, unordered list items and HTTP(S) links). The syntax is documented independently of convenience UI, and canonical fixtures round-trip exactly through both the C document wire path and PHP wire/parser/renderer tests; unsupported constructs remain literal.
 - [x] Bold / italic / headings / lists / links formatting command core (basic formatting is isolated in `editor_format.c`; Ctrl+B, Ctrl+I and Ctrl+L remain wired into the conventional-C64 runtime. Heading formatting remains available to the future Format menu, but Ctrl+1/Ctrl+2 were removed after VICE validation on 2026-09-27 because typing `#` / `##` is equally direct. The URL/link core remains host-tested but dormant: directly linking `editor_format_link.c` overflowed the C64 BSS memory area by 936 bytes with the 1 KiB stack on 2026-09-27, so link UI needs a different memory/overlay strategy).
 - [ ] C64 preview view.
 - [x] Preserve unsupported markup as text rather than corrupting it (verified by renderer regression coverage 2026-09-25).

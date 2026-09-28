@@ -6,6 +6,10 @@ The standalone backend defines the reference See64You document operations. The W
 
 The `SEE64YOU/1` canonical document wire format uses 7-bit ASCII text with LF line endings. The C64 client keeps editor text in native PETSCII and converts at the document read/write boundary; bytes that cannot be represented by the current source-text subset are rejected rather than silently corrupted. A future protocol revision may define a wider character repertoire after display/editing behaviour is specified.
 
+## Document body markup
+
+The body syntax for protocol v1 is **See64You Markup v1**, defined in [MARKUP.md](MARKUP.md). The supported formatting subset is deliberately frozen and smaller than Markdown. Unsupported constructs remain literal source text; backends must not silently assign them new v1 meaning.
+
 ## Authentication
 
 Standalone:

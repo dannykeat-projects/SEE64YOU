@@ -155,6 +155,72 @@ int main(void)
         require(s64_buffer_length(&parsed_body) == 0u, "invalid wire clears destination body");
     }
 
+    {
+        static const char markup_v1[] =
+            "# Heading one\n"
+            "## Heading two\n"
+            "- list **bold**\n"
+            "- list *italic*\n"
+            "[OpenAI](https://openai.com)\n"
+            "### literal heading\n"
+            "\`literal code\`\n"
+            "~~literal strike~~";
+        S64Buffer source_body;
+        S64Buffer parsed_body;
+        S64Document source;
+        S64Document parsed;
+        S64DocumentWireReader reader;
+        TextSink markup_sink;
+        const char* cursor = markup_v1;
+        size_t offset = 0u;
+        size_t chunk;
+
+        s64_buffer_init(&source_body);
+        while (*cursor != '\0') {
+            require(
+                s64_buffer_insert(&source_body, (unsigned char)*cursor++),
+                "insert Markup v1 fixture"
+            );
+        }
+
+        s64_document_init(&source, &source_body);
+        source.type = S64_DOCUMENT_PAGE;
+        source.status = S64_DOCUMENT_DRAFT;
+        require(s64_document_set_slug(&source, "markup-v1"), "set Markup v1 slug");
+        require(s64_document_set_title(&source, "Markup v1"), "set Markup v1 title");
+
+        memset(&markup_sink, 0, sizeof(markup_sink));
+        require(
+            s64_document_write_wire(&source, collect, &markup_sink) == S64_DOCUMENT_OK,
+            "serialize Markup v1 fixture"
+        );
+
+        s64_document_init(&parsed, &parsed_body);
+        s64_document_wire_reader_init(&reader, &parsed);
+        while (offset < markup_sink.length) {
+            chunk = markup_sink.length - offset;
+            if (chunk > 5u) chunk = 5u;
+            require(
+                s64_document_wire_reader_write(
+                    (const uint8_t*)markup_sink.data + offset,
+                    (uint16_t)chunk,
+                    &reader
+                ),
+                "stream Markup v1 wire"
+            );
+            offset += chunk;
+        }
+        require(
+            s64_document_wire_reader_finish(&reader) == S64_DOCUMENT_OK,
+            "finish Markup v1 wire"
+        );
+        require_buffer_text(
+            &parsed_body,
+            markup_v1,
+            "Markup v1 source round trips exactly"
+        );
+    }
+
     puts("document tests passed");
     return 0;
 }
