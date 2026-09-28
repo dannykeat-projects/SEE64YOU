@@ -10,6 +10,7 @@ from dataclasses import dataclass
 API_VERSION = 0x02
 STX = 0x02
 CMD_MEMORY_GET = 0x01
+CMD_MEMORY_SET = 0x02
 CMD_EXIT_MONITOR = 0xAA
 CMD_QUIT = 0xBB
 
@@ -84,6 +85,17 @@ class ViceMonitor:
         if len(data) != length:
             raise RuntimeError("VICE memory response length mismatch")
         return data
+
+    def write_memory(self, start: int, data: bytes) -> None:
+        if not data:
+            return
+        end = start + len(data) - 1
+        if end > 0xFFFF:
+            raise ValueError("memory write exceeds 16-bit address space")
+        self.command(
+            CMD_MEMORY_SET,
+            struct.pack("<BHHBH", 0, start, end, 0, 0) + data,
+        )
 
     def resume(self) -> None:
         self.command(CMD_EXIT_MONITOR)
