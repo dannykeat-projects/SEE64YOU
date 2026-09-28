@@ -1,11 +1,11 @@
 #include <conio.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "buffer.h"
 #include "charset.h"
 #include "document.h"
 #include "platform/http.h"
+#include "platform/chain.h"
 #include "platform/reu.h"
 #include "platform/uci.h"
 #include "publisher/destination.h"
@@ -21,7 +21,6 @@
 #define STATUS_ROW 24u
 #define PROMPT_CAPACITY S64_DESTINATION_BASE_URL_CAPACITY
 #define USERNAME_CAPACITY 61u
-#define S64_EDITOR_PROGRAM "SEE64YOU-C64U.PRG"
 
 typedef union {
     S64StandaloneSession standalone;
@@ -347,10 +346,7 @@ static void return_to_editor(void)
 
     clrscr();
     cputs("RETURNING TO SEE64YOU EDITOR...\r\n");
-    if (exec(S64_EDITOR_PROGRAM, 0) < 0) {
-        render();
-        set_status("Editor not found: SEE64YOU-C64U.PRG");
-    }
+    s64_chain_editor();
 }
 
 static unsigned char publishing_ready(void)
