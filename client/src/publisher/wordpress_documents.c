@@ -20,10 +20,6 @@
 #define source_chunk ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_WP_SOURCE_OFFSET])
 #define summary_scratch (*(S64WordPressDocumentSummary*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_WP_SUMMARY_OFFSET])
 
-typedef char S64WordPressDocumentWorkspaceFits[
-    (S64_PUBLISH_WORK_WP_SUMMARY_OFFSET + sizeof(S64WordPressDocumentSummary)
-        <= S64_PUBLISH_WORKSPACE_CAPACITY) ? 1 : -1
-];
 
 typedef struct {
     S64HttpTransport* http;
