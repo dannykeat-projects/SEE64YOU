@@ -92,6 +92,12 @@ echo "== Host publisher state tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/publisher_state_test.c client/src/document.c client/src/charset.c client/src/buffer.c client/src/publisher/destination.c client/src/publisher/state.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host publisher settings exchange tests =="
+cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
+    client/tests/publisher_settings_exchange_test.c \
+    client/src/publisher/settings_exchange.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host publisher REU handoff tests =="
 cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/tests/publisher_handoff_test.c client/src/buffer_reu.c \
@@ -146,6 +152,8 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/publisher/state.c \
         client/src/publisher/workspace.c \
         client/src/publisher/relay.c \
+        client/src/publisher/settings_exchange.c \
+        client/src/publisher/settings_store.c \
         client/src/publisher/standalone.c \
         client/src/publisher/standalone_documents.c \
         client/src/publisher/wordpress.c \
@@ -205,11 +213,13 @@ if command -v cl65 >/dev/null 2>&1 \
     echo "== Recovery diagnostic build =="
     make -C client recovery-probe
 
-    echo "== C64U publisher build =="
+    echo "== C64U publisher + settings helper build =="
     make -C client publisher
     if command -v python3 >/dev/null 2>&1; then
         python3 tools/check_memory_headroom.py client/build/see64you-publisher.map \
             --label "C64U publisher" --min-headroom 1024
+        python3 tools/check_memory_headroom.py client/build/see64you-settings.map \
+            --label "C64U settings helper" --min-headroom 1024
     fi
 
     if command -v x64sc >/dev/null 2>&1 \
