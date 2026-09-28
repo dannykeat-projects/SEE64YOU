@@ -6,7 +6,7 @@ import time
 
 from test_reu_probe import ViceMonitor, wait_for_monitor
 
-DIAG_BASE = 0xC040
+DIAG_BASE = 0x03F0
 SCREEN_BASE = 0x0400
 SCREEN_COLUMNS = 40
 DIAG_PASS = 0xA5
