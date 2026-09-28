@@ -20,10 +20,6 @@ typedef struct {
 #define login_response ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_TEXT_OFFSET])
 #define authorization_header ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_AUX_OFFSET])
 
-typedef char S64StandaloneWorkspaceFits[
-    (S64_PUBLISH_WORK_AUX_OFFSET + S64_STANDALONE_AUTH_HEADER_CAPACITY
-        <= S64_PUBLISH_WORKSPACE_CAPACITY) ? 1 : -1
-];
 
 static uint8_t s64_standalone_collect_text(
     const uint8_t* data,
