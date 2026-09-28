@@ -45,7 +45,10 @@ static uint16_t s64_handoff_record_checksum(const S64HandoffRecord* value)
         sum2 = (uint8_t)(sum2 + sum1);
     }
 
-    return (uint16_t)(((uint16_t)sum2 << 8) | sum1);
+    {
+        uint16_t checksum = (uint16_t)(((uint16_t)sum2 << 8) | sum1);
+        return checksum != 0u ? checksum : 0xffffu;
+    }
 }
 
 #endif
