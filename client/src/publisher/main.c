@@ -98,7 +98,6 @@ static const char* destination_name(void)
     if (destination.type == S64_DESTINATION_STANDALONE) {
         return "Standalone";
     }
-#ifndef S64_STANDALONE_ONLY
     if (destination.type == S64_DESTINATION_WORDPRESS) {
         return "WordPress";
     }
@@ -811,6 +810,7 @@ static void connect_destination(void)
         return;
     }
 
+#ifndef S64_STANDALONE_ONLY
     if (destination.type == S64_DESTINATION_WORDPRESS) {
         S64WordPressResult result;
 
@@ -867,6 +867,7 @@ static void connect_destination(void)
     }
 #else
     set_status("WordPress deferred");
+}
 #endif
 
 }
