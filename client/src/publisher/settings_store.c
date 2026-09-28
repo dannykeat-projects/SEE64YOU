@@ -27,8 +27,19 @@ static uint8_t read_settings(
     return 1u;
 }
 
-S64SettingsStoreResult s64_settings_store_load(
+static uint8_t profile_filename(uint8_t slot, char* filename)
+{
+    static const char template_name[] = "S64DEST1.CFG";
+
+    if (filename == 0 || slot >= S64_SETTINGS_PROFILE_COUNT) return 0u;
+    memcpy(filename, template_name, sizeof(template_name));
+    filename[7] = (char)('1' + slot);
+    return 1u;
+}
+
+static S64SettingsStoreResult load_named(
     S64Dos* dos,
+    const char* filename,
     S64SettingsExchange* settings
 )
 {
@@ -38,13 +49,15 @@ S64SettingsStoreResult s64_settings_store_load(
     uint8_t exists;
     uint16_t bytes_read;
 
-    if (dos == 0 || settings == 0) return S64_SETTINGS_STORE_INVALID;
+    if (dos == 0 || filename == 0 || settings == 0) {
+        return S64_SETTINGS_STORE_INVALID;
+    }
 
-    result = s64_dos_file_exists(dos, S64_SETTINGS_FILENAME, &exists);
+    result = s64_dos_file_exists(dos, filename, &exists);
     if (result != S64_DOS_OK) return S64_SETTINGS_STORE_IO_ERROR;
     if (!exists) return S64_SETTINGS_STORE_NOT_FOUND;
 
-    result = s64_dos_open_read(dos, S64_SETTINGS_FILENAME);
+    result = s64_dos_open_read(dos, filename);
     if (result != S64_DOS_OK) return S64_SETTINGS_STORE_IO_ERROR;
 
     memset(settings, 0, sizeof(*settings));
@@ -74,8 +87,9 @@ S64SettingsStoreResult s64_settings_store_load(
     return S64_SETTINGS_STORE_OK;
 }
 
-S64SettingsStoreResult s64_settings_store_save(
+static S64SettingsStoreResult save_named(
     S64Dos* dos,
+    const char* filename,
     S64SettingsExchange* settings
 )
 {
@@ -83,7 +97,9 @@ S64SettingsStoreResult s64_settings_store_save(
     S64DosResult close_result;
     uint8_t exists;
 
-    if (dos == 0 || settings == 0) return S64_SETTINGS_STORE_INVALID;
+    if (dos == 0 || filename == 0 || settings == 0) {
+        return S64_SETTINGS_STORE_INVALID;
+    }
 
     settings->state = S64_SETTINGS_STATE_READY;
     settings->result = S64_SETTINGS_RESULT_OK;
@@ -105,13 +121,13 @@ S64SettingsStoreResult s64_settings_store_save(
         return S64_SETTINGS_STORE_IO_ERROR;
     }
 
-    result = s64_dos_file_exists(dos, S64_SETTINGS_FILENAME, &exists);
+    result = s64_dos_file_exists(dos, filename, &exists);
     if (result != S64_DOS_OK) {
         (void)s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
         return S64_SETTINGS_STORE_IO_ERROR;
     }
     if (exists) {
-        result = s64_dos_delete_file(dos, S64_SETTINGS_FILENAME);
+        result = s64_dos_delete_file(dos, filename);
         if (result != S64_DOS_OK) {
             (void)s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
             return S64_SETTINGS_STORE_IO_ERROR;
@@ -121,11 +137,55 @@ S64SettingsStoreResult s64_settings_store_save(
     result = s64_dos_rename_file(
         dos,
         S64_SETTINGS_TEMP_FILENAME,
-        S64_SETTINGS_FILENAME
+        filename
     );
     if (result != S64_DOS_OK) {
         (void)s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
         return S64_SETTINGS_STORE_IO_ERROR;
     }
     return S64_SETTINGS_STORE_OK;
+}
+
+S64SettingsStoreResult s64_settings_store_load(
+    S64Dos* dos,
+    S64SettingsExchange* settings
+)
+{
+    return load_named(dos, S64_SETTINGS_FILENAME, settings);
+}
+
+S64SettingsStoreResult s64_settings_store_save(
+    S64Dos* dos,
+    S64SettingsExchange* settings
+)
+{
+    return save_named(dos, S64_SETTINGS_FILENAME, settings);
+}
+
+S64SettingsStoreResult s64_settings_profile_load(
+    S64Dos* dos,
+    uint8_t slot,
+    S64SettingsExchange* settings
+)
+{
+    char filename[13];
+
+    if (!profile_filename(slot, filename)) {
+        return S64_SETTINGS_STORE_INVALID;
+    }
+    return load_named(dos, filename, settings);
+}
+
+S64SettingsStoreResult s64_settings_profile_save(
+    S64Dos* dos,
+    uint8_t slot,
+    S64SettingsExchange* settings
+)
+{
+    char filename[13];
+
+    if (!profile_filename(slot, filename)) {
+        return S64_SETTINGS_STORE_INVALID;
+    }
+    return save_named(dos, filename, settings);
 }
