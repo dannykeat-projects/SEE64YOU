@@ -28,7 +28,7 @@ PUBLISHER_CORE_SOURCES := src/charset.c src/buffer_reu.c src/document.c src/plat
 PUBLISHER_DOCUMENT_SOURCES := src/publisher/standalone_documents.c src/publisher/wordpress_documents.c
 PUBLISHER_COMPANION_FIT_SOURCES := diagnostics/publisher_companion_fit.c $(PUBLISHER_CORE_SOURCES) $(PUBLISHER_DOCUMENT_SOURCES)
 PUBLISHER_SOURCES := src/publisher/main.c src/platform/chain_editor.s $(PUBLISHER_CORE_SOURCES) $(PUBLISHER_DOCUMENT_SOURCES)
-SETTINGS_SOURCES := src/publisher/settings_main.c src/charset.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/destination.c src/publisher/settings_exchange.c src/publisher/settings_store.c
+SETTINGS_SOURCES := src/publisher/settings_main.c src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/destination.c src/publisher/settings_exchange.c src/publisher/settings_store.c
 
 CL65 ?= cl65
 # Keep the active conventional-C64 editor inside base RAM. Basic formatting is
