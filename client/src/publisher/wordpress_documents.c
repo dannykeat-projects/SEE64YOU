@@ -1,5 +1,6 @@
 #include "wordpress_documents.h"
 #include "charset.h"
+#include "workspace.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -11,13 +12,18 @@
 #define S64_WP_SOURCE_CHUNK_CAPACITY 241u
 #define S64_WP_SOURCE_CHUNK_LIMIT 64u
 
-static char response_header[S64_HTTP_RESPONSE_HEADER_CAPACITY];
-static char query_path[S64_WP_PATH_CAPACITY];
-static char query_type[S64_WP_TYPE_CAPACITY];
-static char query_status[S64_WP_STATUS_CAPACITY];
-static char query_encoding[S64_WP_ENCODING_CAPACITY];
-static char source_chunk[S64_WP_SOURCE_CHUNK_CAPACITY];
-static S64WordPressDocumentSummary summary_scratch;
+#define response_header ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_HEADER_OFFSET])
+#define query_path ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_DOC_OFFSET])
+#define query_type ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_DOC_OFFSET + 64u])
+#define query_status ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_DOC_OFFSET + 72u])
+#define query_encoding ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_DOC_OFFSET + 84u])
+#define source_chunk ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_WP_SOURCE_OFFSET])
+#define summary_scratch (*(S64WordPressDocumentSummary*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_WP_SUMMARY_OFFSET])
+
+typedef char S64WordPressDocumentWorkspaceFits[
+    (S64_PUBLISH_WORK_WP_SUMMARY_OFFSET + sizeof(S64WordPressDocumentSummary)
+        <= S64_PUBLISH_WORKSPACE_CAPACITY) ? 1 : -1
+];
 
 typedef struct {
     S64HttpTransport* http;
@@ -130,7 +136,7 @@ static S64WordPressResult query_summary(
 #define QUERY_SUMMARY_STRING(field, destination) \
     do { \
         written = sprintf(query_path, "documents%%%u/" field, (unsigned int)index); \
-        if (written <= 0 || written >= (int)sizeof(query_path)) \
+        if (written <= 0 || written >= (int)S64_WP_PATH_CAPACITY) \
             return S64_WORDPRESS_PROTOCOL_ERROR; \
         result = query_string( \
             http, body_handle, query_path, destination, \
@@ -165,7 +171,7 @@ static S64WordPressResult query_summary(
     QUERY_SUMMARY_STRING("date", summary_scratch.date);
 
     written = sprintf(query_path, "documents%%%u/order", (unsigned int)index);
-    if (written <= 0 || written >= (int)sizeof(query_path)) {
+    if (written <= 0 || written >= (int)S64_WP_PATH_CAPACITY) {
         return S64_WORDPRESS_PROTOCOL_ERROR;
     }
     result = query_integer(http, body_handle, query_path, &order);
@@ -285,7 +291,7 @@ static S64WordPressResult apply_open_metadata(
 
     result = query_string(
         http, body_handle, "document/type",
-        query_type, (uint16_t)sizeof(query_type)
+        query_type, (uint16_t)S64_WP_TYPE_CAPACITY
     );
     if (result != S64_WORDPRESS_OK
         || !parse_type(query_type, &document->type)) {
@@ -310,7 +316,7 @@ static S64WordPressResult apply_open_metadata(
 
     result = query_string(
         http, body_handle, "document/status",
-        query_status, (uint16_t)sizeof(query_status)
+        query_status, (uint16_t)S64_WP_STATUS_CAPACITY
     );
     if (result != S64_WORDPRESS_OK
         || !parse_status(query_status, &document->status)) {
@@ -374,7 +380,7 @@ S64WordPressResult s64_wordpress_list_documents(
     http_result = s64_http_exchange_object(
         http, request_header, S64_HTTP_NO_BODY,
         &response_header_handle, &response_body_handle,
-        response_header, (uint16_t)sizeof(response_header), 0
+        response_header, (uint16_t)S64_HTTP_RESPONSE_HEADER_CAPACITY, 0
     );
     if (http_result != S64_HTTP_OK) {
         result = s64_wordpress_map_http(http_result);
@@ -458,7 +464,7 @@ S64WordPressResult s64_wordpress_open_document(
     http_result = s64_http_exchange_object(
         http, request_header, S64_HTTP_NO_BODY,
         &response_header_handle, &response_body_handle,
-        response_header, (uint16_t)sizeof(response_header), 0
+        response_header, (uint16_t)S64_HTTP_RESPONSE_HEADER_CAPACITY, 0
     );
     if (http_result != S64_HTTP_OK) {
         result = s64_wordpress_map_http(http_result);
@@ -476,7 +482,7 @@ S64WordPressResult s64_wordpress_open_document(
 
     result = query_string(
         http, response_body_handle, "document/source_encoding",
-        query_encoding, (uint16_t)sizeof(query_encoding)
+        query_encoding, (uint16_t)S64_WP_ENCODING_CAPACITY
     );
     if (result != S64_WORDPRESS_OK) goto cleanup;
     if (strcmp(query_encoding, "base64-chunks") != 0) {
@@ -508,14 +514,14 @@ S64WordPressResult s64_wordpress_open_document(
 
     for (index = 0u; index < (uint16_t)source_count; ++index) {
         written = sprintf(query_path, "document/source_chunks%%%u", (unsigned int)index);
-        if (written <= 0 || written >= (int)sizeof(query_path)) {
+        if (written <= 0 || written >= (int)S64_WP_PATH_CAPACITY) {
             result = S64_WORDPRESS_PROTOCOL_ERROR;
             goto cleanup;
         }
 
         result = query_string(
             http, response_body_handle, query_path,
-            source_chunk, (uint16_t)sizeof(source_chunk)
+            source_chunk, (uint16_t)S64_WP_SOURCE_CHUNK_CAPACITY
         );
         if (result != S64_WORDPRESS_OK) goto cleanup;
 
@@ -648,7 +654,7 @@ S64WordPressResult s64_wordpress_save_document(
     http_result = s64_http_exchange_object(
         http, request_header, request_body,
         &response_header_handle, &response_body_handle,
-        response_header, (uint16_t)sizeof(response_header), 0
+        response_header, (uint16_t)S64_HTTP_RESPONSE_HEADER_CAPACITY, 0
     );
     if (http_result != S64_HTTP_OK) {
         result = s64_wordpress_map_http(http_result);
@@ -719,7 +725,7 @@ S64WordPressResult s64_wordpress_delete_document(
     http_result = s64_http_exchange_object(
         http, request_header, S64_HTTP_NO_BODY,
         &response_header_handle, &response_body_handle,
-        response_header, (uint16_t)sizeof(response_header), 0
+        response_header, (uint16_t)S64_HTTP_RESPONSE_HEADER_CAPACITY, 0
     );
     if (http_result != S64_HTTP_OK) {
         result = s64_wordpress_map_http(http_result);
