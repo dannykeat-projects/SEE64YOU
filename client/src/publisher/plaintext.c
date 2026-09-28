@@ -1,17 +1,22 @@
 #include "publisher/plaintext.h"
 
 #include "charset.h"
+#include "platform/reu.h"
+#include "platform/reu_layout.h"
 
 #include <string.h>
+
+#ifndef S64_REU_BUFFER
+#error "plain-text import requires S64_REU_BUFFER"
+#endif
 
 #define S64_PLAINTEXT_CHUNK 64u
 
 typedef struct {
-    S64Buffer* buffer;
-    uint32_t count;
-    S64PlainTextResult result;
-    uint8_t write;
+    uint32_t length;
+    uint8_t chunk_length;
     uint8_t pending_cr;
+    S64PlainTextResult result;
 } S64PlainImport;
 
 static uint8_t native_chunk[S64_PLAINTEXT_CHUNK];
@@ -33,7 +38,46 @@ static uint8_t filename_valid(const char* filename)
     return 1u;
 }
 
-static uint8_t import_emit(S64PlainImport* import, uint8_t ascii)
+static uint8_t flush_import_chunk(S64PlainImport* import)
+{
+    uint16_t address;
+
+    if (import->chunk_length == 0u) return 1u;
+    address = (uint16_t)(
+        S64_REU_CLIPBOARD_BASE
+        + import->length
+        - import->chunk_length
+    );
+    if (!s64_reu_store(
+            S64_REU_CLIPBOARD_BANK,
+            address,
+            native_chunk,
+            import->chunk_length
+        )) {
+        import->result = S64_PLAINTEXT_IO_ERROR;
+        return 0u;
+    }
+    import->chunk_length = 0u;
+    return 1u;
+}
+
+static uint8_t stage_native(S64PlainImport* import, uint8_t native)
+{
+    if (import->length >= S64_REU_CLIPBOARD_CAPACITY
+        || import->length >= S64_BUFFER_CAPACITY) {
+        import->result = S64_PLAINTEXT_TOO_LARGE;
+        return 0u;
+    }
+
+    native_chunk[import->chunk_length++] = native;
+    ++import->length;
+    if (import->chunk_length == S64_PLAINTEXT_CHUNK) {
+        return flush_import_chunk(import);
+    }
+    return 1u;
+}
+
+static uint8_t stage_ascii(S64PlainImport* import, uint8_t ascii)
 {
     uint8_t native;
 
@@ -41,17 +85,7 @@ static uint8_t import_emit(S64PlainImport* import, uint8_t ascii)
         import->result = S64_PLAINTEXT_INVALID_TEXT;
         return 0u;
     }
-    if (import->count >= S64_BUFFER_CAPACITY) {
-        import->result = S64_PLAINTEXT_TOO_LARGE;
-        return 0u;
-    }
-    ++import->count;
-
-    if (import->write && !s64_buffer_insert(import->buffer, native)) {
-        import->result = S64_PLAINTEXT_TOO_LARGE;
-        return 0u;
-    }
-    return 1u;
+    return stage_native(import, native);
 }
 
 static uint8_t import_sink(
@@ -69,24 +103,23 @@ static uint8_t import_sink(
 
         if (import->pending_cr) {
             import->pending_cr = 0u;
-            if (!import_emit(import, (uint8_t)'\n')) return 0u;
+            if (!stage_ascii(import, (uint8_t)'\n')) return 0u;
             if (byte == '\n') continue;
         }
 
         if (byte == '\r') {
             import->pending_cr = 1u;
-        } else if (!import_emit(import, byte)) {
+        } else if (!stage_ascii(import, byte)) {
             return 0u;
         }
     }
     return 1u;
 }
 
-static S64PlainTextResult import_pass(
+static S64PlainTextResult stage_import(
     S64Dos* dos,
-    S64Buffer* buffer,
     const char* filename,
-    uint8_t write
+    uint32_t* staged_length
 )
 {
     S64PlainImport import;
@@ -97,12 +130,10 @@ static S64PlainTextResult import_pass(
     result = s64_dos_open_read(dos, filename);
     if (result != S64_DOS_OK) return S64_PLAINTEXT_IO_ERROR;
 
-    import.buffer = buffer;
-    import.count = 0u;
-    import.result = S64_PLAINTEXT_OK;
-    import.write = write;
+    import.length = 0u;
+    import.chunk_length = 0u;
     import.pending_cr = 0u;
-    if (write) s64_buffer_init(buffer);
+    import.result = S64_PLAINTEXT_OK;
 
     do {
         bytes_read = 0u;
@@ -117,9 +148,12 @@ static S64PlainTextResult import_pass(
 
     if (result == S64_DOS_OK && import.pending_cr) {
         import.pending_cr = 0u;
-        if (!import_emit(&import, (uint8_t)'\n')) {
+        if (!stage_ascii(&import, (uint8_t)'\n')) {
             result = S64_DOS_CONSUMER_ABORTED;
         }
+    }
+    if (result == S64_DOS_OK && !flush_import_chunk(&import)) {
+        result = S64_DOS_CONSUMER_ABORTED;
     }
 
     close_result = s64_dos_close(dos);
@@ -127,6 +161,45 @@ static S64PlainTextResult import_pass(
     if (result != S64_DOS_OK || close_result != S64_DOS_OK) {
         return S64_PLAINTEXT_IO_ERROR;
     }
+
+    *staged_length = import.length;
+    return S64_PLAINTEXT_OK;
+}
+
+static S64PlainTextResult commit_import(
+    S64Buffer* buffer,
+    uint32_t staged_length
+)
+{
+    uint32_t offset = 0u;
+    uint16_t count;
+    uint16_t i;
+
+    s64_buffer_init(buffer);
+
+    while (offset < staged_length) {
+        count = (uint16_t)(staged_length - offset);
+        if (count > S64_PLAINTEXT_CHUNK) count = S64_PLAINTEXT_CHUNK;
+
+        if (!s64_reu_load(
+                S64_REU_CLIPBOARD_BANK,
+                (uint16_t)(S64_REU_CLIPBOARD_BASE + offset),
+                native_chunk,
+                count
+            )) {
+            s64_buffer_init(buffer);
+            return S64_PLAINTEXT_IO_ERROR;
+        }
+        for (i = 0u; i < count; ++i) {
+            if (!s64_buffer_insert(buffer, native_chunk[i])) {
+                s64_buffer_init(buffer);
+                return S64_PLAINTEXT_TOO_LARGE;
+            }
+        }
+        offset += count;
+    }
+
+    (void)s64_buffer_move_cursor(buffer, 0u);
     return S64_PLAINTEXT_OK;
 }
 
@@ -229,17 +302,14 @@ S64PlainTextResult s64_plaintext_import(
 )
 {
     S64PlainTextResult result;
+    uint32_t staged_length;
 
     if (dos == 0 || buffer == 0 || !filename_valid(filename)) {
         return S64_PLAINTEXT_INVALID_ARGUMENT;
     }
 
-    result = import_pass(dos, buffer, filename, 0u);
+    result = stage_import(dos, filename, &staged_length);
     if (result != S64_PLAINTEXT_OK) return result;
 
-    result = import_pass(dos, buffer, filename, 1u);
-    if (result != S64_PLAINTEXT_OK) {
-        s64_buffer_init(buffer);
-    }
-    return result;
+    return commit_import(buffer, staged_length);
 }
