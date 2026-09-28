@@ -40,7 +40,6 @@ typedef S64UciResult (*S64UciExecuteFn)(
 typedef struct {
     uint8_t interface_present;
     uint8_t dos_target;
-    uint8_t network_target;
     uint8_t http_target;
 } S64UciCapabilities;
 
@@ -63,5 +62,12 @@ S64UciResult s64_uci_execute(
  * version. Missing/unsupported UCI is a normal offline condition.
  */
 void s64_uci_probe_capabilities(S64UciCapabilities* capabilities);
+
+/*
+ * Probe one published UCI target by IDENTIFY. This is kept separate from the
+ * editor's normal capability set so optional transports do not consume scarce
+ * editor RAM/code unless a caller actually needs them.
+ */
+uint8_t s64_uci_probe_target(uint8_t target);
 
 #endif
