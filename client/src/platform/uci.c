@@ -33,8 +33,22 @@ static uint8_t stream_buffer[S64_UCI_STREAM_BUFFER];
 
 static uint8_t s64_uci_interface_present(void)
 {
-    /* Firmware 3.15 may clear bit 7 while a completion IRQ is active. */
-    return (uint8_t)(S64_UCI_COMMAND & S64_UCI_IDENT_MASK) == S64_UCI_IDENT_VALUE;
+    uint8_t reads = 4u;
+
+    /*
+     * $DF00-$DFFF is cartridge I/O2 on a conventional C64 and may read as
+     * changing open-bus data. Require the Ultimate signature to remain stable
+     * across several reads rather than accepting one coincidental byte.
+     * Firmware 3.15 may clear bit 7 while a completion IRQ is active, hence
+     * the existing seven-bit identifier mask.
+     */
+    while (reads-- != 0u) {
+        if ((uint8_t)(S64_UCI_COMMAND & S64_UCI_IDENT_MASK)
+            != S64_UCI_IDENT_VALUE) {
+            return 0u;
+        }
+    }
+    return 1u;
 }
 
 static uint8_t s64_uci_wait_expired(clock_t started)

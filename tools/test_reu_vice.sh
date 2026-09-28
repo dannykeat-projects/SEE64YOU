@@ -158,6 +158,28 @@ fi
 wait "$charset_pid" 2>/dev/null || true
 echo "OK PETSCII publisher wire-boundary regression"
 
+uci_log="/tmp/see64you-uci-absence.log"
+xvfb-run -a "$VICE_BIN" \
+    -kernal "$ROM_DIR/kernal.rom" \
+    -basic "$ROM_DIR/basic.rom" \
+    -chargen "$ROM_DIR/chargen.rom" \
+    +sound \
+    -autostartprgmode 1 \
+    -binarymonitor \
+    -binarymonitoraddress "ip4://127.0.0.1:6514" \
+    -autostart "$UCI_ABSENCE_PRG" \
+    >"$uci_log" 2>&1 &
+uci_pid=$!
+
+if ! python3 "$ROOT/tools/vice/test_uci_absence.py" --port 6514 --timeout 20; then
+    kill "$uci_pid" 2>/dev/null || true
+    cat "$uci_log" >&2
+    wait "$uci_pid" 2>/dev/null || true
+    exit 1
+fi
+wait "$uci_pid" 2>/dev/null || true
+echo "OK conventional-C64 UCI absence regression"
+
 if command -v c1541 >/dev/null 2>&1; then
     package_disk="/tmp/see64you-package.d64"
     package_dir="/tmp/see64you-package-readback"

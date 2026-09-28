@@ -231,6 +231,9 @@ if command -v cl65 >/dev/null 2>&1 \
     echo "== PETSCII publisher boundary diagnostic build =="
     make -C client publisher-charset-probe
 
+    echo "== Conventional-C64 UCI absence diagnostic build =="
+    make -C client uci-absence-probe
+
     echo "== REU diagnostic build =="
     make -C client reu-probe
 
