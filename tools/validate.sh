@@ -172,6 +172,7 @@ if command -v cl65 >/dev/null 2>&1 \
     ca65 -t c64 -o "$TMP_MODULE_DIR/history_reu.o" "$TMP_MODULE_DIR/history_reu.s"
 
     for source in \
+        client/src/publisher/settings_bridge.c \
         client/src/publisher/settings_exchange.c \
         client/src/publisher/settings_store.c
     do
