@@ -6,6 +6,7 @@
 #include "document.h"
 #include "platform/http.h"
 #include "platform/chain.h"
+#include "platform/dos.h"
 #include "platform/reu.h"
 #include "platform/uci.h"
 #include "publisher/destination.h"
@@ -37,6 +38,7 @@ typedef struct {
 static S64Buffer body;
 static S64Document document;
 static S64HttpTransport http;
+static S64Dos dos;
 static S64UciCapabilities capabilities;
 static S64PublishDestination destination;
 static S64PublishState publish_state;
@@ -141,7 +143,9 @@ static void render(void)
     cputs("6 OPEN PAGE  7 OPEN POST");
     gotoxy(0u, 18u);
     cputs("8 PREVIEW");
-    gotoxy(0u, 20u);
+    gotoxy(0u, 19u);
+    cputs("9 EXPORT TXT  0 IMPORT TXT");
+    gotoxy(0u, 21u);
     cputs("RUN/STOP  RETURN TO EDITOR");
 
     clear_row(STATUS_ROW);
@@ -830,6 +834,83 @@ static void preview_document(void)
     }
 }
 
+static void export_plain_text(void)
+{
+    S64PlainTextResult result;
+
+    if (!capabilities.dos_target) {
+        set_status("C64U DOS target unavailable");
+        return;
+    }
+    if (!prompt_text(
+            "EXPORT FILE: ",
+            WORK_PROMPT,
+            S64_PLAINTEXT_FILENAME_CAPACITY,
+            0u
+        )) {
+        set_status("Export cancelled");
+        return;
+    }
+
+    result = s64_plaintext_export(
+        &dos,
+        &body,
+        WORK_PROMPT,
+        0u
+    );
+    if (result == S64_PLAINTEXT_EXISTS) {
+        if (!prompt_yes_no("OVERWRITE TEXT FILE? Y/N")) {
+            set_status("Export cancelled");
+            return;
+        }
+        result = s64_plaintext_export(
+            &dos,
+            &body,
+            WORK_PROMPT,
+            1u
+        );
+    }
+
+    set_status(result == S64_PLAINTEXT_OK
+        ? "Text exported"
+        : s64_plaintext_result_message(result));
+}
+
+static void import_plain_text(void)
+{
+    S64PlainTextResult result;
+
+    if (!capabilities.dos_target) {
+        set_status("C64U DOS target unavailable");
+        return;
+    }
+    if (!prompt_text(
+            "IMPORT FILE: ",
+            WORK_PROMPT,
+            S64_PLAINTEXT_FILENAME_CAPACITY,
+            0u
+        )) {
+        set_status("Import cancelled");
+        return;
+    }
+    if (!prompt_yes_no("REPLACE CURRENT DOCUMENT? Y/N")) {
+        set_status("Import cancelled");
+        return;
+    }
+
+    result = s64_plaintext_import(&dos, &body, WORK_PROMPT);
+    if (result != S64_PLAINTEXT_OK) {
+        set_status(s64_plaintext_result_message(result));
+        return;
+    }
+
+    s64_document_init(&document, &body);
+    s64_publish_state_clear_remote(&publish_state);
+    document_replaced = 1u;
+    document_changed = 1u;
+    set_status("Text imported; save as source");
+}
+
 static void connect_destination(void)
 {
     S64DestinationResult url_result;
@@ -970,6 +1051,7 @@ int main(void)
     }
 
     s64_http_init(&http, s64_uci_execute);
+    s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
     s64_uci_probe_capabilities(&capabilities);
     s64_destination_clear(&destination);
     s64_publish_state_init(&publish_state);
@@ -998,6 +1080,10 @@ int main(void)
             list_open_remote(S64_DOCUMENT_POST);
         } else if (key == '8') {
             preview_document();
+        } else if (key == '9') {
+            export_plain_text();
+        } else if (key == '0') {
+            import_plain_text();
         } else if (key == CH_STOP) {
             return_to_editor();
         }
