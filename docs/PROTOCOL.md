@@ -63,7 +63,7 @@ Accepts any supported subset of:
 - `link_color`
 - `visited_color`
 
-Colours use six-digit CSS hex form such as `#a5a5ff`. Authentication secrets are never accepted or returned by this operation.
+Colours use six-digit CSS hex form such as `#b0b0ff`. For the styled `simple` and `c64` themes, body text, link and visited-link colours must each maintain at least 4.5:1 contrast against the configured background; low-contrast updates are rejected with `insufficient_contrast`. The `plain` theme relies on browser defaults and does not apply these custom colours. Authentication secrets are never accepted or returned by this operation.
 
 ### List
 
