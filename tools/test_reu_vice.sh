@@ -5,6 +5,7 @@ ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 VICE_BIN=${VICE_BIN:-x64sc}
 EDITOR_PRG="$ROOT/client/build/editor-probe.prg"
 UI_PRG="$ROOT/client/build/ui-probe.prg"
+INPUT_REPEAT_PRG="$ROOT/client/build/input-repeat-probe.prg"
 PRG="$ROOT/client/build/reu-probe.prg"
 BUFFER_PRG="$ROOT/client/build/reu-buffer-probe.prg"
 REU_EDITOR_PRG="$ROOT/client/build/reu-editor-probe.prg"
@@ -17,7 +18,7 @@ if ! command -v "$VICE_BIN" >/dev/null 2>&1; then
     exit 0
 fi
 
-if [ ! -f "$PRG" ] || [ ! -f "$BUFFER_PRG" ] || [ ! -f "$EDITOR_PRG" ] || [ ! -f "$UI_PRG" ] || [ ! -f "$REU_EDITOR_PRG" ] || [ ! -f "$RECOVERY_PRG" ]; then
+if [ ! -f "$PRG" ] || [ ! -f "$BUFFER_PRG" ] || [ ! -f "$EDITOR_PRG" ] || [ ! -f "$UI_PRG" ] || [ ! -f "$INPUT_REPEAT_PRG" ] || [ ! -f "$REU_EDITOR_PRG" ] || [ ! -f "$RECOVERY_PRG" ]; then
     echo "VICE diagnostic PRG missing" >&2
     exit 1
 fi
@@ -108,6 +109,28 @@ if ! python3 "$ROOT/tools/vice/test_editor_ui.py" --port 6517 --timeout 20; then
 fi
 wait "$ui_pid" 2>/dev/null || true
 echo "OK editor UI screen regression"
+
+repeat_log="/tmp/see64you-input-repeat.log"
+xvfb-run -a "$VICE_BIN" \
+    -kernal "$ROM_DIR/kernal.rom" \
+    -basic "$ROM_DIR/basic.rom" \
+    -chargen "$ROM_DIR/chargen.rom" \
+    +sound \
+    -autostartprgmode 1 \
+    -binarymonitor \
+    -binarymonitoraddress "ip4://127.0.0.1:6516" \
+    -autostart "$INPUT_REPEAT_PRG" \
+    >"$repeat_log" 2>&1 &
+repeat_pid=$!
+
+if ! python3 "$ROOT/tools/vice/test_input_repeat.py" --port 6516 --timeout 20; then
+    kill "$repeat_pid" 2>/dev/null || true
+    cat "$repeat_log" >&2
+    wait "$repeat_pid" 2>/dev/null || true
+    exit 1
+fi
+wait "$repeat_pid" 2>/dev/null || true
+echo "OK keyboard repeat regression"
 
 recovery_log="/tmp/see64you-recovery.log"
 xvfb-run -a "$VICE_BIN" \
