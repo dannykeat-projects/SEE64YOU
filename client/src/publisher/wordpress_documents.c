@@ -129,42 +129,41 @@ static S64WordPressResult query_summary(
     int32_t order;
     int written;
 
-#define QUERY_SUMMARY_STRING(field, destination) \
+#define QUERY_SUMMARY_STRING(field, destination, capacity) \
     do { \
         written = sprintf(query_path, "documents%%%u/" field, (unsigned int)index); \
         if (written <= 0 || written >= (int)S64_WP_PATH_CAPACITY) \
             return S64_WORDPRESS_PROTOCOL_ERROR; \
         result = query_string( \
-            http, body_handle, query_path, destination, \
-            (uint16_t)sizeof(destination) \
+            http, body_handle, query_path, destination, (uint16_t)(capacity) \
         ); \
         if (result != S64_WORDPRESS_OK) return result; \
     } while (0)
 
-    QUERY_SUMMARY_STRING("id_text", summary_scratch.id);
+    QUERY_SUMMARY_STRING("id_text", summary_scratch.id, S64_WORDPRESS_ID_CAPACITY);
     if (!id_valid(summary_scratch.id)) return S64_WORDPRESS_PROTOCOL_ERROR;
 
-    QUERY_SUMMARY_STRING("type", query_type);
+    QUERY_SUMMARY_STRING("type", query_type, S64_WP_TYPE_CAPACITY);
     if (!parse_type(query_type, &summary_scratch.type)) {
         return S64_WORDPRESS_PROTOCOL_ERROR;
     }
 
-    QUERY_SUMMARY_STRING("slug", summary_scratch.slug);
+    QUERY_SUMMARY_STRING("slug", summary_scratch.slug, S64_DOCUMENT_SLUG_CAPACITY);
     if (!s64_document_slug_valid(summary_scratch.slug)) {
         return S64_WORDPRESS_INCOMPATIBLE_DOCUMENT;
     }
 
-    QUERY_SUMMARY_STRING("title", summary_scratch.title);
+    QUERY_SUMMARY_STRING("title", summary_scratch.title, S64_DOCUMENT_TITLE_CAPACITY);
     if (summary_scratch.title[0] == '\0') {
         return S64_WORDPRESS_PROTOCOL_ERROR;
     }
 
-    QUERY_SUMMARY_STRING("status", query_status);
+    QUERY_SUMMARY_STRING("status", query_status, S64_WP_STATUS_CAPACITY);
     if (!parse_status(query_status, &summary_scratch.status)) {
         return S64_WORDPRESS_PROTOCOL_ERROR;
     }
 
-    QUERY_SUMMARY_STRING("date", summary_scratch.date);
+    QUERY_SUMMARY_STRING("date", summary_scratch.date, S64_DOCUMENT_DATE_CAPACITY);
 
     written = sprintf(query_path, "documents%%%u/order", (unsigned int)index);
     if (written <= 0 || written >= (int)S64_WP_PATH_CAPACITY) {
