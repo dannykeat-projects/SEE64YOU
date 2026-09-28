@@ -3,10 +3,10 @@
 #include "editor.h"
 #include "ui.h"
 
-#define DIAG_PROGRESS (*(volatile uint8_t*)0xC040u)
-#define DIAG_RESULT   (*(volatile uint8_t*)0xC041u)
-#define DIAG_ACK      (*(volatile uint8_t*)0xC042u)
-#define DIAG_DETAIL   (*(volatile uint8_t*)0xC043u)
+#define DIAG_PROGRESS (*(volatile uint8_t*)0x03F0u)
+#define DIAG_RESULT   (*(volatile uint8_t*)0x03F1u)
+#define DIAG_ACK      (*(volatile uint8_t*)0x03F2u)
+#define DIAG_DETAIL   (*(volatile uint8_t*)0x03F3u)
 
 #define DIAG_PASS 0xA5u
 #define DIAG_FAIL 0x5Au
