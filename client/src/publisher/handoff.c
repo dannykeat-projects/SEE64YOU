@@ -10,9 +10,6 @@
 #define record (*(S64HandoffRecord*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_HEADER_OFFSET])
 static const uint8_t invalid_magic[4] = {0u, 0u, 0u, 0u};
 
-typedef char S64HandoffWorkspaceFits[
-    (sizeof(S64HandoffRecord) <= S64_PUBLISH_WORK_HANDOFF_OFFSET) ? 1 : -1
-];
 
 static void copy_text(
     char* destination,
