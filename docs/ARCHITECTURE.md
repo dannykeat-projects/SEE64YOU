@@ -101,6 +101,8 @@ The relay is deliberately constrained rather than acting as a general proxy:
 
 This protects the internet-facing leg, but the C64U-to-relay leg remains plaintext. It therefore belongs only on a trusted LAN, not public Wi-Fi or another untrusted local network.
 
+The C64U publisher can configure the relay key for the current publisher session. Durable destination/relay settings are not linked into the resident publisher yet: a direct Ultimate-DOS persistence prototype reduced publisher headroom below the required 1 KiB reserve, so persistence must use a compact helper/module boundary rather than weakening that guard.
+
 Target hardware still needs to validate the exact UCI behaviour and keyboard/network integration. No transport is required for local document editing.
 
 ## Local C64U storage

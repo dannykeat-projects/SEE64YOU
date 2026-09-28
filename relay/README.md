@@ -48,12 +48,14 @@ Run:
 python relay/see64you_relay.py --config relay/config.json
 ```
 
-Then configure the C64U publisher to use the relay machine's LAN address, for example:
+Then choose the appropriate destination type in the C64U publisher and set its **site URL** to the relay machine's base LAN address, for example:
 
 ```text
-http://192.168.1.10:6464/api.php?action=login
+http://192.168.1.10:6464
 ```
 
-and enter the same relay key in See64You. The relay maps `/api.php` onto the configured `upstream_base` and forwards it over verified HTTPS.
+Do not append `/api.php` or a WordPress REST path; the publisher constructs those endpoint paths itself. Use **8 RELAY KEY** in the publisher and enter the same 64-hex-character relay key from `config.json`. The relay maps the resulting `/api.php` or `/wp-json/see64you/` request onto the configured `upstream_base` and forwards it over verified HTTPS.
+
+The relay key currently lasts for the publisher session. Durable publisher destination/relay persistence is intentionally deferred until it can be implemented without breaching the C64 publisher's 1 KiB memory-headroom guard.
 
 For WordPress, a root upstream such as `https://blog.example.com/` plus the allowed prefix `/wp-json/see64you/` lets the same relay serve the See64You WordPress adapter without becoming an arbitrary proxy.
