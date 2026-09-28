@@ -133,6 +133,7 @@ void s64_input_read(S64InputEvent* event)
     event->character = 0u;
 
     for (;;) {
+        s64_input_sync_repeat();
         modifiers = S64_SHFLAG;
         raw_key = S64_KEYCODE;
 
