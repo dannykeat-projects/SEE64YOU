@@ -222,6 +222,14 @@ int main(void)
     require(stored_length == sizeof(settings), "profile save preserves active file");
 
     memset(&loaded, 0, sizeof(loaded));
+    result = s64_settings_store_load(&dos, &loaded);
+    require(result == S64_SETTINGS_STORE_OK, "active settings still load");
+    require(
+        strcmp(loaded.base_url, "http://relay.local:6464") == 0,
+        "profile save does not replace active URL"
+    );
+
+    memset(&loaded, 0, sizeof(loaded));
     result = s64_settings_profile_load(&dos, 0u, &loaded);
     require(result == S64_SETTINGS_STORE_OK, "profile load succeeds");
     require(
