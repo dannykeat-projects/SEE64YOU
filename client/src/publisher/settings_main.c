@@ -258,6 +258,9 @@ static void service_load_request(void)
         } else if (result != S64_SETTINGS_STORE_OK) {
             s64_settings_exchange_init(&settings);
             settings.result = S64_SETTINGS_RESULT_IO_ERROR;
+        } else if (!validate_settings()) {
+            s64_settings_exchange_init(&settings);
+            settings.result = S64_SETTINGS_RESULT_INVALID_FILE;
         } else {
             settings.result = S64_SETTINGS_RESULT_OK;
         }
@@ -299,7 +302,9 @@ int main(void)
         s64_settings_exchange_init(&settings);
         if (capabilities.dos_target) {
             S64SettingsStoreResult result = s64_settings_store_load(&dos, &settings);
-            if (result != S64_SETTINGS_STORE_OK) s64_settings_exchange_init(&settings);
+            if (result != S64_SETTINGS_STORE_OK || !validate_settings()) {
+                s64_settings_exchange_init(&settings);
+            }
         }
         settings.state = S64_SETTINGS_STATE_EDIT_REQUEST;
     }
