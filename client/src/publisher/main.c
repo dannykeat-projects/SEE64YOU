@@ -565,11 +565,9 @@ static unsigned char choose_remote(
 )
 {
     unsigned char key;
-    char number[8];
-
-    sprintf(number, "%u", (unsigned int)(index + 1u));
+    (void)index;
     clrscr();
-    print_value(1u, "REMOTE #", number);
+    print_value(1u, "REMOTE DOCUMENT", "");
     print_value(3u, "Title: ", title);
     print_value(4u, "Type: ", s64_document_type_name(type));
     print_value(5u, "State: ", s64_document_status_name(status));
