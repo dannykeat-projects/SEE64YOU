@@ -50,7 +50,7 @@ These player-facing checks are assigned to the user where practical; automated s
 ## P0 - Publishing
 
 - [x] Normalize C64 PETSCII text at external ASCII boundaries before end-to-end publishing (canonical .s64 plus UCI HTTP/DOS conversion are implemented; target-compiled VICE regression round-trips mixed case, shifted punctuation and newlines across the real document wire boundary).
-- [ ] Implement C64U HTTP transport behind the publisher interface (bounded UCI/HTTP and Standalone login/list/open/create/update/delete are implemented and host-tested. The active downloadable publisher is Standalone-first while WordPress remains deferred in source/tests. Persistent destination/relay configuration lives in the separate S64CFG.PRG helper. Current hosted validation leaves 11,545 bytes free in the active publisher and 26,141 bytes in the settings helper; target C64U UCI HTTP execution remains the gate).
+- [ ] Implement C64U HTTP transport behind the publisher interface (bounded UCI/HTTP and Standalone login/list/open/create/update/delete are implemented and host-tested. The active downloadable publisher is Standalone-first while WordPress remains deferred in source/tests. Persistent destination/relay configuration lives in the separate S64CFG.PRG helper. Current hosted validation with preview/plain-text tools leaves 2,463 bytes free in the active publisher and 24,833 bytes in the settings helper; target C64U UCI HTTP execution remains the gate).
 - [x] Add bounded UCI/HTTP-target capability probe from the published interface.
 - [ ] Verify current C64U UCI HTTP behaviour on target hardware.
 - [ ] Standalone login from C64U and token handling (bounded login/session logic is host-tested and now wired into the publisher companion with masked password entry and explicit trusted-LAN plain-HTTP opt-in; real C64U HTTP/login validation remains).
@@ -68,7 +68,7 @@ These player-facing checks are assigned to the user where practical; automated s
 - [x] Implement safe minimal markup rendering on the standalone backend.
 - [x] Freeze See64You Markup v1 (H1/H2, bold, italic, unordered list items and HTTP(S) links). The syntax is documented independently of convenience UI, and canonical fixtures round-trip exactly through both the C document wire path and PHP wire/parser/renderer tests; unsupported constructs remain literal.
 - [x] Bold / italic / headings / lists / links formatting command core (basic formatting is isolated in `editor_format.c`; Ctrl+B, Ctrl+I and Ctrl+L remain wired into the conventional-C64 runtime. Heading formatting remains available to the future Format menu, but Ctrl+1/Ctrl+2 were removed after VICE validation on 2026-09-27 because typing `#` / `##` is equally direct. The URL/link core remains host-tested but dormant: directly linking `editor_format_link.c` overflowed the C64 BSS memory area by 936 bytes with the 1 KiB stack on 2026-09-27, so link UI needs a different memory/overlay strategy).
-- [ ] C64 preview view (publisher-side preview is implemented without increasing editor RAM: Markup v1 headings/bold/links are visually distinguished, formatting markers/link targets are hidden, unsupported source stays literal, and long documents can advance page-by-page or restart. Hosted build/host validation pending; real C64U visual validation remains).
+- [x] C64 preview view (publisher-side preview keeps editor RAM unchanged; Markup v1 headings/bold/links are visually distinguished, formatting markers/link targets are hidden, unsupported source remains literal, long documents page/restart, and host/full hosted validation pass. Real C64U visual validation remains a hardware check).
 - [x] Preserve unsupported markup as text rather than corrupting it (verified by renderer regression coverage 2026-09-25).
 
 ## P1 - Standalone site
@@ -99,7 +99,7 @@ These player-facing checks are assigned to the user where practical; automated s
 ## P2 - Polish
 
 - [ ] Optional spell-check workflow if a sensible server-assisted design emerges.
-- [ ] Multiple saved publishing destinations.
-- [ ] Export/import plain text and See64You source.
+- [x] Multiple saved publishing destinations (S64CFG.PRG provides four reusable Standalone profile slots with independent URL, HTTP policy and relay key. Loading a slot is non-destructive until Save; saving a profile does not replace the active configuration; empty/invalid slots and active-config preservation are regression-tested).
+- [x] Export/import plain text and See64You source (canonical .s64 source already uses Open/Save; publisher now adds body-only TXT export/import with overwrite confirmation, ASCII/PETSCII conversion, CR/LF normalization and transactional REU staging so invalid imports leave the current document untouched. Hosted validation passes).
 - [x] Site backup/download command (authenticated `action=backup` JSON download exports public settings plus all page/post source, excluding auth secrets, with HTTP regression coverage).
 - [ ] Accessibility/readability pass for colour combinations.

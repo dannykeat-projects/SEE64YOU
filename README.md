@@ -29,7 +29,7 @@ tools/        Local validation/development helpers
 
 ## Current status
 
-The editor, standalone flat-file backend, secure relay and C64U publishing modules are under active integration. The current C64U package uses separate editor, publisher and publishing-settings PRGs while presenting them as one application. The active publisher is Standalone-first; WordPress implementation/tests remain in the repository but WordPress-specific validation is deferred until the rest of the C64U path is working end-to-end. See `todo.md` for the authoritative work queue and `docs/LOCAL_TESTING.md` for validation order.
+The editor, standalone flat-file backend, secure relay and C64U publishing modules are under active integration. The current C64U package uses separate editor, publisher and publishing-settings PRGs while presenting them as one application. The active publisher is Standalone-first and includes remote CRUD/list/open, C64 preview, four saved publishing profiles, persistent relay configuration, and body-only plain-text import/export. Canonical See64You source remains the editable `.s64` format. WordPress implementation/tests remain in the repository but WordPress-specific validation is deferred until the rest of the C64U path is working end-to-end. See `todo.md` for the authoritative work queue and `docs/LOCAL_TESTING.md` for validation order.
 
 ## Design principle
 
