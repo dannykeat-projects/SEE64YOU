@@ -38,11 +38,6 @@ int s64_relay_set_key(const char* value)
     return 1;
 }
 
-const char* s64_relay_get_key(void)
-{
-    return relay_key;
-}
-
 S64HttpResult s64_relay_add_header(
     S64HttpTransport* http,
     uint8_t header_handle
