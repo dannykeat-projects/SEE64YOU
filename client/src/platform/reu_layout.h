@@ -15,9 +15,19 @@
 
 #define S64_REU_HISTORY_META_BANK 1u
 #define S64_REU_HISTORY_META_BASE 61440u
+
+/*
+ * Persistent publisher settings are exchanged with a helper PRG in the
+ * otherwise unused tail of REU bank 1. The 16 history metadata entries occupy
+ * only the beginning of this region.
+ */
+#define S64_REU_SETTINGS_BANK 1u
+#define S64_REU_SETTINGS_BASE 64512u
+#define S64_REU_SETTINGS_CAPACITY 768u
+
 #define S64_REU_HANDOFF_BANK 1u
 #define S64_REU_HANDOFF_BASE 65280u
 #define S64_REU_HANDOFF_CAPACITY 256u
-#define S64_REU_HISTORY_META_LIMIT S64_REU_HANDOFF_BASE
+#define S64_REU_HISTORY_META_LIMIT S64_REU_SETTINGS_BASE
 
 #endif
