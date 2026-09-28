@@ -14,8 +14,6 @@
  */
 int s64_relay_set_key(const char* relay_key);
 
-const char* s64_relay_get_key(void);
-
 /*
  * Add relay authentication to an HTTP request header object. With no relay key
  * configured this is a no-op, so direct trusted-LAN requests remain possible.
