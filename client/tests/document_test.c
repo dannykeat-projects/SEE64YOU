@@ -163,7 +163,7 @@ int main(void)
             "- list *italic*\n"
             "[OpenAI](https://openai.com)\n"
             "### literal heading\n"
-            "\`literal code\`\n"
+            "`literal code`\n"
             "~~literal strike~~";
         S64Buffer source_body;
         S64Buffer parsed_body;
