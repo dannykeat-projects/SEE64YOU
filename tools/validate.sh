@@ -76,6 +76,10 @@ echo "== Host UCI HTTP transport tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/http_test.c client/src/charset.c client/src/platform/http.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host UCI network target tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/network_test.c client/src/platform/network.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host Ultimate DOS tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/dos_test.c client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
@@ -166,6 +170,7 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/editor_format_link.c \
         client/src/platform/dos.c \
         client/src/platform/http.c \
+        client/src/platform/network.c \
         client/src/platform/reu.c \
         client/src/publisher/destination.c \
         client/src/publisher/state.c \
@@ -233,6 +238,9 @@ if command -v cl65 >/dev/null 2>&1 \
 
     echo "== Conventional-C64 UCI absence diagnostic build =="
     make -C client uci-absence-probe
+
+    echo "== C64U network target diagnostic build =="
+    make -C client network-probe
 
     echo "== REU diagnostic build =="
     make -C client reu-probe
