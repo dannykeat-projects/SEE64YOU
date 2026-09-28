@@ -12,7 +12,9 @@
 #include "publisher/handoff.h"
 #include "publisher/state.h"
 #include "publisher/standalone.h"
+#include "publisher/standalone_documents.h"
 #include "publisher/wordpress.h"
+#include "publisher/wordpress_documents.h"
 
 #define SCREEN_COLUMNS 40u
 #define STATUS_ROW 24u
@@ -34,6 +36,8 @@ static S64PublishDestination destination;
 static S64PublishState publish_state;
 static S64PublisherSession session;
 static char connection_url[S64_DESTINATION_URL_CAPACITY];
+static char operation_url[S64_DESTINATION_URL_CAPACITY];
+static char remote_id[S64_WORDPRESS_ID_CAPACITY];
 static char prompt_buffer[PROMPT_CAPACITY];
 static char username[USERNAME_CAPACITY];
 static char status_text[SCREEN_COLUMNS + 1u];
@@ -105,12 +109,20 @@ static void render(void)
         ? "available" : "unavailable");
     print_value(9u, "Connection: ", publish_state.connected
         ? "ready" : "not connected");
+    print_value(10u, "Remote: ", publish_state.remote_bound
+        ? publish_state.remote_identity : "(new document)");
 
     gotoxy(0u, 12u);
     cputs("1  SET DESTINATION");
     gotoxy(0u, 13u);
     cputs("2  TEST / LOGIN");
+    gotoxy(0u, 14u);
+    cputs("3  SAVE / UPDATE REMOTE");
     gotoxy(0u, 15u);
+    cputs("4  TOGGLE DRAFT / PUBLISHED");
+    gotoxy(0u, 16u);
+    cputs("5  DELETE REMOTE");
+    gotoxy(0u, 18u);
     cputs("RUN/STOP  RETURN TO EDITOR");
 
     clear_row(STATUS_ROW);
@@ -294,8 +306,26 @@ static void setup_destination(void)
     set_status("Destination configured");
 }
 
+static void sync_handoff_document(void)
+{
+    handoff.buffer = body;
+    handoff.document_type = document.type;
+    handoff.document_status = document.status;
+    handoff.order = document.order;
+    memcpy(handoff.slug, document.slug, sizeof(handoff.slug));
+    memcpy(handoff.title, document.title, sizeof(handoff.title));
+    memcpy(handoff.date, document.date, sizeof(handoff.date));
+}
+
+static void mark_document_changed(void)
+{
+    handoff.flags |= S64_HANDOFF_FLAG_DIRTY;
+    sync_handoff_document();
+}
+
 static void return_to_editor(void)
 {
+    sync_handoff_document();
     handoff.flags |= S64_HANDOFF_FLAG_RETURN_TO_EDITOR;
     if (!s64_handoff_store(&handoff)) {
         set_status("Cannot preserve editor handoff");
@@ -307,6 +337,197 @@ static void return_to_editor(void)
     if (exec(S64_EDITOR_PROGRAM, 0) < 0) {
         render();
         set_status("Editor not found: SEE64YOU-C64U.PRG");
+    }
+}
+
+static unsigned char publishing_ready(void)
+{
+    if (!capabilities.http_target) {
+        set_status("C64U HTTP target unavailable");
+        return 0u;
+    }
+    if (destination.type == S64_DESTINATION_NONE) {
+        set_status("Set destination first");
+        return 0u;
+    }
+    if (!publish_state.connected) {
+        set_status("Test / login first");
+        return 0u;
+    }
+    return 1u;
+}
+
+static void toggle_document_status(void)
+{
+    document.status = document.status == S64_DOCUMENT_PUBLISHED
+        ? S64_DOCUMENT_DRAFT
+        : S64_DOCUMENT_PUBLISHED;
+    mark_document_changed();
+
+    set_status(document.status == S64_DOCUMENT_PUBLISHED
+        ? "Status set to published; save to apply"
+        : "Status set to draft; save to unpublish");
+}
+
+static void save_remote_document(void)
+{
+    S64DestinationResult url_result;
+    unsigned char updating;
+
+    if (!publishing_ready()) {
+        return;
+    }
+    if (!s64_document_slug_valid(document.slug)
+        || document.title[0] == '\0') {
+        set_status("Document needs valid title and slug");
+        return;
+    }
+
+    updating = (unsigned char)s64_publish_state_can_update(
+        &publish_state,
+        &destination,
+        &document
+    );
+
+    url_result = s64_destination_save_url(
+        &destination,
+        updating ? publish_state.remote_identity : 0,
+        updating,
+        operation_url,
+        (uint16_t)sizeof(operation_url)
+    );
+    if (url_result != S64_DESTINATION_OK) {
+        set_status(s64_destination_result_message(url_result));
+        return;
+    }
+
+    if (destination.type == S64_DESTINATION_STANDALONE) {
+        S64StandaloneResult result;
+
+        result = s64_standalone_save_document(
+            &http,
+            operation_url,
+            destination.allow_insecure_http,
+            &session.standalone,
+            &document
+        );
+        if (result != S64_STANDALONE_OK) {
+            set_status(s64_standalone_result_message(result));
+            return;
+        }
+        if (!s64_publish_state_bind_remote(
+                &publish_state,
+                &destination,
+                document.type,
+                document.slug
+            )) {
+            set_status("Saved, but remote binding failed");
+            return;
+        }
+    } else if (destination.type == S64_DESTINATION_WORDPRESS) {
+        S64WordPressResult result;
+
+        result = s64_wordpress_save_document(
+            &http,
+            operation_url,
+            destination.allow_insecure_http,
+            &session.wordpress,
+            &document,
+            updating,
+            remote_id,
+            (uint16_t)sizeof(remote_id)
+        );
+        if (result != S64_WORDPRESS_OK) {
+            set_status(s64_wordpress_result_message(result));
+            return;
+        }
+        if (!s64_publish_state_bind_remote(
+                &publish_state,
+                &destination,
+                document.type,
+                remote_id
+            )) {
+            set_status("Saved, but remote binding failed");
+            return;
+        }
+    } else {
+        set_status("Invalid destination");
+        return;
+    }
+
+    set_status(document.status == S64_DOCUMENT_PUBLISHED
+        ? (updating ? "Published document updated" : "Document published")
+        : (updating ? "Remote draft updated" : "Remote draft created"));
+}
+
+static void delete_remote_document(void)
+{
+    S64DestinationResult url_result;
+
+    if (!publishing_ready()) {
+        return;
+    }
+    if (!s64_publish_state_can_delete(&publish_state, &destination)) {
+        set_status("No bound remote document");
+        return;
+    }
+    if (!prompt_yes_no("DELETE REMOTE DOCUMENT? Y/N")) {
+        set_status("Delete cancelled");
+        return;
+    }
+
+    url_result = s64_destination_delete_url(
+        &destination,
+        publish_state.remote_type,
+        publish_state.remote_identity,
+        operation_url,
+        (uint16_t)sizeof(operation_url)
+    );
+    if (url_result != S64_DESTINATION_OK) {
+        set_status(s64_destination_result_message(url_result));
+        return;
+    }
+
+    if (destination.type == S64_DESTINATION_STANDALONE) {
+        S64StandaloneResult result;
+
+        result = s64_standalone_delete_document(
+            &http,
+            operation_url,
+            destination.allow_insecure_http,
+            &session.standalone,
+            publish_state.remote_type,
+            publish_state.remote_identity
+        );
+        if (result != S64_STANDALONE_OK) {
+            set_status(s64_standalone_result_message(result));
+            return;
+        }
+    } else if (destination.type == S64_DESTINATION_WORDPRESS) {
+        S64WordPressResult result;
+
+        result = s64_wordpress_delete_document(
+            &http,
+            operation_url,
+            destination.allow_insecure_http,
+            &session.wordpress
+        );
+        if (result != S64_WORDPRESS_OK) {
+            set_status(s64_wordpress_result_message(result));
+            return;
+        }
+    } else {
+        set_status("Invalid destination");
+        return;
+    }
+
+    s64_publish_state_clear_remote(&publish_state);
+    if (document.status == S64_DOCUMENT_PUBLISHED) {
+        document.status = S64_DOCUMENT_DRAFT;
+        mark_document_changed();
+        set_status("Remote deleted; local status is draft");
+    } else {
+        set_status("Remote document deleted");
     }
 }
 
@@ -449,6 +670,12 @@ int main(void)
             setup_destination();
         } else if (key == '2') {
             connect_destination();
+        } else if (key == '3') {
+            save_remote_document();
+        } else if (key == '4') {
+            toggle_document_status();
+        } else if (key == '5') {
+            delete_remote_document();
         } else if (key == CH_STOP) {
             return_to_editor();
         }
