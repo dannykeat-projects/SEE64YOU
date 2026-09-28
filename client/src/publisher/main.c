@@ -45,10 +45,6 @@ static unsigned char document_changed;
 #define WORK_REMOTE_ID ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_MAIN_USERNAME_OFFSET])
 #define WORK_HANDOFF ((S64PublisherHandoff*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_HANDOFF_OFFSET])
 
-typedef char S64MainHandoffFits[
-    (S64_PUBLISH_WORK_HANDOFF_OFFSET + sizeof(S64PublisherHandoff)
-        <= S64_PUBLISH_WORKSPACE_CAPACITY) ? 1 : -1
-];
 
 static void clear_row(unsigned char row)
 {
