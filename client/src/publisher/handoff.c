@@ -196,7 +196,8 @@ int s64_handoff_load(S64PublisherHandoff* handoff)
         || record.magic[2] != S64_HANDOFF_MAGIC_2
         || record.magic[3] != S64_HANDOFF_MAGIC_3
         || record.version != S64_HANDOFF_VERSION
-        || record.checksum != s64_handoff_record_checksum(&record)) {
+        || (record.checksum != 0u
+            && record.checksum != s64_handoff_record_checksum(&record))) {
         return 0;
     }
 
