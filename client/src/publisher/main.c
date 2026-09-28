@@ -43,6 +43,11 @@ static unsigned char document_changed;
 #define WORK_SECRET ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_MAIN_USERNAME_OFFSET])
 #define WORK_REMOTE_ID ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_MAIN_USERNAME_OFFSET])
 #define WORK_HANDOFF ((S64PublisherHandoff*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_HANDOFF_OFFSET])
+#define WORK_SELECTION ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_HANDOFF_OFFSET])
+
+static unsigned char selected_state;
+static S64DocumentType selected_type;
+static unsigned char document_replaced;
 
 
 static void clear_row(unsigned char row)
@@ -125,7 +130,9 @@ static void render(void)
     cputs("4  TOGGLE DRAFT / PUBLISHED");
     gotoxy(0u, 16u);
     cputs("5  DELETE REMOTE");
-    gotoxy(0u, 18u);
+    gotoxy(0u, 17u);
+    cputs("6  LIST / OPEN REMOTE");
+    gotoxy(0u, 19u);
     cputs("RUN/STOP  RETURN TO EDITOR");
 
     clear_row(STATUS_ROW);
@@ -246,10 +253,15 @@ static unsigned char prompt_yes_no(const char* label)
     }
 }
 
-static void clear_connection(void)
+static void clear_session(void)
 {
     memset(&session, 0, sizeof(session));
     s64_publish_state_set_connected(&publish_state, 0u);
+}
+
+static void clear_connection(void)
+{
+    clear_session();
     s64_publish_state_clear_remote(&publish_state);
 }
 
@@ -335,6 +347,10 @@ static void return_to_editor(void)
     }
 
     sync_handoff_document(target);
+    if (document_replaced) {
+        memset(&target->history, 0, sizeof(target->history));
+        target->filename[0] = '\0';
+    }
     if (document_changed) {
         target->flags |= S64_HANDOFF_FLAG_DIRTY;
     }
@@ -540,6 +556,242 @@ static void delete_remote_document(void)
     }
 }
 
+static unsigned char choose_remote(
+    uint16_t index,
+    S64DocumentType type,
+    const char* identity,
+    const char* title,
+    S64DocumentStatus status
+)
+{
+    unsigned char key;
+    char number[8];
+
+    sprintf(number, "%u", (unsigned int)(index + 1u));
+    clrscr();
+    print_value(1u, "REMOTE #", number);
+    print_value(3u, "Title: ", title);
+    print_value(4u, "Type: ", s64_document_type_name(type));
+    print_value(5u, "State: ", s64_document_status_name(status));
+    print_value(6u, "ID: ", identity);
+
+    clear_row(STATUS_ROW);
+    revers(1);
+    gotoxy(0u, STATUS_ROW);
+    cputs("O=OPEN  N=NEXT  STOP=CANCEL");
+
+    for (;;) {
+        key = (unsigned char)cgetc();
+        if (key == 'o' || key == 'O' || key == CH_ENTER) {
+            strncpy(WORK_SELECTION, identity, S64_PUBLISH_IDENTITY_CAPACITY - 1u);
+            WORK_SELECTION[S64_PUBLISH_IDENTITY_CAPACITY - 1u] = '\0';
+            selected_type = type;
+            selected_state = 1u;
+            revers(0);
+            return 0u;
+        }
+        if (key == 'n' || key == 'N' || key == ' ') {
+            revers(0);
+            return 1u;
+        }
+        if (key == CH_STOP) {
+            selected_state = 2u;
+            revers(0);
+            return 0u;
+        }
+    }
+}
+
+static uint8_t choose_standalone_summary(
+    const S64DocumentSummary* summary,
+    uint16_t index,
+    void* context
+)
+{
+    (void)context;
+    return choose_remote(
+        index,
+        summary->type,
+        summary->slug,
+        summary->title,
+        summary->status
+    );
+}
+
+static uint8_t choose_wordpress_summary(
+    const S64WordPressDocumentSummary* summary,
+    uint16_t index,
+    void* context
+)
+{
+    (void)context;
+    return choose_remote(
+        index,
+        summary->type,
+        summary->id,
+        summary->title,
+        summary->status
+    );
+}
+
+static unsigned char prompt_remote_type(S64DocumentType* type)
+{
+    unsigned char key;
+
+    clear_row(STATUS_ROW);
+    revers(1);
+    gotoxy(0u, STATUS_ROW);
+    cputs("1=PAGE  2=POST  STOP=CANCEL");
+
+    for (;;) {
+        key = (unsigned char)cgetc();
+        if (key == '1') {
+            *type = S64_DOCUMENT_PAGE;
+            revers(0);
+            return 1u;
+        }
+        if (key == '2') {
+            *type = S64_DOCUMENT_POST;
+            revers(0);
+            return 1u;
+        }
+        if (key == CH_STOP) {
+            revers(0);
+            return 0u;
+        }
+    }
+}
+
+static void list_open_remote(void)
+{
+    S64DestinationResult url_result;
+    S64DocumentType type;
+    uint16_t total = 0u;
+    uint16_t delivered = 0u;
+
+    if (!publishing_ready() || !prompt_remote_type(&type)) {
+        if (publish_state.connected) {
+            set_status("Remote open cancelled");
+        }
+        return;
+    }
+
+    url_result = s64_destination_list_url(
+        &destination,
+        type,
+        WORK_URL,
+        (uint16_t)S64_DESTINATION_URL_CAPACITY
+    );
+    if (url_result != S64_DESTINATION_OK) {
+        set_status(s64_destination_result_message(url_result));
+        return;
+    }
+
+    selected_state = 0u;
+    if (destination.type == S64_DESTINATION_STANDALONE) {
+        S64StandaloneResult result = s64_standalone_list_documents(
+            &http,
+            WORK_URL,
+            destination.allow_insecure_http,
+            &session.standalone,
+            choose_standalone_summary,
+            0,
+            &total,
+            &delivered
+        );
+        if (result != S64_STANDALONE_OK) {
+            set_status(s64_standalone_result_message(result));
+            return;
+        }
+    } else {
+        S64WordPressResult result = s64_wordpress_list_documents(
+            &http,
+            WORK_URL,
+            destination.allow_insecure_http,
+            &session.wordpress,
+            choose_wordpress_summary,
+            0,
+            &total,
+            &delivered
+        );
+        if (result != S64_WORDPRESS_OK) {
+            set_status(s64_wordpress_result_message(result));
+            return;
+        }
+    }
+
+    if (selected_state == 2u) {
+        set_status("Remote open cancelled");
+        return;
+    }
+    if (selected_state == 0u) {
+        set_status(total == 0u ? "No remote documents" : "No document selected");
+        return;
+    }
+    if (!prompt_yes_no("REPLACE CURRENT DOCUMENT? Y/N")) {
+        set_status("Remote open cancelled");
+        return;
+    }
+
+    url_result = s64_destination_open_url(
+        &destination,
+        selected_type,
+        WORK_SELECTION,
+        WORK_URL,
+        (uint16_t)S64_DESTINATION_URL_CAPACITY
+    );
+    if (url_result != S64_DESTINATION_OK) {
+        set_status(s64_destination_result_message(url_result));
+        return;
+    }
+
+    /*
+     * The bounded open cores stream directly into the existing REU document.
+     * Once replacement is confirmed, reset local history/filename on return
+     * even if a later network/protocol failure clears a partial destination.
+     */
+    document_replaced = 1u;
+    document_changed = 1u;
+
+    if (destination.type == S64_DESTINATION_STANDALONE) {
+        S64StandaloneResult result = s64_standalone_open_document(
+            &http,
+            WORK_URL,
+            destination.allow_insecure_http,
+            &session.standalone,
+            &document
+        );
+        if (result != S64_STANDALONE_OK) {
+            set_status(s64_standalone_result_message(result));
+            return;
+        }
+    } else {
+        S64WordPressResult result = s64_wordpress_open_document(
+            &http,
+            WORK_URL,
+            destination.allow_insecure_http,
+            &session.wordpress,
+            &document
+        );
+        if (result != S64_WORDPRESS_OK) {
+            set_status(s64_wordpress_result_message(result));
+            return;
+        }
+    }
+
+    if (!s64_publish_state_bind_remote(
+            &publish_state,
+            &destination,
+            document.type,
+            WORK_SELECTION
+        )) {
+        set_status("Opened, but remote binding failed");
+        return;
+    }
+
+    set_status("Remote document opened");
+}
+
 static void connect_destination(void)
 {
     S64DestinationResult url_result;
@@ -553,7 +805,7 @@ static void connect_destination(void)
         return;
     }
 
-    clear_connection();
+    clear_session();
 
     if (destination.type == S64_DESTINATION_STANDALONE) {
         S64StandaloneResult result;
@@ -682,6 +934,7 @@ int main(void)
     memset(&session, 0, sizeof(session));
     status_text[0] = '\0';
     document_changed = 0u;
+    document_replaced = 0u;
 
     for (;;) {
         render();
@@ -697,6 +950,8 @@ int main(void)
             toggle_document_status();
         } else if (key == '5') {
             delete_remote_document();
+        } else if (key == '6') {
+            list_open_remote();
         } else if (key == CH_STOP) {
             return_to_editor();
         }
