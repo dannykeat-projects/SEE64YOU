@@ -1,6 +1,7 @@
 TARGET := build/see64you.prg
 C64U_TARGET := build/see64you-c64u.prg
 C64U_CHAIN_TARGET := build/SEE64YOU-C64U.PRG
+C64U_SHORT_CHAIN_TARGET := build/S64EDIT.PRG
 EDITOR_PROBE_TARGET := build/editor-probe.prg
 UI_PROBE_TARGET := build/ui-probe.prg
 INPUT_REPEAT_PROBE_TARGET := build/input-repeat-probe.prg
@@ -44,13 +45,16 @@ $(TARGET): $(SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -m build/see64you.map -o $@ $(SOURCES)
 
-c64u: $(C64U_TARGET) $(C64U_CHAIN_TARGET)
+c64u: $(C64U_TARGET) $(C64U_CHAIN_TARGET) $(C64U_SHORT_CHAIN_TARGET)
 
 $(C64U_TARGET): $(C64U_SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -m build/see64you-c64u.map -o $@ $(C64U_SOURCES)
 
 $(C64U_CHAIN_TARGET): $(C64U_TARGET)
+	cp $< $@
+
+$(C64U_SHORT_CHAIN_TARGET): $(C64U_TARGET)
 	cp $< $@
 
 editor-probe: $(EDITOR_PROBE_TARGET)
