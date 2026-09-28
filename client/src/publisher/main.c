@@ -34,9 +34,9 @@ static S64UciCapabilities capabilities;
 static S64PublishDestination destination;
 static S64PublishState publish_state;
 static S64PublisherSession session;
-static char status_text[SCREEN_COLUMNS + 1u];
 static unsigned char document_changed;
 
+#define WORK_STATUS ((char*)&s64_publisher_workspace.bytes[0])
 #define WORK_URL ((char*)&s64_publisher_workspace.bytes[0])
 #define WORK_PROMPT ((char*)&s64_publisher_workspace.bytes[0])
 #define WORK_USERNAME ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_MAIN_USERNAME_OFFSET])
@@ -64,10 +64,10 @@ static void set_status(const char* text)
     unsigned char i = 0u;
 
     while (i < SCREEN_COLUMNS && text[i] != '\0') {
-        status_text[i] = text[i];
+        WORK_STATUS[i] = text[i];
         ++i;
     }
-    status_text[i] = '\0';
+    WORK_STATUS[i] = '\0';
 }
 
 static void print_value(unsigned char row, const char* label, const char* value)
@@ -137,7 +137,7 @@ static void render(void)
     clear_row(STATUS_ROW);
     gotoxy(0u, STATUS_ROW);
     revers(1);
-    cputs(status_text);
+    cputs(WORK_STATUS);
     revers(0);
 }
 
@@ -862,7 +862,7 @@ int main(void)
     s64_destination_clear(&destination);
     s64_publish_state_init(&publish_state);
     memset(&session, 0, sizeof(session));
-    status_text[0] = '\0';
+    WORK_STATUS[0] = '\0';
     document_changed = 0u;
     document_replaced = 0u;
 
