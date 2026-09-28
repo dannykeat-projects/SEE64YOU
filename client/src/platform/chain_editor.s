@@ -17,7 +17,7 @@ editor_chain_line:
     .byte '"','"'
     .byte $aa            ; +
     .byte '"'
-    .byte "SEE64YOU-C64U.PRG"
+    .byte "S64EDIT.PRG"
     .byte '"'
     .byte "   "
     .byte ','
