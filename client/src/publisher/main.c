@@ -15,8 +15,10 @@
 #include "publisher/standalone.h"
 #include "publisher/standalone_documents.h"
 #include "publisher/settings_bridge.h"
+#ifndef S64_STANDALONE_ONLY
 #include "publisher/wordpress.h"
 #include "publisher/wordpress_documents.h"
+#endif
 #include "publisher/workspace.h"
 
 #define SCREEN_COLUMNS 40u
@@ -24,9 +26,11 @@
 #define PROMPT_CAPACITY S64_DESTINATION_BASE_URL_CAPACITY
 #define USERNAME_CAPACITY 61u
 
-typedef union {
+typedef struct {
     S64StandaloneSession standalone;
+#ifndef S64_STANDALONE_ONLY
     S64WordPressSession wordpress;
+#endif
 } S64PublisherSession;
 
 static S64Buffer body;
@@ -94,6 +98,7 @@ static const char* destination_name(void)
     if (destination.type == S64_DESTINATION_STANDALONE) {
         return "Standalone";
     }
+#ifndef S64_STANDALONE_ONLY
     if (destination.type == S64_DESTINATION_WORDPRESS) {
         return "WordPress";
     }
@@ -451,6 +456,7 @@ static void save_remote_document(void)
             set_status("Saved, but remote binding failed");
             return;
         }
+#ifndef S64_STANDALONE_ONLY
     } else if (destination.type == S64_DESTINATION_WORDPRESS) {
         S64WordPressResult result;
 
@@ -477,8 +483,13 @@ static void save_remote_document(void)
             set_status("Saved, but remote binding failed");
             return;
         }
+#endif
     } else {
+#ifdef S64_STANDALONE_ONLY
+        set_status("WordPress deferred");
+#else
         set_status("Invalid destination");
+#endif
         return;
     }
 
@@ -530,6 +541,7 @@ static void delete_remote_document(void)
             set_status(s64_standalone_result_message(result));
             return;
         }
+#ifndef S64_STANDALONE_ONLY
     } else if (destination.type == S64_DESTINATION_WORDPRESS) {
         S64WordPressResult result;
 
@@ -543,8 +555,13 @@ static void delete_remote_document(void)
             set_status(s64_wordpress_result_message(result));
             return;
         }
+#endif
     } else {
+#ifdef S64_STANDALONE_ONLY
+        set_status("WordPress deferred");
+#else
         set_status("Invalid destination");
+#endif
         return;
     }
 
@@ -595,6 +612,7 @@ static uint8_t choose_standalone_summary(
     return choose_remote(summary->slug, summary->title);
 }
 
+#ifndef S64_STANDALONE_ONLY
 static uint8_t choose_wordpress_summary(
     const S64WordPressDocumentSummary* summary,
     uint16_t index,
@@ -605,6 +623,8 @@ static uint8_t choose_wordpress_summary(
     (void)context;
     return choose_remote(summary->id, summary->title);
 }
+
+#endif
 
 static void list_open_remote(S64DocumentType type)
 {
@@ -642,6 +662,7 @@ static void list_open_remote(S64DocumentType type)
             return;
         }
     } else {
+#ifndef S64_STANDALONE_ONLY
         S64WordPressResult result = s64_wordpress_list_documents(
             &http,
             WORK_URL,
@@ -656,6 +677,10 @@ static void list_open_remote(S64DocumentType type)
             set_status(s64_wordpress_result_message(result));
             return;
         }
+#else
+        set_status("WordPress deferred");
+        return;
+#endif
     }
 
     if (selected_state == 2u) {
@@ -699,6 +724,7 @@ static void list_open_remote(S64DocumentType type)
             return;
         }
     } else {
+#ifndef S64_STANDALONE_ONLY
         S64WordPressResult result = s64_wordpress_open_document(
             &http,
             WORK_URL,
@@ -710,6 +736,10 @@ static void list_open_remote(S64DocumentType type)
             set_status(s64_wordpress_result_message(result));
             return;
         }
+#else
+        set_status("WordPress deferred");
+        return;
+#endif
     }
 
     if (!s64_publish_state_bind_remote(
@@ -835,6 +865,10 @@ static void connect_destination(void)
             set_status(s64_wordpress_result_message(result));
         }
     }
+#else
+    set_status("WordPress deferred");
+#endif
+
 }
 
 int main(void)
