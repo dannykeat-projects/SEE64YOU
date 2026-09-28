@@ -81,6 +81,7 @@ int main(void)
     S64UciCapabilities capabilities;
     S64NetTransport network;
     S64NetResult result;
+    uint8_t network_available;
     uint8_t handle = 0u;
     uint8_t handle_open = 0u;
     uint8_t attempt;
@@ -90,13 +91,16 @@ int main(void)
     cputs("SEE64YOU C64U NETWORK PROBE\r\n\r\n");
 
     s64_uci_probe_capabilities(&capabilities);
+    network_available = capabilities.interface_present
+        ? s64_uci_probe_target(0x03u)
+        : 0u;
     show_capability("UCI:       ", capabilities.interface_present);
     show_capability("DOS $01:   ", capabilities.dos_target);
-    show_capability("NET $03:   ", capabilities.network_target);
+    show_capability("NET $03:   ", network_available);
     show_capability("HTTP $06:  ", capabilities.http_target);
     cputs("\r\n");
 
-    if (!capabilities.network_target) {
+    if (!network_available) {
         cputs("NETWORK TARGET $03 NOT FOUND.\r\n");
         cputs("PRESS A KEY.\r\n");
         cgetc();
