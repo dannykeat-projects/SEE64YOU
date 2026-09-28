@@ -217,9 +217,6 @@ if command -v cl65 >/dev/null 2>&1 \
     echo "== PETSCII publisher boundary diagnostic build =="
     make -C client publisher-charset-probe
 
-    echo "== Publisher chain diagnostic build =="
-    make -C client publisher-chain-probe
-
     echo "== REU diagnostic build =="
     make -C client reu-probe
 
