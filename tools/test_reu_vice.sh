@@ -4,6 +4,7 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 VICE_BIN=${VICE_BIN:-x64sc}
 EDITOR_PRG="$ROOT/client/build/editor-probe.prg"
+UI_PRG="$ROOT/client/build/ui-probe.prg"
 PRG="$ROOT/client/build/reu-probe.prg"
 BUFFER_PRG="$ROOT/client/build/reu-buffer-probe.prg"
 REU_EDITOR_PRG="$ROOT/client/build/reu-editor-probe.prg"
@@ -16,7 +17,7 @@ if ! command -v "$VICE_BIN" >/dev/null 2>&1; then
     exit 0
 fi
 
-if [ ! -f "$PRG" ] || [ ! -f "$BUFFER_PRG" ] || [ ! -f "$EDITOR_PRG" ] || [ ! -f "$REU_EDITOR_PRG" ] || [ ! -f "$RECOVERY_PRG" ]; then
+if [ ! -f "$PRG" ] || [ ! -f "$BUFFER_PRG" ] || [ ! -f "$EDITOR_PRG" ] || [ ! -f "$UI_PRG" ] || [ ! -f "$REU_EDITOR_PRG" ] || [ ! -f "$RECOVERY_PRG" ]; then
     echo "VICE diagnostic PRG missing" >&2
     exit 1
 fi
@@ -85,6 +86,28 @@ if ! python3 "$ROOT/tools/vice/test_editor.py" --port 6519 --timeout 20; then
 fi
 wait "$base_editor_pid" 2>/dev/null || true
 echo "OK base C64 editor workload"
+
+ui_log="/tmp/see64you-editor-ui.log"
+xvfb-run -a "$VICE_BIN" \
+    -kernal "$ROM_DIR/kernal.rom" \
+    -basic "$ROM_DIR/basic.rom" \
+    -chargen "$ROM_DIR/chargen.rom" \
+    +sound \
+    -autostartprgmode 1 \
+    -binarymonitor \
+    -binarymonitoraddress "ip4://127.0.0.1:6517" \
+    -autostart "$UI_PRG" \
+    >"$ui_log" 2>&1 &
+ui_pid=$!
+
+if ! python3 "$ROOT/tools/vice/test_editor_ui.py" --port 6517 --timeout 20; then
+    kill "$ui_pid" 2>/dev/null || true
+    cat "$ui_log" >&2
+    wait "$ui_pid" 2>/dev/null || true
+    exit 1
+fi
+wait "$ui_pid" 2>/dev/null || true
+echo "OK editor UI screen regression"
 
 recovery_log="/tmp/see64you-recovery.log"
 xvfb-run -a "$VICE_BIN" \
