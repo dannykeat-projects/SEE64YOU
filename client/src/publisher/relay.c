@@ -1,4 +1,5 @@
 #include "relay.h"
+#include "workspace.h"
 
 #include <string.h>
 
