@@ -14,7 +14,7 @@
 #include "publisher/state.h"
 #include "publisher/standalone.h"
 #include "publisher/standalone_documents.h"
-#include "publisher/settings_exchange.h"
+#include "publisher/settings_bridge.h"
 #include "publisher/wordpress.h"
 #include "publisher/wordpress_documents.h"
 #include "publisher/workspace.h"
@@ -261,12 +261,6 @@ static void clear_session(void)
     s64_publish_state_set_connected(&publish_state, 0u);
 }
 
-static void clear_connection(void)
-{
-    clear_session();
-    s64_publish_state_clear_remote(&publish_state);
-}
-
 static void sync_handoff_document(S64PublisherHandoff* target)
 {
     target->buffer = body;
@@ -321,16 +315,7 @@ static void return_to_editor(void)
 static void open_settings(void)
 {
     if (!preserve_document_handoff(0u)) return;
-
-    if (!s64_settings_exchange_load(WORK_SETTINGS)) {
-        s64_settings_exchange_init(WORK_SETTINGS);
-        WORK_SETTINGS->destination_type = (uint8_t)destination.type;
-        WORK_SETTINGS->allow_insecure_http = destination.allow_insecure_http;
-        memcpy(WORK_SETTINGS->base_url, destination.base_url, sizeof(WORK_SETTINGS->base_url));
-    }
-    WORK_SETTINGS->state = S64_SETTINGS_STATE_EDIT_REQUEST;
-    WORK_SETTINGS->result = S64_SETTINGS_RESULT_OK;
-    if (!s64_settings_exchange_store(WORK_SETTINGS)) {
+    if (!s64_settings_bridge_request_edit()) {
         set_status("Cannot open publishing settings");
         return;
     }
@@ -340,15 +325,20 @@ static void open_settings(void)
     s64_chain_settings();
 }
 
+static const char* settings_status(uint8_t result)
+{
+    if (result == S64_SETTINGS_RESULT_OK) return "Settings loaded";
+    if (result == S64_SETTINGS_RESULT_NOT_FOUND) return "Publishing not configured";
+    if (result == S64_SETTINGS_RESULT_INVALID_FILE) return "Publisher settings invalid";
+    return "Settings storage unavailable";
+}
+
 static unsigned char restore_settings(void)
 {
     uint8_t result;
 
-    if (!s64_settings_exchange_load(WORK_SETTINGS)
-        || WORK_SETTINGS->state != S64_SETTINGS_STATE_READY) {
-        s64_settings_exchange_init(WORK_SETTINGS);
-        WORK_SETTINGS->state = S64_SETTINGS_STATE_LOAD_REQUEST;
-        if (!s64_settings_exchange_store(WORK_SETTINGS)) {
+    if (!s64_settings_bridge_load_ready(WORK_SETTINGS)) {
+        if (!s64_settings_bridge_request_load(WORK_SETTINGS)) {
             set_status("Settings handoff unavailable");
             return 0u;
         }
@@ -373,7 +363,7 @@ static unsigned char restore_settings(void)
         return 0u;
     }
 
-    set_status(s64_settings_exchange_result_message(result));
+    set_status(settings_status(result));
     return 1u;
 }
 
