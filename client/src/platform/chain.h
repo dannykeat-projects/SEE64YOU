@@ -8,5 +8,6 @@
  */
 void s64_chain_publisher(void);
 void s64_chain_editor(void);
+void s64_chain_settings(void);
 
 #endif
