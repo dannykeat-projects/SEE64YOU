@@ -182,6 +182,9 @@ if command -v cl65 >/dev/null 2>&1 \
     echo "== Base editor diagnostic build =="
     make -C client editor-probe
 
+    echo "== Editor UI diagnostic build =="
+    make -C client ui-probe
+
     echo "== REU diagnostic build =="
     make -C client reu-probe
 
