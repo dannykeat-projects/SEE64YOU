@@ -23,6 +23,7 @@
 #define S64_UCI_DATA_AVAILABLE   0x80u
 
 #define S64_UCI_TARGET_DOS       0x01u
+#define S64_UCI_TARGET_NETWORK   0x03u
 #define S64_UCI_TARGET_HTTP      0x06u
 #define S64_UCI_CMD_IDENTIFY     0x01u
 
@@ -311,6 +312,7 @@ void s64_uci_probe_capabilities(S64UciCapabilities* capabilities)
 
     capabilities->interface_present = 0u;
     capabilities->dos_target = 0u;
+    capabilities->network_target = 0u;
     capabilities->http_target = 0u;
 
     if (!s64_uci_interface_present()) {
@@ -319,5 +321,6 @@ void s64_uci_probe_capabilities(S64UciCapabilities* capabilities)
 
     capabilities->interface_present = 1u;
     capabilities->dos_target = s64_uci_probe_target(S64_UCI_TARGET_DOS);
+    capabilities->network_target = s64_uci_probe_target(S64_UCI_TARGET_NETWORK);
     capabilities->http_target = s64_uci_probe_target(S64_UCI_TARGET_HTTP);
 }
