@@ -786,6 +786,7 @@ int main(void)
         }
     }
 
+    s64_input_restore_repeat();
     clrscr();
     cputs("SEE64YOU EXITED\r\n");
     return 0;
