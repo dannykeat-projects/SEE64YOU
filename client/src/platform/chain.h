@@ -7,5 +7,6 @@
  * starts with a valid BASIC/KERNAL return context.
  */
 void s64_chain_publisher(void);
+void s64_chain_editor(void);
 
 #endif
