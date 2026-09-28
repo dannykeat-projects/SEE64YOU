@@ -7,10 +7,6 @@
 #define relay_header ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_RELAY_OFFSET])
 static char relay_key[S64_RELAY_KEY_CAPACITY];
 
-typedef char S64RelayWorkspaceFits[
-    (S64_PUBLISH_WORK_RELAY_OFFSET + S64_RELAY_HEADER_CAPACITY
-        <= S64_PUBLISH_WORKSPACE_CAPACITY) ? 1 : -1
-];
 
 static uint8_t is_hex_char(char value)
 {
