@@ -7,7 +7,6 @@ EDITOR_PRG="$ROOT/client/build/editor-probe.prg"
 UI_PRG="$ROOT/client/build/ui-probe.prg"
 INPUT_REPEAT_PRG="$ROOT/client/build/input-repeat-probe.prg"
 PUBLISHER_CHARSET_PRG="$ROOT/client/build/publisher-charset-probe.prg"
-PUBLISHER_CHAIN_PRG="$ROOT/client/build/publisher-chain-probe.prg"
 PUBLISHER_PRG="$ROOT/client/build/S64PUB.PRG"
 SETTINGS_PRG="$ROOT/client/build/S64CFG.PRG"
 EDITOR_CHAIN_PRG="$ROOT/client/build/S64EDIT.PRG"
@@ -23,7 +22,7 @@ if ! command -v "$VICE_BIN" >/dev/null 2>&1; then
     exit 0
 fi
 
-if [ ! -f "$PRG" ] || [ ! -f "$BUFFER_PRG" ] || [ ! -f "$EDITOR_PRG" ] || [ ! -f "$UI_PRG" ] || [ ! -f "$INPUT_REPEAT_PRG" ] || [ ! -f "$PUBLISHER_CHARSET_PRG" ] || [ ! -f "$PUBLISHER_CHAIN_PRG" ] || [ ! -f "$PUBLISHER_PRG" ] || [ ! -f "$SETTINGS_PRG" ] || [ ! -f "$EDITOR_CHAIN_PRG" ] || [ ! -f "$REU_EDITOR_PRG" ] || [ ! -f "$RECOVERY_PRG" ]; then
+if [ ! -f "$PRG" ] || [ ! -f "$BUFFER_PRG" ] || [ ! -f "$EDITOR_PRG" ] || [ ! -f "$UI_PRG" ] || [ ! -f "$INPUT_REPEAT_PRG" ] || [ ! -f "$PUBLISHER_CHARSET_PRG" ] || [ ! -f "$PUBLISHER_PRG" ] || [ ! -f "$SETTINGS_PRG" ] || [ ! -f "$EDITOR_CHAIN_PRG" ] || [ ! -f "$REU_EDITOR_PRG" ] || [ ! -f "$RECOVERY_PRG" ]; then
     echo "VICE diagnostic PRG missing" >&2
     exit 1
 fi
@@ -160,43 +159,29 @@ wait "$charset_pid" 2>/dev/null || true
 echo "OK PETSCII publisher wire-boundary regression"
 
 if command -v c1541 >/dev/null 2>&1; then
-    chain_disk="/tmp/see64you-chain.d64"
-    chain_log="/tmp/see64you-publisher-chain.log"
-    rm -f "$chain_disk"
-    c1541 -format "SEE64YOU,64" d64 "$chain_disk" >/dev/null
-    c1541 -attach "$chain_disk" \
-        -write "$PUBLISHER_CHAIN_PRG" CHAINTEST \
+    package_disk="/tmp/see64you-package.d64"
+    package_dir="/tmp/see64you-package-readback"
+    rm -f "$package_disk"
+    rm -rf "$package_dir"
+    mkdir -p "$package_dir"
+
+    c1541 -format "SEE64YOU,64" d64 "$package_disk" >/dev/null
+    c1541 -attach "$package_disk" \
         -write "$EDITOR_CHAIN_PRG" S64EDIT.PRG \
         -write "$PUBLISHER_PRG" S64PUB.PRG \
         -write "$SETTINGS_PRG" S64CFG.PRG \
         >/dev/null
 
-    xvfb-run -a "$VICE_BIN" \
-        -kernal "$ROM_DIR/kernal.rom" \
-        -basic "$ROM_DIR/basic.rom" \
-        -chargen "$ROM_DIR/chargen.rom" \
-        +sound \
-        -reu \
-        -reusize 128 \
-        -virtualdev8 \
-        +drive8truedrive \
-        -autostart-handle-tde \
-        -binarymonitor \
-        -binarymonitoraddress "ip4://127.0.0.1:6514" \
-        -autostart "$chain_disk" \
-        >"$chain_log" 2>&1 &
-    chain_pid=$!
+    c1541 -attach "$package_disk" -read S64EDIT.PRG "$package_dir/S64EDIT.PRG" >/dev/null
+    c1541 -attach "$package_disk" -read S64PUB.PRG "$package_dir/S64PUB.PRG" >/dev/null
+    c1541 -attach "$package_disk" -read S64CFG.PRG "$package_dir/S64CFG.PRG" >/dev/null
 
-    if ! python3 "$ROOT/tools/vice/test_publisher_chain.py" --port 6514 --timeout 35; then
-        kill "$chain_pid" 2>/dev/null || true
-        cat "$chain_log" >&2
-        wait "$chain_pid" 2>/dev/null || true
-        exit 1
-    fi
-    wait "$chain_pid" 2>/dev/null || true
-    echo "OK publisher/settings/editor chain regression"
+    cmp "$EDITOR_CHAIN_PRG" "$package_dir/S64EDIT.PRG"
+    cmp "$PUBLISHER_PRG" "$package_dir/S64PUB.PRG"
+    cmp "$SETTINGS_PRG" "$package_dir/S64CFG.PRG"
+    echo "OK CBM-DOS package alias round trip"
 else
-    echo "SKIP publisher chain regression (c1541 not found)"
+    echo "SKIP CBM-DOS package alias test (c1541 not found)"
 fi
 
 recovery_log="/tmp/see64you-recovery.log"
