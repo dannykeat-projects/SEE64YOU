@@ -104,6 +104,12 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
     client/src/publisher/preview.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host plain-text import/export tests =="
+cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
+    client/tests/publisher_plaintext_test.c client/src/buffer_reu.c \
+    client/src/charset.c client/src/publisher/plaintext.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host publisher settings persistence tests =="
 cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/tests/publisher_settings_store_test.c \
@@ -186,6 +192,7 @@ if command -v cl65 >/dev/null 2>&1 \
     ca65 -t c64 -o "$TMP_MODULE_DIR/history_reu.o" "$TMP_MODULE_DIR/history_reu.s"
 
     for source in \
+        client/src/publisher/plaintext.c \
         client/src/publisher/settings_bridge.c \
         client/src/publisher/settings_exchange.c \
         client/src/publisher/settings_store.c
