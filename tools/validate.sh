@@ -187,6 +187,9 @@ if command -v cl65 >/dev/null 2>&1 \
     echo "== Editor UI diagnostic build =="
     make -C client ui-probe
 
+    echo "== Keyboard repeat diagnostic build =="
+    make -C client input-repeat-probe
+
     echo "== REU diagnostic build =="
     make -C client reu-probe
 
