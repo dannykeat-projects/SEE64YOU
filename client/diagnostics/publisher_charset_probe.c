@@ -14,6 +14,14 @@
 
 static uint8_t wire[WIRE_CAPACITY];
 static uint16_t wire_length;
+static S64Buffer source_body;
+static S64Buffer loaded_body;
+static S64Document source;
+static S64Document loaded;
+static S64DocumentWireReader reader;
+static char slug[S64_DOCUMENT_SLUG_CAPACITY];
+static char title[S64_DOCUMENT_TITLE_CAPACITY];
+static char date[S64_DOCUMENT_DATE_CAPACITY];
 
 static const uint8_t slug_ascii[] = {
     0x70,0x65,0x74,0x2d,0x74,0x65,0x73,0x74
@@ -123,14 +131,6 @@ static int16_t body_wire_offset(void)
 
 int main(void)
 {
-    S64Buffer source_body;
-    S64Buffer loaded_body;
-    S64Document source;
-    S64Document loaded;
-    S64DocumentWireReader reader;
-    char slug[S64_DOCUMENT_SLUG_CAPACITY];
-    char title[S64_DOCUMENT_TITLE_CAPACITY];
-    char date[S64_DOCUMENT_DATE_CAPACITY];
     uint16_t i;
     uint16_t offset;
     int16_t body_offset;
