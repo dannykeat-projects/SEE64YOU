@@ -71,7 +71,19 @@ int s64_editor_handoff_restore(
             &record,
             (uint16_t)sizeof(record)
         )
-        || !record_header_valid()) {
+        || !record_header_valid()
+        || (record.flags & S64_HANDOFF_FLAG_RETURN_TO_EDITOR) == 0u) {
+        return 0;
+    }
+
+    record.flags &= (uint8_t)~S64_HANDOFF_FLAG_RETURN_TO_EDITOR;
+    if (!s64_reu_store(
+            S64_REU_HANDOFF_BANK,
+            (uint16_t)(S64_REU_HANDOFF_BASE
+                + offsetof(S64HandoffRecord, flags)),
+            &record.flags,
+            1u
+        )) {
         return 0;
     }
 
@@ -96,18 +108,5 @@ int s64_editor_handoff_restore(
     return 1;
 }
 
-int s64_editor_handoff_clear(void)
-{
-    record.magic[0] = 0u;
-    record.magic[1] = 0u;
-    record.magic[2] = 0u;
-    record.magic[3] = 0u;
-    return s64_reu_store(
-        S64_REU_HANDOFF_BANK,
-        S64_REU_HANDOFF_BASE,
-        record.magic,
-        (uint16_t)sizeof(record.magic)
-    );
-}
 
 #pragma optimize(pop)
