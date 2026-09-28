@@ -77,6 +77,16 @@ The client document representation owns only bounded metadata and a pointer to t
 
 Standalone List uses the HTTP target's parsed response-body object and queries one result at a time. Results are delivered through a callback, so the client can render or page a large list without storing the whole array in C64 RAM. Open uses the raw `application/x-see64you` response and a streamed wire parser that writes body bytes directly into the existing gap buffer. Invalid, oversized or interrupted opens clear the partial destination rather than exposing truncated content as a valid document.
 
+### Direct stock-firmware C64U transport
+
+For the Standalone backend, the preferred end state is C64U-to-site publishing with no relay machine. The Ultimate Network Target `$03` provides the minimum portable transport: DNS-backed TCP open plus bounded socket read/write/close. See64You now probes this target separately and keeps its raw socket wrapper behind `platform/network.c`.
+
+A dedicated `network-probe.prg` performs a harmless HTTP/1.0 request to prove the real firmware path before any publishing behavior depends on it. The first hardware target is the user's stock Commodore C64 Ultimate 1.1 firmware.
+
+Raw TCP does not itself make internet publishing safe. The future direct Standalone protocol must authenticate requests, prevent replay and protect unpublished source/credentials in transit using established cryptographic primitives that fit the measured C64U publisher budget. The site endpoint can then terminate that application-layer security directly, while normal browsers continue to use HTTPS.
+
+The trusted-LAN relay and HTTP Target `$06` remain supported compatibility paths. They are not the intended default requirement for Standalone publishing once the secure direct path is validated.
+
 ### C64U transport security
 
 Do not infer TLS support from the HTTP target accepting an `https://` resource string. This was rechecked against current upstream `master` during development: `HttpHeaderSlot` recognises `https://`, sets port 443 and records a `secure` flag, but `HttpTarget::cmd_exchange` still passes only host/port to `HttpRequest::connect_to_server`. That function opens a normal `AF_INET/SOCK_STREAM` socket and `send_request` writes the HTTP request bytes directly. No TLS handshake is present in that path.
@@ -139,4 +149,4 @@ The adapter filters list results through WordPress's per-post `edit_post` capabi
 
 The C64 client cannot make an untrusted server safe. Backends therefore validate document type, slug and authentication independently.
 
-Standalone-site login returns a short-lived signed token. Ordinary web clients should use HTTPS. On the C64U path, credentials or bearer tokens must not cross an untrusted network until TLS is provided by verified firmware or a trusted relay.
+Standalone-site login returns a short-lived signed token. Ordinary web clients should use HTTPS. On the C64U path, credentials, bearer tokens and unpublished source must not cross an untrusted network in plaintext. Until the direct authenticated/encrypted protocol is implemented and validated, remote publishing still requires the trusted relay or another verified secure transport.
