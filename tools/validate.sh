@@ -152,8 +152,6 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/publisher/state.c \
         client/src/publisher/workspace.c \
         client/src/publisher/relay.c \
-        client/src/publisher/settings_exchange.c \
-        client/src/publisher/settings_store.c \
         client/src/publisher/standalone.c \
         client/src/publisher/standalone_documents.c \
         client/src/publisher/wordpress.c \
@@ -172,6 +170,16 @@ if command -v cl65 >/dev/null 2>&1 \
     cc65 -t c64 -Oirs -DS64_NATIVE_PETSCII=1 -DS64_REU_BUFFER=1 -I client/src \
         -o "$TMP_MODULE_DIR/history_reu.s" client/src/history_reu.c
     ca65 -t c64 -o "$TMP_MODULE_DIR/history_reu.o" "$TMP_MODULE_DIR/history_reu.s"
+
+    for source in \
+        client/src/publisher/settings_exchange.c \
+        client/src/publisher/settings_store.c
+    do
+        base=$(basename "$source" .c)
+        cc65 -t c64 -Oirs -DS64_NATIVE_PETSCII=1 -DS64_REU_BUFFER=1 -I client/src \
+            -o "$TMP_MODULE_DIR/$base.s" "$source"
+        ca65 -t c64 -o "$TMP_MODULE_DIR/$base.o" "$TMP_MODULE_DIR/$base.s"
+    done
 
     echo "== cc65 C64 build =="
     make -C client clean all
