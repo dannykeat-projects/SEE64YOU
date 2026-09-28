@@ -15,6 +15,7 @@
 #define S64_HANDOFF_FLAG_DIRTY 0x01u
 #define S64_HANDOFF_FLAG_INSERT_MODE 0x02u
 #define S64_HANDOFF_FLAG_WORD_WRAP 0x04u
+#define S64_HANDOFF_FLAG_RETURN_TO_EDITOR 0x08u
 
 typedef struct {
     uint8_t flags;
