@@ -6,11 +6,15 @@
 #include "publisher/handoff.h"
 #include "publisher/state.h"
 #include "publisher/standalone.h"
+#ifndef S64_STANDALONE_ONLY
 #include "publisher/wordpress.h"
+#endif
 
-typedef union {
+typedef struct {
     S64StandaloneSession standalone;
+#ifndef S64_STANDALONE_ONLY
     S64WordPressSession wordpress;
+#endif
 } S64PublisherSession;
 
 static S64Buffer body;
@@ -32,7 +36,9 @@ int main(void)
     s64_destination_clear(&destination);
     s64_publish_state_init(&publish_state);
     s64_standalone_session_clear(&session.standalone);
+#ifndef S64_STANDALONE_ONLY
     s64_wordpress_session_clear(&session.wordpress);
+#endif
 
     s64_handoff_init(&handoff);
     if (!s64_handoff_load(&handoff)
