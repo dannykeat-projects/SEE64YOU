@@ -13,12 +13,6 @@
 #define list_summary (*(S64DocumentSummary*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_DOC_OFFSET + 64u])
 #define open_reader (*(S64DocumentWireReader*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_DOC_OFFSET])
 
-typedef char S64StandaloneDocumentWorkspaceFits[
-    (S64_PUBLISH_WORK_DOC_OFFSET + 64u + sizeof(S64DocumentSummary)
-        <= S64_PUBLISH_WORKSPACE_CAPACITY
-     && S64_PUBLISH_WORK_DOC_OFFSET + sizeof(S64DocumentWireReader)
-        <= S64_PUBLISH_WORKSPACE_CAPACITY) ? 1 : -1
-];
 
 typedef struct {
     S64HttpTransport* http;
