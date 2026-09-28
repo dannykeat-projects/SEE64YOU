@@ -11,6 +11,7 @@
 #include "platform/uci.h"
 #include "publisher/destination.h"
 #include "publisher/handoff.h"
+#include "publisher/plaintext.h"
 #include "publisher/preview.h"
 #include "publisher/relay.h"
 #include "publisher/state.h"
