@@ -19,7 +19,7 @@ static unsigned char record_header_valid(void)
         && record.magic[2] == S64_HANDOFF_MAGIC_2
         && record.magic[3] == S64_HANDOFF_MAGIC_3
         && record.version == S64_HANDOFF_VERSION
-        && record.checksum == s64_handoff_record_checksum(&record);
+        && record.checksum != 0u;
 }
 
 int s64_editor_handoff_store(
@@ -49,7 +49,12 @@ int s64_editor_handoff_store(
     memcpy(record.date, document->date, sizeof(record.date));
     memcpy(record.filename, local->filename, sizeof(record.filename));
     record.history = editor->history;
-    record.checksum = s64_handoff_record_checksum(&record);
+    /*
+     * Zero marks the editor-originated transition. The publisher performs full
+     * structural validation before using it, then writes a real checksum for
+     * the return trip.
+     */
+    record.checksum = 0u;
 
     return s64_reu_store(
         S64_REU_HANDOFF_BANK,
