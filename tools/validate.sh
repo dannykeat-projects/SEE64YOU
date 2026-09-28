@@ -96,32 +96,33 @@ echo "== Host publisher REU handoff tests =="
 cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/tests/publisher_handoff_test.c client/src/buffer_reu.c \
     client/src/clipboard.c client/src/history_reu.c client/src/editor.c \
-    client/src/document.c client/src/charset.c client/src/publisher/handoff.c \
+    client/src/document.c client/src/charset.c client/src/publisher/workspace.c \
+    client/src/publisher/handoff.c \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host relay client tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/relay_test.c client/src/charset.c client/src/platform/http.c client/src/publisher/relay.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/relay_test.c client/src/charset.c client/src/platform/http.c client/src/publisher/workspace.c client/src/publisher/relay.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host standalone publisher tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_test.c client/src/charset.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/standalone.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_test.c client/src/charset.c client/src/platform/http.c client/src/publisher/workspace.c client/src/publisher/relay.c client/src/publisher/standalone.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host standalone document publisher tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_documents_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/standalone.c client/src/publisher/standalone_documents.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_documents_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/http.c client/src/publisher/workspace.c client/src/publisher/relay.c client/src/publisher/standalone.c client/src/publisher/standalone_documents.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host standalone list/open tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_list_open_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/standalone.c client/src/publisher/standalone_documents.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_list_open_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/http.c client/src/publisher/workspace.c client/src/publisher/relay.c client/src/publisher/standalone.c client/src/publisher/standalone_documents.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host WordPress publisher auth tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/wordpress_test.c client/src/charset.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/wordpress.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/wordpress_test.c client/src/charset.c client/src/platform/http.c client/src/publisher/workspace.c client/src/publisher/relay.c client/src/publisher/wordpress.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host WordPress document publisher tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/wordpress_documents_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/http.c client/src/publisher/relay.c client/src/publisher/wordpress.c client/src/publisher/wordpress_documents.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/wordpress_documents_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/http.c client/src/publisher/workspace.c client/src/publisher/relay.c client/src/publisher/wordpress.c client/src/publisher/wordpress_documents.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host UCI compile check =="
@@ -143,6 +144,7 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/platform/reu.c \
         client/src/publisher/destination.c \
         client/src/publisher/state.c \
+        client/src/publisher/workspace.c \
         client/src/publisher/relay.c \
         client/src/publisher/standalone.c \
         client/src/publisher/standalone_documents.c \
