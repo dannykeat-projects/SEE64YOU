@@ -77,7 +77,6 @@ static unsigned char restore_publisher_handoff(void)
 
     s64_editor_recalculate_position(&editor);
     s64_editor_ensure_cursor_visible(&editor);
-    (void)s64_editor_handoff_clear();
     return 1u;
 }
 
@@ -94,8 +93,6 @@ static void launch_publisher(void)
         return;
     }
 
-    clrscr();
-    cputs("OPENING PUBLISHER...\r\n");
     s64_chain_publisher();
 }
 #endif
