@@ -7,9 +7,13 @@
 
 static unsigned char reu_settings[S64_REU_SETTINGS_CAPACITY];
 static unsigned char stored[512];
+static unsigned char profile_one[512];
 static unsigned char temporary[512];
 static uint16_t stored_length;
+static uint16_t profile_one_length;
 static uint16_t temporary_length;
+static const unsigned char* read_source;
+static uint16_t read_length;
 static uint16_t read_offset;
 static uint8_t read_open;
 static uint8_t write_open;
@@ -51,6 +55,8 @@ S64DosResult s64_dos_file_exists(S64Dos* dos, const char* filename, uint8_t* exi
     if (exists == 0) return S64_DOS_INVALID_ARGUMENT;
     if (strcmp(filename, S64_SETTINGS_FILENAME) == 0) {
         *exists = stored_length != 0u;
+    } else if (strcmp(filename, "S64DEST1.CFG") == 0) {
+        *exists = profile_one_length != 0u;
     } else if (strcmp(filename, "SEE64YOU.CFG.TMP") == 0) {
         *exists = temporary_length != 0u;
     } else {
@@ -62,7 +68,14 @@ S64DosResult s64_dos_file_exists(S64Dos* dos, const char* filename, uint8_t* exi
 S64DosResult s64_dos_open_read(S64Dos* dos, const char* filename)
 {
     (void)dos;
-    if (strcmp(filename, S64_SETTINGS_FILENAME) != 0 || stored_length == 0u) {
+    if (strcmp(filename, S64_SETTINGS_FILENAME) == 0 && stored_length != 0u) {
+        read_source = stored;
+        read_length = stored_length;
+    } else if (strcmp(filename, "S64DEST1.CFG") == 0
+        && profile_one_length != 0u) {
+        read_source = profile_one;
+        read_length = profile_one_length;
+    } else {
         return S64_DOS_NOT_FOUND;
     }
     read_offset = 0u;
@@ -94,9 +107,9 @@ S64DosResult s64_dos_read(
     if (bytes_read != 0) *bytes_read = 0u;
     if (!read_open || sink == 0) return S64_DOS_NO_FILE_OPEN;
 
-    remaining = (uint16_t)(stored_length - read_offset);
+    remaining = (uint16_t)(read_length - read_offset);
     count = remaining < requested ? remaining : requested;
-    if (count != 0u && !sink(stored + read_offset, count, context)) {
+    if (count != 0u && !sink(read_source + read_offset, count, context)) {
         return S64_DOS_CONSUMER_ABORTED;
     }
     read_offset = (uint16_t)(read_offset + count);
@@ -130,6 +143,10 @@ S64DosResult s64_dos_delete_file(S64Dos* dos, const char* filename)
         stored_length = 0u;
         return S64_DOS_OK;
     }
+    if (strcmp(filename, "S64DEST1.CFG") == 0) {
+        profile_one_length = 0u;
+        return S64_DOS_OK;
+    }
     if (strcmp(filename, "SEE64YOU.CFG.TMP") == 0) {
         temporary_length = 0u;
         return S64_DOS_OK;
@@ -141,12 +158,18 @@ S64DosResult s64_dos_rename_file(S64Dos* dos, const char* filename, const char* 
 {
     (void)dos;
     if (strcmp(filename, "SEE64YOU.CFG.TMP") != 0
-        || strcmp(new_name, S64_SETTINGS_FILENAME) != 0
         || temporary_length == 0u) {
         return S64_DOS_INVALID_ARGUMENT;
     }
-    memcpy(stored, temporary, temporary_length);
-    stored_length = temporary_length;
+    if (strcmp(new_name, S64_SETTINGS_FILENAME) == 0) {
+        memcpy(stored, temporary, temporary_length);
+        stored_length = temporary_length;
+    } else if (strcmp(new_name, "S64DEST1.CFG") == 0) {
+        memcpy(profile_one, temporary, temporary_length);
+        profile_one_length = temporary_length;
+    } else {
+        return S64_DOS_INVALID_ARGUMENT;
+    }
     temporary_length = 0u;
     return S64_DOS_OK;
 }
@@ -163,7 +186,10 @@ int main(void)
     memset(&dos, 0, sizeof(dos));
     memset(reu_settings, 0, sizeof(reu_settings));
     stored_length = 0u;
+    profile_one_length = 0u;
     temporary_length = 0u;
+    read_source = stored;
+    read_length = 0u;
     fail_write = 0u;
 
     s64_settings_exchange_init(&loaded);
@@ -188,6 +214,33 @@ int main(void)
     require(loaded.allow_insecure_http == 1u, "http flag round trip");
     require(strcmp(loaded.base_url, "http://relay.local:6464") == 0, "url round trip");
     require(strcmp(loaded.relay_key, key) == 0, "relay key round trip");
+
+    strcpy(settings.base_url, "http://profile.local:6464");
+    result = s64_settings_profile_save(&dos, 0u, &settings);
+    require(result == S64_SETTINGS_STORE_OK, "profile save succeeds");
+    require(profile_one_length == sizeof(settings), "profile file size");
+    require(stored_length == sizeof(settings), "profile save preserves active file");
+
+    memset(&loaded, 0, sizeof(loaded));
+    result = s64_settings_profile_load(&dos, 0u, &loaded);
+    require(result == S64_SETTINGS_STORE_OK, "profile load succeeds");
+    require(
+        strcmp(loaded.base_url, "http://profile.local:6464") == 0,
+        "profile URL round trip"
+    );
+    require(
+        s64_settings_profile_load(&dos, 1u, &loaded)
+            == S64_SETTINGS_STORE_NOT_FOUND,
+        "empty profile reported"
+    );
+    require(
+        s64_settings_profile_load(
+            &dos,
+            S64_SETTINGS_PROFILE_COUNT,
+            &loaded
+        ) == S64_SETTINGS_STORE_INVALID,
+        "out of range profile rejected"
+    );
 
     stored[12] ^= 0x20u;
     require(
