@@ -190,8 +190,8 @@ int main(void)
     uint8_t body_digest[32];
     char challenge[33];
     char signature[65];
-    const char* request_parts[6];
-    uint16_t request_lengths[6];
+    const char* request_parts[7];
+    uint16_t request_lengths[7];
 
     clrscr();
     cputs("SEE64YOU DIRECT AUTH PROBE\r\n\r\n");
@@ -265,18 +265,20 @@ int main(void)
     request_lengths[4] = (uint16_t)(sizeof(signature_header) - 1u);
     request_parts[5] = signature;
     request_lengths[5] = 64u;
+    request_parts[6] = tail_headers;
+    request_lengths[6] = (uint16_t)(sizeof(tail_headers) - 1u);
 
-    if (!request_and_read(&network, request_parts, request_lengths, 6u)) {
+    if (!request_and_read(&network, request_parts, request_lengths, 7u)) {
         cputs("AUTHENTICATED REQUEST FAILED.\r\n");
         goto finish;
     }
+    if (!response_status_200()) {
+        cputs("AUTH REJECTED OR SERVER ERROR.\r\n");
+        show_response_prefix();
+        goto finish;
+    }
 
-    /*
-     * The first request above intentionally leaves the final CRLF/header tail
-     * out of the six-part limit. If the server answered, the request was not
-     * complete and should not be accepted; keep this diagnostic conservative.
-     */
-    cputs("UNEXPECTED PARTIAL REQUEST RESPONSE.\r\n");
+    cputs("AUTHENTICATED GET PASSED.\r\n\r\n");
     show_response_prefix();
 
 finish:
