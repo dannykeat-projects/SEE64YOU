@@ -44,7 +44,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         }
 
         if ($error === '') {
-            $key = $directSecret;
+            $key = strtoupper($directSecret);
         }
     }
 }
