@@ -305,7 +305,7 @@ uint8_t s64_uci_probe_target(uint8_t target)
          * identities are longer, so this rejects the generic false positive
          * without carrying another identity buffer in the resident editor.
          */
-        && sink.count > 9u
+        && sink.count != 9u
         && s64_uci_status_ok(status, reply.status_length);
 }
 
