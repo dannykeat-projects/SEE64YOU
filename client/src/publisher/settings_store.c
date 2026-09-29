@@ -301,8 +301,8 @@ S64SettingsStoreResult s64_settings_import_direct_key(
 
     /*
      * Keep this path deliberately simple for stock C64U firmware. The file is
-     * tiny and has a fixed name, so FILE_STAT and multi-read EOF probing only
-     * add firmware-dependent behavior without providing value.
+     * exactly 64 bytes in the normal case, so FILE_STAT, over-reading past
+     * EOF, and multi-read EOF probing only add firmware-dependent behavior.
      */
     result = s64_dos_open_read(dos, S64_DIRECT_KEY_FILENAME);
     if (result == S64_DOS_NOT_FOUND) return S64_SETTINGS_STORE_NOT_FOUND;
@@ -311,7 +311,7 @@ S64SettingsStoreResult s64_settings_import_direct_key(
     memset(&read, 0, sizeof(read));
     result = s64_dos_read(
         dos,
-        96u,
+        64u,
         direct_key_read,
         &read,
         &bytes_read
