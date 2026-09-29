@@ -13,17 +13,22 @@ function respond(array $payload, int $status = 200): never
     exit;
 }
 
-function input_data(): array
+function input_data(string $rawBody): array
 {
     $contentType = strtolower((string)($_SERVER['CONTENT_TYPE'] ?? ''));
 
     if (str_contains($contentType, S64Wire::MIME)) {
-        return S64Wire::parse((string)file_get_contents('php://input'));
+        return S64Wire::parse($rawBody);
     }
 
     if (str_contains($contentType, 'application/json')) {
-        $decoded = json_decode((string)file_get_contents('php://input'), true);
+        $decoded = json_decode($rawBody, true);
         return is_array($decoded) ? $decoded : [];
+    }
+
+    if ($rawBody !== '') {
+        parse_str($rawBody, $parsed);
+        return is_array($parsed) ? $parsed : [];
     }
 
     return $_POST;
@@ -81,6 +86,7 @@ function respond_backup(S64Documents $documents, S64Settings $settings): never
 }
 
 $action = (string)($_GET['action'] ?? 'status');
+$rawBody = (string)file_get_contents('php://input');
 
 try {
     if ($action === 'status') {
@@ -89,7 +95,15 @@ try {
             'protocol' => 'see64you/1',
             'backend' => 'standalone',
             'configured' => $auth->configured(),
+            'direct_auth' => $directAuth->configured(),
         ]);
+    }
+
+    if ($action === 'challenge') {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+            respond(['ok' => false, 'error' => 'method_not_allowed'], 405);
+        }
+        respond(['ok' => true] + $directAuth->challenge());
     }
 
     if ($action === 'login') {
@@ -97,12 +111,25 @@ try {
             respond(['ok' => false, 'error' => 'method_not_allowed'], 405);
         }
 
-        $input = input_data();
+        $input = input_data($rawBody);
         $session = $auth->login((string)($input['password'] ?? ''));
         respond(['ok' => true] + $session);
     }
 
-    if (!$auth->valid(S64Auth::requestToken())) {
+    $browserAuthenticated = $auth->valid(S64Auth::requestToken());
+    $directAuthenticated = false;
+
+    if (!$browserAuthenticated) {
+        $directAuthenticated = $directAuth->verify(
+            strtolower(trim((string)($_SERVER['HTTP_X_SEE64YOU_CHALLENGE'] ?? ''))),
+            strtolower(trim((string)($_SERVER['HTTP_X_SEE64YOU_SIGNATURE'] ?? ''))),
+            (string)($_SERVER['REQUEST_METHOD'] ?? 'GET'),
+            (string)($_SERVER['REQUEST_URI'] ?? ''),
+            $rawBody
+        );
+    }
+
+    if (!$browserAuthenticated && !$directAuthenticated) {
         respond(['ok' => false, 'error' => 'unauthorized'], 401);
     }
 
@@ -148,7 +175,7 @@ try {
             respond(['ok' => false, 'error' => 'method_not_allowed'], 405);
         }
 
-        respond(['ok' => true, 'settings' => $settings->update(input_data())]);
+        respond(['ok' => true, 'settings' => $settings->update(input_data($rawBody))]);
     }
 
     if ($action === 'list') {
@@ -178,7 +205,7 @@ try {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             respond(['ok' => false, 'error' => 'method_not_allowed'], 405);
         }
-        $document = $documents->save(input_data());
+        $document = $documents->save(input_data($rawBody));
         if (wants_wire()) {
             respond_wire($document);
         }
@@ -196,7 +223,7 @@ try {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             respond(['ok' => false, 'error' => 'method_not_allowed'], 405);
         }
-        $input = input_data();
+        $input = input_data($rawBody);
         $deleted = $documents->delete(
             (string)($input['type'] ?? ''),
             (string)($input['slug'] ?? '')
