@@ -16,12 +16,15 @@ int main(void)
         "7d6554f87377e7ccbb1fec868b56b9e3"
         "2107d9c39c480c1780aad061298dc19a";
     uint8_t key[32];
+    uint8_t key_before[32];
     uint8_t body_digest[32];
     char signature[65];
     S64Sha256 sha;
 
     assert(s64_direct_key_parse(key_hex, key));
+    memcpy(key_before, key, sizeof(key));
     assert(!s64_direct_key_parse("bad", key));
+    assert(memcmp(key, key_before, sizeof(key)) == 0);
 
     s64_sha256_init(&sha);
     s64_sha256_final(&sha, body_digest);
