@@ -76,14 +76,15 @@ static void render(void)
     gotoxy(0u, 12u); cputs("1 DESTINATION TYPE");
     gotoxy(0u, 13u); cputs("2 SITE URL");
     gotoxy(0u, 14u); cputs("3 TOGGLE PLAIN HTTP");
-    gotoxy(0u, 15u); cputs("4 REPLACE DIRECT KEY");
-    gotoxy(0u, 16u); cputs("5 DISABLE DIRECT KEY");
-    gotoxy(0u, 17u); cputs("6 REPLACE RELAY KEY");
-    gotoxy(0u, 18u); cputs("7 DISABLE RELAY KEY");
-    gotoxy(0u, 19u); cputs("8 LOAD PROFILE");
-    gotoxy(0u, 20u); cputs("9 SAVE PROFILE");
-    gotoxy(0u, 21u); cputs("S SAVE + RETURN");
-    gotoxy(0u, 22u); cputs("RUN/STOP CANCEL + RETURN");
+    gotoxy(0u, 15u); cputs("4 IMPORT DIRECT KEY FILE");
+    gotoxy(0u, 16u); cputs("A TYPE DIRECT KEY");
+    gotoxy(0u, 17u); cputs("5 DISABLE DIRECT KEY");
+    gotoxy(0u, 18u); cputs("6 REPLACE RELAY KEY");
+    gotoxy(0u, 19u); cputs("7 DISABLE RELAY KEY");
+    gotoxy(0u, 20u); cputs("8 LOAD PROFILE");
+    gotoxy(0u, 21u); cputs("9 SAVE PROFILE");
+    gotoxy(0u, 22u); cputs("S SAVE + RETURN");
+    gotoxy(0u, 23u); cputs("RUN/STOP CANCEL + RETURN");
     clear_row(STATUS_ROW);
     gotoxy(0u, STATUS_ROW);
     revers(1); cputs(status_text); revers(0);
@@ -306,6 +307,35 @@ static void save_profile(void)
     }
 }
 
+
+static void import_direct_key(void)
+{
+    S64SettingsStoreResult result;
+
+    if (!capabilities.dos_target) {
+        set_status("Settings storage unavailable");
+        return;
+    }
+
+    memset(relay_replacement, 0, sizeof(relay_replacement));
+    result = s64_settings_import_direct_key(&dos, relay_replacement);
+    if (result == S64_SETTINGS_STORE_NOT_FOUND) {
+        set_status("SEE64KEY.TXT not found");
+    } else if (result == S64_SETTINGS_STORE_INVALID) {
+        set_status("SEE64KEY.TXT key invalid");
+    } else if (result != S64_SETTINGS_STORE_OK) {
+        set_status("Direct key import failed");
+    } else {
+        memcpy(
+            settings.direct_key,
+            relay_replacement,
+            sizeof(settings.direct_key)
+        );
+        set_status("Direct key imported; S to save");
+    }
+    memset(relay_replacement, 0, sizeof(relay_replacement));
+}
+
 static void return_to_publisher(void)
 {
     clrscr();
@@ -441,6 +471,8 @@ int main(void)
             settings.allow_insecure_http = settings.allow_insecure_http ? 0u : 1u;
             set_status(settings.allow_insecure_http ? "Plain HTTP allowed" : "Plain HTTP blocked");
         } else if (key == '4') {
+            import_direct_key();
+        } else if (key == 'a' || key == 'A') {
             relay_replacement[0] = '\0';
             if (edit_text(
                     "DIRECT KEY: ",
