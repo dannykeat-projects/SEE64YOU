@@ -270,8 +270,11 @@ static uint8_t s64_uci_count_identify(
 
 static uint8_t s64_uci_status_ok(const char* status, uint16_t length)
 {
+    /*
+     * Probe callers always supply a real local status buffer, so a null check
+     * here only costs scarce resident-editor bytes without adding safety.
+     */
     return length >= 2u
-        && status != 0
         && status[0] == '0'
         && status[1] == '0';
 }
