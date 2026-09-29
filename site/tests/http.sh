@@ -54,7 +54,50 @@ STATUS=$(curl -fsS "$BASE/api.php?action=status")
 printf '%s' "$STATUS" | php -r '
 $d=json_decode(stream_get_contents(STDIN),true);
 if (!is_array($d) || !($d["ok"] ?? false) || !($d["configured"] ?? false)) exit(1);
+if (!($d["direct_auth"] ?? false)) exit(1);
 '
+
+DIRECT_SECRET=$(php -r '$c=require $argv[1]; echo $c["direct_secret"] ?? "";' "$SITE/config.php")
+[ "${#DIRECT_SECRET}" -eq 64 ]
+
+CHALLENGE_REPLY=$(curl -fsS "$BASE/api.php?action=challenge")
+CHALLENGE=$(printf '%s' "$CHALLENGE_REPLY" | php -r '
+$d=json_decode(stream_get_contents(STDIN),true);
+if (!is_array($d) || !($d["ok"] ?? false)) exit(1);
+if (!preg_match("/^[a-f0-9]{32}$/", (string)($d["challenge"] ?? ""))) exit(1);
+if (!is_int($d["expires"] ?? null) || $d["expires"] <= time()) exit(1);
+echo $d["challenge"];
+')
+DIRECT_URI='/api.php?action=list&type=post'
+DIRECT_SIG=$(php -r '
+$secret=$argv[1];
+$challenge=$argv[2];
+$uri=$argv[3];
+$body="";
+$canonical="see64you-direct/1\n".$challenge."\nGET\n".$uri."\n".hash("sha256",$body);
+echo hash_hmac("sha256",$canonical,hex2bin($secret));
+' "$DIRECT_SECRET" "$CHALLENGE" "$DIRECT_URI")
+
+TAMPER_CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
+    -H "X-See64You-Challenge: $CHALLENGE" \
+    -H "X-See64You-Signature: $DIRECT_SIG" \
+    "$BASE/api.php?action=list&type=page")
+[ "$TAMPER_CODE" = "401" ]
+
+DIRECT_LIST=$(curl -fsS \
+    -H "X-See64You-Challenge: $CHALLENGE" \
+    -H "X-See64You-Signature: $DIRECT_SIG" \
+    "$BASE$DIRECT_URI")
+printf '%s' "$DIRECT_LIST" | php -r '
+$d=json_decode(stream_get_contents(STDIN),true);
+if (!is_array($d) || !($d["ok"] ?? false) || ($d["count"] ?? -1) !== 0) exit(1);
+'
+
+REPLAY_CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
+    -H "X-See64You-Challenge: $CHALLENGE" \
+    -H "X-See64You-Signature: $DIRECT_SIG" \
+    "$BASE$DIRECT_URI")
+[ "$REPLAY_CODE" = "401" ]
 
 LOGIN=$(curl -fsS -X POST --data-urlencode "password=$PASSWORD" "$BASE/api.php?action=login")
 TOKEN=$(printf '%s' "$LOGIN" | php -r '
