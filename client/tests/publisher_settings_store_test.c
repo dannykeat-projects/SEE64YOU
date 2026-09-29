@@ -134,7 +134,6 @@ S64DosResult s64_dos_open_write(S64Dos* dos, const char* filename)
     (void)dos;
     if (strcmp(filename, "SEE64YOU.CFG.TMP") != 0) return S64_DOS_INVALID_ARGUMENT;
     temporary_length = 0u;
-    direct_key_file_length = 0u;
     write_open = 1u;
     return S64_DOS_OK;
 }
@@ -235,6 +234,7 @@ int main(void)
     stored_length = 0u;
     profile_one_length = 0u;
     temporary_length = 0u;
+    direct_key_file_length = 0u;
     read_source = stored;
     read_length = 0u;
     fail_write = 0u;
