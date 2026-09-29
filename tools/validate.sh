@@ -245,6 +245,9 @@ if command -v cl65 >/dev/null 2>&1 \
     echo "== C64U HTTPS target diagnostic build =="
     make -C client https-probe
 
+    echo "== Direct Standalone site diagnostic build =="
+    make -C client direct-site-probe
+
     echo "== REU diagnostic build =="
     make -C client reu-probe
 
