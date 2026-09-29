@@ -46,6 +46,9 @@ jobs:
       - name: Build direct Standalone site probe
         run: make -C client direct-site-probe
 
+      - name: Build direct authenticated Standalone probe
+        run: make -C client direct-auth-probe
+
       - name: Build C64U HMAC probe
         run: make -C client hmac-probe
 
@@ -116,6 +119,14 @@ jobs:
         with:
           name: see64you-direct-site-probe
           path: client/build/direct-site-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish direct authenticated Standalone probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-direct-auth-probe
+          path: client/build/direct-auth-probe.prg
           if-no-files-found: error
           retention-days: 30
 
