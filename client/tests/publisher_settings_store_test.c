@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -203,6 +204,8 @@ int main(void)
     settings.allow_insecure_http = 1u;
     strcpy(settings.base_url, "http://relay.local:6464");
     strcpy(settings.relay_key, key);
+    strcpy(settings.direct_key,
+        "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789");
     result = s64_settings_store_save(&dos, &settings);
     require(result == S64_SETTINGS_STORE_OK, "settings save succeeds");
     require(stored_length == sizeof(settings), "settings file size");
@@ -214,6 +217,10 @@ int main(void)
     require(loaded.allow_insecure_http == 1u, "http flag round trip");
     require(strcmp(loaded.base_url, "http://relay.local:6464") == 0, "url round trip");
     require(strcmp(loaded.relay_key, key) == 0, "relay key round trip");
+    require(strcmp(
+        loaded.direct_key,
+        "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+    ) == 0, "direct key round trip");
 
     strcpy(settings.base_url, "http://profile.local:6464");
     result = s64_settings_profile_save(&dos, 0u, &settings);
