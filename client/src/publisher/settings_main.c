@@ -71,16 +71,19 @@ static void render(void)
     print_value(3u, "Destination: ", destination_name());
     print_value(5u, "Site URL: ", settings.base_url[0] != '\0' ? settings.base_url : "(not set)");
     print_value(7u, "Plain HTTP: ", settings.allow_insecure_http ? "allowed" : "blocked");
-    print_value(9u, "Relay key: ", settings.relay_key[0] != '\0' ? "configured" : "off");
+    print_value(9u, "Direct key: ", settings.direct_key[0] != '\0' ? "configured" : "off");
+    print_value(10u, "Relay key: ", settings.relay_key[0] != '\0' ? "configured" : "off");
     gotoxy(0u, 12u); cputs("1 DESTINATION TYPE");
     gotoxy(0u, 13u); cputs("2 SITE URL");
     gotoxy(0u, 14u); cputs("3 TOGGLE PLAIN HTTP");
-    gotoxy(0u, 15u); cputs("4 REPLACE RELAY KEY");
-    gotoxy(0u, 16u); cputs("5 DISABLE RELAY KEY");
-    gotoxy(0u, 17u); cputs("6 LOAD PROFILE");
-    gotoxy(0u, 18u); cputs("7 SAVE PROFILE");
-    gotoxy(0u, 20u); cputs("S SAVE + RETURN");
-    gotoxy(0u, 21u); cputs("RUN/STOP CANCEL + RETURN");
+    gotoxy(0u, 15u); cputs("4 REPLACE DIRECT KEY");
+    gotoxy(0u, 16u); cputs("5 DISABLE DIRECT KEY");
+    gotoxy(0u, 17u); cputs("6 REPLACE RELAY KEY");
+    gotoxy(0u, 18u); cputs("7 DISABLE RELAY KEY");
+    gotoxy(0u, 19u); cputs("8 LOAD PROFILE");
+    gotoxy(0u, 20u); cputs("9 SAVE PROFILE");
+    gotoxy(0u, 21u); cputs("S SAVE + RETURN");
+    gotoxy(0u, 22u); cputs("RUN/STOP CANCEL + RETURN");
     clear_row(STATUS_ROW);
     gotoxy(0u, STATUS_ROW);
     revers(1); cputs(status_text); revers(0);
@@ -206,7 +209,7 @@ static uint8_t validate_values(S64SettingsExchange* target)
     );
     target->allow_insecure_http = checked_destination.allow_insecure_http;
     if (!s64_settings_exchange_values_valid(target)) {
-        set_status("Relay key invalid");
+        set_status("Publishing key invalid");
         return 0u;
     }
     return 1u;
@@ -440,6 +443,30 @@ int main(void)
         } else if (key == '4') {
             relay_replacement[0] = '\0';
             if (edit_text(
+                    "DIRECT KEY: ",
+                    relay_replacement,
+                    (unsigned char)sizeof(relay_replacement),
+                    1u
+                )) {
+                if (relay_replacement[0] == '\0') {
+                    set_status("Direct key unchanged");
+                } else {
+                    memcpy(settings.direct_key, relay_replacement, sizeof(relay_replacement));
+                    if (!s64_settings_exchange_values_valid(&settings)) {
+                        settings.direct_key[0] = '\0';
+                        set_status("Direct key must be 64 hex chars");
+                    } else {
+                        set_status("Direct key replaced");
+                    }
+                }
+            }
+            memset(relay_replacement, 0, sizeof(relay_replacement));
+        } else if (key == '5') {
+            settings.direct_key[0] = '\0';
+            set_status("Direct key disabled");
+        } else if (key == '6') {
+            relay_replacement[0] = '\0';
+            if (edit_text(
                     "RELAY KEY: ",
                     relay_replacement,
                     (unsigned char)sizeof(relay_replacement),
@@ -458,12 +485,12 @@ int main(void)
                 }
             }
             memset(relay_replacement, 0, sizeof(relay_replacement));
-        } else if (key == '5') {
+        } else if (key == '7') {
             settings.relay_key[0] = '\0';
             set_status("Relay key disabled");
-        } else if (key == '6') {
+        } else if (key == '8') {
             load_profile();
-        } else if (key == '7') {
+        } else if (key == '9') {
             save_profile();
         } else if (key == 's' || key == 'S') {
             save_and_return();
