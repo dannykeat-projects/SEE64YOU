@@ -84,6 +84,10 @@ echo "== Host SHA-256/HMAC tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/sha256_test.c client/src/crypto/sha256.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host direct C64U auth signing tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/direct_auth_test.c client/src/publisher/direct_auth.c client/src/crypto/sha256.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host Ultimate DOS tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/dos_test.c client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
