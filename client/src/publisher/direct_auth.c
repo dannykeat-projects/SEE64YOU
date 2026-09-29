@@ -34,16 +34,23 @@ int s64_direct_key_parse(
     uint8_t low;
     uint8_t i;
 
-    if (hex == 0 || key == 0) return 0;
+    if (hex == 0 || key == 0 || strlen(hex) != 64u) return 0;
+
+    /*
+     * Validate the complete string before touching the caller's key buffer.
+     * A failed replacement must never partially corrupt a previously valid
+     * publishing key.
+     */
+    for (i = 0u; i < 64u; ++i) {
+        if (!hex_value(hex[i], &high)) return 0;
+    }
 
     for (i = 0u; i < S64_HMAC_SHA256_KEY_SIZE; ++i) {
-        if (!hex_value(hex[(uint16_t)i * 2u], &high)
-            || !hex_value(hex[(uint16_t)i * 2u + 1u], &low)) {
-            return 0;
-        }
+        (void)hex_value(hex[(uint16_t)i * 2u], &high);
+        (void)hex_value(hex[(uint16_t)i * 2u + 1u], &low);
         key[i] = (uint8_t)((high << 4) | low);
     }
-    return hex[64] == '\0';
+    return 1;
 }
 
 void s64_direct_digest_hex(
