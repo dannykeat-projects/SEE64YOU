@@ -322,10 +322,17 @@ S64SettingsStoreResult s64_settings_import_direct_key(
         memset(&read, 0, sizeof(read));
         return S64_SETTINGS_STORE_INVALID;
     }
-    if (result != S64_DOS_OK || close_result != S64_DOS_OK) {
+    /*
+     * A complete successful read is authoritative for this fixed-size import.
+     * Some Ultimate firmware/filesystem paths may report NO FILE TO CLOSE
+     * after EOF. We still issue CLOSE as cleanup, but do not discard a valid
+     * 64-byte key solely because the close status is non-OK.
+     */
+    if (result != S64_DOS_OK) {
         memset(&read, 0, sizeof(read));
         return S64_SETTINGS_STORE_IO_ERROR;
     }
+    (void)close_result;
     if (read.count != 64u || bytes_read < 64u) {
         memset(&read, 0, sizeof(read));
         return S64_SETTINGS_STORE_INVALID;
