@@ -51,6 +51,32 @@ int main(void)
         "da58171238c8a0d874397c73b14e1e47"
     );
 
+    {
+        uint8_t long_message[80];
+        memset(long_message, 'a', sizeof(long_message));
+
+        s64_sha256_init(&sha);
+        s64_sha256_update(&sha, long_message, sizeof(long_message));
+        s64_sha256_final(&sha, digest);
+        expect_hex(
+            digest,
+            sizeof(digest),
+            "0f45e858fbc4176cdf4e411f88281ede"
+            "fc390ae5afe7df0f44cd9297f0a64580"
+        );
+
+        for (i = 0u; i < sizeof(key); ++i) key[i] = i;
+        s64_hmac_sha256_init(&hmac, key);
+        s64_hmac_sha256_update(&hmac, long_message, sizeof(long_message));
+        s64_hmac_sha256_final(&hmac, digest);
+        expect_hex(
+            digest,
+            sizeof(digest),
+            "c50a9b678143cd17bcf142287cb4f604"
+            "db7d6bc1f6a9b26b582c0aa79bb20567"
+        );
+    }
+
     puts("sha256/hmac tests passed");
     return 0;
 }
