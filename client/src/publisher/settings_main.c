@@ -443,12 +443,45 @@ static void show_direct_key_diagnostics(void)
     cgetc();
 }
 
+
+static uint8_t sync_dos_to_ui_path(void)
+{
+    uint8_t command[2];
+    S64UciCommandPart part;
+    S64UciReply reply;
+    char status[16];
+
+    command[0] = S64_DOS_TARGET_PRIMARY;
+    command[1] = 0x15u; /* DOS_CMD_COPY_UI_PATH */
+
+    part.data = command;
+    part.length = (uint16_t)sizeof(command);
+    part.flags = 0u;
+
+    reply.data_sink = 0;
+    reply.data_context = 0;
+    reply.status = status;
+    reply.status_capacity = (uint16_t)sizeof(status);
+    reply.status_length = 0u;
+    status[0] = '\0';
+
+    return s64_uci_execute(&part, 1u, &reply) == S64_UCI_OK
+        && reply.status_length >= 2u
+        && status[0] == '0'
+        && status[1] == '0';
+}
+
 static void import_direct_key(void)
 {
     S64SettingsStoreResult result;
 
     if (!capabilities.dos_target) {
         set_status("Settings storage unavailable");
+        return;
+    }
+
+    if (!sync_dos_to_ui_path()) {
+        set_status("Cannot sync C64U browser path");
         return;
     }
 
