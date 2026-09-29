@@ -58,7 +58,10 @@ if (!($d["direct_auth"] ?? false)) exit(1);
 '
 
 DIRECT_SECRET=$(php -r '$c=require $argv[1]; echo $c["direct_secret"] ?? "";' "$SITE/config.php")
-[ "${#DIRECT_SECRET}" -eq 64 ]
+if [ "${#DIRECT_SECRET}" -ne 64 ]; then
+    echo "FAIL: direct secret missing after setup" >&2
+    exit 1
+fi
 
 CHALLENGE_REPLY=$(curl -fsS "$BASE/api.php?action=challenge")
 CHALLENGE=$(printf '%s' "$CHALLENGE_REPLY" | php -r '
@@ -82,12 +85,23 @@ TAMPER_CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
     -H "X-See64You-Challenge: $CHALLENGE" \
     -H "X-See64You-Signature: $DIRECT_SIG" \
     "$BASE/api.php?action=list&type=page")
-[ "$TAMPER_CODE" = "401" ]
+if [ "$TAMPER_CODE" != "401" ]; then
+    echo "FAIL: tampered direct URI returned HTTP $TAMPER_CODE" >&2
+    cat "$TMP/server.log" >&2 || true
+    exit 1
+fi
 
-DIRECT_LIST=$(curl -fsS \
+DIRECT_CODE=$(curl -sS -o "$TMP/direct-list.json" -w '%{http_code}' \
     -H "X-See64You-Challenge: $CHALLENGE" \
     -H "X-See64You-Signature: $DIRECT_SIG" \
     "$BASE$DIRECT_URI")
+if [ "$DIRECT_CODE" != "200" ]; then
+    echo "FAIL: valid direct signature returned HTTP $DIRECT_CODE" >&2
+    cat "$TMP/direct-list.json" >&2 || true
+    cat "$TMP/server.log" >&2 || true
+    exit 1
+fi
+DIRECT_LIST=$(cat "$TMP/direct-list.json")
 printf '%s' "$DIRECT_LIST" | php -r '
 $d=json_decode(stream_get_contents(STDIN),true);
 if (!is_array($d) || !($d["ok"] ?? false) || ($d["count"] ?? -1) !== 0) exit(1);
@@ -97,7 +111,10 @@ REPLAY_CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
     -H "X-See64You-Challenge: $CHALLENGE" \
     -H "X-See64You-Signature: $DIRECT_SIG" \
     "$BASE$DIRECT_URI")
-[ "$REPLAY_CODE" = "401" ]
+if [ "$REPLAY_CODE" != "401" ]; then
+    echo "FAIL: replayed direct challenge returned HTTP $REPLAY_CODE" >&2
+    exit 1
+fi
 
 LOGIN=$(curl -fsS -X POST --data-urlencode "password=$PASSWORD" "$BASE/api.php?action=login")
 TOKEN=$(printf '%s' "$LOGIN" | php -r '
