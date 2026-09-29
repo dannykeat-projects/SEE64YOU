@@ -26,6 +26,7 @@
 - Avoid full-screen redraws for every keystroke once incremental rendering is available.
 - C64 keyboard and modern USB keyboard mappings must both remain possible.
 - REU-backed large-document storage is a planned enhancement; do not make basic editing depend on it.
+- On C64U, use temporary turbo acceleration for verified CPU-bound work when it materially improves responsiveness. Always preserve and restore the user's prior turbo state, keep a safe fallback when register control is unavailable, and avoid enabling turbo across timing-sensitive I/O or hardware interactions unless real-hardware testing proves it safe.
 
 ## Web rules
 
