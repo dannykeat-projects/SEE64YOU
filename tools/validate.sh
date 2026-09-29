@@ -85,7 +85,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src client/tests/sha256_test.c client/src/cry
 "$TMP_BIN"
 
 echo "== Host direct C64U auth signing tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/direct_auth_test.c client/src/publisher/direct_auth.c client/src/crypto/sha256.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/direct_auth_test.c client/src/publisher/direct_auth.c client/src/crypto/sha256.c client/src/charset.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host Ultimate DOS tests =="
