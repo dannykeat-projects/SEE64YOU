@@ -322,11 +322,13 @@ S64SettingsStoreResult s64_settings_import_direct_key(
     } while (result == S64_DOS_OK && bytes_read != 0u && !read.invalid);
 
     close_result = s64_dos_close(dos);
+    if (read.invalid) {
+        memset(&read, 0, sizeof(read));
+        return S64_SETTINGS_STORE_INVALID;
+    }
     if (result != S64_DOS_OK || close_result != S64_DOS_OK) {
         memset(&read, 0, sizeof(read));
-        return read.invalid
-            ? S64_SETTINGS_STORE_INVALID
-            : S64_SETTINGS_STORE_IO_ERROR;
+        return S64_SETTINGS_STORE_IO_ERROR;
     }
     if (read.invalid || read.count != 64u || total < 64u) {
         memset(&read, 0, sizeof(read));
