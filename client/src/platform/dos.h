@@ -60,6 +60,7 @@ S64DosResult s64_dos_rename_file(
     const char* new_name
 );
 S64DosResult s64_dos_change_dir(S64Dos* dos, const char* directory);
+S64DosResult s64_dos_copy_ui_path(S64Dos* dos);
 S64DosResult s64_dos_create_dir(S64Dos* dos, const char* directory);
 
 #endif
