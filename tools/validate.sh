@@ -180,6 +180,7 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/platform/http.c \
         client/src/platform/network.c \
         client/src/platform/reu.c \
+        client/src/platform/turbo.c \
         client/src/publisher/destination.c \
         client/src/publisher/state.c \
         client/src/publisher/workspace.c \
