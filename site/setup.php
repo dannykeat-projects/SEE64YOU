@@ -37,6 +37,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             'visited_color' => '#e49aff',
             'password_hash' => password_hash($password, PASSWORD_DEFAULT),
             'token_secret' => bin2hex(random_bytes(32)),
+            'direct_secret' => bin2hex(random_bytes(32)),
             'token_ttl' => 43200,
         ];
 
