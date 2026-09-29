@@ -28,6 +28,43 @@ static void require(int condition, const char* message)
     }
 }
 
+static uint16_t legacy_checksum_bytes(const unsigned char* bytes, uint16_t length)
+{
+    uint8_t sum1 = 0x53u;
+    uint8_t sum2 = 0x36u;
+    uint16_t i;
+
+    for (i = 0u; i < length; ++i) {
+        sum1 = (uint8_t)(sum1 + bytes[i]);
+        sum2 = (uint8_t)(sum2 + sum1);
+    }
+    return (uint16_t)(((uint16_t)sum2 << 8) | sum1);
+}
+
+static void store_legacy_v1_fixture(void)
+{
+    S64SettingsExchange legacy;
+    uint16_t checksum;
+    uint16_t checksum_offset = (uint16_t)offsetof(S64SettingsExchange, direct_key);
+
+    s64_settings_exchange_init(&legacy);
+    legacy.version = 1u;
+    legacy.state = S64_SETTINGS_STATE_READY;
+    legacy.destination_type = (uint8_t)S64_DESTINATION_STANDALONE;
+    legacy.allow_insecure_http = 1u;
+    strcpy(legacy.base_url, "http://legacy.local:6464");
+    strcpy(
+        legacy.relay_key,
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    );
+
+    memcpy(stored, &legacy, checksum_offset);
+    checksum = legacy_checksum_bytes(stored, checksum_offset);
+    stored[checksum_offset] = (unsigned char)(checksum & 0xffu);
+    stored[checksum_offset + 1u] = (unsigned char)(checksum >> 8);
+    stored_length = (uint16_t)(checksum_offset + 2u);
+}
+
 uint8_t s64_reu_store(uint8_t bank, uint16_t address, const void* source, uint16_t length)
 {
     if (bank != S64_REU_SETTINGS_BANK
@@ -198,6 +235,17 @@ int main(void)
         s64_settings_store_load(&dos, &loaded) == S64_SETTINGS_STORE_NOT_FOUND,
         "missing settings reported"
     );
+
+    store_legacy_v1_fixture();
+    memset(&loaded, 0, sizeof(loaded));
+    require(
+        s64_settings_store_load(&dos, &loaded) == S64_SETTINGS_STORE_OK,
+        "legacy v1 settings migrate"
+    );
+    require(loaded.version == S64_SETTINGS_VERSION, "legacy settings upgrade version");
+    require(strcmp(loaded.base_url, "http://legacy.local:6464") == 0, "legacy URL preserved");
+    require(loaded.direct_key[0] == '\0', "legacy settings start without direct key");
+    stored_length = 0u;
 
     s64_settings_exchange_init(&settings);
     settings.destination_type = (uint8_t)S64_DESTINATION_STANDALONE;
