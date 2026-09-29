@@ -222,6 +222,10 @@ int main(void)
     }
 
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
+    if (s64_dos_change_dir(&dos, "/sd/") != S64_DOS_OK) {
+        cputs("CANNOT SELECT /SD/.\r\n");
+        goto finish;
+    }
     settings_result = s64_settings_store_load(&dos, &settings);
     if (settings_result != S64_SETTINGS_STORE_OK) {
         cputs("CANNOT LOAD SEE64YOU.CFG.\r\n");
