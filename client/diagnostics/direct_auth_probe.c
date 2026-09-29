@@ -19,6 +19,18 @@
 
 static uint8_t response[RESPONSE_CAPACITY];
 static uint16_t response_length;
+static S64Dos dos;
+static S64SettingsExchange settings;
+static S64NetTransport network;
+static S64Sha256 sha;
+static S64TurboGuard turbo;
+static uint8_t key[32];
+static uint8_t body_digest[32];
+static char challenge[33];
+static char signature[65];
+static const char* request_parts[7];
+static uint16_t request_lengths[7];
+
 
 static uint8_t capture_response(
     const uint8_t* data,
@@ -195,18 +207,7 @@ int main(void)
         "\r\n";
     static const char signed_uri[] = "/api.php?action=settings";
     static const char method[] = "GET";
-    S64Dos dos;
-    S64SettingsExchange settings;
     S64SettingsStoreResult settings_result;
-    S64NetTransport network;
-    S64Sha256 sha;
-    S64TurboGuard turbo;
-    uint8_t key[32];
-    uint8_t body_digest[32];
-    char challenge[33];
-    char signature[65];
-    const char* request_parts[7];
-    uint16_t request_lengths[7];
 
     clrscr();
     cputs("SEE64YOU DIRECT AUTH PROBE\r\n\r\n");
