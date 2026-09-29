@@ -293,35 +293,31 @@ S64SettingsStoreResult s64_settings_import_direct_key(
     S64DosResult result;
     S64DosResult close_result;
     S64DirectKeyRead read;
-    uint8_t exists;
-    uint16_t bytes_read;
-    uint16_t total = 0u;
+    uint16_t bytes_read = 0u;
 
     if (dos == 0 || direct_key == 0) {
         return S64_SETTINGS_STORE_INVALID;
     }
 
-    result = s64_dos_file_exists(dos, S64_DIRECT_KEY_FILENAME, &exists);
-    if (result != S64_DOS_OK) return S64_SETTINGS_STORE_IO_ERROR;
-    if (!exists) return S64_SETTINGS_STORE_NOT_FOUND;
-
+    /*
+     * Keep this path deliberately simple for stock C64U firmware. The file is
+     * tiny and has a fixed name, so FILE_STAT and multi-read EOF probing only
+     * add firmware-dependent behavior without providing value.
+     */
     result = s64_dos_open_read(dos, S64_DIRECT_KEY_FILENAME);
+    if (result == S64_DOS_NOT_FOUND) return S64_SETTINGS_STORE_NOT_FOUND;
     if (result != S64_DOS_OK) return S64_SETTINGS_STORE_IO_ERROR;
 
     memset(&read, 0, sizeof(read));
-    do {
-        bytes_read = 0u;
-        result = s64_dos_read(
-            dos,
-            96u,
-            direct_key_read,
-            &read,
-            &bytes_read
-        );
-        total = (uint16_t)(total + bytes_read);
-    } while (result == S64_DOS_OK && bytes_read != 0u && !read.invalid);
-
+    result = s64_dos_read(
+        dos,
+        96u,
+        direct_key_read,
+        &read,
+        &bytes_read
+    );
     close_result = s64_dos_close(dos);
+
     if (read.invalid) {
         memset(&read, 0, sizeof(read));
         return S64_SETTINGS_STORE_INVALID;
@@ -330,7 +326,7 @@ S64SettingsStoreResult s64_settings_import_direct_key(
         memset(&read, 0, sizeof(read));
         return S64_SETTINGS_STORE_IO_ERROR;
     }
-    if (read.invalid || read.count != 64u || total < 64u) {
+    if (read.count != 64u || bytes_read < 64u) {
         memset(&read, 0, sizeof(read));
         return S64_SETTINGS_STORE_INVALID;
     }
