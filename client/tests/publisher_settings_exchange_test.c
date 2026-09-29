@@ -48,11 +48,14 @@ int main(void)
     strcpy(settings.base_url, "http://relay.local:6464");
     strcpy(settings.relay_key,
         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
+    strcpy(settings.direct_key,
+        "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789");
     require(s64_settings_exchange_store(&settings), "settings store");
     require(s64_settings_exchange_load(&loaded), "settings load");
     require(loaded.destination_type == (uint8_t)S64_DESTINATION_STANDALONE, "destination round trip");
     require(strcmp(loaded.base_url, "http://relay.local:6464") == 0, "URL round trip");
     require(strcmp(loaded.relay_key, settings.relay_key) == 0, "relay round trip");
+    require(strcmp(loaded.direct_key, settings.direct_key) == 0, "direct key round trip");
 
     reu_settings[10] ^= 0x40u;
     require(!s64_settings_exchange_load(&loaded), "checksum corruption rejected");
@@ -62,6 +65,12 @@ int main(void)
     strcpy(settings.base_url, "http://relay.local");
     strcpy(settings.relay_key, "bad");
     require(!s64_settings_exchange_store(&settings), "short relay key rejected");
+
+    s64_settings_exchange_init(&settings);
+    settings.destination_type = (uint8_t)S64_DESTINATION_STANDALONE;
+    strcpy(settings.base_url, "http://direct.local");
+    strcpy(settings.direct_key, "bad");
+    require(!s64_settings_exchange_store(&settings), "short direct key rejected");
 
     puts("publisher settings exchange tests passed");
     return 0;
