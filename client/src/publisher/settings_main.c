@@ -444,40 +444,16 @@ static void show_direct_key_diagnostics(void)
 }
 
 
-static uint8_t sync_dos_to_ui_path(void)
+static uint8_t sync_dos_to_sd_root(void)
 {
-    uint8_t command[2];
-    S64UciCommandPart part;
-    S64UciReply reply;
-    char status[16];
-
-    command[0] = S64_DOS_TARGET_PRIMARY;
-    command[1] = 0x15u; /* DOS_CMD_COPY_UI_PATH */
-
-    part.data = command;
-    part.length = (uint16_t)sizeof(command);
-    part.flags = 0u;
-
-    reply.data_sink = 0;
-    reply.data_context = 0;
-    reply.status = status;
-    reply.status_capacity = (uint16_t)sizeof(status);
-    reply.status_length = 0u;
-    status[0] = '\0';
-
-    if (s64_uci_execute(&part, 1u, &reply) != S64_UCI_OK) {
-        return 0u;
-    }
-
     /*
-     * Firmware 1.1 returns the copied UI path as data. A successful command
-     * may leave the status channel quiet; accept that as success just as the
-     * DOS read path does. A non-empty status must still be 00,OK.
+     * Current C64 Ultimate firmware exposes storage devices below a virtual
+     * UCI DOS root. The SD card root shown as /SD/ in the browser is therefore
+     * /sd/ to the DOS target; opening SEE64KEY.TXT from the virtual root fails
+     * with PATH DOESN'T EXIST. COPY_UI_PATH is deprecated on newer Ultimate
+     * firmware, so select the SD root explicitly instead.
      */
-    return reply.status_length == 0u
-        || (reply.status_length >= 2u
-            && status[0] == '0'
-            && status[1] == '0');
+    return s64_dos_change_dir(&dos, "/sd/") == S64_DOS_OK;
 }
 
 static void import_direct_key(void)
@@ -489,8 +465,8 @@ static void import_direct_key(void)
         return;
     }
 
-    if (!sync_dos_to_ui_path()) {
-        set_status("Cannot sync C64U browser path");
+    if (!sync_dos_to_sd_root()) {
+        set_status("Cannot select C64U /sd/");
         return;
     }
 
