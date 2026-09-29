@@ -10,9 +10,11 @@ static unsigned char reu_settings[S64_REU_SETTINGS_CAPACITY];
 static unsigned char stored[512];
 static unsigned char profile_one[512];
 static unsigned char temporary[512];
+static unsigned char direct_key_file[128];
 static uint16_t stored_length;
 static uint16_t profile_one_length;
 static uint16_t temporary_length;
+static uint16_t direct_key_file_length;
 static const unsigned char* read_source;
 static uint16_t read_length;
 static uint16_t read_offset;
@@ -97,6 +99,8 @@ S64DosResult s64_dos_file_exists(S64Dos* dos, const char* filename, uint8_t* exi
         *exists = profile_one_length != 0u;
     } else if (strcmp(filename, "SEE64YOU.CFG.TMP") == 0) {
         *exists = temporary_length != 0u;
+    } else if (strcmp(filename, S64_DIRECT_KEY_FILENAME) == 0) {
+        *exists = direct_key_file_length != 0u;
     } else {
         *exists = 0u;
     }
@@ -113,6 +117,10 @@ S64DosResult s64_dos_open_read(S64Dos* dos, const char* filename)
         && profile_one_length != 0u) {
         read_source = profile_one;
         read_length = profile_one_length;
+    } else if (strcmp(filename, S64_DIRECT_KEY_FILENAME) == 0
+        && direct_key_file_length != 0u) {
+        read_source = direct_key_file;
+        read_length = direct_key_file_length;
     } else {
         return S64_DOS_NOT_FOUND;
     }
@@ -126,6 +134,7 @@ S64DosResult s64_dos_open_write(S64Dos* dos, const char* filename)
     (void)dos;
     if (strcmp(filename, "SEE64YOU.CFG.TMP") != 0) return S64_DOS_INVALID_ARGUMENT;
     temporary_length = 0u;
+    direct_key_file_length = 0u;
     write_open = 1u;
     return S64_DOS_OK;
 }
@@ -269,6 +278,51 @@ int main(void)
         loaded.direct_key,
         "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
     ) == 0, "direct key round trip");
+
+
+    memcpy(
+        direct_key_file,
+        "ABCDEF0123456789abcdef0123456789abcdef0123456789abcdef0123456789\r\n",
+        66u
+    );
+    direct_key_file_length = 66u;
+    strcpy(
+        loaded.direct_key,
+        "1111111111111111111111111111111111111111111111111111111111111111"
+    );
+    result = s64_settings_import_direct_key(&dos, loaded.direct_key);
+    require(result == S64_SETTINGS_STORE_OK, "direct key file import succeeds");
+    require(
+        strcmp(
+            loaded.direct_key,
+            "ABCDEF0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+        ) == 0,
+        "direct key file imported exactly"
+    );
+
+    memcpy(
+        direct_key_file,
+        "ABCDEF0123456789abcdef0123456789abcdef0123456789abcdef012345678X",
+        64u
+    );
+    direct_key_file_length = 64u;
+    strcpy(
+        loaded.direct_key,
+        "2222222222222222222222222222222222222222222222222222222222222222"
+    );
+    result = s64_settings_import_direct_key(&dos, loaded.direct_key);
+    require(result == S64_SETTINGS_STORE_INVALID, "invalid direct key file rejected");
+    require(
+        strcmp(
+            loaded.direct_key,
+            "2222222222222222222222222222222222222222222222222222222222222222"
+        ) == 0,
+        "invalid import preserves existing key"
+    );
+
+    direct_key_file_length = 0u;
+    result = s64_settings_import_direct_key(&dos, loaded.direct_key);
+    require(result == S64_SETTINGS_STORE_NOT_FOUND, "missing direct key file reported");
 
     strcpy(settings.base_url, "http://profile.local:6464");
     result = s64_settings_profile_save(&dos, 0u, &settings);
