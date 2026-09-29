@@ -51,6 +51,7 @@ SETUP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/setup.php")
 [ "$SETUP_CODE" = "404" ]
 
 STATUS=$(curl -fsS "$BASE/api.php?action=status")
+echo "direct auth test: status=$STATUS"
 printf '%s' "$STATUS" | php -r '
 $d=json_decode(stream_get_contents(STDIN),true);
 if (!is_array($d) || !($d["ok"] ?? false) || !($d["configured"] ?? false)) exit(1);
@@ -64,6 +65,7 @@ if [ "${#DIRECT_SECRET}" -ne 64 ]; then
 fi
 
 CHALLENGE_REPLY=$(curl -fsS "$BASE/api.php?action=challenge")
+echo "direct auth test: challenge=$CHALLENGE_REPLY"
 CHALLENGE=$(printf '%s' "$CHALLENGE_REPLY" | php -r '
 $d=json_decode(stream_get_contents(STDIN),true);
 if (!is_array($d) || !($d["ok"] ?? false)) exit(1);
@@ -72,6 +74,7 @@ if (!is_int($d["expires"] ?? null) || $d["expires"] <= time()) exit(1);
 echo $d["challenge"];
 ')
 DIRECT_URI='/api.php?action=list&type=post'
+echo "direct auth test: challenge token=$CHALLENGE"
 DIRECT_SIG=$(php -r '
 $secret=$argv[1];
 $challenge=$argv[2];
@@ -80,6 +83,7 @@ $body="";
 $canonical="see64you-direct/1\n".$challenge."\nGET\n".$uri."\n".hash("sha256",$body);
 echo hash_hmac("sha256",$canonical,hex2bin($secret));
 ' "$DIRECT_SECRET" "$CHALLENGE" "$DIRECT_URI")
+echo "direct auth test: signature=$DIRECT_SIG"
 
 TAMPER_CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
     -H "X-See64You-Challenge: $CHALLENGE" \
