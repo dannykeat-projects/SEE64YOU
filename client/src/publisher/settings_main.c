@@ -12,6 +12,11 @@
 
 #define SCREEN_COLUMNS 40u
 #define STATUS_ROW 24u
+#define S64_KEY_DIAG_STATUS_CAPACITY 32u
+#define S64_KEY_DIAG_TARGET 0x01u
+#define S64_KEY_DIAG_OPEN 0x02u
+#define S64_KEY_DIAG_CLOSE 0x03u
+#define S64_KEY_DIAG_READ 0x04u
 
 static S64SettingsExchange settings;
 static S64SettingsExchange original_settings;
@@ -21,6 +26,10 @@ static S64Dos dos;
 static S64UciCapabilities capabilities;
 static char status_text[SCREEN_COLUMNS + 1u];
 static char relay_replacement[S64_RELAY_KEY_CAPACITY];
+static char key_diag_open[S64_KEY_DIAG_STATUS_CAPACITY];
+static char key_diag_read[S64_KEY_DIAG_STATUS_CAPACITY];
+static char key_diag_close[S64_KEY_DIAG_STATUS_CAPACITY];
+static uint16_t key_diag_bytes;
 
 static void clear_row(unsigned char row)
 {
@@ -308,6 +317,132 @@ static void save_profile(void)
 }
 
 
+
+static uint8_t diag_count_bytes(
+    const uint8_t* data,
+    uint16_t length,
+    void* context
+)
+{
+    uint16_t* count = (uint16_t*)context;
+    (void)data;
+    *count = (uint16_t)(*count + length);
+    return 1u;
+}
+
+static void diag_copy_status(
+    char* destination,
+    const char* source,
+    uint16_t length
+)
+{
+    uint16_t copy = length;
+
+    if (copy >= S64_KEY_DIAG_STATUS_CAPACITY) {
+        copy = S64_KEY_DIAG_STATUS_CAPACITY - 1u;
+    }
+    if (copy != 0u && source != 0) {
+        memcpy(destination, source, copy);
+    }
+    destination[copy] = '\0';
+    if (copy == 0u) strcpy(destination, "(empty)");
+}
+
+static void diagnose_direct_key_io(void)
+{
+    static const char filename[] = S64_DIRECT_KEY_FILENAME;
+    uint8_t open_prefix[3];
+    uint8_t read_command[4];
+    uint8_t close_command[2];
+    S64UciCommandPart open_parts[2];
+    S64UciCommandPart part;
+    S64UciReply reply;
+    char status[S64_KEY_DIAG_STATUS_CAPACITY];
+    uint16_t filename_length = (uint16_t)(sizeof(filename) - 1u);
+
+    strcpy(key_diag_open, "(not run)");
+    strcpy(key_diag_read, "(not run)");
+    strcpy(key_diag_close, "(not run)");
+    key_diag_bytes = 0u;
+
+    open_prefix[0] = S64_KEY_DIAG_TARGET;
+    open_prefix[1] = S64_KEY_DIAG_OPEN;
+    open_prefix[2] = 0x01u;
+    open_parts[0].data = open_prefix;
+    open_parts[0].length = 3u;
+    open_parts[0].flags = 0u;
+    open_parts[1].data = (const uint8_t*)filename;
+    open_parts[1].length = filename_length;
+    open_parts[1].flags = S64_UCI_PART_NATIVE_TEXT;
+
+    reply.data_sink = 0;
+    reply.data_context = 0;
+    reply.status = status;
+    reply.status_capacity = (uint16_t)sizeof(status);
+    reply.status_length = 0u;
+    status[0] = '\0';
+    (void)s64_uci_execute(open_parts, 2u, &reply);
+    diag_copy_status(key_diag_open, status, reply.status_length);
+
+    read_command[0] = S64_KEY_DIAG_TARGET;
+    read_command[1] = S64_KEY_DIAG_READ;
+    read_command[2] = 64u;
+    read_command[3] = 0u;
+    part.data = read_command;
+    part.length = 4u;
+    part.flags = 0u;
+
+    reply.data_sink = diag_count_bytes;
+    reply.data_context = &key_diag_bytes;
+    reply.status = status;
+    reply.status_capacity = (uint16_t)sizeof(status);
+    reply.status_length = 0u;
+    status[0] = '\0';
+    (void)s64_uci_execute(&part, 1u, &reply);
+    diag_copy_status(key_diag_read, status, reply.status_length);
+
+    close_command[0] = S64_KEY_DIAG_TARGET;
+    close_command[1] = S64_KEY_DIAG_CLOSE;
+    part.data = close_command;
+    part.length = 2u;
+    part.flags = 0u;
+
+    reply.data_sink = 0;
+    reply.data_context = 0;
+    reply.status = status;
+    reply.status_capacity = (uint16_t)sizeof(status);
+    reply.status_length = 0u;
+    status[0] = '\0';
+    (void)s64_uci_execute(&part, 1u, &reply);
+    diag_copy_status(key_diag_close, status, reply.status_length);
+}
+
+static void show_direct_key_diagnostics(void)
+{
+    char number[6];
+    uint16_t value = key_diag_bytes;
+    uint8_t used = 0u;
+
+    clrscr();
+    cputs("DIRECT KEY IMPORT DIAGNOSTICS\r\n\r\n");
+    cputs("OPEN:  "); cputs(key_diag_open); cputs("\r\n");
+    cputs("READ:  "); cputs(key_diag_read); cputs("\r\n");
+    cputs("BYTES: ");
+    if (value == 0u) {
+        cputc('0');
+    } else {
+        while (value != 0u && used < sizeof(number)) {
+            number[used++] = (char)('0' + (value % 10u));
+            value /= 10u;
+        }
+        while (used != 0u) cputc(number[--used]);
+    }
+    cputs("\r\n");
+    cputs("CLOSE: "); cputs(key_diag_close); cputs("\r\n\r\n");
+    cputs("PRESS A KEY TO RETURN");
+    cgetc();
+}
+
 static void import_direct_key(void)
 {
     S64SettingsStoreResult result;
@@ -324,6 +459,8 @@ static void import_direct_key(void)
     } else if (result == S64_SETTINGS_STORE_INVALID) {
         set_status("SEE64KEY.TXT key invalid");
     } else if (result != S64_SETTINGS_STORE_OK) {
+        diagnose_direct_key_io();
+        show_direct_key_diagnostics();
         set_status("Direct key import failed");
     } else {
         memcpy(
