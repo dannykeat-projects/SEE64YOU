@@ -1,4 +1,5 @@
 #include "publisher/direct_auth.h"
+#include "charset.h"
 
 #include <string.h>
 
@@ -23,6 +24,26 @@ static char hex_digit(uint8_t value)
 {
     value &= 0x0fu;
     return (char)(value < 10u ? '0' + value : 'a' + (value - 10u));
+}
+
+static uint8_t hmac_native_text(
+    S64HmacSha256* hmac,
+    const char* text,
+    uint16_t length
+)
+{
+    uint16_t i;
+    uint8_t ascii;
+
+    if (hmac == 0 || text == 0) return 0u;
+
+    for (i = 0u; i < length; ++i) {
+        if (!s64_charset_native_to_ascii((uint8_t)text[i], &ascii)) {
+            return 0u;
+        }
+        s64_hmac_sha256_update(hmac, &ascii, 1u);
+    }
+    return 1u;
 }
 
 int s64_direct_key_parse(
@@ -94,14 +115,17 @@ int s64_direct_sign(
 
     s64_direct_digest_hex(body_digest, body_hex);
     s64_hmac_sha256_init(&hmac, key);
-    s64_hmac_sha256_update(&hmac, (const uint8_t*)version, (uint16_t)(sizeof(version) - 1u));
-    s64_hmac_sha256_update(&hmac, (const uint8_t*)challenge, 32u);
-    s64_hmac_sha256_update(&hmac, (const uint8_t*)newline, 1u);
-    s64_hmac_sha256_update(&hmac, (const uint8_t*)method, (uint16_t)strlen(method));
-    s64_hmac_sha256_update(&hmac, (const uint8_t*)newline, 1u);
-    s64_hmac_sha256_update(&hmac, (const uint8_t*)request_uri, (uint16_t)strlen(request_uri));
-    s64_hmac_sha256_update(&hmac, (const uint8_t*)newline, 1u);
-    s64_hmac_sha256_update(&hmac, (const uint8_t*)body_hex, 64u);
+    if (!hmac_native_text(&hmac, version, (uint16_t)(sizeof(version) - 1u))
+        || !hmac_native_text(&hmac, challenge, 32u)
+        || !hmac_native_text(&hmac, newline, 1u)
+        || !hmac_native_text(&hmac, method, (uint16_t)strlen(method))
+        || !hmac_native_text(&hmac, newline, 1u)
+        || !hmac_native_text(&hmac, request_uri, (uint16_t)strlen(request_uri))
+        || !hmac_native_text(&hmac, newline, 1u)
+        || !hmac_native_text(&hmac, body_hex, 64u)) {
+        memset(hmac.key, 0, sizeof(hmac.key));
+        return 0;
+    }
     s64_hmac_sha256_final(&hmac, digest);
     s64_direct_digest_hex(digest, signature);
 
