@@ -10,7 +10,6 @@
 #define S64_DOS_CMD_DELETE     0x09u
 #define S64_DOS_CMD_RENAME     0x0au
 #define S64_DOS_CMD_CHANGE_DIR 0x11u
-#define S64_DOS_CMD_COPY_UI_PATH 0x15u
 #define S64_DOS_CMD_CREATE_DIR 0x16u
 
 #define S64_DOS_ATTR_READ 0x01u
@@ -443,28 +442,6 @@ S64DosResult s64_dos_rename_file(
 S64DosResult s64_dos_change_dir(S64Dos* dos, const char* directory)
 {
     return filename_command(dos, S64_DOS_CMD_CHANGE_DIR, directory);
-}
-
-S64DosResult s64_dos_copy_ui_path(S64Dos* dos)
-{
-    uint8_t command[2];
-    S64UciCommandPart part;
-
-    if (dos == 0 || !target_valid(dos->target)) {
-        return S64_DOS_INVALID_ARGUMENT;
-    }
-
-    command[0] = dos->target;
-    command[1] = S64_DOS_CMD_COPY_UI_PATH;
-    part.data = command;
-    part.length = (uint16_t)sizeof(command);
-    part.flags = 0u;
-
-    /*
-     * COPY_UI_PATH may return the copied path as data. We do not need it;
-     * executing the command is sufficient to synchronize relative file I/O.
-     */
-    return run_status_command(dos, &part, 1u, 0u);
 }
 
 S64DosResult s64_dos_create_dir(S64Dos* dos, const char* directory)
