@@ -125,7 +125,7 @@ cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
 echo "== Host publisher settings persistence tests =="
 cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/tests/publisher_settings_store_test.c \
-    client/src/publisher/settings_exchange.c client/src/publisher/settings_store.c \
+    client/src/charset.c client/src/publisher/settings_exchange.c client/src/publisher/settings_store.c \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
