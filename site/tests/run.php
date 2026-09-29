@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/lib/Documents.php';
 require_once dirname(__DIR__) . '/lib/Auth.php';
+require_once dirname(__DIR__) . '/lib/DirectAuth.php';
 require_once dirname(__DIR__) . '/lib/Settings.php';
 require_once dirname(__DIR__) . '/lib/Wire.php';
 require_once dirname(__DIR__) . '/lib/Render.php';
@@ -181,6 +182,65 @@ try {
     $session = $auth->login($password);
     check($auth->valid($session['token']), 'issued token validates');
     check(!$auth->valid($session['token'] . 'x'), 'tampered token rejected');
+    check($auth->passwordValid($password), 'publishing password can authorize pairing');
+    check(!$auth->passwordValid('wrong-password'), 'pairing rejects wrong publishing password');
+
+    $directSecret = str_repeat('b', 64);
+    $directAuth = new S64DirectAuth(
+        ['direct_secret' => $directSecret],
+        $root . '/direct-auth'
+    );
+    check($directAuth->configured(), 'direct C64U auth configured');
+
+    $directChallenge = $directAuth->challenge();
+    $directBody = "type=page&slug=hello-world";
+    $directUri = '/api.php?action=save&ack=1';
+    $directSignature = S64DirectAuth::signature(
+        $directSecret,
+        (string)$directChallenge['challenge'],
+        'POST',
+        $directUri,
+        $directBody
+    );
+    check(
+        $directAuth->verify(
+            (string)$directChallenge['challenge'],
+            $directSignature,
+            'POST',
+            $directUri,
+            $directBody
+        ),
+        'direct C64U request signature validates'
+    );
+    check(
+        !$directAuth->verify(
+            (string)$directChallenge['challenge'],
+            $directSignature,
+            'POST',
+            $directUri,
+            $directBody
+        ),
+        'direct C64U challenge cannot be replayed'
+    );
+
+    $tamperChallenge = $directAuth->challenge();
+    $tamperSignature = S64DirectAuth::signature(
+        $directSecret,
+        (string)$tamperChallenge['challenge'],
+        'POST',
+        $directUri,
+        $directBody
+    );
+    check(
+        !$directAuth->verify(
+            (string)$tamperChallenge['challenge'],
+            $tamperSignature,
+            'POST',
+            $directUri,
+            $directBody . 'x'
+        ),
+        'direct C64U auth rejects modified body'
+    );
 
     $preview = $auth->previewToken('page', 'hello-world');
     check(
@@ -225,6 +285,7 @@ try {
         'visited_color' => '#551a8b',
         'password_hash' => 'keep-this-hash',
         'token_secret' => str_repeat('b', 64),
+        'direct_secret' => str_repeat('c', 64),
         'token_ttl' => 600,
     ];
     $configPath = $root . '/config.php';
@@ -243,6 +304,7 @@ try {
     $writtenConfig = require $configPath;
     check($writtenConfig['password_hash'] === 'keep-this-hash', 'settings preserve password hash');
     check($writtenConfig['token_secret'] === str_repeat('b', 64), 'settings preserve token secret');
+    check($writtenConfig['direct_secret'] === str_repeat('c', 64), 'settings preserve direct C64U secret');
 
     $contrastRejected = false;
     try {
