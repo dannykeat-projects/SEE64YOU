@@ -241,6 +241,16 @@ try {
         ),
         'direct C64U auth rejects modified body'
     );
+    check(
+        $directAuth->verify(
+            (string)$tamperChallenge['challenge'],
+            $tamperSignature,
+            'POST',
+            $directUri,
+            $directBody
+        ),
+        'invalid signature does not consume direct challenge'
+    );
 
     $preview = $auth->previewToken('page', 'hello-world');
     check(
