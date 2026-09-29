@@ -34,6 +34,12 @@ Neither target currently provides a verified TLS session to a C64 application. D
 
 The existing trusted-LAN relay remains a compatibility/fallback path, particularly for WordPress and arbitrary HTTPS destinations, rather than the intended default Standalone setup.
 
+### Stock C64 Ultimate 1.1 hardware result
+
+Real hardware validation on 2026-09-29 established that stock Commodore C64 Ultimate firmware 1.1 exposes Ultimate-DOS `$01`, Network `$03`, and HTTP `$06` when Command Interface is enabled. The See64You `network-probe.prg` successfully resolved `example.com`, opened TCP port 80 through `$03`, wrote a raw HTTP request and received `HTTP/1.1 200 OK`.
+
+This corrects the earlier assumption that stock 1.1 might lack HTTP Target `$06`. Availability is now proven; HTTPS/TLS behavior is still a separate hardware question and must be tested directly before relying on it.
+
 ## Planned layering
 
 ```
