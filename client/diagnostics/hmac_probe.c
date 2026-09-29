@@ -34,7 +34,7 @@ static void print_u32(uint32_t value)
 
 int main(void)
 {
-    static const uint8_t message[] = {'a','b','c'};
+    static const uint8_t message[] = {0x61u, 0x62u, 0x63u};
     clock_t started;
     clock_t elapsed;
     uint16_t blocks;
@@ -59,7 +59,7 @@ int main(void)
     cputs("\r\nEXPECTED:\r\n");
     cputs("F0133729C4163DEDE81E21CD47839256\r\n\r\n");
 
-    memset(block, 'A', sizeof(block));
+    memset(block, 0x41, sizeof(block));
     s64_hmac_sha256_init(&hmac, key);
     cputs("AUTHENTICATING 8K TEST DATA...\r\n");
     started = clock();
