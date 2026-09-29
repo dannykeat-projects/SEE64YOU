@@ -40,6 +40,9 @@ jobs:
       - name: Build C64U network target probe
         run: make -C client network-probe
 
+      - name: Build C64U HTTPS target probe
+        run: make -C client https-probe
+
       - name: Report current C64 memory map
         run: cat client/build/see64you.map
 
@@ -91,6 +94,14 @@ jobs:
         with:
           name: see64you-network-probe
           path: client/build/network-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish C64U HTTPS target probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-https-probe
+          path: client/build/https-probe.prg
           if-no-files-found: error
           retention-days: 30
 
