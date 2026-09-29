@@ -10,7 +10,7 @@
 #error "publisher settings exchange requires S64_REU_BUFFER"
 #endif
 
-#define S64_SETTINGS_VERSION 1u
+#define S64_SETTINGS_VERSION 2u
 
 #define S64_SETTINGS_STATE_LOAD_REQUEST 1u
 #define S64_SETTINGS_STATE_EDIT_REQUEST 2u
@@ -30,6 +30,7 @@ typedef struct {
     uint8_t allow_insecure_http;
     char base_url[S64_DESTINATION_BASE_URL_CAPACITY];
     char relay_key[S64_RELAY_KEY_CAPACITY];
+    char direct_key[65];
     uint16_t checksum;
 } S64SettingsExchange;
 
