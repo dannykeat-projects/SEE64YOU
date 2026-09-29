@@ -122,6 +122,20 @@ int main(void)
     s64_http_init(&http, mock_execute);
 
     mock_reset();
+    mock.status = "00,OK";
+    require(
+        s64_http_free_all(&http) == S64_HTTP_OK,
+        "stock C64U 1.1 HTTP success status accepted"
+    );
+
+    mock_reset();
+    mock.status = "001 ERROR";
+    require(
+        s64_http_free_all(&http) == S64_HTTP_TARGET_ERROR,
+        "non-success HTTP status remains rejected"
+    );
+
+    mock_reset();
     mock.response[0] = 7u;
     mock.response_length = 1u;
     require(
