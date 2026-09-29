@@ -465,10 +465,19 @@ static uint8_t sync_dos_to_ui_path(void)
     reply.status_length = 0u;
     status[0] = '\0';
 
-    return s64_uci_execute(&part, 1u, &reply) == S64_UCI_OK
-        && reply.status_length >= 2u
-        && status[0] == '0'
-        && status[1] == '0';
+    if (s64_uci_execute(&part, 1u, &reply) != S64_UCI_OK) {
+        return 0u;
+    }
+
+    /*
+     * Firmware 1.1 returns the copied UI path as data. A successful command
+     * may leave the status channel quiet; accept that as success just as the
+     * DOS read path does. A non-empty status must still be 00,OK.
+     */
+    return reply.status_length == 0u
+        || (reply.status_length >= 2u
+            && status[0] == '0'
+            && status[1] == '0');
 }
 
 static void import_direct_key(void)
