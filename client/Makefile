@@ -10,6 +10,7 @@ UCI_ABSENCE_PROBE_TARGET := build/uci-absence-probe.prg
 NETWORK_PROBE_TARGET := build/network-probe.prg
 HTTPS_PROBE_TARGET := build/https-probe.prg
 DIRECT_SITE_PROBE_TARGET := build/direct-site-probe.prg
+DIRECT_AUTH_PROBE_TARGET := build/direct-auth-probe.prg
 HMAC_PROBE_TARGET := build/hmac-probe.prg
 REU_PROBE_TARGET := build/reu-probe.prg
 REU_BUFFER_PROBE_TARGET := build/reu-buffer-probe.prg
@@ -30,6 +31,7 @@ UCI_ABSENCE_PROBE_SOURCES := diagnostics/uci_absence_probe.c src/platform/uci.c 
 NETWORK_PROBE_SOURCES := diagnostics/network_probe.c src/platform/uci.c src/platform/network.c src/charset.c
 HTTPS_PROBE_SOURCES := diagnostics/https_probe.c src/platform/uci.c src/platform/http.c src/charset.c
 DIRECT_SITE_PROBE_SOURCES := diagnostics/direct_site_probe.c src/platform/uci.c src/platform/network.c src/charset.c
+DIRECT_AUTH_PROBE_SOURCES := diagnostics/direct_auth_probe.c src/charset.c src/crypto/sha256.c src/platform/uci.c src/platform/network.c src/platform/dos.c src/platform/turbo.c src/platform/reu.c src/platform/reu_dma.s src/publisher/direct_auth.c src/publisher/settings_exchange.c src/publisher/settings_store.c
 HMAC_PROBE_SOURCES := diagnostics/hmac_probe.c src/crypto/sha256.c
 REU_PROBE_SOURCES := diagnostics/reu_probe.c src/platform/reu.c src/platform/reu_dma.s
 REU_BUFFER_PROBE_SOURCES := diagnostics/reu_buffer_probe.c src/buffer_reu.c src/platform/reu.c src/platform/reu_dma.s
@@ -47,7 +49,7 @@ CL65 ?= cl65
 # but unlinked because it does not fit while retaining the 1 KiB software stack.
 CFLAGS := -t c64 -Os -I src -DS64_NATIVE_PETSCII=1 -Wl -D,__STACKSIZE__=0x0400
 
-.PHONY: all c64u publisher settings editor-probe ui-probe input-repeat-probe publisher-charset-probe uci-absence-probe network-probe https-probe direct-site-probe hmac-probe reu-probe reu-buffer-probe reu-editor-probe recovery-probe publisher-companion-fit clean
+.PHONY: all c64u publisher settings editor-probe ui-probe input-repeat-probe publisher-charset-probe uci-absence-probe network-probe https-probe direct-site-probe direct-auth-probe hmac-probe reu-probe reu-buffer-probe reu-editor-probe recovery-probe publisher-companion-fit clean
 
 all: $(TARGET)
 
@@ -114,6 +116,12 @@ direct-site-probe: $(DIRECT_SITE_PROBE_TARGET)
 $(DIRECT_SITE_PROBE_TARGET): $(DIRECT_SITE_PROBE_SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -m build/direct-site-probe.map -o $@ $(DIRECT_SITE_PROBE_SOURCES)
+
+direct-auth-probe: $(DIRECT_AUTH_PROBE_TARGET)
+
+$(DIRECT_AUTH_PROBE_TARGET): $(DIRECT_AUTH_PROBE_SOURCES)
+	@mkdir -p build
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -m build/direct-auth-probe.map -o $@ $(DIRECT_AUTH_PROBE_SOURCES)
 
 hmac-probe: $(HMAC_PROBE_TARGET)
 
