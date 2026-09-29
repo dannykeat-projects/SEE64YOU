@@ -426,6 +426,14 @@ int main(void)
 
     s64_uci_probe_capabilities(&capabilities);
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
+    /*
+     * Ultimate DOS starts at the storage root, not the file browser folder.
+     * Firmware that supports COPY_UI_PATH can synchronize relative config/key
+     * access to the folder from which See64You was launched. Older/newer
+     * firmware may reject the optional command; root-relative behavior remains
+     * the fallback in that case.
+     */
+    (void)s64_dos_copy_ui_path(&dos);
 
     have_exchange = s64_settings_exchange_load(&settings) ? 1u : 0u;
     if (have_exchange && settings.state == S64_SETTINGS_STATE_LOAD_REQUEST) {
