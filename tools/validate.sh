@@ -257,6 +257,9 @@ if command -v cl65 >/dev/null 2>&1 \
     echo "== Direct Standalone site diagnostic build =="
     make -C client direct-site-probe
 
+    echo "== Direct authenticated Standalone diagnostic build =="
+    make -C client direct-auth-probe
+
     echo "== C64U HMAC diagnostic build =="
     make -C client hmac-probe
 
