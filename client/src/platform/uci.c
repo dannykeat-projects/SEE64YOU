@@ -253,6 +253,7 @@ S64UciResult s64_uci_execute(
 
 typedef struct {
     uint16_t count;
+    uint8_t prefix[9];
 } S64IdentifySink;
 
 static uint8_t s64_uci_count_identify(
@@ -262,10 +263,37 @@ static uint8_t s64_uci_count_identify(
 )
 {
     S64IdentifySink* sink = (S64IdentifySink*)context;
-    (void)data;
+    uint16_t i;
 
-    sink->count = (uint16_t)(sink->count + length);
+    for (i = 0u; i < length; ++i) {
+        if (sink->count < (uint16_t)sizeof(sink->prefix)) {
+            sink->prefix[sink->count] = data[i];
+        }
+        ++sink->count;
+    }
     return 1u;
+}
+
+static uint8_t s64_uci_identify_is_real_target(const S64IdentifySink* sink)
+{
+    static const uint8_t no_target[9] = {
+        'N', 'O', ' ', 'T', 'A', 'R', 'G', 'E', 'T'
+    };
+    uint8_t i;
+
+    if (sink == 0 || sink->count == 0u) {
+        return 0u;
+    }
+    if (sink->count != (uint16_t)sizeof(no_target)) {
+        return 1u;
+    }
+
+    for (i = 0u; i < (uint8_t)sizeof(no_target); ++i) {
+        if (sink->prefix[i] != no_target[i]) {
+            return 1u;
+        }
+    }
+    return 0u;
 }
 
 static uint8_t s64_uci_status_ok(const char* status, uint16_t length)
@@ -299,7 +327,7 @@ uint8_t s64_uci_probe_target(uint8_t target)
     reply.status_length = 0u;
 
     return s64_uci_execute(&part, 1u, &reply) == S64_UCI_OK
-        && sink.count != 0u
+        && s64_uci_identify_is_real_target(&sink)
         && s64_uci_status_ok(status, reply.status_length);
 }
 
