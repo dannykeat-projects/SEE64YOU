@@ -62,6 +62,8 @@ final class S64DirectAuth
 
         $consume = false;
 
+        $consume = false;
+
         try {
             if (!flock($handle, LOCK_EX)) {
                 return false;
@@ -73,6 +75,7 @@ final class S64DirectAuth
                 return false;
             }
             if ((int)$stored < time()) {
+                $consume = true;
                 $consume = true;
                 ftruncate($handle, 0);
                 rewind($handle);
