@@ -142,11 +142,18 @@ static uint8_t s64_http_capture_handle(
 
 static uint8_t s64_http_status_ok(const char* status, uint16_t length)
 {
-    return length >= 3u
-        && status != 0
-        && status[0] == '0'
-        && status[1] == '0'
-        && status[2] == '0';
+    if (status == 0 || length < 3u
+        || status[0] != '0' || status[1] != '0') {
+        return 0u;
+    }
+
+    /*
+     * Current HTTP-target documentation uses "000 OK". Stock Commodore C64
+     * Ultimate 1.1 hardware has been observed to expose the same target while
+     * retaining the older Ultimate "00,OK" status convention. Accept both
+     * explicit success forms; do not reduce this to a two-byte prefix check.
+     */
+    return status[2] == '0' || status[2] == ',';
 }
 
 static S64HttpResult s64_http_map_transport(S64UciResult result)
