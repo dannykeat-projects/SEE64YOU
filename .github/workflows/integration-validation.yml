@@ -43,6 +43,9 @@ jobs:
       - name: Build C64U HTTPS target probe
         run: make -C client https-probe
 
+      - name: Build direct Standalone site probe
+        run: make -C client direct-site-probe
+
       - name: Report current C64 memory map
         run: cat client/build/see64you.map
 
@@ -102,6 +105,14 @@ jobs:
         with:
           name: see64you-https-probe
           path: client/build/https-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish direct Standalone site probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-direct-site-probe
+          path: client/build/direct-site-probe.prg
           if-no-files-found: error
           retention-days: 30
 
