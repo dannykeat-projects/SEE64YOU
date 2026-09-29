@@ -9,6 +9,14 @@
 
 static uint8_t body[96];
 static uint16_t body_length;
+static S64UciCapabilities capabilities;
+static S64HttpTransport http;
+static S64HttpResult result;
+static uint8_t header;
+static uint8_t header_created;
+static char response_header[S64_HTTP_RESPONSE_HEADER_CAPACITY];
+static uint16_t response_header_length;
+static uint16_t header_index;
 
 static uint8_t capture_body(
     const uint8_t* data,
@@ -78,14 +86,10 @@ static void show_http_result(const char* label, S64HttpResult result)
 
 int main(void)
 {
-    S64UciCapabilities capabilities;
-    S64HttpTransport http;
-    S64HttpResult result;
-    uint8_t header = 0u;
-    uint8_t header_created = 0u;
-    char response_header[S64_HTTP_RESPONSE_HEADER_CAPACITY];
-    uint16_t response_header_length = 0u;
-    uint16_t i;
+    header = 0u;
+    header_created = 0u;
+    response_header_length = 0u;
+    header_index = 0u;
 
     clrscr();
     cputs("SEE64YOU C64U HTTPS PROBE\r\n\r\n");
@@ -142,8 +146,12 @@ int main(void)
 
     if (response_header_length != 0u) {
         cputs("\r\nRESPONSE:\r\n");
-        for (i = 0u; i < response_header_length && i < 120u; ++i) {
-            char value = response_header[i];
+        for (
+            header_index = 0u;
+            header_index < response_header_length && header_index < 120u;
+            ++header_index
+        ) {
+            char value = response_header[header_index];
             cputc(value);
             if (value == '\n') {
                 break;
