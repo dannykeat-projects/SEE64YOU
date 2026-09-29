@@ -1,4 +1,5 @@
 #include "publisher/settings_store.h"
+#include "charset.h"
 
 #include <stddef.h>
 #include <string.h>
@@ -12,6 +13,46 @@ typedef struct {
 } S64SettingsRead;
 
 #define S64_SETTINGS_V1_VERSION 1u
+
+typedef struct {
+    char key[65];
+    uint8_t count;
+    uint8_t invalid;
+} S64DirectKeyRead;
+
+static uint8_t direct_key_read(
+    const uint8_t* data,
+    uint16_t length,
+    void* context
+)
+{
+    S64DirectKeyRead* read = (S64DirectKeyRead*)context;
+    uint16_t i;
+
+    for (i = 0u; i < length; ++i) {
+        uint8_t ascii = data[i];
+        uint8_t native;
+
+        if (read->count < 64u) {
+            if (!((ascii >= 0x30u && ascii <= 0x39u)
+                || (ascii >= 0x41u && ascii <= 0x46u)
+                || (ascii >= 0x61u && ascii <= 0x66u))
+                || !s64_charset_ascii_to_native(ascii, &native)) {
+                read->invalid = 1u;
+                return 0u;
+            }
+            read->key[read->count++] = (char)native;
+            continue;
+        }
+
+        if (ascii != 0x09u && ascii != 0x0au
+            && ascii != 0x0du && ascii != 0x20u) {
+            read->invalid = 1u;
+            return 0u;
+        }
+    }
+    return 1u;
+}
 #define S64_SETTINGS_V1_CHECKSUM_OFFSET ((uint16_t)offsetof(S64SettingsExchange, direct_key))
 #define S64_SETTINGS_V1_SIZE (S64_SETTINGS_V1_CHECKSUM_OFFSET + 2u)
 
@@ -242,4 +283,58 @@ S64SettingsStoreResult s64_settings_profile_save(
         return S64_SETTINGS_STORE_INVALID;
     }
     return save_named(dos, filename, settings);
+}
+
+S64SettingsStoreResult s64_settings_import_direct_key(
+    S64Dos* dos,
+    char direct_key[65]
+)
+{
+    S64DosResult result;
+    S64DosResult close_result;
+    S64DirectKeyRead read;
+    uint8_t exists;
+    uint16_t bytes_read;
+    uint16_t total = 0u;
+
+    if (dos == 0 || direct_key == 0) {
+        return S64_SETTINGS_STORE_INVALID;
+    }
+
+    result = s64_dos_file_exists(dos, S64_DIRECT_KEY_FILENAME, &exists);
+    if (result != S64_DOS_OK) return S64_SETTINGS_STORE_IO_ERROR;
+    if (!exists) return S64_SETTINGS_STORE_NOT_FOUND;
+
+    result = s64_dos_open_read(dos, S64_DIRECT_KEY_FILENAME);
+    if (result != S64_DOS_OK) return S64_SETTINGS_STORE_IO_ERROR;
+
+    memset(&read, 0, sizeof(read));
+    do {
+        bytes_read = 0u;
+        result = s64_dos_read(
+            dos,
+            96u,
+            direct_key_read,
+            &read,
+            &bytes_read
+        );
+        total = (uint16_t)(total + bytes_read);
+    } while (result == S64_DOS_OK && bytes_read != 0u && !read.invalid);
+
+    close_result = s64_dos_close(dos);
+    if (result != S64_DOS_OK || close_result != S64_DOS_OK) {
+        memset(&read, 0, sizeof(read));
+        return read.invalid
+            ? S64_SETTINGS_STORE_INVALID
+            : S64_SETTINGS_STORE_IO_ERROR;
+    }
+    if (read.invalid || read.count != 64u || total < 64u) {
+        memset(&read, 0, sizeof(read));
+        return S64_SETTINGS_STORE_INVALID;
+    }
+
+    read.key[64] = '\0';
+    memcpy(direct_key, read.key, sizeof(read.key));
+    memset(&read, 0, sizeof(read));
+    return S64_SETTINGS_STORE_OK;
 }
