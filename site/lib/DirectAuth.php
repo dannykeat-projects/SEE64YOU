@@ -55,10 +55,12 @@ final class S64DirectAuth
         }
 
         $path = $this->challengePath($challenge);
-        $handle = @fopen($path, 'c+');
+        $handle = @fopen($path, 'r+');
         if ($handle === false) {
             return false;
         }
+
+        $consume = false;
 
         try {
             if (!flock($handle, LOCK_EX)) {
@@ -71,6 +73,7 @@ final class S64DirectAuth
                 return false;
             }
             if ((int)$stored < time()) {
+                $consume = true;
                 ftruncate($handle, 0);
                 rewind($handle);
                 fwrite($handle, 'used');
@@ -94,6 +97,7 @@ final class S64DirectAuth
                 return false;
             }
 
+            $consume = true;
             ftruncate($handle, 0);
             rewind($handle);
             fwrite($handle, 'used');
@@ -102,7 +106,9 @@ final class S64DirectAuth
         } finally {
             flock($handle, LOCK_UN);
             fclose($handle);
-            @unlink($path);
+            if ($consume) {
+                @unlink($path);
+            }
         }
     }
 
