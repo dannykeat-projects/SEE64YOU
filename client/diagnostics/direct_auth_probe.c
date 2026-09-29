@@ -92,37 +92,52 @@ fail:
     return 0u;
 }
 
-static uint8_t response_status_200(void)
+static uint8_t wire_prefix_native(const char* native_text)
 {
-    static const uint8_t status[] = "HTTP/1.1 200";
-    uint8_t i;
+    uint16_t i = 0u;
+    uint8_t ascii;
 
-    if (response_length < sizeof(status) - 1u) return 0u;
-    for (i = 0u; i < sizeof(status) - 1u; ++i) {
-        if (response[i] != status[i]) return 0u;
+    if (native_text == 0) return 0u;
+    while (native_text[i] != '\0') {
+        if (i >= response_length
+            || !s64_charset_native_to_ascii((uint8_t)native_text[i], &ascii)
+            || response[i] != ascii) {
+            return 0u;
+        }
+        ++i;
     }
     return 1u;
 }
 
+static uint8_t response_status_200(void)
+{
+    return wire_prefix_native("HTTP/1.1 200");
+}
+
 static uint8_t extract_challenge(char challenge[33])
 {
-    static const uint8_t marker[] = "\"challenge\":\"";
+    static const char marker[] = "\"challenge\":\"";
     uint16_t i;
     uint8_t j;
     uint8_t native;
+    uint8_t expected;
+    const uint8_t marker_length = (uint8_t)(sizeof(marker) - 1u);
 
-    if (response_length < (uint16_t)(sizeof(marker) - 1u + 32u)) return 0u;
+    if (response_length < (uint16_t)(marker_length + 32u)) return 0u;
 
-    for (i = 0u; i + sizeof(marker) - 1u + 32u <= response_length; ++i) {
-        for (j = 0u; j < sizeof(marker) - 1u; ++j) {
-            if (response[i + j] != marker[j]) break;
+    for (i = 0u; i + marker_length + 32u <= response_length; ++i) {
+        for (j = 0u; j < marker_length; ++j) {
+            if (!s64_charset_native_to_ascii((uint8_t)marker[j], &expected)
+                || response[i + j] != expected) {
+                break;
+            }
         }
-        if (j != sizeof(marker) - 1u) continue;
+        if (j != marker_length) continue;
 
         for (j = 0u; j < 32u; ++j) {
-            uint8_t ascii = response[i + sizeof(marker) - 1u + j];
-            if (!((ascii >= '0' && ascii <= '9')
-                || (ascii >= 'a' && ascii <= 'f'))) {
+            uint8_t ascii = response[i + marker_length + j];
+            if (!((ascii >= 0x30u && ascii <= 0x39u)
+                || (ascii >= 0x61u && ascii <= 0x66u))) {
                 return 0u;
             }
             if (!s64_charset_ascii_to_native(ascii, &native)) return 0u;
