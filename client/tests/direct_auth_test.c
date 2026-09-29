@@ -35,6 +35,33 @@ int main(void)
         assert(memcmp(body_digest, expected_empty, sizeof(body_digest)) == 0);
     }
 
+    {
+        static const char canonical[] =
+            "see64you-direct/1\n"
+            "0123456789abcdef0123456789abcdef\n"
+            "GET\n"
+            "/api.php?action=list&type=page\n"
+            "e3b0c44298fc1c149afbf4c8996fb924"
+            "27ae41e4649b934ca495991b7852b855";
+        S64HmacSha256 direct_hmac;
+        uint8_t direct_digest[32];
+        char direct_hex[65];
+
+        s64_hmac_sha256_init(&direct_hmac, key);
+        s64_hmac_sha256_update(
+            &direct_hmac,
+            (const uint8_t*)canonical,
+            (uint16_t)(sizeof(canonical) - 1u)
+        );
+        s64_hmac_sha256_final(&direct_hmac, direct_digest);
+        s64_direct_digest_hex(direct_digest, direct_hex);
+        if (strcmp(direct_hex, expected) != 0) {
+            fprintf(stderr, "one-shot got: %s\n", direct_hex);
+            fprintf(stderr, "one-shot exp: %s\n", expected);
+            assert(0);
+        }
+    }
+
     assert(s64_direct_sign(
         key,
         challenge,
