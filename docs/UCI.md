@@ -34,6 +34,14 @@ Neither target currently provides a verified TLS session to a C64 application. D
 
 The existing trusted-LAN relay remains a compatibility/fallback path, particularly for WordPress and arbitrary HTTPS destinations, rather than the intended default Standalone setup.
 
+### Direct Standalone security
+
+The live hardware/site probe established that the stock C64 Ultimate 1.1 can connect through Network Target `$03` directly to `danielkeating.org:80` and receive the Standalone API's `HTTP/1.1 200 OK` response. The normal Standalone path therefore does not need a PC relay.
+
+Because port 80 is plaintext, See64You does not send the publishing password or bearer token over that path. Direct C64U requests instead use a dedicated 256-bit per-site key provisioned through the HTTPS pairing page. Each protected request obtains a short-lived one-time server challenge and sends an HMAC-SHA256 signature covering the protocol version, challenge, HTTP method, exact request URI, and SHA-256 of the request body. The server consumes a challenge once a valid signature is accepted, preventing captured requests from being replayed.
+
+The document body itself remains plaintext by design. Public publishing content generally does not benefit enough from confidentiality to justify a full encryption layer on the 6510, while authentication, integrity and replay protection prevent unauthorized publishing, modification and deletion. Encryption can remain an optional later extension for private drafts if there is a real use case.
+
 ### Stock C64 Ultimate 1.1 hardware result
 
 Real hardware validation on 2026-09-29 established that stock Commodore C64 Ultimate firmware 1.1 exposes Ultimate-DOS `$01` and Network `$03` when Command Interface is enabled. The See64You `network-probe.prg` successfully resolved `example.com`, opened TCP port 80 through `$03`, wrote a raw HTTP request and received `HTTP/1.1 200 OK`.
