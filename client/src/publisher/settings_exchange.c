@@ -22,7 +22,7 @@ static uint8_t text_terminated(const char* value, uint16_t capacity)
     return 0u;
 }
 
-static uint8_t relay_key_valid(const char* value)
+static uint8_t key_valid(const char* value)
 {
     uint16_t i;
     char c;
@@ -86,7 +86,12 @@ int s64_settings_exchange_values_valid(const S64SettingsExchange* settings)
             settings->relay_key,
             (uint16_t)sizeof(settings->relay_key)
         )
-        || !relay_key_valid(settings->relay_key)) {
+        || !text_terminated(
+            settings->direct_key,
+            (uint16_t)sizeof(settings->direct_key)
+        )
+        || !key_valid(settings->relay_key)
+        || !key_valid(settings->direct_key)) {
         return 0;
     }
 
