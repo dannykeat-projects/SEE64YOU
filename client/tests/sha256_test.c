@@ -77,6 +77,32 @@ int main(void)
         );
     }
 
+    {
+        uint8_t long_message[150];
+        memset(long_message, 'a', sizeof(long_message));
+
+        s64_sha256_init(&sha);
+        s64_sha256_update(&sha, long_message, sizeof(long_message));
+        s64_sha256_final(&sha, digest);
+        expect_hex(
+            digest,
+            sizeof(digest),
+            "7595af82ae2fa59cd9bf3b4405d31c69"
+            "b98de71fed5945fd777d8ab3b393a85f"
+        );
+
+        for (i = 0u; i < sizeof(key); ++i) key[i] = i;
+        s64_hmac_sha256_init(&hmac, key);
+        s64_hmac_sha256_update(&hmac, long_message, sizeof(long_message));
+        s64_hmac_sha256_final(&hmac, digest);
+        expect_hex(
+            digest,
+            sizeof(digest),
+            "21e522da91ba7c6a4d309a1308d15dd7"
+            "3dbe2fd15ae92a495a3afb5cfc3df533"
+        );
+    }
+
     puts("sha256/hmac tests passed");
     return 0;
 }
