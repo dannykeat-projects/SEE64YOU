@@ -225,6 +225,12 @@ int main(void)
     require(mock.bytes[0][1] == 0x11u, "change directory opcode");
 
     mock_reset();
+    result = s64_dos_copy_ui_path(&dos);
+    require(result == S64_DOS_OK, "copy UI path succeeds");
+    require(mock.lengths[0] == 2u, "copy UI path command length");
+    require(mock.bytes[0][1] == 0x15u, "copy UI path opcode");
+
+    mock_reset();
     result = s64_dos_create_dir(&dos, "SEE64YOU");
     require(result == S64_DOS_OK, "create directory succeeds");
     require(mock.bytes[0][1] == 0x16u, "create directory opcode");
