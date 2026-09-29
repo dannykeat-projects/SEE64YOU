@@ -13,13 +13,19 @@ final class S64Auth
             && strlen((string)$this->config['token_secret']) >= 32;
     }
 
+    public function passwordValid(string $password): bool
+    {
+        return $this->configured()
+            && password_verify($password, (string)$this->config['password_hash']);
+    }
+
     public function login(string $password): array
     {
         if (!$this->configured()) {
             throw new RuntimeException('not_configured');
         }
 
-        if (!password_verify($password, (string)$this->config['password_hash'])) {
+        if (!$this->passwordValid($password)) {
             throw new RuntimeException('invalid_credentials');
         }
 
