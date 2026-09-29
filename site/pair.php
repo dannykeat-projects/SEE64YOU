@@ -4,6 +4,15 @@ declare(strict_types=1);
 require __DIR__ . '/lib/bootstrap.php';
 
 header('Cache-Control: no-store');
+header('Referrer-Policy: no-referrer');
+
+$isHttps = strtolower((string)($_SERVER['HTTPS'] ?? '')) === 'on'
+    || strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+if (!$isHttps) {
+    http_response_code(400);
+    echo '<!doctype html><html><body><h1>See64You</h1><p>C64U pairing is available over HTTPS only.</p></body></html>';
+    exit;
+}
 
 $error = '';
 $key = '';
