@@ -20,7 +20,9 @@ This is the authoritative project work queue. Keep completed work concise and mo
 
 - [x] Verify the underlying settings DOS transaction on real C64U with `settings-io-probe.prg`: user confirmed create/write/close/rename/stat, exact 334-byte readback, zero trailing bytes and valid content/checksum. Expected FILE NOT FOUND preconditions are diagnostic-only successes; production DOS unchanged.
 - [x] Add `settings-exchange-probe.prg` using production value/key validation, exchange store, immediate REU readback/checksum and normal settings save redirected to diagnostic filenames; key values never displayed and original REU settings restored.
-- [ ] Run the settings exchange probe on real C64U to distinguish validation/REU failures from normal-save failures. Retained REU state cannot recover edits that never reached REU.
+- [x] Run settings exchange probe on real C64U: known-good Standalone records with empty keys and with the imported direct key both passed values, REU store/readback/checksum/exact bytes, normal save and restoration. Retained REU record was invalid; this does not identify the real helper failure.
+- [x] Add `settings-save-probe.prg`, the actual helper with diagnostic-only Save tracing: real filenames/settings, passive GET_PATH, UI/store result, preserved command statuses and first failed DOS gate; normal PRGs/algorithm unchanged.
+- [ ] Reproduce failed Save using the instrumented settings helper and photograph the preflight, command pages and final result. Back up real CFG/temp first; this probe performs a real Save.
 - [ ] Make publishing-settings load/save/profile operations establish a deterministic C64U storage path themselves rather than relying on a previous key-import or browser-path side effect. Validate on stock C64 Ultimate firmware 1.1.
 - [ ] Evaluate `barryw/sim6502` `u64sim` as an external CI lane for the exact Ultimate-DOS settings transaction and other UCI state-machine regressions; keep real hardware as the final gate.
 - [ ] Integrate `JC-000/c64-test-harness` as the preferred reusable VICE/real-C64U smoke-test layer, including firmware-1.1-safe REST `/Temp` hygiene for repeated automated uploads.

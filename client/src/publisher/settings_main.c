@@ -10,6 +10,55 @@
 #include "publisher/settings_exchange.h"
 #include "publisher/settings_store.h"
 
+#ifdef S64_SETTINGS_SAVE_TRACE
+#include "../../diagnostics/settings_save_trace.h"
+static char save_trace_path[80], save_trace_path_status[32];
+static uint8_t save_trace_path_length, save_trace_path_truncated;
+static uint8_t save_trace_input_values, save_trace_input_record;
+static S64UciResult save_trace_path_result;
+
+static uint8_t save_path_sink(const uint8_t* data, uint16_t length, void* context)
+{
+    uint16_t i;
+    uint8_t native;
+    (void)context;
+    for (i = 0; i < length && data[i] != 0; ++i) {
+        if (save_trace_path_length + 1 < sizeof(save_trace_path)) {
+            save_trace_path[save_trace_path_length++] =
+                s64_charset_ascii_to_native(data[i], &native) ? native : '?';
+        } else save_trace_path_truncated = 1;
+    }
+    save_trace_path[save_trace_path_length] = 0;
+    return 1;
+}
+
+static void begin_save_trace(S64Dos* traced_dos, const S64SettingsExchange* input)
+{
+    uint8_t command[2];
+    S64UciCommandPart part;
+    S64UciReply reply;
+    save_trace_reset();
+    save_trace_input_values = s64_settings_exchange_values_valid(input);
+    save_trace_input_record = s64_settings_exchange_validate(input);
+    save_trace_path_length = save_trace_path_truncated = 0;
+    save_trace_path[0] = save_trace_path_status[0] = 0;
+    command[0] = traced_dos->target;
+    command[1] = 0x12; /* Read-only GET_PATH; deliberately no CHANGE_DIR. */
+    part.data = command;
+    part.length = 2;
+    part.flags = 0;
+    reply.data_sink = save_path_sink;
+    reply.data_context = 0;
+    reply.status = save_trace_path_status;
+    reply.status_capacity = sizeof(save_trace_path_status);
+    reply.status_length = 0;
+    save_trace_path_result = s64_uci_execute(&part, 1, &reply);
+    traced_dos->execute = save_trace_execute;
+}
+
+static void end_save_trace(const char* stage, uint8_t result);
+#endif
+
 #define SCREEN_COLUMNS 40u
 #define STATUS_ROW 24u
 #define S64_KEY_DIAG_STATUS_CAPACITY 32u
@@ -30,6 +79,60 @@ static char key_diag_open[S64_KEY_DIAG_STATUS_CAPACITY];
 static char key_diag_read[S64_KEY_DIAG_STATUS_CAPACITY];
 static char key_diag_close[S64_KEY_DIAG_STATUS_CAPACITY];
 static uint16_t key_diag_bytes;
+
+#ifdef S64_SETTINGS_SAVE_TRACE
+static void end_save_trace(const char* stage, uint8_t result)
+{
+    uint8_t i;
+    const S64SaveTraceEntry* entry;
+    const char* label;
+    dos.execute = s64_uci_execute;
+    clrscr();
+    cputs("ACTUAL SETTINGS SAVE TRACE\r\n");
+    cprintf("%s RESULT: %u\r\n", stage, result);
+    cprintf("BEFORE UI: VALUES %u RECORD %u\r\n", save_trace_input_values, save_trace_input_record);
+    cprintf("AFTER: VALUES %u RECORD %u DOS %u\r\n",
+        s64_settings_exchange_values_valid(&settings),
+        s64_settings_exchange_validate(&settings), capabilities.dos_target);
+    cprintf("TYPE: %u HTTP: %u STATE: %u\r\n", settings.destination_type,
+        settings.allow_insecure_http, settings.state);
+    cprintf("GET_PATH UCI: %u\r\n%s\r\nPATH: %s\r\n",
+        save_trace_path_result, save_trace_path_status, save_trace_path);
+    if (save_trace_path_truncated) cputs("PATH DISPLAY TRUNCATED\r\n");
+    if (save_trace_count == 0)
+        cputs("NO SAVE DOS COMMANDS ISSUED\r\nINVALID=VALUES/REU STORE FAILURE\r\n");
+    cputs("PRESS KEY FOR COMMAND RESULTS");
+    cgetc();
+    for (i = 0; i < save_trace_count; ++i) {
+        entry = &save_trace[i];
+        label = "OTHER";
+        switch (entry->opcode) {
+            case 2: label = "CREATE_NEW TEMP (GATE)"; break;
+            case 3: label = "CLOSE (BEST EFFORT)"; break;
+            case 5: label = "WRITE (GATE)"; break;
+            case 9: label = entry->final_file ? "DELETE CFG (BEST EFFORT)"
+                : "DELETE TEMP (BEST EFFORT)"; break;
+            case 10: label = "RENAME TEMP TO CFG (GATE)"; break;
+        }
+        clrscr();
+        cprintf("COMMAND %u/%u\r\n%s\r\nOPCODE $%02X UCI %u\r\n",
+            i + 1, save_trace_count, label, entry->opcode, entry->transport);
+        if (entry->opcode == 2) cprintf("ATTRIBUTES $%02X\r\n", entry->attributes);
+        if (entry->opcode == 5) cprintf("BYTES ATTEMPTED %u\r\n", entry->bytes);
+        cprintf("RAW STATUS: %s\r\n", entry->status[0] ? entry->status : "(EMPTY)");
+        cputs("PRESS KEY FOR NEXT");
+        cgetc();
+    }
+    clrscr();
+    cprintf("%s RESULT: %u\r\n", stage, result);
+    i = save_trace_failed_gate();
+    if (i) cprintf("FIRST FAILED DOS GATE: COMMAND %u\r\n", i);
+    else cputs("NO FAILED DOS GATE CAPTURED\r\n");
+    if (save_trace_overflow) cputs("TRACE FULL; LATER COMMANDS OMITTED\r\n");
+    cputs("STORE: 0=OK 2=INVALID 3=IO ERROR\r\nUI/DOS/REU BOOLEAN: 0=FAIL\r\nPRESS KEY TO RETURN TO SETTINGS");
+    cgetc();
+}
+#endif
 
 static void clear_row(unsigned char row)
 {
@@ -501,7 +604,15 @@ static void return_to_publisher(void)
 static void save_and_return(void)
 {
     S64SettingsStoreResult result;
-    if (!validate_settings()) return;
+#ifdef S64_SETTINGS_SAVE_TRACE
+    begin_save_trace(&dos, &settings);
+#endif
+    if (!validate_settings()) {
+#ifdef S64_SETTINGS_SAVE_TRACE
+        end_save_trace("UI VALIDATION", 0);
+#endif
+        return;
+    }
 
     settings.state = S64_SETTINGS_STATE_READY;
     settings.result = S64_SETTINGS_RESULT_OK;
@@ -510,15 +621,24 @@ static void save_and_return(void)
         if (result != S64_SETTINGS_STORE_OK) {
             settings.result = S64_SETTINGS_RESULT_IO_ERROR;
             set_status("SAVE FAILED - SETTINGS NOT WRITTEN");
+#ifdef S64_SETTINGS_SAVE_TRACE
+            end_save_trace("STORE SAVE", (uint8_t)result);
+#endif
             return;
         }
     } else {
         settings.result = S64_SETTINGS_RESULT_IO_ERROR;
         set_status("SAVE FAILED - DOS UNAVAILABLE");
+#ifdef S64_SETTINGS_SAVE_TRACE
+        end_save_trace("DOS AVAILABLE", 0);
+#endif
         return;
     }
     if (!s64_settings_exchange_store(&settings)) {
         set_status("Cannot preserve settings");
+#ifdef S64_SETTINGS_SAVE_TRACE
+        end_save_trace("POST-SAVE REU STORE", 0);
+#endif
         return;
     }
 
@@ -528,6 +648,9 @@ static void save_and_return(void)
      * on screen instead of dropping to a misleading FILE NOT FOUND error.
      */
     set_status("Saved SEE64YOU.CFG to /sd/");
+#ifdef S64_SETTINGS_SAVE_TRACE
+    end_save_trace("SAVE COMPLETE", 0);
+#endif
 }
 
 static void cancel_and_return(void)

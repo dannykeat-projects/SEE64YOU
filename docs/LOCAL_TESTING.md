@@ -36,6 +36,11 @@ content/checksum. This establishes the DOS transaction, not REU settings exchang
 
 ## Real C64U settings exchange probe
 
+User hardware results: known-good Standalone records with empty keys and with
+the actual imported direct key passed validation, REU store/readback/checksum,
+exact bytes, normal save and original-REU restoration. The retained record was
+invalid, which does not establish why the helper's actual Save fails.
+
 Build `make -C client settings-exchange-probe` or `c64u`. Download
 `settings-exchange-probe.prg` from `see64you-settings-exchange-probe`; it is
 also included in `see64you-c64u-package`.
@@ -59,6 +64,31 @@ redirecting its filenames to `/sd/S64EXCH.TMP` and `/sd/S64EXCH.CFG`.
 Real CFG/temp files remain untouched. Diagnostic files may contain imported keys;
 delete those test files after recording results. The original REU settings record
 is restored and verified before exit. Restart the normal app before using it.
+
+## Trace the actual settings helper Save
+
+Build `make -C client settings-save-probe`; download `settings-save-probe.prg`
+from `see64you-settings-save-probe` or the C64U package. This is the production
+settings helper compiled with `S64_SETTINGS_SAVE_TRACE`, not a synthetic record.
+Normal `S64CFG.PRG` and other production binaries are unchanged.
+
+Back up real `SEE64YOU.CFG` and `SEE64YOU.CFG.TMP` first: this probe uses the real
+filenames and performs the actual Save transaction. Enable REU and Command
+Interface, load/RUN the probe and repeat the same destination/URL/plain-HTTP/key
+setup that failed in the normal helper. Press S. Do not change folders or add
+other workarounds solely for this diagnostic. Its GET_PATH is read-only; it does
+not select `/sd/` or modify the production Save algorithm.
+
+Photograph the first result/path screen, each command screen, and final summary.
+The wrapper forwards command/reply objects unchanged and retains raw statuses
+through cleanup. Only command metadata and statuses are shown, never key bytes.
+Delete/close are marked best effort; CREATE_NEW/write/rename are gates.
+Store result 2 before any DOS command means values validation or REU store failed;
+current values-valid output distinguishes those two cases. Result 3 identifies
+the DOS path, with its first failed gate and raw status retained. UI and post-save
+REU failures are named separately. An after-failure record checksum can be stale
+because the UI changes the result field; the before-UI snapshot is shown separately.
+After recording the trace, any key returns to the settings UI; no chaining changes.
 
 This runbook is the handover for the current integrated See64You branch.
 

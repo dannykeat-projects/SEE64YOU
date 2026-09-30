@@ -104,6 +104,10 @@ cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/src/publisher/settings_store.c client/src/charset.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host settings save trace tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/settings_save_trace_test.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host local document tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/local_documents_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/dos.c client/src/storage/local.c -o "$TMP_BIN"
 "$TMP_BIN"

@@ -14,6 +14,7 @@ DIRECT_AUTH_PROBE_TARGET := build/direct-auth-probe.prg
 HMAC_PROBE_TARGET := build/hmac-probe.prg
 SETTINGS_IO_PROBE_TARGET := build/settings-io-probe.prg
 SETTINGS_EXCHANGE_PROBE_TARGET := build/settings-exchange-probe.prg
+SETTINGS_SAVE_PROBE_TARGET := build/settings-save-probe.prg
 REU_PROBE_TARGET := build/reu-probe.prg
 REU_BUFFER_PROBE_TARGET := build/reu-buffer-probe.prg
 REU_EDITOR_PROBE_TARGET := build/reu-editor-probe.prg
@@ -61,7 +62,14 @@ $(TARGET): $(SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -m build/see64you.map -o $@ $(SOURCES)
 
-c64u: $(C64U_TARGET) $(C64U_CHAIN_TARGET) $(C64U_SHORT_CHAIN_TARGET) $(SETTINGS_IO_PROBE_TARGET) $(SETTINGS_EXCHANGE_PROBE_TARGET)
+c64u: $(C64U_TARGET) $(C64U_CHAIN_TARGET) $(C64U_SHORT_CHAIN_TARGET) $(SETTINGS_IO_PROBE_TARGET) $(SETTINGS_EXCHANGE_PROBE_TARGET) $(SETTINGS_SAVE_PROBE_TARGET)
+
+.PHONY: settings-save-probe
+settings-save-probe: $(SETTINGS_SAVE_PROBE_TARGET)
+
+$(SETTINGS_SAVE_PROBE_TARGET): $(SETTINGS_SOURCES) diagnostics/settings_save_trace.h
+	@mkdir -p build
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_SETTINGS_SAVE_TRACE=1 -m build/settings-save-probe.map -o $@ $(SETTINGS_SOURCES)
 
 .PHONY: settings-io-probe
 settings-io-probe: $(SETTINGS_IO_PROBE_TARGET)
