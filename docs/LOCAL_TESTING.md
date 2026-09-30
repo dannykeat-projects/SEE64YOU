@@ -327,3 +327,10 @@ disable the conflicting hardware drive 8, and set its default/current path to
 exposes their IEC names without the `.PRG` suffix and expects unshifted PETSCII.
 The chain now requests those names. Menu/DMA launch alone does not test IEC
 chaining.
+
+Real C64U round trip passed on 2026-09-30: editor -> publisher -> settings ->
+publisher -> editor, including normal Save + Return and retained settings. A
+temporary editor fixture supplied the first Publish event; the companion loads,
+settings entry, Save and return used production code/binaries. The software IEC
+configuration was saved to flash. Allow IEC transfers to finish before DMA
+memory polling: polling during transfers stalled an earlier diagnostic attempt.
