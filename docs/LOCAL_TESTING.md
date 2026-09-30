@@ -12,7 +12,9 @@ The real `SEE64YOU.CFG` and `SEE64YOU.CFG.TMP` are inspected by FILE_STAT
 only and are never opened, deleted, written or renamed.
 Each stage waits for a key: photograph failures, raw UCI/DOS status and
 reply bytes. Initial/final paths and the first failed stage are displayed.
-Missing files are acceptable at delete. Unsupported FILE_STAT is displayed
+Missing files are acceptable at deliberate inspection/absent-file checks and
+delete, including explicit `FILE NOT FOUND` statuses outside the DOS mapping.
+Missing required written/final files still fail. Unsupported FILE_STAT is displayed
 as a failure. Failed CREATE_NEW/write/rename stops dependent work.
 Delete/close failures remain visible but do not prevent the next command,
 matching production's best-effort policy; final PASS requires all checks.
@@ -26,7 +28,37 @@ Production save at synchronized PR head `d231a1d` deletes stale temp,
 uses CREATE_NEW `$06`, writes, closes, deletes old CFG and renames temp.
 The diagnostic includes the production private open implementation so its
 command bytes and status policy match exactly. Production source and chaining
-are unchanged. Real hardware validation remains pending.
+are unchanged. Real settings-helper validation remains pending.
+
+The user has now verified the file transaction on real C64U: temporary-file
+write/close/rename/stat, exact 334-byte readback, zero trailing bytes and valid
+content/checksum. This establishes the DOS transaction, not REU settings exchange.
+
+## Real C64U settings exchange probe
+
+Build `make -C client settings-exchange-probe` or `c64u`. Download
+`settings-exchange-probe.prg` from `see64you-settings-exchange-probe`; it is
+also included in `see64you-c64u-package`.
+
+Enable REU (at least 128 KiB) and Command Interface, then load/RUN the PRG.
+Press R to inspect the retained REU settings record before any exchange write.
+This cannot recover unsaved edits that the settings helper kept only in C64 RAM.
+An uninitialized/invalid retained record is reported, not silently replaced.
+Press T for a known-good Standalone test URL with plain HTTP enabled; press K
+at the next prompt to import `/sd/SEE64KEY.TXT` using the production importer,
+or any other key to use empty keys. No network request is made.
+
+Photograph the field classifications and store/readback screens. Keys and URL
+values are never displayed. The probe reports original version/state/result,
+values/record validity, URL presence/termination, HTTP flag and key states,
+then applies production's READY/OK transition and runs exchange store, immediate
+REU readback, checksum/validation and exact byte comparison. The old UI checksum
+can legitimately be stale before store; store must rebuild it successfully.
+Only after exchange success does it call the normal settings-store save path,
+redirecting its filenames to `/sd/S64EXCH.TMP` and `/sd/S64EXCH.CFG`.
+Real CFG/temp files remain untouched. Diagnostic files may contain imported keys;
+delete those test files after recording results. The original REU settings record
+is restored and verified before exit. Restart the normal app before using it.
 
 This runbook is the handover for the current integrated See64You branch.
 

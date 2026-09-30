@@ -55,6 +55,17 @@ jobs:
       - name: Build C64U settings I/O probe
         run: make -C client settings-io-probe
 
+      - name: Build C64U settings exchange probe
+        run: make -C client settings-exchange-probe
+
+      - name: Publish C64U settings exchange probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-settings-exchange-probe
+          path: client/build/settings-exchange-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Publish C64U settings I/O probe
         uses: actions/upload-artifact@v4
         with:
@@ -193,6 +204,7 @@ jobs:
             client/build/S64CFG.PRG
             client/build/direct-auth-probe.prg
             client/build/settings-io-probe.prg
+            client/build/settings-exchange-probe.prg
           if-no-files-found: error
           retention-days: 30
 

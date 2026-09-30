@@ -19,6 +19,12 @@ Last reviewed: 2026-09-30.
 
 Recent real-hardware work established that direct-key import succeeds only after explicitly selecting the C64U SD filesystem path. The direct key can now be read, but saving `SEE64YOU.CFG` still fails on the stock Commodore C64 Ultimate 1.1 hardware.
 
+Hardware update: the user has verified the standalone settings-I/O diagnostic's
+file transaction, exact 334-byte readback, zero trailing bytes and content/checksum
+on real C64U. The next diagnostic isolates production settings validation and
+REU exchange before calling normal save; this does not establish the real helper's
+save path or justify a DOS redesign.
+
 The current settings store writes transactionally:
 
 1. delete stale temporary file;
@@ -28,9 +34,9 @@ The current settings store writes transactionally:
 5. delete the previous destination;
 6. rename the temporary file to `SEE64YOU.CFG`.
 
-The remaining risk is at the real Ultimate-DOS boundary. The settings load/save/profile paths do not currently establish and verify their working directory for every operation, and firmware 1.1 has already shown filesystem/path behavior that differs from assumptions made from newer documentation.
+With the diagnostic file transaction verified, isolate settings validation and REU exchange next. The application load/save/profile paths still do not establish and verify their working directory for every operation; the probe's explicit SD-root selection does not resolve that separate application concern.
 
-Next investigation must use an instrumented settings-I/O probe that reports:
+The instrumented settings-I/O probe reports:
 
 - DOS target identity;
 - GET_PATH before the operation;

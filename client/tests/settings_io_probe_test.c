@@ -45,10 +45,14 @@ S64UciResult s64_uci_execute(const S64UciCommandPart* parts,
         case 0x11: break;
         case 9:
             if (is_temp) {
-                if (!temp_exists) message = "88,NOT FOUND";
+                if (!temp_exists) message = "62,FILE NOT FOUND";
                 if (!stale_survives) temp_exists = 0;
             }
-            else { final_exists = 0; ++deleted_final; }
+            else {
+                if (!final_exists) message = "62,FILE NOT FOUND";
+                final_exists = 0;
+                ++deleted_final;
+            }
             break;
         case 8:
             if (!is_temp && !is_final) {
@@ -57,9 +61,10 @@ S64UciResult s64_uci_execute(const S64UciCommandPart* parts,
                     || (parts[1].length == strlen(S64_SETTINGS_TEMP_FILENAME)
                     && memcmp(parts[1].data, S64_SETTINGS_TEMP_FILENAME, parts[1].length) == 0));
                 ++real_stats;
+                message = "62,FILE NOT FOUND";
                 break;
             }
-            if (!(is_temp ? temp_exists : final_exists)) message = "88,NOT FOUND";
+            if (!(is_temp ? temp_exists : final_exists)) message = "62,FILE NOT FOUND";
             break;
         case 2:
             if (parts[0].data[2] == 6) {
@@ -125,9 +130,16 @@ int main(void)
     assert(first_failed == 6 && final_exists && !renamed && !deleted_final && !opened);
     keys = read_count = first_failed = renamed = deleted_final = stale_survives = 0;
     temp_exists = 0;
-    final_exists = 1;
+    final_exists = 0;
     assert(probe_main() == 0);
     assert(renamed && deleted_final == 1);
+    first_failed = 0;
+    temp_exists = 0;
+    assert(!stat_file(10, "MISSING REQUIRED TEMP", TEMP, 1));
+    assert(first_failed == 10); /* Required output files must still exist. */
+    transport = S64_UCI_TIMEOUT;
+    strcpy(status, "62,FILE NOT FOUND");
+    assert(!expected_absence(S64_DOS_TRANSPORT_ERROR));
     puts("settings I/O probe tests passed");
     return 0;
 }

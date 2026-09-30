@@ -18,7 +18,9 @@ This is the authoritative project work queue. Keep completed work concise and mo
 
 ## P0 - C64U hardware reliability and automation
 
-- [ ] Diagnose the current real-C64U `SEE64YOU.CFG` save failure with a dedicated settings-I/O probe that reports GET_PATH, SD-root selection, temp delete, create/open, write byte count/status, close, temp stat, destination delete, rename, final stat and exact read-back/checksum. Do not infer success from a single intermediate status.
+- [x] Verify the underlying settings DOS transaction on real C64U with `settings-io-probe.prg`: user confirmed create/write/close/rename/stat, exact 334-byte readback, zero trailing bytes and valid content/checksum. Expected FILE NOT FOUND preconditions are diagnostic-only successes; production DOS unchanged.
+- [x] Add `settings-exchange-probe.prg` using production value/key validation, exchange store, immediate REU readback/checksum and normal settings save redirected to diagnostic filenames; key values never displayed and original REU settings restored.
+- [ ] Run the settings exchange probe on real C64U to distinguish validation/REU failures from normal-save failures. Retained REU state cannot recover edits that never reached REU.
 - [ ] Make publishing-settings load/save/profile operations establish a deterministic C64U storage path themselves rather than relying on a previous key-import or browser-path side effect. Validate on stock C64 Ultimate firmware 1.1.
 - [ ] Evaluate `barryw/sim6502` `u64sim` as an external CI lane for the exact Ultimate-DOS settings transaction and other UCI state-machine regressions; keep real hardware as the final gate.
 - [ ] Integrate `JC-000/c64-test-harness` as the preferred reusable VICE/real-C64U smoke-test layer, including firmware-1.1-safe REST `/Temp` hygiene for repeated automated uploads.
@@ -47,7 +49,7 @@ This is the authoritative project work queue. Keep completed work concise and mo
 ## Manual VICE/C64U checks
 
 - [x] Add standalone non-destructive `settings-io-probe.prg` to the C64U build/package: stepped raw DOS status/path/stat, explicit `/sd/`, production CREATE_NEW, checksum and exact readback using only `S64IOTST.TMP`/`S64IOTST.CFG`; real settings are stat-only and production save unchanged.
-- [ ] Run settings I/O probe on real C64U firmware 1.1; record first failure and raw status/data. Repeat with diagnostic temp absent and stale; real settings remain untouched.
+- [x] Run settings I/O probe on real C64U: underlying file transaction and exact settings readback/checksum passed (user confirmed). Deliberately stale-temp repeat remains unverified.
 
 These player-facing checks are assigned to the user where practical; automated source and regression checks remain part of development.
 

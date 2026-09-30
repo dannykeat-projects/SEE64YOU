@@ -135,6 +135,14 @@ static uint8_t read_record(const uint8_t* data, uint16_t length, void* context)
     return 1;
 }
 
+/* Firmware may use a status code outside the production DOS mapping. Only
+ * deliberate absence checks/cleanup may accept the explicit missing-file text. */
+static uint8_t expected_absence(S64DosResult result)
+{
+    return result == S64_DOS_NOT_FOUND
+        || (transport == S64_UCI_OK && strstr(status, "FILE NOT FOUND") != 0);
+}
+
 static uint8_t stat_file(uint8_t number, const char* label,
     const char* filename, uint8_t wanted)
 {
@@ -142,6 +150,11 @@ static uint8_t stat_file(uint8_t number, const char* label,
     S64DosResult result;
     begin(number, label);
     result = s64_dos_file_exists(&dos, filename, &exists);
+    if (wanted != 1 && expected_absence(result)) {
+        exists = 0;
+        cputs("EXPECTED FILE NOT FOUND\r\n");
+        return finish(label, result, 1);
+    }
     if (wanted == 2) cprintf("EXISTS: %u (INSPECTION ONLY)\r\n", exists);
     else cprintf("EXISTS: %u EXPECTED: %u\r\n", exists, wanted);
     return finish(label, result, result == S64_DOS_OK && (wanted == 2 || exists == wanted));
@@ -178,7 +191,7 @@ int main(void)
     stat_file(5, "INSPECT TEST TEMP", TEMP, 2);
     begin(5, "DELETE TEST TEMP");
     result = s64_dos_delete_file(&dos, TEMP);
-    finish("DELETE TEMP", result, result == S64_DOS_OK || result == S64_DOS_NOT_FOUND);
+    finish("DELETE TEMP", result, result == S64_DOS_OK || expected_absence(result));
     stat_file(6, "STAT AFTER DELETE", TEMP, 0);
     begin(7, "OPEN TEMP CREATE_NEW $06");
     result = open_create_new(&dos, TEMP);
@@ -196,7 +209,7 @@ int main(void)
     stat_file(10, "STAT WRITTEN TEST TEMP", TEMP, 1);
     begin(11, "DELETE TEST FINAL");
     result = s64_dos_delete_file(&dos, FINAL);
-    finish("DELETE TEST FINAL", result, result == S64_DOS_OK || result == S64_DOS_NOT_FOUND);
+    finish("DELETE TEST FINAL", result, result == S64_DOS_OK || expected_absence(result));
     begin(12, "RENAME TEMP TO CFG");
     result = s64_dos_rename_file(&dos, TEMP, FINAL);
     if (!finish("RENAME", result, result == S64_DOS_OK)) goto done;
