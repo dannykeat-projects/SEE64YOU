@@ -16,6 +16,17 @@ This is the authoritative project work queue. Keep completed work concise and mo
 - [x] Run integrated automated validation locally and on the `terra64-wsl` self-hosted runner (PHP, HTTP, relay, host C, UCI compile and cc65 build passed 2026-09-24; VICE/C64U remain separate hardware gates).
 - [x] Restore the self-hosted runner after the repository transfer (runner returned online and the full integration validation plus downloadable PRG build passed 2026-09-25).
 
+## P0 - C64U hardware reliability and automation
+
+- [ ] Diagnose the current real-C64U `SEE64YOU.CFG` save failure with a dedicated settings-I/O probe that reports GET_PATH, SD-root selection, temp delete, create/open, write byte count/status, close, temp stat, destination delete, rename, final stat and exact read-back/checksum. Do not infer success from a single intermediate status.
+- [ ] Make publishing-settings load/save/profile operations establish a deterministic C64U storage path themselves rather than relying on a previous key-import or browser-path side effect. Validate on stock C64 Ultimate firmware 1.1.
+- [ ] Evaluate `barryw/sim6502` `u64sim` as an external CI lane for the exact Ultimate-DOS settings transaction and other UCI state-machine regressions; keep real hardware as the final gate.
+- [ ] Integrate `JC-000/c64-test-harness` as the preferred reusable VICE/real-C64U smoke-test layer, including firmware-1.1-safe REST `/Temp` hygiene for repeated automated uploads.
+- [ ] Add a developer hardware-deploy command for the current C64U package so normal test cycles no longer require manually copying PRGs to SD.
+- [ ] Replace the current IEC-only internal PRG chaining assumption with a C64U SD/Ultimate-DOS-aware chain path while preserving the separate editor/publisher/settings memory budgets and REU handoff. Validate editor -> publisher -> settings -> publisher -> editor repeatedly on hardware.
+- [ ] Audit UCI register-window compatibility against hardware-tested projects that probe both $DF1C-$DF1F and $DE1C-$DE1F; do not change the currently working path without target-hardware evidence.
+- [ ] Keep external project adoption/licensing decisions in `docs/ENGINEERING-REFERENCES.md`; `todo.md` remains the implementation queue.
+
 ## P0 - Editor essentials
 
 - [x] Replace whole-editor redraws during typing with incremental updates (validated in VICE on 2026-09-27 at `5da0c391`: continuous typing, mid-line insertion near the top and bottom of a full page, Backspace in the middle of the document, newline insertion/deletion, and editing after scrolling/Page Up/Down all performed well. The final path combines constant-time append/status updates, local editor position maintenance, direct affected-row character redraws, and conservative fallbacks for complex edits).
