@@ -507,15 +507,27 @@ static void save_and_return(void)
     settings.result = S64_SETTINGS_RESULT_OK;
     if (capabilities.dos_target) {
         result = s64_settings_store_save(&dos, &settings);
-        if (result != S64_SETTINGS_STORE_OK) settings.result = S64_SETTINGS_RESULT_IO_ERROR;
+        if (result != S64_SETTINGS_STORE_OK) {
+            settings.result = S64_SETTINGS_RESULT_IO_ERROR;
+            set_status("SAVE FAILED - SETTINGS NOT WRITTEN");
+            return;
+        }
     } else {
         settings.result = S64_SETTINGS_RESULT_IO_ERROR;
+        set_status("SAVE FAILED - DOS UNAVAILABLE");
+        return;
     }
     if (!s64_settings_exchange_store(&settings)) {
         set_status("Cannot preserve settings");
         return;
     }
-    return_to_publisher();
+
+    /*
+     * The current BASIC-chain return assumes an IEC device and cannot load a
+     * PRG that lives only on the C64U SD filesystem. Keep the confirmed save
+     * on screen instead of dropping to a misleading FILE NOT FOUND error.
+     */
+    set_status("Saved SEE64YOU.CFG to /sd/");
 }
 
 static void cancel_and_return(void)
