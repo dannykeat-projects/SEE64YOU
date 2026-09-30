@@ -182,6 +182,55 @@ static S64SettingsStoreResult load_named(
     return S64_SETTINGS_STORE_INVALID;
 }
 
+static S64DosResult open_create_new(
+    S64Dos* dos,
+    const char* filename
+)
+{
+    uint8_t prefix[3];
+    uint16_t length = 0u;
+    S64UciCommandPart parts[2];
+    S64UciReply reply;
+    S64UciResult transport;
+    char status[32];
+
+    if (dos == 0 || dos->execute == 0 || filename == 0 || filename[0] == '\0') {
+        return S64_DOS_INVALID_ARGUMENT;
+    }
+    while (filename[length] != '\0') {
+        if (filename[length] == '\r' || filename[length] == '\n') {
+            return S64_DOS_INVALID_ARGUMENT;
+        }
+        ++length;
+    }
+
+    prefix[0] = dos->target;
+    prefix[1] = 0x02u; /* OPEN_FILE */
+    prefix[2] = 0x06u; /* WRITE | CREATE_NEW */
+
+    parts[0].data = prefix;
+    parts[0].length = 3u;
+    parts[0].flags = 0u;
+    parts[1].data = (const uint8_t*)filename;
+    parts[1].length = length;
+    parts[1].flags = S64_UCI_PART_NATIVE_TEXT;
+
+    reply.data_sink = 0;
+    reply.data_context = 0;
+    reply.status = status;
+    reply.status_capacity = (uint16_t)sizeof(status);
+    reply.status_length = 0u;
+    status[0] = '\0';
+
+    transport = dos->execute(parts, 2u, &reply);
+    if (transport != S64_UCI_OK) return S64_DOS_TRANSPORT_ERROR;
+    if (reply.status_length == 0u) return S64_DOS_OK;
+    if (reply.status_length >= 2u && status[0] == '0' && status[1] == '0') {
+        return S64_DOS_OK;
+    }
+    return S64_DOS_TARGET_ERROR;
+}
+
 static S64SettingsStoreResult save_named(
     S64Dos* dos,
     const char* filename,
@@ -190,7 +239,6 @@ static S64SettingsStoreResult save_named(
 {
     S64DosResult result;
     S64DosResult close_result;
-    uint8_t exists;
 
     if (dos == 0 || filename == 0 || settings == 0) {
         return S64_SETTINGS_STORE_INVALID;
@@ -202,8 +250,21 @@ static S64SettingsStoreResult save_named(
         return S64_SETTINGS_STORE_INVALID;
     }
 
-    result = s64_dos_open_write(dos, S64_SETTINGS_TEMP_FILENAME);
-    if (result != S64_DOS_OK) return S64_SETTINGS_STORE_IO_ERROR;
+    /*
+     * Current Ultimate firmware is more reliable when files are deleted and
+     * recreated with OPEN_FILE attribute $06 than when using CREATE_ALWAYS
+     * ($0e) and a temp-file rename. This matches the working pattern used by
+     * current C64U software such as UBoot64-v2.
+     */
+    result = s64_dos_delete_file(dos, filename);
+    if (result != S64_DOS_OK && result != S64_DOS_NOT_FOUND) {
+        return S64_SETTINGS_STORE_IO_ERROR;
+    }
+
+    result = open_create_new(dos, filename);
+    if (result != S64_DOS_OK) {
+        return S64_SETTINGS_STORE_IO_ERROR;
+    }
 
     result = s64_dos_write(
         dos,
@@ -212,32 +273,9 @@ static S64SettingsStoreResult save_named(
     );
     close_result = s64_dos_close(dos);
     if (result != S64_DOS_OK || close_result != S64_DOS_OK) {
-        (void)s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
         return S64_SETTINGS_STORE_IO_ERROR;
     }
 
-    result = s64_dos_file_exists(dos, filename, &exists);
-    if (result != S64_DOS_OK) {
-        (void)s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
-        return S64_SETTINGS_STORE_IO_ERROR;
-    }
-    if (exists) {
-        result = s64_dos_delete_file(dos, filename);
-        if (result != S64_DOS_OK) {
-            (void)s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
-            return S64_SETTINGS_STORE_IO_ERROR;
-        }
-    }
-
-    result = s64_dos_rename_file(
-        dos,
-        S64_SETTINGS_TEMP_FILENAME,
-        filename
-    );
-    if (result != S64_DOS_OK) {
-        (void)s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
-        return S64_SETTINGS_STORE_IO_ERROR;
-    }
     return S64_SETTINGS_STORE_OK;
 }
 
