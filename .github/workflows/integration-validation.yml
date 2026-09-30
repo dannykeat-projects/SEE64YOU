@@ -180,6 +180,7 @@ jobs:
             client/build/S64EDIT.PRG
             client/build/S64PUB.PRG
             client/build/S64CFG.PRG
+            client/build/direct-auth-probe.prg
           if-no-files-found: error
           retention-days: 30
 
