@@ -52,7 +52,7 @@ UI rendering should read editor state; it should not become the document model.
 
 ## Undo/redo and recovery
 
-The base C64 editor keeps one bounded 256-byte reversible edit transaction in ordinary RAM. Consecutive typing is coalesced, while cursor movement or another editing command starts a new transaction. Ctrl+Z undoes the current transaction and Ctrl+Shift+Z reapplies it. REU-backed larger, multi-level history remains a later enhancement.
+The base C64 editor keeps one bounded 256-byte reversible edit transaction in ordinary RAM. Consecutive typing is coalesced, while cursor movement or another editing command starts a new transaction. Ctrl+Z undoes the current transaction and Ctrl+Shift+Z reapplies it. The C64U build uses the implemented 16-level REU history backend without changing the conventional-C64 model.
 
 When Ultimate DOS storage is available, dirty documents also use the reserved `SEE64YOU.REC` recovery file. The first edit after a clean state is eligible for an immediate recovery write; during active editing the snapshot is refreshed at roughly 30-second intervals. Recovery writes use the same temporary-file replacement path as normal local saves and do not assign a real filename to an unsaved document.
 

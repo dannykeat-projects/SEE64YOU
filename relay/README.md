@@ -1,6 +1,8 @@
 # See64You secure local relay
 
-Current C64U UCI HTTP firmware can perform outbound HTTP requests, but See64You does not treat its current upstream implementation as verified TLS. The optional relay keeps the C64U hop on a trusted LAN and performs the remote HTTPS connection using Python's normal certificate-verifying TLS stack.
+The relay is an optional compatibility path for destinations that require HTTPS, including deferred WordPress use. The active stock-firmware C64U Standalone path publishes directly through Network Target `$03` and does not require a relay.
+
+When used, the relay keeps the C64U hop on a trusted LAN and performs the remote HTTPS connection using Python's normal certificate-verifying TLS stack.
 
 ## Security model
 
@@ -48,14 +50,14 @@ Run:
 python relay/see64you_relay.py --config relay/config.json
 ```
 
-Then choose the appropriate destination type in the C64U publisher and set its **site URL** to the relay machine's base LAN address, for example:
+Set the publisher's site URL to the relay machine's base LAN address, for example:
 
 ```text
 http://192.168.1.10:6464
 ```
 
-Do not append `/api.php` or another backend path; the publisher constructs endpoint paths itself. Open **1 PUBLISHING SETTINGS**, choose the Standalone destination, set the relay machine's base URL, and enter the same 64-hex-character relay key from `config.json`. The relay maps the resulting `/api.php` request onto the configured `upstream_base` and forwards it over verified HTTPS.
+Do not append `/api.php`; the publisher constructs backend paths itself. Configure the same relay key in publishing settings. The relay maps the request onto the configured `upstream_base` and forwards it over verified HTTPS.
 
-Destination URL, plain-HTTP consent and relay key are stored by the separate `S64CFG.PRG` settings helper in `SEE64YOU.CFG`. Keeping Ultimate-DOS persistence in that helper avoids consuming the resident publisher's RAM. RUN/STOP cancels unsaved settings changes; **S SAVE + RETURN** writes them and returns to the publisher.
+Destination URL, explicit plain-HTTP consent and relay key are persisted by `S64CFG.PRG` in `SEE64YOU.CFG`. RUN/STOP cancels unsaved settings changes; Save + Return writes them and returns to the publisher.
 
-WordPress relay support remains implemented in source, but WordPress-specific client work is intentionally deferred until the standalone/general C64U path is working end-to-end.
+The direct firmware-1.1 publisher is compiled Standalone-first and does not need the relay for its normal path. WordPress/legacy compatibility validation is tracked in `todo.md`.
