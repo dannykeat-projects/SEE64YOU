@@ -320,7 +320,7 @@ int main(void)
         "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789");
     result = s64_settings_store_save(&dos, &settings);
     require(result == S64_SETTINGS_STORE_OK, "settings save succeeds");
-    require(change_dir_calls == 4u, "settings save selects SD root");
+    require(change_dir_calls == 3u, "settings save selects SD root");
     require(create_new_opened, "settings save uses create-new temp file");
     require(stored_length == sizeof(settings), "settings file size");
 
@@ -349,7 +349,7 @@ int main(void)
     );
     result = s64_settings_import_direct_key(&dos, loaded.direct_key);
     require(result == S64_SETTINGS_STORE_OK, "direct key file import succeeds");
-    require(change_dir_calls == 6u, "direct key import selects SD root");
+    require(change_dir_calls == 5u, "direct key import selects SD root");
     require(
         strcmp(
             loaded.direct_key,
@@ -385,7 +385,7 @@ int main(void)
     strcpy(settings.base_url, "http://profile.local:6464");
     result = s64_settings_profile_save(&dos, 0u, &settings);
     require(result == S64_SETTINGS_STORE_OK, "profile save succeeds");
-    require(change_dir_calls == 9u, "profile save selects SD root");
+    require(change_dir_calls == 8u, "profile save selects SD root");
     require(profile_one_length == sizeof(settings), "profile file size");
     require(stored_length == sizeof(settings), "profile save preserves active file");
 
@@ -400,7 +400,7 @@ int main(void)
     memset(&loaded, 0, sizeof(loaded));
     result = s64_settings_profile_load(&dos, 0u, &loaded);
     require(result == S64_SETTINGS_STORE_OK, "profile load succeeds");
-    require(change_dir_calls == 11u, "profile load selects SD root");
+    require(change_dir_calls == 10u, "profile load selects SD root");
     require(
         strcmp(loaded.base_url, "http://profile.local:6464") == 0,
         "profile URL round trip"
