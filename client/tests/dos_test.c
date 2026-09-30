@@ -194,6 +194,18 @@ int main(void)
     result = s64_dos_file_exists(&dos, "old.s64", &exists);
     require(result == S64_DOS_OK && exists == 1u, "existing file stat succeeds");
     require(mock.bytes[0][1] == 0x08u, "file stat opcode");
+    require(mock.lengths[0] == 10u, "stat includes the filename terminator");
+    require(memcmp(mock.bytes[0] + 2u, "old.s64", 8u) == 0,
+        "stat filename ends before stale command buffer bytes");
+    require(mock.part_flags[0][1] == S64_UCI_PART_NATIVE_TEXT,
+        "stat filename including NUL remains native text");
+
+    mock_reset();
+    mock.status = "82,FILE NOT FOUND";
+    exists = 1u;
+    result = s64_dos_file_exists(&dos, "missing.s64", &exists);
+    require(result == S64_DOS_OK && exists == 0u,
+        "firmware 1.1 missing stat maps to normal absence");
 
     mock_reset();
     mock.status = "88,FILE NOT FOUND";
@@ -256,6 +268,14 @@ int main(void)
         s64_dos_close(&dos) == S64_DOS_TRANSPORT_ERROR,
         "transport timeout mapped"
     );
+
+    mock_reset();
+    mock.status = "99,UNKNOWN COMMAND";
+    require(s64_dos_close(&dos) == S64_DOS_TARGET_ERROR,
+        "largest two-digit status remains a target error");
+    mock.status = "9X,MALFORMED";
+    require(s64_dos_close(&dos) == S64_DOS_TARGET_ERROR,
+        "malformed status sentinel remains a target error");
 
     mock_reset();
     require(

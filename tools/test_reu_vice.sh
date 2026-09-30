@@ -190,14 +190,14 @@ if command -v c1541 >/dev/null 2>&1; then
 
     c1541 -format "SEE64YOU,64" d64 "$package_disk" >/dev/null
     c1541 -attach "$package_disk" \
-        -write "$EDITOR_CHAIN_PRG" S64EDIT.PRG \
-        -write "$PUBLISHER_PRG" S64PUB.PRG \
-        -write "$SETTINGS_PRG" S64CFG.PRG \
+        -write "$EDITOR_CHAIN_PRG" s64edit \
+        -write "$PUBLISHER_PRG" s64pub \
+        -write "$SETTINGS_PRG" s64cfg \
         >/dev/null
 
-    c1541 -attach "$package_disk" -read S64EDIT.PRG "$package_dir/S64EDIT.PRG" >/dev/null
-    c1541 -attach "$package_disk" -read S64PUB.PRG "$package_dir/S64PUB.PRG" >/dev/null
-    c1541 -attach "$package_disk" -read S64CFG.PRG "$package_dir/S64CFG.PRG" >/dev/null
+    c1541 -attach "$package_disk" -read s64edit "$package_dir/S64EDIT.PRG" >/dev/null
+    c1541 -attach "$package_disk" -read s64pub "$package_dir/S64PUB.PRG" >/dev/null
+    c1541 -attach "$package_disk" -read s64cfg "$package_dir/S64CFG.PRG" >/dev/null
 
     cmp "$EDITOR_CHAIN_PRG" "$package_dir/S64EDIT.PRG"
     cmp "$PUBLISHER_PRG" "$package_dir/S64PUB.PRG"

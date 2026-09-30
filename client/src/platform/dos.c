@@ -62,30 +62,31 @@ static uint8_t status_ok_or_empty(const char* status, uint16_t length)
             && status[1] == '0');
 }
 
-static unsigned int status_code(const char* status, uint16_t length)
+static uint8_t status_code(const char* status, uint16_t length)
 {
     if (status == 0 || length < 2u
         || status[0] < '0' || status[0] > '9'
         || status[1] < '0' || status[1] > '9') {
-        return 0xffffu;
+        return 0xffu;
     }
 
-    return (unsigned int)(
-        (unsigned int)(status[0] - '0') * 10u
-        + (unsigned int)(status[1] - '0')
+    /* Two decimal digits need only a byte; keep resident DOS code compact. */
+    return (uint8_t)(
+        (uint8_t)(status[0] - '0') * 10u
+        + (uint8_t)(status[1] - '0')
     );
 }
 
 static S64DosResult map_status(const char* status, uint16_t length)
 {
-    unsigned int code;
+    uint8_t code;
 
     if (status_ok_or_empty(status, length)) {
         return S64_DOS_OK;
     }
 
     code = status_code(status, length);
-    if (code == 1u || code == 88u) return S64_DOS_NOT_FOUND;
+    if (code == 1u || code == 82u || code == 88u) return S64_DOS_NOT_FOUND;
     if (code == 85u) return S64_DOS_NO_FILE_OPEN;
 
     if (status != 0 && strstr(status, "ACCESS DENIED") != 0) {
@@ -181,6 +182,10 @@ static S64DosResult filename_command(
 
     prefix[0] = dos->target;
     prefix[1] = opcode;
+
+    /* FILE_STAT consumes a C string without terminating the command buffer.
+     * Include the filename's NUL so earlier, longer commands cannot leak in. */
+    if (opcode == S64_DOS_CMD_FILE_STAT) ++filename_length;
 
     parts[0].data = prefix;
     parts[0].length = (uint16_t)sizeof(prefix);

@@ -302,3 +302,28 @@ Until the runner/VICE/C64U/WordPress environment is available, keep these TODOs 
 - mouse support and conventional-C64 degradation testing.
 
 When validation passes, update `todo.md` with the actual date/result and only then mark the relevant validation-gated items complete.
+
+## Read-only settings load diagnosis
+
+`make -C client settings-load-probe` builds `client/build/settings-load-probe.prg`.
+It reuses the actual helper's UI validation and production settings loader. It
+reports path, retained REU validity, store result and command statuses without
+printing keys or the URL. Press a key for the explicit `/sd/` control, then again
+for diagnostic-only NUL-terminated FILE_STAT. It restores the original DOS path
+and never saves or writes the REU settings record.
+
+Real C64 Ultimate firmware 1.1, 2026-09-30: original and explicit `/sd/` loads
+returned store IO error 3 at FILE_STAT (`82,FILE NOT FOUND`). Adding only the
+filename terminator in the diagnostic made stat/open/read/close succeed and
+production checksum, value and UI validation pass (Standalone, HTTP blocked).
+The on-device normal helper matched the generated binary. CFG was backed up
+privately in the ignored build directory and unchanged after testing. Production
+FILE_STAT now includes the filename NUL and treats firmware status 82 as normal
+absence. Normal helper Save and a cold CFG reload passed on the device.
+
+For SD-backed companion loading, enable the software IEC drive on device 8,
+disable the conflicting hardware drive 8, and set its default/current path to
+`/sd/`. FAT files remain `S64EDIT.PRG`, `S64PUB.PRG` and `S64CFG.PRG`; firmware 1.1
+exposes their IEC names without the `.PRG` suffix and expects unshifted PETSCII.
+The chain now requests those names. Menu/DMA launch alone does not test IEC
+chaining.

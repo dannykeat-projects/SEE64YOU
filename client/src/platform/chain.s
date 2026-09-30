@@ -16,7 +16,8 @@ chain_line:
     .byte '"','"'
     .byte $aa            ; +
     .byte '"'
-    .byte "S64PUB.PRG"
+    ; Software IEC strips the FAT .PRG suffix and expects unshifted PETSCII.
+    .byte "s64pub"
     .byte '"'
     .byte "          "
     .byte ','

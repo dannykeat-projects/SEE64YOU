@@ -642,14 +642,11 @@ static void save_and_return(void)
         return;
     }
 
-    /*
-     * The current BASIC-chain return assumes an IEC device and cannot load a
-     * PRG that lives only on the C64U SD filesystem. Keep the confirmed save
-     * on screen instead of dropping to a misleading FILE NOT FOUND error.
-     */
     set_status("Saved SEE64YOU.CFG to /sd/");
 #ifdef S64_SETTINGS_SAVE_TRACE
     end_save_trace("SAVE COMPLETE", 0);
+#else
+    return_to_publisher();
 #endif
 }
 

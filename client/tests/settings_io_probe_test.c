@@ -26,9 +26,9 @@ S64UciResult s64_uci_execute(const S64UciCommandPart* parts,
     const char* message = "00,OK";
     const uint8_t* payload = 0;
     uint16_t length = 0;
-    uint8_t is_temp = count > 1 && parts[1].length == strlen(TEMP)
+    uint8_t is_temp = count > 1 && parts[1].length == strlen(TEMP) + (opcode == 8)
         && memcmp(parts[1].data, TEMP, strlen(TEMP)) == 0;
-    uint8_t is_final = count > 1 && parts[1].length == strlen(FINAL)
+    uint8_t is_final = count > 1 && parts[1].length == strlen(FINAL) + (opcode == 8)
         && memcmp(parts[1].data, FINAL, strlen(FINAL)) == 0;
     if (opcode == 2 || opcode == 9 || opcode == 10) {
         /* Any attempt to mutate/open the real filenames fails this test. */
@@ -56,9 +56,9 @@ S64UciResult s64_uci_execute(const S64UciCommandPart* parts,
             break;
         case 8:
             if (!is_temp && !is_final) {
-                assert((parts[1].length == strlen(S64_SETTINGS_FILENAME)
+                assert((parts[1].length == strlen(S64_SETTINGS_FILENAME) + 1
                     && memcmp(parts[1].data, S64_SETTINGS_FILENAME, parts[1].length) == 0)
-                    || (parts[1].length == strlen(S64_SETTINGS_TEMP_FILENAME)
+                    || (parts[1].length == strlen(S64_SETTINGS_TEMP_FILENAME) + 1
                     && memcmp(parts[1].data, S64_SETTINGS_TEMP_FILENAME, parts[1].length) == 0));
                 ++real_stats;
                 message = "62,FILE NOT FOUND";

@@ -61,6 +61,17 @@ jobs:
       - name: Build actual settings helper save probe
         run: make -C client settings-save-probe
 
+      - name: Build read-only settings load probe
+        run: make -C client settings-load-probe
+
+      - name: Publish read-only settings load probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-settings-load-probe
+          path: client/build/settings-load-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Publish actual settings helper save probe
         uses: actions/upload-artifact@v4
         with:
@@ -217,6 +228,7 @@ jobs:
             client/build/settings-io-probe.prg
             client/build/settings-exchange-probe.prg
             client/build/settings-save-probe.prg
+            client/build/settings-load-probe.prg
           if-no-files-found: error
           retention-days: 30
 

@@ -73,7 +73,8 @@ static S64UciResult mock_execute(
         require(part_count == 2u, "stat parts");
         reply_status(
             reply,
-            file_exists && part_equals(&parts[1], file_name)
+            file_exists && parts[1].length == strlen(file_name) + 1u
+                && memcmp(parts[1].data, file_name, parts[1].length) == 0
                 ? "00,OK"
                 : "88,FILE NOT FOUND"
         );

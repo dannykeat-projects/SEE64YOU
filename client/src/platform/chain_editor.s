@@ -17,7 +17,8 @@ editor_chain_line:
     .byte '"','"'
     .byte $aa            ; +
     .byte '"'
-    .byte "S64EDIT.PRG"
+    ; CBM names omit the FAT .PRG suffix; lowercase source encodes unshifted keys.
+    .byte "s64edit"
     .byte '"'
     .byte "   "
     .byte ','
@@ -35,7 +36,7 @@ settings_chain_line:
     .byte '"','"'
     .byte $aa
     .byte '"'
-    .byte "S64CFG.PRG"
+    .byte "s64cfg"
     .byte '"'
     .byte "          "
     .byte ','
