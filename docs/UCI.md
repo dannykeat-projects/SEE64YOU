@@ -90,6 +90,33 @@ Before calling C64U publishing complete:
 9. Keep the relay and HTTP Target paths as compatibility fallbacks.
 10. Repeat WordPress validation later.
 
+## External implementation evidence
+
+In addition to the official Ultimate documentation, the following projects are useful for validating assumptions:
+
+- `barryw/sim6502`: its `u64sim` backend models Ultimate-DOS target state, file open/read/write/close, directory state, stat/delete/rename and common status codes. It is suitable as an external CI tool, not as shipping code.
+- `JC-000/c64-test-harness`: provides a common VICE/real-Ultimate test transport and explicitly supports C64 Ultimate firmware 1.x.
+- `xlar54/ultimateii-dos-lib`: mature cc65 UCI/DOS/network implementation. GPL-3.0, so use as behavioral/reference evidence unless licensing intentionally changes.
+- `c64uploader/c64uploader`: hardware-tested UCI implementation reports that some configurations expose the active UCI register window at $DE1C-$DE1F rather than $DF1C-$DF1F. Treat this as a compatibility case to investigate, not proof that the current known-working mapping is wrong.
+- `sandlbn/ultimate64-manager`: MIT host-side Ultimate REST/FTP/memory implementation with useful real-firmware behavior notes.
+
+The official Ultimate-DOS documentation says each DOS target owns independent directory/file state. See64You should therefore never assume a directory selected by another target or previous program is still active.
+
+### Current settings-persistence incident
+
+On stock C64 Ultimate firmware 1.1, direct-key import eventually worked after explicitly entering the SD filesystem path, but saving `SEE64YOU.CFG` still reports `SAVE FAILED - SETTINGS NOT WRITTEN`.
+
+The next step is diagnostic rather than another guessed workaround. The settings-I/O probe must capture current path, open/create, write, close, stat, delete, rename and final read-back separately. Once the failing stage is known, the production settings store should make its path and file-state preconditions explicit and test that sequence under `u64sim` plus real hardware.
+
+The current transactional temp-file design remains desirable because it avoids destroying the previous settings until replacement data has been written. It should only be simplified if target-hardware evidence shows that the firmware cannot reliably support the required delete/rename sequence.
+
+### C64U program chaining
+
+The existing short PRG aliases are valid CBM-DOS names, but the current KERNAL/IEC chain path cannot load programs that exist only on the Ultimate SD filesystem. The preferred future C64U path is an Ultimate-DOS-aware loader/trampoline, preserving the existing REU handoff and separate program memory budgets. This requires an explicit safe RAM reservation and real-hardware multi-transition testing.
+
+For the broader source/licensing/adoption record, see `docs/ENGINEERING-REFERENCES.md`.
+
+
 ## References
 
 - https://1541u-documentation.readthedocs.io/en/latest/uci/core_uci_architecture.html
