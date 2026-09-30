@@ -5,6 +5,7 @@
 #include <string.h>
 
 #define S64_SETTINGS_TEMP_FILENAME "SEE64YOU.CFG.TMP"
+#define S64_SETTINGS_STORAGE_PATH "/sd/"
 
 typedef struct {
     S64SettingsExchange* settings;
@@ -125,6 +126,14 @@ static uint8_t profile_filename(uint8_t slot, char* filename)
     return 1u;
 }
 
+static S64SettingsStoreResult select_storage_path(S64Dos* dos)
+{
+    if (dos == 0) return S64_SETTINGS_STORE_INVALID;
+    return s64_dos_change_dir(dos, S64_SETTINGS_STORAGE_PATH) == S64_DOS_OK
+        ? S64_SETTINGS_STORE_OK
+        : S64_SETTINGS_STORE_IO_ERROR;
+}
+
 static S64SettingsStoreResult load_named(
     S64Dos* dos,
     const char* filename,
@@ -139,6 +148,9 @@ static S64SettingsStoreResult load_named(
 
     if (dos == 0 || filename == 0 || settings == 0) {
         return S64_SETTINGS_STORE_INVALID;
+    }
+    if (select_storage_path(dos) != S64_SETTINGS_STORE_OK) {
+        return S64_SETTINGS_STORE_IO_ERROR;
     }
 
     result = s64_dos_file_exists(dos, filename, &exists);
@@ -241,6 +253,9 @@ static S64SettingsStoreResult save_named(
 
     if (dos == 0 || filename == 0 || settings == 0) {
         return S64_SETTINGS_STORE_INVALID;
+    }
+    if (select_storage_path(dos) != S64_SETTINGS_STORE_OK) {
+        return S64_SETTINGS_STORE_IO_ERROR;
     }
 
     settings->state = S64_SETTINGS_STATE_READY;
@@ -347,6 +362,9 @@ S64SettingsStoreResult s64_settings_import_direct_key(
 
     if (dos == 0 || direct_key == 0) {
         return S64_SETTINGS_STORE_INVALID;
+    }
+    if (select_storage_path(dos) != S64_SETTINGS_STORE_OK) {
+        return S64_SETTINGS_STORE_IO_ERROR;
     }
 
     /*

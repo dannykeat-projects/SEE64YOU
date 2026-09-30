@@ -547,29 +547,12 @@ static void show_direct_key_diagnostics(void)
 }
 
 
-static uint8_t sync_dos_to_sd_root(void)
-{
-    /*
-     * Current C64 Ultimate firmware exposes storage devices below a virtual
-     * UCI DOS root. The SD card root shown as /SD/ in the browser is therefore
-     * /sd/ to the DOS target; opening SEE64KEY.TXT from the virtual root fails
-     * with PATH DOESN'T EXIST. COPY_UI_PATH is deprecated on newer Ultimate
-     * firmware, so select the SD root explicitly instead.
-     */
-    return s64_dos_change_dir(&dos, "/sd/") == S64_DOS_OK;
-}
-
 static void import_direct_key(void)
 {
     S64SettingsStoreResult result;
 
     if (!capabilities.dos_target) {
         set_status("Settings storage unavailable");
-        return;
-    }
-
-    if (!sync_dos_to_sd_root()) {
-        set_status("Cannot select C64U /sd/");
         return;
     }
 

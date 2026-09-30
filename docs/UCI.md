@@ -40,7 +40,7 @@ Real firmware-1.1 testing exposed two details now covered by regression tests:
 
 Normal publishing-settings Save and cold reload have passed on the real device.
 
-Each operation must establish the storage path it requires rather than relying on a prior browser/key-import side effect. Any remaining path-hardening work is tracked in `todo.md`.
+Publishing-settings load/save/profile/key-import now select `/sd/` inside the settings-store boundary before file I/O, so callers no longer depend on a browser/key-import side effect. Host regression coverage verifies both selection and fail-before-write behaviour; the final cold-start firmware-1.1 hardware check remains in `todo.md`.
 
 ## Network Target `$03`
 

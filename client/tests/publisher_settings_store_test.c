@@ -22,6 +22,8 @@ static uint8_t read_open;
 static uint8_t write_open;
 static uint8_t fail_write;
 static uint8_t create_new_opened;
+static uint8_t fail_change_dir;
+static uint16_t change_dir_calls;
 
 static S64UciResult mock_execute(
     const S64UciCommandPart* parts,
@@ -126,6 +128,14 @@ uint8_t s64_reu_load(uint8_t bank, uint16_t address, void* destination, uint16_t
     }
     memcpy(destination, reu_settings + (address - S64_REU_SETTINGS_BASE), length);
     return 1u;
+}
+
+S64DosResult s64_dos_change_dir(S64Dos* dos, const char* directory)
+{
+    (void)dos;
+    ++change_dir_calls;
+    if (strcmp(directory, "/sd/") != 0) return S64_DOS_INVALID_ARGUMENT;
+    return fail_change_dir ? S64_DOS_TARGET_ERROR : S64_DOS_OK;
 }
 
 S64DosResult s64_dos_file_exists(S64Dos* dos, const char* filename, uint8_t* exists)
@@ -280,12 +290,15 @@ int main(void)
     read_length = 0u;
     fail_write = 0u;
     create_new_opened = 0u;
+    fail_change_dir = 0u;
+    change_dir_calls = 0u;
 
     s64_settings_exchange_init(&loaded);
     require(
         s64_settings_store_load(&dos, &loaded) == S64_SETTINGS_STORE_NOT_FOUND,
         "missing settings reported"
     );
+    require(change_dir_calls == 1u, "settings load selects SD root");
 
     store_legacy_v1_fixture();
     memset(&loaded, 0, sizeof(loaded));
@@ -307,6 +320,7 @@ int main(void)
         "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789");
     result = s64_settings_store_save(&dos, &settings);
     require(result == S64_SETTINGS_STORE_OK, "settings save succeeds");
+    require(change_dir_calls == 4u, "settings save selects SD root");
     require(create_new_opened, "settings save uses create-new temp file");
     require(stored_length == sizeof(settings), "settings file size");
 
@@ -335,6 +349,7 @@ int main(void)
     );
     result = s64_settings_import_direct_key(&dos, loaded.direct_key);
     require(result == S64_SETTINGS_STORE_OK, "direct key file import succeeds");
+    require(change_dir_calls == 6u, "direct key import selects SD root");
     require(
         strcmp(
             loaded.direct_key,
@@ -370,6 +385,7 @@ int main(void)
     strcpy(settings.base_url, "http://profile.local:6464");
     result = s64_settings_profile_save(&dos, 0u, &settings);
     require(result == S64_SETTINGS_STORE_OK, "profile save succeeds");
+    require(change_dir_calls == 9u, "profile save selects SD root");
     require(profile_one_length == sizeof(settings), "profile file size");
     require(stored_length == sizeof(settings), "profile save preserves active file");
 
@@ -384,6 +400,7 @@ int main(void)
     memset(&loaded, 0, sizeof(loaded));
     result = s64_settings_profile_load(&dos, 0u, &loaded);
     require(result == S64_SETTINGS_STORE_OK, "profile load succeeds");
+    require(change_dir_calls == 11u, "profile load selects SD root");
     require(
         strcmp(loaded.base_url, "http://profile.local:6464") == 0,
         "profile URL round trip"
@@ -414,6 +431,27 @@ int main(void)
     require(result == S64_SETTINGS_STORE_IO_ERROR, "write failure reported");
     require(stored_length == sizeof(settings), "old settings preserved");
     require(temporary_length == 0u, "failed temp cleaned up");
+
+    fail_write = 0u;
+    fail_change_dir = 1u;
+    create_new_opened = 0u;
+    result = s64_settings_store_save(&dos, &settings);
+    require(result == S64_SETTINGS_STORE_IO_ERROR, "SD path failure blocks settings save");
+    require(!create_new_opened, "path failure stops before temp create");
+    require(stored_length == sizeof(settings), "path failure preserves old settings");
+    strcpy(
+        loaded.direct_key,
+        "3333333333333333333333333333333333333333333333333333333333333333"
+    );
+    result = s64_settings_import_direct_key(&dos, loaded.direct_key);
+    require(result == S64_SETTINGS_STORE_IO_ERROR, "SD path failure blocks key import");
+    require(
+        strcmp(
+            loaded.direct_key,
+            "3333333333333333333333333333333333333333333333333333333333333333"
+        ) == 0,
+        "path failure preserves existing direct key"
+    );
 
     puts("publisher settings store tests passed");
     return 0;

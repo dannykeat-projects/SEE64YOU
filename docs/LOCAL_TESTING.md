@@ -109,7 +109,7 @@ Exercise:
 - failure/cancel paths without stale open handles;
 - filename/path handling from a fresh startup rather than relying on previous UI activity.
 
-Publishing settings should survive Save, exit/re-entry and cold application reload.
+Publishing settings should survive Save, exit/re-entry and cold application reload. For the deterministic-path acceptance check, start from a cold application state and do not browse to `/sd/` or import a key first; load/save/profile operations must select the settings storage path themselves.
 
 ## 7. Recovery/autosave acceptance
 
