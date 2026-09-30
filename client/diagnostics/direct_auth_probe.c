@@ -200,7 +200,7 @@ int main(void)
     static const char challenge_header[] =
         "X-See64You-Challenge: ";
     static const char signature_header[] =
-        "X-See64You-Signature: ";
+        "\r\nX-See64You-Signature: ";
     static const char tail_headers[] =
         "\r\nConnection: close\r\n"
         "User-Agent: See64You-C64U-DirectAuth/1\r\n"

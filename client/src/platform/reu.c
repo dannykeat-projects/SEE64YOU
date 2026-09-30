@@ -17,6 +17,7 @@ void __fastcall__ s64_reu_kick(uint8_t command);
 static uint8_t probe_original;
 static uint8_t probe_value;
 static uint8_t probe_readback;
+static uint8_t probe_bank_original;
 
 static uint8_t s64_reu_transfer(
     uint8_t transfer_type,
@@ -83,57 +84,52 @@ uint8_t s64_reu_load(
     );
 }
 
+/* Fixed one-byte scratch avoids DMA into the cc65 software stack. */
+static void probe_load(uint8_t bank)
+{
+    (void)s64_reu_load(bank, 0u, &probe_readback, 1u);
+}
+
+static void probe_store(uint8_t bank)
+{
+    (void)s64_reu_store(bank, 0u, &probe_value, 1u);
+}
+
 uint8_t s64_reu_probe(void)
 {
-    uint8_t restored;
-
-    /*
-     * Keep DMA scratch outside the cc65 software stack. Exercise one byte in
-     * bank 0 rather than trusting register echo alone, then restore it.
-     */
-    probe_value = 0xA5u;
-    probe_readback = 0u;
-
-    if (!s64_reu_load(0u, 0u, &probe_original, 1u)) {
-        return 0u;
-    }
-    if (!s64_reu_store(0u, 0u, &probe_value, 1u)) {
-        return 0u;
-    }
-
-    if (!s64_reu_load(0u, 0u, &probe_readback, 1u)) {
-        (void)s64_reu_store(0u, 0u, &probe_original, 1u);
-        return 0u;
-    }
-
-    restored = s64_reu_store(0u, 0u, &probe_original, 1u);
-    return restored && probe_readback == probe_value;
+    uint8_t present;
+    probe_load(0u);
+    probe_original = probe_readback;
+    probe_value = 0xa5u;
+    probe_store(0u);
+    probe_load(0u);
+    present = probe_readback == probe_value;
+    probe_value = probe_original;
+    probe_store(0u);
+    return present;
 }
 
 uint16_t s64_reu_probe_banks(void)
 {
-    uint16_t bank;
-    /*
-     * Mirror cc65's proven c64-reu.emd size probe. Stamp the first byte of all
-     * 256 logical banks with the bank number, then read upward until aliasing
-     * makes the stored value differ. Call this only before allocating REU
-     * contents because it deliberately uses offset 0 of each logical bank.
-     */
-    for (bank = 256u; bank != 0u; --bank) {
-        probe_value = (uint8_t)(bank - 1u);
-        if (!s64_reu_store(probe_value, 0u, &probe_value, 1u)) {
-            return 0u;
-        }
+    static uint8_t bank;
+    uint8_t present;
+    /* Check writable power-of-two banks and aliasing without destroying the
+     * document/clipboard that companions have already received in the REU. */
+    probe_load(0u);
+    probe_original = probe_readback;
+    for (bank = 1u; bank != 0u; bank = (uint8_t)(bank << 1)) {
+        probe_load(bank);
+        probe_bank_original = probe_readback;
+        probe_value = (uint8_t)(probe_original ^ 0xffu);
+        probe_store(bank);
+        /* Read bank 0 first: unmapped REU banks can echo the last bus byte. */
+        probe_load(0u);
+        present = probe_readback == probe_original;
+        probe_load(bank);
+        present = present && probe_readback == probe_value;
+        probe_value = probe_bank_original;
+        probe_store(bank);
+        if (!present) return bank;
     }
-
-    for (bank = 0u; bank < 256u; ++bank) {
-        if (!s64_reu_load((uint8_t)bank, 0u, &probe_readback, 1u)) {
-            return 0u;
-        }
-        if (probe_readback != (uint8_t)bank) {
-            return bank;
-        }
-    }
-
     return 256u;
 }

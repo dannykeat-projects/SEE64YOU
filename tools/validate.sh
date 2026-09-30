@@ -170,6 +170,10 @@ echo "== Host standalone list/open tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_list_open_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/http.c client/src/publisher/workspace.c client/src/publisher/relay.c client/src/publisher/standalone.c client/src/publisher/standalone_documents.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host firmware-1.1 direct publisher tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_direct_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/network.c client/src/crypto/sha256.c client/src/publisher/direct_auth.c client/src/publisher/workspace.c client/src/publisher/standalone_direct.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host WordPress publisher auth tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/wordpress_test.c client/src/charset.c client/src/platform/http.c client/src/publisher/workspace.c client/src/publisher/relay.c client/src/publisher/wordpress.c -o "$TMP_BIN"
 "$TMP_BIN"

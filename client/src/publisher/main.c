@@ -23,6 +23,9 @@
 #include "publisher/wordpress_documents.h"
 #endif
 #include "publisher/workspace.h"
+#ifdef S64_DIRECT_PUBLISHER
+#include "publisher/standalone_direct.h"
+#endif
 
 #define SCREEN_COLUMNS 40u
 #define STATUS_ROW 24u
@@ -43,8 +46,17 @@ static S64Dos dos;
 static S64UciCapabilities capabilities;
 static S64PublishDestination destination;
 static S64PublishState publish_state;
+#ifndef S64_DIRECT_PUBLISHER
 static S64PublisherSession session;
+#define STANDALONE_SESSION (&session.standalone)
+#else
+/* Direct authentication signs each request; there is no reusable login token. */
+#define STANDALONE_SESSION ((const S64StandaloneSession*)0)
+#endif
 static unsigned char document_changed;
+#ifdef S64_DIRECT_PUBLISHER
+static unsigned char network_available;
+#endif
 
 #define WORK_STATUS ((char*)&s64_publisher_workspace.bytes[0])
 #define WORK_URL ((char*)&s64_publisher_workspace.bytes[0])
@@ -56,7 +68,9 @@ static unsigned char document_changed;
 #define WORK_SETTINGS ((S64SettingsExchange*)&s64_publisher_workspace.bytes[0])
 #define WORK_SELECTION ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_SELECTION_OFFSET])
 
+#ifndef S64_DIRECT_PUBLISHER
 static unsigned char selected_state;
+#endif
 static unsigned char document_replaced;
 
 
@@ -123,8 +137,12 @@ static void render(void)
     print_value(4u, "Type:  ", s64_document_type_name(document.type));
     print_value(5u, "State: ", s64_document_status_name(document.status));
     print_value(7u, "Destination: ", destination_name());
+#ifdef S64_DIRECT_PUBLISHER
+    print_value(8u, "Direct HTTP: ", network_available ? "unencrypted" : "unavailable");
+#else
     print_value(8u, "HTTP: ", capabilities.http_target
         ? "available" : "unavailable");
+#endif
     print_value(9u, "Connection: ", publish_state.connected
         ? "ready" : "not connected");
     print_value(10u, "Remote: ", publish_state.remote_bound
@@ -133,7 +151,11 @@ static void render(void)
     gotoxy(0u, 12u);
     cputs("1  PUBLISHING SETTINGS");
     gotoxy(0u, 13u);
+#ifdef S64_DIRECT_PUBLISHER
+    cputs("2  TEST DIRECT KEY");
+#else
     cputs("2  TEST / LOGIN");
+#endif
     gotoxy(0u, 14u);
     cputs("3  SAVE / UPDATE REMOTE");
     gotoxy(0u, 15u);
@@ -141,11 +163,19 @@ static void render(void)
     gotoxy(0u, 16u);
     cputs("5  DELETE REMOTE");
     gotoxy(0u, 17u);
+#ifdef S64_DIRECT_PUBLISHER
+    cputs("6 OPEN PAGE / 7 POST BY SLUG");
+#else
     cputs("6 OPEN PAGE  7 OPEN POST");
+#endif
     gotoxy(0u, 18u);
     cputs("8 PREVIEW");
     gotoxy(0u, 19u);
     cputs("9 EXPORT TXT  0 IMPORT TXT");
+#ifdef S64_DIRECT_PUBLISHER
+    gotoxy(0u, 20u);
+    cputs("T TOGGLE PAGE / POST");
+#endif
     gotoxy(0u, 21u);
     cputs("RUN/STOP  RETURN TO EDITOR");
 
@@ -269,7 +299,9 @@ static unsigned char prompt_yes_no(const char* label)
 
 static void clear_session(void)
 {
+#ifndef S64_DIRECT_PUBLISHER
     memset(&session, 0, sizeof(session));
+#endif
     s64_publish_state_set_connected(&publish_state, 0u);
 }
 
@@ -368,12 +400,16 @@ static unsigned char restore_settings(void)
         destination.allow_insecure_http = WORK_SETTINGS->allow_insecure_http;
         memcpy(destination.base_url, WORK_SETTINGS->base_url, sizeof(destination.base_url));
     }
+#ifdef S64_DIRECT_PUBLISHER
+    (void)s64_direct_publisher_key(WORK_SETTINGS->direct_key);
+#else
     if (!s64_relay_set_key(WORK_SETTINGS->relay_key)) {
         s64_destination_clear(&destination);
         (void)s64_relay_set_key("");
         set_status("Publisher settings invalid");
         return 0u;
     }
+#endif
 
     set_status(settings_status(result));
     return 1u;
@@ -381,8 +417,13 @@ static unsigned char restore_settings(void)
 
 static unsigned char publishing_ready(void)
 {
+#ifdef S64_DIRECT_PUBLISHER
+    if (!network_available) {
+        set_status("C64U network target unavailable");
+#else
     if (!capabilities.http_target) {
         set_status("C64U HTTP target unavailable");
+#endif
         return 0u;
     }
     if (destination.type == S64_DESTINATION_NONE) {
@@ -447,7 +488,7 @@ static void save_remote_document(void)
             &http,
             WORK_URL,
             destination.allow_insecure_http,
-            &session.standalone,
+            STANDALONE_SESSION,
             &document
         );
         if (result != S64_STANDALONE_OK) {
@@ -540,7 +581,7 @@ static void delete_remote_document(void)
             &http,
             WORK_URL,
             destination.allow_insecure_http,
-            &session.standalone,
+            STANDALONE_SESSION,
             publish_state.remote_type,
             publish_state.remote_identity
         );
@@ -582,6 +623,7 @@ static void delete_remote_document(void)
     }
 }
 
+#ifndef S64_DIRECT_PUBLISHER
 static unsigned char choose_remote(
     const char* identity,
     const char* title
@@ -633,6 +675,8 @@ static uint8_t choose_wordpress_summary(
 
 #endif
 
+#endif
+
 static void list_open_remote(S64DocumentType type)
 {
     S64DestinationResult url_result;
@@ -641,6 +685,15 @@ static void list_open_remote(S64DocumentType type)
         return;
     }
 
+#ifdef S64_DIRECT_PUBLISHER
+    WORK_SELECTION[0] = '\0';
+    if (!prompt_text("REMOTE SLUG: ", WORK_SELECTION,
+            (unsigned char)S64_DOCUMENT_SLUG_CAPACITY, 0u)
+        || !s64_document_slug_valid(WORK_SELECTION)) {
+        set_status("Invalid slug or cancelled");
+        return;
+    }
+#else
     url_result = s64_destination_list_url(
         &destination,
         type,
@@ -658,7 +711,7 @@ static void list_open_remote(S64DocumentType type)
             &http,
             WORK_URL,
             destination.allow_insecure_http,
-            &session.standalone,
+            STANDALONE_SESSION,
             choose_standalone_summary,
             0,
             0,
@@ -698,6 +751,7 @@ static void list_open_remote(S64DocumentType type)
         set_status("No document selected");
         return;
     }
+#endif
     if (!prompt_yes_no("REPLACE CURRENT DOCUMENT? Y/N")) {
         set_status("Remote open cancelled");
         return;
@@ -723,7 +777,7 @@ static void list_open_remote(S64DocumentType type)
             &http,
             WORK_URL,
             destination.allow_insecure_http,
-            &session.standalone,
+            STANDALONE_SESSION,
             &document
         );
         if (result != S64_STANDALONE_OK) {
@@ -918,8 +972,13 @@ static void connect_destination(void)
 {
     S64DestinationResult url_result;
 
+#ifdef S64_DIRECT_PUBLISHER
+    if (!network_available) {
+        set_status("C64U network target unavailable");
+#else
     if (!capabilities.http_target) {
         set_status("C64U HTTP target unavailable");
+#endif
         return;
     }
     if (destination.type == S64_DESTINATION_NONE) {
@@ -932,6 +991,7 @@ static void connect_destination(void)
     if (destination.type == S64_DESTINATION_STANDALONE) {
         S64StandaloneResult result;
 
+#ifndef S64_DIRECT_PUBLISHER
         if (!prompt_text(
                 "PASSWORD: ",
                 WORK_SECRET,
@@ -941,6 +1001,7 @@ static void connect_destination(void)
             set_status("Login cancelled");
             return;
         }
+#endif
 
         url_result = s64_destination_connection_url(
             &destination,
@@ -953,14 +1014,19 @@ static void connect_destination(void)
             return;
         }
 
+#ifdef S64_DIRECT_PUBLISHER
+        result = s64_direct_publisher_test(&http, WORK_URL,
+            destination.allow_insecure_http);
+#else
         result = s64_standalone_login(
             &http,
             WORK_URL,
             WORK_SECRET,
             destination.allow_insecure_http,
-            &session.standalone
+            STANDALONE_SESSION
         );
         memset(WORK_SECRET, 0, PROMPT_CAPACITY);
+#endif
         if (result == S64_STANDALONE_OK) {
             s64_publish_state_set_connected(&publish_state, 1u);
             set_status("Standalone connection ready");
@@ -1053,12 +1119,19 @@ int main(void)
         return 1;
     }
 
+#ifdef S64_DIRECT_PUBLISHER
+    http.execute = s64_uci_execute;
+    network_available = s64_uci_probe_target(0x03u);
+#else
     s64_http_init(&http, s64_uci_execute);
+#endif
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
     s64_uci_probe_capabilities(&capabilities);
     s64_destination_clear(&destination);
     s64_publish_state_init(&publish_state);
+#ifndef S64_DIRECT_PUBLISHER
     memset(&session, 0, sizeof(session));
+#endif
     document_changed = 0u;
     document_replaced = 0u;
     (void)restore_settings();
@@ -1075,6 +1148,13 @@ int main(void)
             save_remote_document();
         } else if (key == '4') {
             toggle_document_status();
+#ifdef S64_DIRECT_PUBLISHER
+        } else if (key == 't' || key == 'T') {
+            document.type = document.type == S64_DOCUMENT_PAGE
+                ? S64_DOCUMENT_POST : S64_DOCUMENT_PAGE;
+            s64_publish_state_clear_remote(&publish_state);
+            mark_document_changed();
+#endif
         } else if (key == '5') {
             delete_remote_document();
         } else if (key == '6') {

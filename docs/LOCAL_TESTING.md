@@ -1,5 +1,42 @@
 # Local validation runbook
 
+## Direct publishing on stock C64 Ultimate 1.1
+
+Use branch `feature/c64u-publisher-chain` (PR #61). The normal C64U package
+contains `SEE64YOU-C64U.PRG`, `S64EDIT.PRG`, `S64PUB.PRG` and `S64CFG.PRG`;
+keep all four together in `/sd/`. Enable Command Interface and at least 128 KiB
+REU. SD-backed software IEC must be enabled as device 8, with `/sd/` selected
+and no conflicting hardware drive 8. Internal companion LOAD names omit `.PRG`.
+
+The active publisher uses Network Target `$03`, a dedicated direct key and
+one-time challenge/HMAC authentication. It does not require HTTP Target `$06`,
+a relay computer, or the site's normal password. This path is unencrypted HTTP
+on port 80: enable plain HTTP explicitly and use `http://danielkeating.org`.
+HTTPS remains unsupported by this transport; it never silently downgrades a URL.
+
+1. Start `SEE64YOU-C64U.PRG`, write a document and use Ctrl+S to save a local
+   canonical `.s64` file. Its filename supplies the initial title and slug.
+2. Press Ctrl+P. Option 1 opens publishing settings: Standalone destination,
+   site URL, plain HTTP enabled, direct key configured. Save + Return retains
+   these settings. The user's device is already configured.
+3. Press 2 to test the direct key; expect `STANDALONE CONNECTION READY`.
+4. Select Page/Post with T. Press 3 to create or update the remote draft.
+5. Press 4 to select Published, then press 3 separately to apply it. To
+   unpublish, select Draft with 4 and save with 3 again.
+6. Options 6/7 open a page/post by its slug after overwrite confirmation;
+   option 5 deletes the bound remote document after confirmation.
+7. RUN/STOP returns to the editor. Save the source locally before further edits.
+
+On 2026-09-30 the real C64U authenticated and uploaded a 4,608-byte draft to
+the live Standalone site. An independent authenticated download matched every
+source byte, including mixed case, punctuation and newlines. The normal publisher
+also published/unpublished the page, reopened it by slug, and exported exactly
+the same 4,608 bytes back to SD. The test page was left as a draft, with canonical
+source `/sd/C64U-LIVE.S64`. Startup REU capacity
+probing now restores every tested byte; the VICE matrix verifies capacity and
+preservation from 128 KiB through 16 MiB. Host regressions cover signed page/post
+uploads, exact reopen, delete, fragmented responses and transport failures.
+
 ## Real C64U settings I/O probe
 
 Build with `make -C client settings-io-probe` (also built by `c64u`).

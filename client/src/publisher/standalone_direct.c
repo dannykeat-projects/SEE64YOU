@@ -1,0 +1,379 @@
+#include "standalone_direct.h"
+#include "standalone_documents.h"
+#include "direct_auth.h"
+#include "workspace.h"
+#include "charset.h"
+#include "platform/network.h"
+#include "platform/turbo.h"
+
+#include <stdio.h>
+#include <string.h>
+
+/* One synchronous request at a time. Do not retain document payloads in RAM. */
+static uint8_t direct_key[32], key_ready;
+static char host[96], uri[256];
+#define line ((char*)&s64_publisher_workspace.bytes[0])
+#define LINE_CAPACITY 192u
+/* Challenge path is sent before the response header reuses this area. */
+#define challenge_uri ((char*)&s64_publisher_workspace.bytes[0])
+static S64NetTransport network;
+static uint8_t socket_handle;
+static uint16_t status_code;
+
+typedef int (*BodyWriter)(S64DocumentSink sink, void* context, const void* source);
+typedef struct {
+    S64Sha256 sha;
+    uint16_t length;
+} BodyHash;
+/* Offset 256 also preserves host SHA context alignment. */
+#define body_hash (*(BodyHash*)&s64_publisher_workspace.bytes[256])
+static int write_document(S64DocumentSink sink, void* context, const void* source);
+typedef struct {
+    S64UciDataSink sink;
+    void* context;
+    uint16_t line_length, header_bytes, remaining;
+    uint8_t headers_done, have_status, have_length, failed;
+} Reply;
+
+#define reply_text ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_AUX_OFFSET])
+#define REPLY_TEXT_CAPACITY 256u
+static uint16_t text_length;
+
+int s64_direct_publisher_key(const char* hex)
+{
+    memset(direct_key, 0, sizeof(direct_key));
+    key_ready = (uint8_t)s64_direct_key_parse(hex, direct_key);
+    return key_ready;
+}
+
+static int equal_ci(const char* left, const char* right, uint8_t count)
+{
+    uint8_t i;
+    char a, b;
+    for (i = 0; i < count; ++i) {
+        a = left[i]; b = right[i];
+        if (!a || !b) return 0;
+        if (a >= 'A' && a <= 'Z') a += 'a' - 'A';
+        if (b >= 'A' && b <= 'Z') b += 'a' - 'A';
+        if (a != b) return 0;
+    }
+    return 1;
+}
+
+static S64StandaloneResult parse_url(const char* url, uint8_t allow_http)
+{
+    const char* start;
+    const char* path;
+    uint16_t length;
+    if (!url) return S64_STANDALONE_INVALID_ARGUMENT;
+    if (equal_ci(url, "https://", 8)) return S64_STANDALONE_TLS_UNSUPPORTED;
+    if (!allow_http) return S64_STANDALONE_INSECURE_TRANSPORT;
+    if (!equal_ci(url, "http://", 7)) return S64_STANDALONE_INVALID_ARGUMENT;
+    start = url + 7;
+    path = strchr(start, '/');
+    if (!path || path == start) return S64_STANDALONE_INVALID_ARGUMENT;
+    length = (uint16_t)(path - start);
+    if (length >= sizeof(host) || strlen(path) >= sizeof(uri))
+        return S64_STANDALONE_INVALID_ARGUMENT;
+    memcpy(host, start, length); host[length] = 0;
+    /* Reject credentials, ports and request-line/header injection. Port 80 only. */
+    if (strpbrk(host, ":@?# \r\n\t") || strpbrk(path, "# \r\n\t"))
+        return S64_STANDALONE_INVALID_ARGUMENT;
+    strcpy(uri, path);
+    return S64_STANDALONE_OK;
+}
+
+static uint8_t collect_text(const uint8_t* data, uint16_t length, void* context)
+{
+    uint16_t i;
+    uint8_t native;
+    (void)context;
+    for (i = 0; i < length; ++i) {
+        if (text_length + 1u >= REPLY_TEXT_CAPACITY
+            || !s64_charset_ascii_to_native(data[i], &native)) return 0;
+        reply_text[text_length++] = (char)native;
+    }
+    reply_text[text_length] = 0;
+    return 1;
+}
+
+static uint8_t read_reply(const uint8_t* data, uint16_t length, void* context)
+{
+    Reply* reply = (Reply*)context;
+    uint16_t i = 0, amount, value;
+    uint8_t native;
+    const char* digit;
+    while (i < length && !reply->headers_done) {
+        if (++reply->header_bytes > 4096u) goto fail;
+        if (data[i] == 0x0du) { ++i; continue; }
+        if (data[i] != 0x0au) {
+            if (reply->line_length + 1u >= LINE_CAPACITY
+                || !s64_charset_ascii_to_native(data[i++], &native)) goto fail;
+            line[reply->line_length++] = (char)native;
+            continue;
+        }
+        ++i;
+        line[reply->line_length] = 0;
+        if (!reply->have_status) {
+            if ((!equal_ci(line, "HTTP/1.1 ", 9) && !equal_ci(line, "HTTP/1.0 ", 9))
+                || reply->line_length < 12u) goto fail;
+            status_code = 0;
+            for (amount = 9; amount < 12; ++amount) {
+                if (line[amount] < '0' || line[amount] > '9') goto fail;
+                status_code = status_code * 10u + (uint8_t)(line[amount] - '0');
+            }
+            reply->have_status = 1;
+        } else if (!reply->line_length) {
+            reply->headers_done = 1;
+        } else if (equal_ci(line, "Content-Length:", 15)) {
+            if (reply->have_length) goto fail;
+            digit = line + 15;
+            while (*digit == ' ') ++digit;
+            if (*digit < '0' || *digit > '9') goto fail;
+            value = 0;
+            while (*digit >= '0' && *digit <= '9') {
+                if (value > 6553u || (value == 6553u && *digit > '5')) goto fail;
+                value = value * 10u + (uint8_t)(*digit++ - '0');
+            }
+            if (*digit) goto fail;
+            reply->remaining = value; reply->have_length = 1;
+        } else if (equal_ci(line, "Transfer-Encoding:", 18)) {
+            /* HTTP/1.0 requests ask for a close-delimited/non-chunked response. */
+            goto fail;
+        }
+        reply->line_length = 0;
+    }
+    amount = (uint16_t)(length - i);
+    if (reply->headers_done && amount) {
+        if (reply->have_length && amount > reply->remaining) goto fail;
+        if (reply->have_length) reply->remaining -= amount;
+        /* Error pages never overwrite the caller's document buffer. */
+        if (status_code >= 200u && status_code < 300u && reply->sink
+            && !reply->sink(data + i, amount, reply->context)) goto fail;
+    }
+    return 1;
+fail:
+    reply->failed = 1;
+    return 0;
+}
+
+static int send_text(const char* text)
+{
+    return s64_net_write_text(&network, socket_handle, text,
+        (uint16_t)strlen(text)) == S64_NET_OK;
+}
+
+static uint8_t send_body(const uint8_t* data, uint16_t length, void* context)
+{
+    (void)context;
+    return s64_net_write(&network, socket_handle, data, length) == S64_NET_OK;
+}
+
+static S64StandaloneResult exchange(const char* method, const char* path,
+    const char* challenge, const char* signature, uint16_t body_length,
+    BodyWriter writer, const void* source, S64UciDataSink sink, void* context)
+{
+    Reply reply;
+    S64NetResult result;
+    S64StandaloneResult outcome = S64_STANDALONE_TRANSPORT_ERROR;
+    uint16_t idle = 0, received;
+    if (s64_net_open_tcp(&network, host, 80u, &socket_handle) != S64_NET_OK)
+        return outcome;
+    memset(&reply, 0, sizeof(reply));
+    reply.sink = sink; reply.context = context;
+    status_code = 0; text_length = 0; reply_text[0] = 0;
+    if (!send_text(method) || !send_text(" ") || !send_text(path)
+        || !send_text(" HTTP/1.0\r\nHost: ") || !send_text(host)
+        || !send_text("\r\nConnection: close\r\n")) goto cleanup;
+    if (challenge && (!send_text("X-See64You-Challenge: ") || !send_text(challenge)
+        || !send_text("\r\nX-See64You-Signature: ") || !send_text(signature)
+        || !send_text("\r\n"))) goto cleanup;
+    if (writer) {
+        sprintf(line, "Content-Type: %s\r\nContent-Length: %u\r\n",
+            writer == write_document ? "application/x-see64you" : "application/json",
+            (unsigned int)body_length);
+        if (!send_text(line)) goto cleanup;
+    }
+    if (!send_text("\r\n") || (writer && !writer(send_body, 0, source))) goto cleanup;
+    while (idle < 512u) {
+        received = 0;
+        result = s64_net_read(&network, socket_handle, S64_NET_READ_MAX,
+            read_reply, &reply, &received);
+        if (reply.failed) { outcome = S64_STANDALONE_PROTOCOL_ERROR; goto cleanup; }
+        if (result != S64_NET_OK && result != S64_NET_NO_DATA && result != S64_NET_CLOSED)
+            goto cleanup;
+        if (received) idle = 0; else ++idle;
+        if (reply.headers_done && reply.have_length && !reply.remaining) break;
+        if (result == S64_NET_CLOSED) break;
+    }
+    if (!reply.headers_done || (reply.have_length && reply.remaining)
+        || idle == 512u) { outcome = S64_STANDALONE_PROTOCOL_ERROR; goto cleanup; }
+    if (status_code == 401u) outcome = S64_STANDALONE_AUTH_FAILED;
+    else if (status_code >= 200u && status_code < 300u) outcome = S64_STANDALONE_OK;
+    else outcome = S64_STANDALONE_SERVER_ERROR;
+cleanup:
+    (void)s64_net_close(&network, socket_handle);
+    return outcome;
+}
+
+static uint8_t hash_body(const uint8_t* data, uint16_t length, void* context)
+{
+    BodyHash* hash = (BodyHash*)context;
+    S64TurboGuard turbo;
+    if (length > (uint16_t)(65535u - hash->length)) return 0;
+    hash->length += length;
+    (void)s64_turbo_begin_max(&turbo);
+    s64_sha256_update(&hash->sha, data, length);
+    s64_turbo_restore(&turbo);
+    return 1;
+}
+
+static S64StandaloneResult request(S64HttpTransport* transport, const char* url,
+    uint8_t allow_http, const char* method, BodyWriter writer, const void* source,
+    S64UciDataSink sink, void* context, uint8_t test)
+{
+    S64TurboGuard turbo;
+    S64StandaloneResult result;
+    uint8_t digest[32];
+    char challenge[33], signature[65];
+    char* query;
+    const char* value;
+    uint8_t i;
+    if (!transport || !transport->execute) return S64_STANDALONE_INVALID_ARGUMENT;
+    result = parse_url(url, allow_http);
+    if (result != S64_STANDALONE_OK) return result;
+    if (!key_ready) return S64_STANDALONE_AUTH_FAILED;
+    query = strchr(uri, '?');
+    if (!query || (uint16_t)(query - uri) + sizeof("?action=challenge") > 256u)
+        return S64_STANDALONE_INVALID_ARGUMENT;
+    if (test) strcpy(query, "?action=settings");
+    memcpy(challenge_uri, uri, (uint16_t)(query - uri));
+    strcpy(challenge_uri + (query - uri), "?action=challenge");
+    body_hash.length = 0;
+    s64_sha256_init(&body_hash.sha);
+    if (writer && !writer(hash_body, &body_hash, source)) return S64_STANDALONE_INVALID_ARGUMENT;
+    (void)s64_turbo_begin_max(&turbo);
+    s64_sha256_final(&body_hash.sha, digest);
+    s64_turbo_restore(&turbo);
+    s64_net_init(&network, transport->execute);
+    result = exchange("GET", challenge_uri, 0, 0, 0, 0, 0, collect_text, 0);
+    if (result != S64_STANDALONE_OK) return result;
+    value = strstr(reply_text, "\"challenge\":\"");
+    if (!value) return S64_STANDALONE_PROTOCOL_ERROR;
+    value += 13;
+    for (i = 0; i < 32u; ++i) {
+        if (!((value[i] >= '0' && value[i] <= '9')
+            || (value[i] >= 'a' && value[i] <= 'f'))) return S64_STANDALONE_PROTOCOL_ERROR;
+        challenge[i] = value[i];
+    }
+    if (value[32] != '"') return S64_STANDALONE_PROTOCOL_ERROR;
+    challenge[32] = 0;
+    (void)s64_turbo_begin_max(&turbo);
+    i = (uint8_t)s64_direct_sign(direct_key, challenge, method, uri, digest, signature);
+    s64_turbo_restore(&turbo);
+    if (!i) return S64_STANDALONE_PROTOCOL_ERROR;
+    result = exchange(method, uri, challenge, signature, body_hash.length, writer, source, sink, context);
+    memset(signature, 0, sizeof(signature));
+    return result;
+}
+
+static int write_document(S64DocumentSink sink, void* context, const void* source)
+{
+    return s64_document_write_wire((const S64Document*)source, sink, context) == S64_DOCUMENT_OK;
+}
+
+static S64StandaloneResult ack_result(S64StandaloneResult result)
+{
+    if (result == S64_STANDALONE_OK && !strstr(reply_text, "\"ok\":true"))
+        return S64_STANDALONE_PROTOCOL_ERROR;
+    return result;
+}
+
+S64StandaloneResult s64_direct_publisher_test(S64HttpTransport* transport,
+    const char* url, uint8_t allow_http)
+{
+    return ack_result(request(transport, url, allow_http, "GET", 0, 0, collect_text, 0, 1));
+}
+
+S64StandaloneResult s64_standalone_save_document(S64HttpTransport* transport,
+    const char* url, uint8_t allow_http, const S64StandaloneSession* session,
+    const S64Document* document)
+{
+    S64StandaloneResult result;
+    (void)session;
+    result = request(transport, url, allow_http, "POST", write_document, document, collect_text, 0, 0);
+    return ack_result(result);
+}
+
+typedef struct {
+    S64DocumentWireReader reader;
+    S64Document* document;
+    uint8_t started;
+} OpenReply;
+
+static uint8_t read_document(const uint8_t* data, uint16_t length, void* context)
+{
+    OpenReply* reply = (OpenReply*)context;
+    if (!reply->started) {
+        s64_document_wire_reader_init(&reply->reader, reply->document);
+        reply->started = 1;
+    }
+    return s64_document_wire_reader_write(data, length, &reply->reader);
+}
+
+S64StandaloneResult s64_standalone_open_document(S64HttpTransport* transport,
+    const char* url, uint8_t allow_http, const S64StandaloneSession* session,
+    S64Document* document)
+{
+    OpenReply reply;
+    S64StandaloneResult result;
+    (void)session;
+    if (!document || !document->body) return S64_STANDALONE_INVALID_ARGUMENT;
+    reply.document = document; reply.started = 0;
+    result = request(transport, url, allow_http, "GET", 0, 0,
+        read_document, &reply, 0);
+    if (result == S64_STANDALONE_OK && (!reply.started
+        || s64_document_wire_reader_finish(&reply.reader) != S64_DOCUMENT_OK))
+        return S64_STANDALONE_PROTOCOL_ERROR;
+    return result;
+}
+
+typedef struct { const char* type; const char* slug; } DeleteBody;
+static int write_delete(S64DocumentSink sink, void* context, const void* source)
+{
+    const DeleteBody* body = (const DeleteBody*)source;
+    char json[112];
+    uint16_t i;
+    uint8_t ascii;
+    sprintf(json, "{\"type\":\"%s\",\"slug\":\"%s\"}", body->type, body->slug);
+    for (i = 0; json[i]; ++i) {
+        if (!s64_charset_native_to_ascii((uint8_t)json[i], &ascii)) return 0;
+        json[i] = (char)ascii;
+    }
+    return sink((const uint8_t*)json, i, context);
+}
+
+S64StandaloneResult s64_standalone_delete_document(S64HttpTransport* transport,
+    const char* url, uint8_t allow_http, const S64StandaloneSession* session,
+    S64DocumentType type, const char* slug)
+{
+    DeleteBody body;
+    (void)session;
+    body.type = s64_document_type_name(type); body.slug = slug;
+    if (!body.type || !s64_document_slug_valid(slug)) return S64_STANDALONE_INVALID_ARGUMENT;
+    return ack_result(request(transport, url, allow_http, "POST", write_delete, &body, collect_text, 0, 0));
+}
+
+const char* s64_standalone_result_message(S64StandaloneResult result)
+{
+    switch (result) {
+        case S64_STANDALONE_OK: return "OK";
+        case S64_STANDALONE_AUTH_FAILED: return "Direct key missing or denied";
+        case S64_STANDALONE_INSECURE_TRANSPORT: return "Enable plain HTTP";
+        case S64_STANDALONE_TLS_UNSUPPORTED: return "Direct mode needs http:// URL";
+        case S64_STANDALONE_TRANSPORT_ERROR: return "Network/UCI error";
+        case S64_STANDALONE_SERVER_ERROR: return "Server rejected request";
+        case S64_STANDALONE_INVALID_ARGUMENT: return "Invalid request/site URL";
+        default: return "Unexpected server reply";
+    }
+}

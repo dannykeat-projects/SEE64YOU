@@ -21,7 +21,8 @@ static void stop_with(uint8_t result)
 
 int main(void)
 {
-    uint16_t banks;
+    static uint16_t banks;
+    static uint16_t bank;
 
     DIAG_RESULT = 0u;
     DIAG_BANKS_LO = 0u;
@@ -53,6 +54,24 @@ int main(void)
     banks = s64_reu_probe_banks();
     if (banks == 0u) {
         stop_with(DIAG_FAIL);
+    }
+
+    dma_scratch = 0u;
+    (void)s64_reu_load(0u, 0u, &dma_scratch, 1u);
+    if (dma_scratch != 0x5Au) stop_with(DIAG_FAIL);
+
+    DIAG_PROGRESS = 0x32u;
+    /* Companion startup must preserve occupied document/clipboard banks. */
+    for (bank = 0u; bank < banks; ++bank) {
+        dma_scratch = (uint8_t)(bank ^ 0xa7u);
+        (void)s64_reu_store((uint8_t)bank, 0u, &dma_scratch, 1u);
+    }
+    DIAG_PROGRESS = 0x33u;
+    if (s64_reu_probe_banks() != banks) stop_with(DIAG_FAIL);
+    DIAG_PROGRESS = 0x34u;
+    for (bank = 0u; bank < banks; ++bank) {
+        (void)s64_reu_load((uint8_t)bank, 0u, &dma_scratch, 1u);
+        if (dma_scratch != (uint8_t)(bank ^ 0xa7u)) stop_with(DIAG_FAIL);
     }
 
     DIAG_BANKS_LO = (uint8_t)banks;
