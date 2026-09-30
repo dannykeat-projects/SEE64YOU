@@ -102,6 +102,22 @@ Run the current `see64you.prg` and check:
 
 Record keyboard behavior that differs from host tests instead of changing mappings by guesswork.
 
+## Planned reusable Ultimate test infrastructure
+
+The current VICE scripts remain valid, but new C64U-specific regression work should converge on reusable external tooling instead of adding one-off monitor scripts.
+
+Preferred evaluation order:
+
+1. `JC-000/c64-test-harness` for one test API spanning VICE and real Ultimate hardware. Initial See64You scenarios should cover startup, typing/navigation, settings entry, settings persistence, publisher/settings chaining and direct-publishing smoke tests.
+2. `barryw/sim6502` with the `u64sim` backend for deterministic CI coverage of UCI/Ultimate-DOS state. The first regression target is the exact transactional `SEE64YOU.CFG` save sequence.
+3. Real C64U hardware remains mandatory for firmware behavior, modern USB keyboard behavior, timing and any claim involving stock C64 Ultimate 1.1.
+
+Repeated REST uploads to C64 Ultimate firmware 1.1 must account for the firmware's known `/Temp` attachment leak. The hardware runner must perform safe cleanup equivalent to the protection documented by `c64-test-harness` rather than looping uploads until the firmware wedges.
+
+For the current settings-save failure, use an instrumented target build that reports each Ultimate-DOS step and final read-back. Do not keep adding special cases to the settings store until the failing command/status is identified on hardware.
+
+See `docs/ENGINEERING-REFERENCES.md` for source projects, licenses and adoption boundaries.
+
 ## 5. Ultimate-DOS and recovery test
 
 On a C64 Ultimate, verify:
