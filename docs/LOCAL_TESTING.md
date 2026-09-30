@@ -1,5 +1,33 @@
 # Local validation runbook
 
+## Real C64U settings I/O probe
+
+Build with `make -C client settings-io-probe` (also built by `c64u`).
+`client/build/settings-io-probe.prg` is included in `see64you-c64u-package`
+and separately published as `see64you-settings-io-probe`.
+
+Enable Command Interface, load the PRG on C64U, RUN, then press Y.
+The transaction writes only `/sd/S64IOTST.TMP` and `/sd/S64IOTST.CFG`.
+The real `SEE64YOU.CFG` and `SEE64YOU.CFG.TMP` are inspected by FILE_STAT
+only and are never opened, deleted, written or renamed.
+Each stage waits for a key: photograph failures, raw UCI/DOS status and
+reply bytes. Initial/final paths and the first failed stage are displayed.
+Missing files are acceptable at delete. Unsupported FILE_STAT is displayed
+as a failure. Failed CREATE_NEW/write/rename stops dependent work.
+Delete/close failures remain visible but do not prevent the next command,
+matching production's best-effort policy; final PASS requires all checks.
+
+Success writes a valid settings record to the diagnostic final file and checks
+exact read length, EOF, checksum and byte equality.
+Repeat with `S64IOTST.TMP` absent and with a deliberately stale test temp present.
+Write acknowledgement is separate from actual bytes verified by readback.
+
+Production save at synchronized PR head `d231a1d` deletes stale temp,
+uses CREATE_NEW `$06`, writes, closes, deletes old CFG and renames temp.
+The diagnostic includes the production private open implementation so its
+command bytes and status policy match exactly. Production source and chaining
+are unchanged. Real hardware validation remains pending.
+
 This runbook is the handover for the current integrated See64You branch.
 
 Use `integration-validation-2026-09-24` as the authoritative development/testing branch. The older stacked implementation PRs predate the integration branch and should not be merged into it again.

@@ -12,6 +12,7 @@ HTTPS_PROBE_TARGET := build/https-probe.prg
 DIRECT_SITE_PROBE_TARGET := build/direct-site-probe.prg
 DIRECT_AUTH_PROBE_TARGET := build/direct-auth-probe.prg
 HMAC_PROBE_TARGET := build/hmac-probe.prg
+SETTINGS_IO_PROBE_TARGET := build/settings-io-probe.prg
 REU_PROBE_TARGET := build/reu-probe.prg
 REU_BUFFER_PROBE_TARGET := build/reu-buffer-probe.prg
 REU_EDITOR_PROBE_TARGET := build/reu-editor-probe.prg
@@ -33,6 +34,7 @@ HTTPS_PROBE_SOURCES := diagnostics/https_probe.c src/platform/uci.c src/platform
 DIRECT_SITE_PROBE_SOURCES := diagnostics/direct_site_probe.c src/platform/uci.c src/platform/network.c src/charset.c
 DIRECT_AUTH_PROBE_SOURCES := diagnostics/direct_auth_probe.c src/charset.c src/crypto/sha256.c src/platform/uci.c src/platform/network.c src/platform/dos.c src/platform/turbo.c src/platform/reu.c src/platform/reu_dma.s src/publisher/direct_auth.c src/publisher/settings_exchange.c src/publisher/settings_store.c
 HMAC_PROBE_SOURCES := diagnostics/hmac_probe.c src/crypto/sha256.c
+SETTINGS_IO_PROBE_SOURCES := diagnostics/settings_io_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/publisher/settings_exchange.c src/platform/reu.c src/platform/reu_dma.s
 REU_PROBE_SOURCES := diagnostics/reu_probe.c src/platform/reu.c src/platform/reu_dma.s
 REU_BUFFER_PROBE_SOURCES := diagnostics/reu_buffer_probe.c src/buffer_reu.c src/platform/reu.c src/platform/reu_dma.s
 REU_EDITOR_PROBE_SOURCES := diagnostics/reu_editor_probe.c src/buffer_reu.c src/history_reu.c src/clipboard.c src/editor.c src/platform/reu.c src/platform/reu_dma.s
@@ -57,7 +59,14 @@ $(TARGET): $(SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -m build/see64you.map -o $@ $(SOURCES)
 
-c64u: $(C64U_TARGET) $(C64U_CHAIN_TARGET) $(C64U_SHORT_CHAIN_TARGET)
+c64u: $(C64U_TARGET) $(C64U_CHAIN_TARGET) $(C64U_SHORT_CHAIN_TARGET) $(SETTINGS_IO_PROBE_TARGET)
+
+.PHONY: settings-io-probe
+settings-io-probe: $(SETTINGS_IO_PROBE_TARGET)
+
+$(SETTINGS_IO_PROBE_TARGET): $(SETTINGS_IO_PROBE_SOURCES) src/publisher/settings_store.c
+	@mkdir -p build
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -m build/settings-io-probe.map -o $@ $(SETTINGS_IO_PROBE_SOURCES)
 
 $(C64U_TARGET): $(C64U_SOURCES)
 	@mkdir -p build

@@ -46,6 +46,9 @@ This is the authoritative project work queue. Keep completed work concise and mo
 
 ## Manual VICE/C64U checks
 
+- [x] Add standalone non-destructive `settings-io-probe.prg` to the C64U build/package: stepped raw DOS status/path/stat, explicit `/sd/`, production CREATE_NEW, checksum and exact readback using only `S64IOTST.TMP`/`S64IOTST.CFG`; real settings are stat-only and production save unchanged.
+- [ ] Run settings I/O probe on real C64U firmware 1.1; record first failure and raw status/data. Repeat with diagnostic temp absent and stale; real settings remain untouched.
+
 These player-facing checks are assigned to the user where practical; automated source and regression checks remain part of development.
 
 - [x] After incremental rendering: VICE test passed 2026-09-27 on `5da0c391`; continuous typing, mid-line insert/delete, held Backspace, newline edits and editing after scrolling/Page Up/Down were all reported working well, with no responsiveness issue reported.
