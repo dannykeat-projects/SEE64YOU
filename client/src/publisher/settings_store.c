@@ -251,17 +251,17 @@ static S64SettingsStoreResult save_named(
     }
 
     /*
-     * Current Ultimate firmware is more reliable when files are deleted and
-     * recreated with OPEN_FILE attribute $06 than when using CREATE_ALWAYS
-     * ($0e) and a temp-file rename. This matches the working pattern used by
-     * current C64U software such as UBoot64-v2.
+     * Preserve the existing settings until the replacement is fully written.
+     * Current Ultimate firmware is more reliable with OPEN_FILE $06
+     * (WRITE|CREATE_NEW) than CREATE_ALWAYS $0e, so create a fresh temp file,
+     * write and close it, then replace the destination.
      */
-    result = s64_dos_delete_file(dos, filename);
+    result = s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
     if (result != S64_DOS_OK && result != S64_DOS_NOT_FOUND) {
         return S64_SETTINGS_STORE_IO_ERROR;
     }
 
-    result = open_create_new(dos, filename);
+    result = open_create_new(dos, S64_SETTINGS_TEMP_FILENAME);
     if (result != S64_DOS_OK) {
         return S64_SETTINGS_STORE_IO_ERROR;
     }
@@ -273,6 +273,23 @@ static S64SettingsStoreResult save_named(
     );
     close_result = s64_dos_close(dos);
     if (result != S64_DOS_OK || close_result != S64_DOS_OK) {
+        (void)s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
+        return S64_SETTINGS_STORE_IO_ERROR;
+    }
+
+    result = s64_dos_delete_file(dos, filename);
+    if (result != S64_DOS_OK && result != S64_DOS_NOT_FOUND) {
+        (void)s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
+        return S64_SETTINGS_STORE_IO_ERROR;
+    }
+
+    result = s64_dos_rename_file(
+        dos,
+        S64_SETTINGS_TEMP_FILENAME,
+        filename
+    );
+    if (result != S64_DOS_OK) {
+        (void)s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
         return S64_SETTINGS_STORE_IO_ERROR;
     }
 
