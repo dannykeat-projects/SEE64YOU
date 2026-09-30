@@ -1,6 +1,6 @@
 # Standalone site
 
-The standalone backend is intended to be understandable by opening the folder in a file manager.
+The standalone backend is intentionally understandable by opening the folder in a file manager. It requires PHP but no database and no URL rewriting.
 
 ## Files
 
@@ -11,17 +11,17 @@ site/
   posts.php
   post.php
   api.php
+  pair.php
+  setup.php
   config.example.php
   lib/
   pages/
   posts/
 ```
 
-No database and no URL rewriting are required.
-
 ## Document files
 
-Documents use a tiny header followed by a blank line and source body:
+Documents are stored as ordinary readable source with a small guarded PHP prefix and metadata header. A typical logical document contains:
 
 ```
 Title: About
@@ -32,21 +32,42 @@ Date: 2026-09-23
 This page is stored as readable source text.
 ```
 
-The filename is the slug, for example `about.s64.php`. Each content file starts with a tiny PHP guard that immediately returns 404 when requested directly. This keeps drafts from being exposed merely because somebody guesses a filename, while the rest of the file remains ordinary readable text. Slugs are restricted to lowercase letters, numbers and hyphens.
+The filename is the slug, for example `about.s64.php`. Direct requests to content files return 404 through the guard so drafts are not exposed by guessing a filename. Slugs are restricted to lowercase letters, numbers and hyphens.
+
+Canonical See64You source remains the editing authority; HTML is rendered on request.
 
 ## Rendering
 
-The public site lists published content only.
+Public navigation/rendering includes published content only.
 
 Themes:
-- `plain`: semantic HTML with no CSS.
-- `simple`: small inline stylesheet.
+
+- `plain`: semantic HTML with no CSS;
+- `simple`: small inline stylesheet;
 - `c64`: small inline stylesheet inspired by a C64 text screen.
 
-CSS is enhancement only. Navigation and content remain ordinary HTML links/text.
+JavaScript is not required. Styled themes enforce readable foreground/background contrast.
+
+## Setup/security
+
+Browser setup is enabled only while an `ENABLE_SETUP` marker exists. Successful setup writes the local configuration and removes the marker.
+
+Normal browser/API authentication uses the site password to obtain short-lived bearer sessions. C64U direct publishing uses the separate key provisioned through HTTPS `pair.php`; the C64U does not send the normal site password over its raw HTTP connection.
+
+See `PROTOCOL.md` for authentication details.
 
 ## Deployment
 
-The final packaging workflow will produce a self-contained directory that can be uploaded to an arbitrary PHP-capable folder. Multiple installations can coexist because each installation keeps its own configuration and content.
+Build a self-contained upload directory with:
 
-Until the packaging task is complete, the checked-in `site/` tree itself is intended to remain self-contained.
+```sh
+php tools/package-site.php
+```
+
+Default output:
+
+`dist/see64you-site/`
+
+The package includes runtime files and starter content, excludes tests and local `config.php`, and adds a fresh `ENABLE_SETUP` marker. An alternate output directory may be supplied as the first argument.
+
+Each installation keeps its own configuration/content, so multiple installations can coexist on ordinary PHP hosting.

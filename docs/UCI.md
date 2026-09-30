@@ -1,125 +1,110 @@
 # C64U / UCI integration
 
-See64You treats C64U networking as a platform capability, not an editor dependency.
+See64You treats Ultimate features as platform capabilities. Editor and publisher code consume bounded platform interfaces rather than accessing UCI registers directly.
 
-## Current implementation
+## Hardware baseline
 
-`client/src/platform/uci.c` performs a bounded startup probe of the published Ultimate Command Interface:
+Real C64 Ultimate firmware 1.1 validation established:
 
-- UCI register block at `$DF1C-$DF1F`;
-- identification value check on `$DF1D`;
-- Ultimate-DOS Target `$01`;
-- Network Target `$03`;
-- HTTP Target `$06`;
-- target `IDENTIFY` command `$01`.
+- the documented UCI window at `$DF1C-$DF1F` works on the tested device;
+- Ultimate-DOS Target `$01` is available;
+- Network Target `$03` is available;
+- HTTP Target `$06` is absent;
+- Network `$03` resolved `example.com`, opened TCP port 80, sent raw HTTP and received `HTTP/1.1 200 OK`.
 
-If a networking target is absent, See64You remains an offline editor. The Network Target is especially important for stock Commodore C64 Ultimate firmware: it can open named TCP connections and exchange raw bytes without requiring the newer HTTP Target. VICE is expected to report these targets as unavailable unless a future emulator/simulation layer provides UCI.
+Some external projects report `$DE1C-$DE1F` in other Ultimate configurations. That remains a compatibility investigation; production should not abandon the hardware-proven mapping without evidence.
 
-The editor status bar shows:
+## Capability probing
 
-- `HTTP` when the HTTP target identifies successfully;
-- `OFF` otherwise.
+`client/src/platform/uci.c` probes the command interface and supported targets with bounded commands. A target is accepted only when its identity is convincing; the generic firmware reply `NO TARGET / 00,OK` is not a valid capability.
 
-This is capability detection only. It is not yet a claim that publishing has been validated on physical C64U hardware.
+Missing network facilities do not prevent offline editing.
 
-## Direct networking goal
+## Ultimate-DOS
 
-The preferred Standalone architecture is a direct connection from the C64U to the See64You site with no PC or relay machine required.
+Ultimate-DOS provides local C64U document and settings storage.
 
-The older Network Target `$03` is the compatibility foundation for that path. It exposes DNS-backed TCP open, read, write and close operations and is available on firmware lines that predate HTTP Target `$06`. See64You now contains a bounded `platform/network.c` transport plus a downloadable `network-probe.prg` that validates this behavior on real hardware before the publishing protocol is moved onto it.
+The transactional save path is:
 
-HTTP Target `$06`, introduced in firmware 3.15, remains useful when present because it offloads HTTP framing. It is not required for the direct Standalone goal.
+1. remove stale temp;
+2. create temp;
+3. write;
+4. close;
+5. remove old destination;
+6. rename temp to destination.
 
-Neither target currently provides a verified TLS session to a C64 application. Direct internet publishing therefore must not send the site password, bearer token or unpublished source in plaintext. The next layer is a narrow authenticated and encrypted Standalone protocol carried over raw HTTP/TCP to a server endpoint we control. Cryptographic primitives will be selected only after the real-hardware `$03` probe establishes the available transport and the publisher memory/performance budget is measured.
+Real firmware-1.1 testing exposed two details now covered by regression tests:
 
-The existing trusted-LAN relay remains a compatibility/fallback path, particularly for WordPress and arbitrary HTTPS destinations, rather than the intended default Standalone setup.
+- FILE_STAT filenames require explicit NUL termination;
+- status 82 is the firmware's normal file-not-found result for the relevant checks.
 
-### Direct Standalone security
+Normal publishing-settings Save and cold reload have passed on the real device.
 
-The live hardware/site probe established that the stock C64 Ultimate 1.1 can connect through Network Target `$03` directly to `danielkeating.org:80` and receive the Standalone API's `HTTP/1.1 200 OK` response. The normal Standalone path therefore does not need a PC relay.
+Each operation must establish the storage path it requires rather than relying on a prior browser/key-import side effect. Any remaining path-hardening work is tracked in `todo.md`.
 
-Because port 80 is plaintext, See64You does not send the publishing password or bearer token over that path. Direct C64U requests instead use a dedicated 256-bit per-site key provisioned through the HTTPS pairing page. Each protected request obtains a short-lived one-time server challenge and sends an HMAC-SHA256 signature covering the protocol version, challenge, HTTP method, exact request URI, and SHA-256 of the request body. The server consumes a challenge once a valid signature is accepted, preventing captured requests from being replayed.
+## Network Target `$03`
 
-The document body itself remains plaintext by design. Public publishing content generally does not benefit enough from confidentiality to justify a full encryption layer on the 6510, while authentication, integrity and replay protection prevent unauthorized publishing, modification and deletion. Encryption can remain an optional later extension for private drafts if there is a real use case.
+`client/src/platform/network.c` provides bounded DNS/TCP open, write, read and close operations.
 
-### Stock C64 Ultimate 1.1 hardware result
+The active Standalone publisher uses this target directly on firmware 1.1. It frames ordinary HTTP requests itself and authenticates protected operations with the challenge/HMAC protocol in `PROTOCOL.md`.
 
-Real hardware validation on 2026-09-29 established that stock Commodore C64 Ultimate firmware 1.1 exposes Ultimate-DOS `$01` and Network `$03` when Command Interface is enabled. The See64You `network-probe.prg` successfully resolved `example.com`, opened TCP port 80 through `$03`, wrote a raw HTTP request and received `HTTP/1.1 200 OK`.
+Direct mode intentionally:
 
-HTTP Target `$06` is not present on this firmware. The command-interface dispatcher answers an unregistered target's IDENTIFY command with data `NO TARGET` and status `00,OK`; the original generic probe treated any non-empty successful IDENTIFY reply as a capability and therefore produced a false positive. A follow-up hardware inspector showed `$06 IDENTIFY -> NO TARGET / 00,OK` and `$06 FREE_ALL $10 -> 21,UNKNOWN COMMAND`. The probe now rejects the generic `NO TARGET` identity.
+- does not send the site's normal password;
+- does not use a reusable bearer token;
+- requires explicit consent for plaintext `http://`;
+- rejects `https://` because raw Network `$03` is not TLS;
+- restores C64U turbo before network/REU I/O.
 
-## Planned layering
+The document body remains plaintext. Authentication/integrity/replay protection do not imply confidentiality.
 
-```
-editor
-  |
-publisher
-  |
-See64You secure direct protocol
-  |
-raw HTTP framing
-  |
-UCI Network Target $03
+## HTTP Target `$06`
 
-fallback / newer firmware:
-publisher -> UCI HTTP Target $06
-optional compatibility:
-publisher -> trusted-LAN relay
-```
+A bounded HTTP-target implementation remains available behind the publisher interface for compatible/newer firmware. Firmware 1.1 on the tested C64 Ultimate returns `NO TARGET` for IDENTIFY and `21,UNKNOWN COMMAND` for target commands, so `$06` is not used by the active package on that device.
 
-Only the platform layer may touch UCI registers. Publisher/editor code should consume normal operations such as login, list, get, save, delete and settings.
+Do not infer TLS from a target accepting an `https://` resource. TLS support requires an actual verified TLS path.
 
-## Text and binary command parts
+## Trusted-LAN relay
 
-C64 editor/UI strings are native PETSCII, while the Ultimate HTTP and DOS targets consume ordinary byte-oriented text. The UCI command-part API therefore marks text parts explicitly with `S64_UCI_PART_NATIVE_TEXT`. Those parts are preflighted and converted byte-by-byte to 7-bit ASCII while they are written to the hardware queue; binary command fields and payloads are transferred unchanged. Textual UCI status and HTTP string-query responses are converted back to the platform-native representation before higher layers inspect them.
+The relay is a compatibility path for HTTPS-required origins and WordPress. The C64U speaks authenticated HTTP to a controlled LAN service; the relay forwards only approved requests to one fixed HTTPS origin with certificate verification.
 
-This boundary is intentionally streaming. It avoids an additional 896-byte command staging buffer on the C64 and prevents PETSCII from leaking into URLs, HTTP headers, form values or Ultimate DOS filenames.
+It is not a general proxy and is not the default Standalone requirement.
 
-## Validation gates
+## Program chaining
 
-Before calling C64U publishing complete:
+The C64U application intentionally uses separate editor/publisher/settings PRGs to preserve memory headroom and carries state through REU.
 
-1. Compile the UCI path with cc65.
-2. Run under VICE and confirm missing UCI fails cleanly.
-3. Test capability detection on target C64U firmware.
-4. Run `network-probe.prg` and verify DNS + TCP + raw HTTP through Network Target `$03`.
-5. Measure the secure direct-protocol implementation on the C64U before making it the Standalone default.
-6. Exercise authenticated direct Standalone access without transmitting reusable credentials in plaintext.
-7. Save and retrieve a draft.
-8. Publish/update/delete a test document.
-9. Keep the relay and HTTP Target paths as compatibility fallbacks.
-10. Repeat WordPress validation later.
+The hardware-proven chain currently uses the C64U SD-backed software IEC drive on device 8 with `/sd/` selected and no conflicting hardware drive 8. FAT files are:
 
-## External implementation evidence
+- `S64EDIT.PRG`
+- `S64PUB.PRG`
+- `S64CFG.PRG`
 
-In addition to the official Ultimate documentation, the following projects are useful for validating assumptions:
+Firmware-1.1 IEC names omit the `.PRG` suffix and use unshifted PETSCII. Editor -> publisher -> settings -> publisher -> editor has completed successfully on real hardware.
 
-- `barryw/sim6502`: its `u64sim` backend models Ultimate-DOS target state, file open/read/write/close, directory state, stat/delete/rename and common status codes. It is suitable as an external CI tool, not as shipping code.
-- `JC-000/c64-test-harness`: provides a common VICE/real-Ultimate test transport and explicitly supports C64 Ultimate firmware 1.x.
-- `xlar54/ultimateii-dos-lib`: mature cc65 UCI/DOS/network implementation. GPL-3.0, so use as behavioral/reference evidence unless licensing intentionally changes.
-- `c64uploader/c64uploader`: hardware-tested UCI implementation reports that some configurations expose the active UCI register window at $DE1C-$DE1F rather than $DF1C-$DF1F. Treat this as a compatibility case to investigate, not proof that the current known-working mapping is wrong.
-- `sandlbn/ultimate64-manager`: MIT host-side Ultimate REST/FTP/memory implementation with useful real-firmware behavior notes.
+A future Ultimate-DOS-aware loader can remove the software-IEC configuration dependency while retaining the same program boundaries and REU handoff. That implementation task belongs in `todo.md`.
 
-The official Ultimate-DOS documentation says each DOS target owns independent directory/file state. See64You should therefore never assume a directory selected by another target or previous program is still active.
+## REU and timing
 
-### Current settings-persistence incident
+Publisher/settings companions may start with live document/history data already present in REU. Capacity probing must therefore preserve every byte it touches. The current probe is covered by a VICE capacity/preservation matrix from 128 KiB through 16 MiB and by exact real-hardware document upload.
 
-On stock C64 Ultimate firmware 1.1, direct-key import eventually worked after explicitly entering the SD filesystem path, but saving `SEE64YOU.CFG` still reports `SAVE FAILED - SETTINGS NOT WRITTEN`.
+UCI/REU/network operations are timing-sensitive. Turbo acceleration is limited to measured CPU-only regions such as SHA/HMAC unless hardware evidence supports a wider scope.
 
-The next step is diagnostic rather than another guessed workaround. The settings-I/O probe must capture current path, open/create, write, close, stat, delete, rename and final read-back separately. Once the failing stage is known, the production settings store should make its path and file-state preconditions explicit and test that sequence under `u64sim` plus real hardware.
+## Test infrastructure
 
-The current transactional temp-file design remains desirable because it avoids destroying the previous settings until replacement data has been written. It should only be simplified if target-hardware evidence shows that the firmware cannot reliably support the required delete/rename sequence.
+Host mocks and VICE cover logic but cannot establish firmware behaviour. Planned reusable external lanes are tracked in `todo.md`:
 
-### C64U program chaining
+- `barryw/sim6502` / `u64sim` for deterministic UCI/Ultimate-DOS state-machine tests;
+- `JC-000/c64-test-harness` for common VICE/real-Ultimate smoke tests;
+- a developer package deploy/run command for normal hardware cycles.
 
-The existing short PRG aliases are valid CBM-DOS names, but the current KERNAL/IEC chain path cannot load programs that exist only on the Ultimate SD filesystem. The preferred future C64U path is an Ultimate-DOS-aware loader/trampoline, preserving the existing REU handoff and separate program memory budgets. This requires an explicit safe RAM reservation and real-hardware multi-transition testing.
-
-For the broader source/licensing/adoption record, see `docs/ENGINEERING-REFERENCES.md`.
-
+Real C64U remains the final gate for firmware, timing and modern USB keyboard claims.
 
 ## References
 
 - https://1541u-documentation.readthedocs.io/en/latest/uci/core_uci_architecture.html
 - https://1541u-documentation.readthedocs.io/en/latest/uci/network_target.html
 - https://1541u-documentation.readthedocs.io/en/latest/uci/http_target.html
-- https://1541u-documentation.readthedocs.io/en/latest/howto/release_3.15.html
+- https://github.com/bdgscotland/c64-kb
+- https://github.com/barryw/sim6502
+- https://github.com/JC-000/c64-test-harness

@@ -1,6 +1,6 @@
 # See64You TODO
 
-This is the authoritative project work queue. Keep completed work concise and move implementation detail into code/docs rather than growing this file indefinitely.
+This is the authoritative **live** project work queue. Keep completed work concise and move durable implementation detail into the relevant canonical docs. Stable docs describe implemented behaviour; transient incidents and next-step planning belong here until resolved.
 
 ## P0 - Foundation
 

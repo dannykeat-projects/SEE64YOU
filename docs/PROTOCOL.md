@@ -1,61 +1,102 @@
 # Publishing protocol
 
-The standalone backend defines the reference See64You document operations. The WordPress adapter should expose equivalent semantics where WordPress permits them.
+The standalone backend defines the reference See64You document operations. The WordPress adapter exposes equivalent semantics where WordPress permits them.
 
-## Text encoding
+## Canonical wire format
 
-The `SEE64YOU/1` canonical document wire format uses 7-bit ASCII text with LF line endings. The C64 client keeps editor text in native PETSCII and converts at the document read/write boundary; bytes that cannot be represented by the current source-text subset are rejected rather than silently corrupted. A future protocol revision may define a wider character repertoire after display/editing behaviour is specified.
+`SEE64YOU/1` uses 7-bit ASCII text with LF line endings. The C64 editor stores native PETSCII and converts at the document boundary. Unrepresentable characters are rejected rather than silently changed.
 
-## Document body markup
+The body uses **See64You Markup v1**, defined in [MARKUP.md](MARKUP.md). Unsupported constructs remain literal source text.
 
-The body syntax for protocol v1 is **See64You Markup v1**, defined in [MARKUP.md](MARKUP.md). The supported formatting subset is deliberately frozen and smaller than Markdown. Unsupported constructs remain literal source text; backends must not silently assign them new v1 meaning.
+For streamed document upload/download the media type is:
+
+`application/x-see64you`
 
 ## Authentication
 
-Standalone:
+The standalone site supports two authentication families because normal web clients and the stock C64U direct publisher have different transport constraints.
+
+### Browser / legacy bearer session
 
 `POST api.php?action=login`
 
-Fields:
+Field:
+
 - `password`
 
-Success returns JSON containing a bearer token and expiry. The C64U standalone publisher stores the returned token and expiry only; it does not retain the submitted password. Subsequent protected calls send:
+Success returns a short-lived bearer token. Protected requests send:
 
 `Authorization: Bearer <token>`
 
-Normal browser/API clients should use HTTPS outside trusted local testing.
+Passwords and bearer tokens are reusable credentials and must use HTTPS outside controlled local testing. This mode remains useful for browsers, the relay and compatibility transports.
 
-### C64U transport note
+### Direct C64U challenge/HMAC
 
-The current upstream UCI HTTP target must not be treated as TLS merely because it accepts an `https://` resource string. Rechecking upstream `master` shows the header parser selecting port 443 and recording a secure flag, while the exchange path still opens a plain TCP socket and sends the HTTP request directly with no TLS handshake. See64You therefore rejects direct `https://` login until secure target behaviour is verified, and requires explicit opt-in before sending credentials over plaintext HTTP.
+Stock C64 Ultimate firmware 1.1 uses Network Target `$03` and raw HTTP rather than the unavailable HTTP Target `$06`.
 
-For real remote publishing, use the trusted local relay in `relay/` or future firmware with verified TLS support. The relay accepts the normal See64You path/query over LAN HTTP, requires its own 64-hex-character relay key, and forwards the request to one fixed HTTPS upstream with certificate verification. When relay authentication is configured, the C64 client adds:
+A site-specific 256-bit direct key is provisioned through `pair.php`, which is HTTPS-only. The normal site password is used only on that HTTPS pairing page and is never sent by the C64U direct publisher.
+
+Before each protected direct request:
+
+`GET api.php?action=challenge`
+
+returns a short-lived 16-byte challenge encoded as 32 hexadecimal characters.
+
+The protected request includes:
+
+```
+X-See64You-Challenge: <32-hex challenge>
+X-See64You-Signature: <64-hex HMAC-SHA256>
+```
+
+The HMAC input is the UTF-8/ASCII concatenation:
+
+```
+see64you-direct/1
+<challenge>
+<METHOD>
+<exact request URI>
+<SHA-256(body) as 64 lowercase hex characters>
+```
+
+using newline separators and the 32-byte direct key. The server verifies the method, exact URI and body hash and consumes an accepted challenge so a captured signed request cannot be replayed.
+
+Direct mode provides request authentication, integrity and replay protection. It does not encrypt the document body. The current C64U transport therefore requires an explicit opt-in for `http://` and rejects `https://` rather than pretending raw TCP is TLS.
+
+### Trusted-LAN relay
+
+The optional relay accepts:
 
 `X-See64You-Relay-Key: <64-hex-key>`
 
-This key authenticates access to the relay only; it does not replace the standalone bearer token or WordPress Authorization header and is never forwarded to the upstream site.
+This key authenticates access to the relay only. It is never forwarded upstream and does not replace the upstream bearer token or WordPress Authorization header. The relay forwards only configured paths to one fixed HTTPS origin.
 
-Until the standalone site is configured, no bearer token is accepted for protected operations. An empty or missing token secret must never act as a usable signing key.
+### WordPress
 
-WordPress uses WordPress-native REST authentication. Application Passwords are the preferred initial mechanism. The C64U client accepts the WordPress username plus an Application Password, strips the display-only spaces from the Application Password, and stores only the resulting Basic Authorization header for the active session. A protected `GET /wp-json/see64you/v1/connection` endpoint verifies both authentication and edit capability before document operations are enabled.
+WordPress uses WordPress-native REST authentication. Application Passwords are the preferred initial mechanism. The client stores only the derived Basic Authorization header for the active session; it does not store the user's normal WordPress password.
 
-## Operations
+## Standalone operations
 
 ### Status
 
 `GET api.php?action=status`
 
-Unauthenticated. Returns backend/protocol information without secrets.
+Unauthenticated backend/protocol information.
+
+### Challenge
+
+`GET api.php?action=challenge`
+
+Unauthenticated challenge issuance for direct C64U authentication. A challenge is useful only when direct authentication is configured.
 
 ### Settings
 
 `GET api.php?action=settings`
 
-Returns the editable public site settings after authentication.
-
 `POST api.php?action=settings`
 
-Accepts any supported subset of:
+Protected. Editable public settings include:
+
 - `site_title`
 - `theme`: `plain`, `simple` or `c64`
 - `text_color`
@@ -63,7 +104,7 @@ Accepts any supported subset of:
 - `link_color`
 - `visited_color`
 
-Colours use six-digit CSS hex form such as `#b0b0ff`. For the styled `simple` and `c64` themes, body text, link and visited-link colours must each maintain at least 4.5:1 contrast against the configured background; low-contrast updates are rejected with `insufficient_contrast`. The `plain` theme relies on browser defaults and does not apply these custom colours. Authentication secrets are never accepted or returned by this operation.
+Styled themes enforce at least 4.5:1 foreground/background contrast for body, link and visited-link colours.
 
 ### List
 
@@ -71,78 +112,78 @@ Colours use six-digit CSS hex form such as `#b0b0ff`. For the styled `simple` an
 
 `GET api.php?action=list&type=post`
 
-Requires authentication.
-
-The response includes `count` as well as the `documents` array. The C64U client uses the firmware's structured response-body queries to read `count` and then one metadata record at a time, avoiding a second large list buffer.
+Protected. Returns `count` plus document metadata.
 
 ### Get
 
 `GET api.php?action=get&type=post&slug=hello-world`
 
-Requires authentication.
+Protected. The C64 path can request canonical streamed source so the body is decoded directly into the existing document buffer.
 
 ### Save
 
 `POST api.php?action=save`
 
-Form or JSON fields:
-- `type`: `page` or `post`
+Fields/source provide:
+
+- `type`
 - `slug`
 - `title`
 - `body`
-- `status`: `draft` or `published`
-- `date` (optional)
-- `order` (optional)
+- `status`
+- optional `date`
+- optional `order`
 
-Requires authentication.
-
-For memory-constrained clients, append `ack=1` to request a compact response:
-
-`POST api.php?action=save&ack=1`
-
-This returns only `ok`, `slug` and `status` rather than echoing the complete saved document. It is particularly useful when the request body uses `application/x-see64you`.
+Protected. Memory-constrained clients append `ack=1` for a compact acknowledgement rather than echoing the full saved document.
 
 ### Delete
 
 `POST api.php?action=delete`
 
-Fields:
+Protected. Fields:
+
 - `type`
 - `slug`
 
-Requires authentication.
+### Draft preview
+
+Authenticated clients can request a short-lived document-specific preview token. Draft preview responses are no-store/noindex/no-referrer.
+
+### Backup
+
+`GET api.php?action=backup`
+
+Protected. Returns public settings plus canonical page/post source, including drafts, but excludes authentication secrets.
 
 ## WordPress document operations
 
-The WordPress adapter exposes equivalent page/post semantics under `/wp-json/see64you/v1`.
+The WordPress adapter exposes equivalent semantics under `/wp-json/see64you/v1`:
 
-- `GET /connection`: authenticated capability/permission check.
-- `GET /documents?type=post&managed=1`: list See64You-managed posts that the authenticated WordPress user can edit and that fit current C64 metadata/body limits. The response includes `count`.
-- `GET /documents/<id>?chunks=1`: open a document. Source is returned as `base64-chunks`, split from 180 source bytes per chunk so each encoded string remains within the UCI structured-string limit.
-- `POST /documents?ack=1`: create from an `application/x-see64you` wire document.
-- `PATCH /documents/<id>?ack=1`: update the same way. Setting See64You status to `draft` unpublishes a previously published WordPress document.
-- `DELETE /documents/<id>`: move the document to WordPress Trash.
+- `GET /connection` — permission/capability check.
+- `GET /documents?type=post&managed=1` — list editable managed documents.
+- `GET /documents/<id>?chunks=1` — open source in bounded base64 chunks.
+- `POST /documents?ack=1` — create from canonical wire source.
+- `PATCH /documents/<id>?ack=1` — update; status `draft` unpublishes.
+- `DELETE /documents/<id>` — move to WordPress Trash.
 
-WordPress save requests preserve the requested canonical slug exactly. If WordPress would need to change it to resolve a collision, the adapter returns a slug-conflict error instead of silently changing the document identity.
-
-The C64 client does not buffer a whole WordPress source response. It queries bounded metadata and one base64 source chunk at a time, decodes directly into the existing gap buffer, and clears partial replacement data if a load fails after it has started.
+Canonical slugs are never silently changed to resolve WordPress collisions; the adapter returns a conflict instead.
 
 ## Response shape
 
-Responses are small JSON objects:
+Typical success:
 
 ```json
 {"ok":true,"document":{...}}
 ```
 
-Errors:
+Typical error:
 
 ```json
 {"ok":false,"error":"invalid_slug"}
 ```
 
-The C64 client should map stable error identifiers to short user-facing messages.
+Clients map stable error identifiers to short user-facing messages.
 
 ## Versioning
 
-The initial protocol identifier is `see64you/1`. Additive fields may be introduced without changing it. Incompatible operation/meaning changes require a new protocol version.
+The document protocol identifier is `see64you/1`. Direct request authentication is versioned independently as `see64you-direct/1`. Additive fields may be introduced compatibly; incompatible semantic changes require a new version.

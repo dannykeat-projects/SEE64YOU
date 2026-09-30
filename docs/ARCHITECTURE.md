@@ -1,152 +1,117 @@
 # Architecture
 
-## Components
+See64You separates editing, local storage and publishing so the editor remains useful offline and backend-specific code does not own editor state.
 
-See64You deliberately separates editing from publishing.
+## Runtime components
 
 ```
-+----------------------------+
-| C64/C64U editor            |
-|                            |
-| document <-> editor <-> UI |
-|       \                    |
-|        publisher interface |
-+---------------|------------+
-                |
-          HTTP transport
-          /            \
-+----------------+  +------------------+
-| Standalone PHP |  | WordPress plugin |
-| flat-file CMS  |  | REST adapter     |
-+----------------+  +------------------+
+C64/C64U editor
+    |
+    | canonical source document
+    v
+publisher interface
+   /              \
+Standalone PHP    WordPress adapter
 ```
 
-The editor remains useful without a network connection. A publisher receives and returns documents; it does not own editor state.
+The conventional C64 build is a single editor runtime. The C64U package keeps the memory-heavy application split across:
+
+- `SEE64YOU-C64U.PRG` / `S64EDIT.PRG` — editor;
+- `S64PUB.PRG` — publisher;
+- `S64CFG.PRG` — publishing settings.
+
+The split is intentional: each program keeps an independent conventional-RAM budget. REU handoff preserves the document, editor/history metadata and publishing settings across transitions.
 
 ## Canonical document
 
-The canonical editable representation is source text plus metadata:
+The editable source is metadata plus body text:
 
-- type: `page` or `post`
-- slug
-- title
-- status: initially `draft` or `published`
-- date
-- order (primarily pages)
-- body source
+- type: `page` or `post`;
+- slug;
+- title;
+- status: `draft` or `published`;
+- date;
+- order;
+- body source.
 
-Generated HTML is disposable output. Backends must retain the source exactly enough for a later edit.
+Generated HTML is disposable. Backends retain enough canonical source to reopen and edit exactly.
 
-## Client
+The `SEE64YOU/1` wire representation is streamed so local saves, network publishing and remote opens do not require a second document-sized conventional-RAM buffer.
 
-The first editor uses a fixed-capacity gap buffer. This gives cheap insertion/deletion around the cursor without repeated whole-document shifts. The initial capacity is deliberately modest so the first build can work in normal C64 address space. REU storage can later extend capacity behind the same document/editor interfaces.
+## Editor/storage model
 
-The UI baseline is 40x25:
-- row 0: menu/identity bar
-- rows 1-23: editor viewport
-- row 24: status
+The editor uses a gap-buffer interface.
 
-The conventional-C64 runtime is linked conservatively: implemented feature cores that have no active UI path yet may live in separate translation units and remain host/cc65-module tested without being linked into the shipping PRG. This prevents dormant functionality from consuming scarce base RAM. Formatting currently follows this pattern in `editor_format.c`; splitting it restored the software stack from 512 bytes to 1 KiB while preserving formatting regression coverage.
+The conventional-C64 build keeps a bounded document, clipboard and undo transaction in normal RAM. The C64U build uses REU-backed storage for a substantially larger document, clipboard and 16-level undo/redo history while preserving the same editor interfaces. CI enforces conventional-RAM headroom for both builds.
 
-C64U builds retain the same explicit memory-headroom gate rather than treating REU capacity as conventional address space. If future transition-only code makes that gate difficult to hold, a supported cc65 escape hatch is a custom linker segment with distinct load/run addresses: ship the block in ordinary PRG space, copy it to a known transient execution area only for the transition, and keep it out of the resident editor footprint. This is a contingency, not the default architecture; prefer the current editor/publisher module boundary while it fits and remains simpler.
+REU ownership is defined centrally in `client/src/platform/reu_layout.h`. Capacity probing must preserve occupied REU bytes because publisher/settings companions can start after document state already exists.
 
-The first implementation prioritises correctness and a runnable shell. Incremental rendering and selection follow after baseline VICE validation.
+## Local C64U files
 
-## Transport
+Local New/Open/Save/Save As use Ultimate-DOS. Canonical source is streamed directly between storage and the editor buffer.
 
-Publishing operations depend on a narrow transport layer rather than direct UCI calls scattered through UI code. The C64U implementation uses the firmware 3.15+ UCI HTTP target ($06).
+Saves are transactional:
 
-The low-level UCI executor:
-- enforces the documented 896-byte command limit;
-- writes commands as small caller-owned parts, avoiding a second 896-byte staging buffer;
-- drains response/status queues and acknowledges every returned block;
-- streams multi-block response data through a bounded callback buffer;
-- aborts timed-out commands so a failed request does not intentionally leave a command in flight.
+1. remove a stale temporary file;
+2. create/write/close a new temporary file;
+3. replace the destination through delete/rename.
 
-The HTTP wrapper uses reusable firmware header/body handles and raw exchanges. Binary request bodies are split into 893-byte payload chunks (three bytes are reserved for target, command and body handle), while response bodies can be consumed incrementally. This is important for the bounded editor document and avoids requiring a second document-sized network buffer.
+A failed write does not intentionally truncate the previous destination. Save As checks for an existing file before overwrite.
 
-HTTP handles survive a C64 reset in the Ultimate firmware, so the publishing session issues HTTP FREE ALL before allocating its first handles.
+Publishing settings use the same transactional design in `S64CFG.PRG`. The helper boundary keeps DOS/settings UI out of the memory-tight publisher.
 
-The first standalone publisher operation is login. It lets the firmware build a URL-encoded `password` body, accepts the raw JSON response into a small bounded scratch buffer, stores only the returned bearer token and expiry, and frees request handles on success or failure. The normal site password is never retained in the session structure.
+## Publishing transports
 
-The client keeps one active publishing destination in a fixed-buffer profile. The profile stores only backend type, normalized base URL and the explicit insecure-LAN opt-in; the relay key is held separately from backend credentials. Endpoint URLs are constructed centrally with bounded output buffers. The active shipping C64U publisher is currently Standalone-first; WordPress client modules remain implemented and tested in source but are not linked into the resident publisher until the rest of the C64U path is working end-to-end.
+Publisher/editor code consumes narrow operations and does not touch UCI registers directly.
 
-A separate small publishing-state structure tracks connection state and the current remote identity. For Standalone the identity is the canonical slug; for WordPress it is the numeric post ID. This lets the future UI distinguish create/update/delete safely. In particular, changing a Standalone slug after opening a remote document no longer qualifies as an in-place update, preventing an accidental duplicate file from masquerading as a rename.
+### Direct Standalone transport
 
-The client document representation owns only bounded metadata and a pointer to the existing gap buffer. Its wire serializer emits metadata and body incrementally, so publishing a document does not require a second document-sized body allocation. Standalone Save uses that serializer with the compact `ack=1` API response; Delete uses the firmware's URL-encoded body builder. Both reuse the same bearer-auth and transport-safety path as login.
+The active stock-firmware path uses Ultimate Network Target `$03` for DNS-backed TCP and raw HTTP. Protected requests use a dedicated 256-bit direct key, a one-time server challenge and HMAC-SHA256 covering protocol version, challenge, HTTP method, exact request URI and request-body SHA-256.
 
-Standalone List uses the HTTP target's parsed response-body object and queries one result at a time. Results are delivered through a callback, so the client can render or page a large list without storing the whole array in C64 RAM. Open uses the raw `application/x-see64you` response and a streamed wire parser that writes body bytes directly into the existing gap buffer. Invalid, oversized or interrupted opens clear the partial destination rather than exposing truncated content as a valid document.
+This provides authentication, integrity and replay protection without sending the normal site password or a reusable bearer token over the C64U connection. It does **not** provide confidentiality: source bodies travel as plaintext HTTP and require explicit user opt-in.
 
-### Direct stock-firmware C64U transport
+SHA/HMAC may temporarily use C64U turbo for CPU work, with the prior turbo state restored before REU/network I/O.
 
-For the Standalone backend, the preferred end state is C64U-to-site publishing with no relay machine. The Ultimate Network Target `$03` provides the minimum portable transport: DNS-backed TCP open plus bounded socket read/write/close. See64You now probes this target separately and keeps its raw socket wrapper behind `platform/network.c`.
+### HTTP Target compatibility path
 
-A dedicated `network-probe.prg` performs a harmless HTTP/1.0 request to prove the real firmware path before any publishing behavior depends on it. The first hardware target is the user's stock Commodore C64 Ultimate 1.1 firmware.
+The bounded UCI HTTP Target `$06` implementation remains behind the publisher interface for compatible/newer firmware. Stock C64 Ultimate firmware 1.1 does not expose that target, so it is not the active publisher path.
 
-Raw TCP does not itself make internet publishing safe. The future direct Standalone protocol must authenticate requests, prevent replay and protect unpublished source/credentials in transit using established cryptographic primitives that fit the measured C64U publisher budget. The site endpoint can then terminate that application-layer security directly, while normal browsers continue to use HTTPS.
+### Trusted-LAN relay
 
-The trusted-LAN relay and HTTP Target `$06` remain supported compatibility paths. They are not the intended default requirement for Standalone publishing once the secure direct path is validated.
+The optional relay accepts authenticated HTTP from a controlled LAN and forwards only approved paths to one fixed HTTPS origin with normal certificate verification. It is a compatibility path for HTTPS-required destinations and WordPress, not a general proxy.
 
-### C64U transport security
+## Publisher state
 
-Do not infer TLS support from the HTTP target accepting an `https://` resource string. This was rechecked against current upstream `master` during development: `HttpHeaderSlot` recognises `https://`, sets port 443 and records a `secure` flag, but `HttpTarget::cmd_exchange` still passes only host/port to `HttpRequest::connect_to_server`. That function opens a normal `AF_INET/SOCK_STREAM` socket and `send_request` writes the HTTP request bytes directly. No TLS handshake is present in that path.
+The publisher keeps remote-binding state separate from the document. A Standalone binding is identified by document type and canonical slug; WordPress uses the numeric post ID. This prevents a changed slug from silently being treated as an update to the previously opened remote document.
 
-Accordingly:
-- See64You rejects `https://` direct-login attempts as unsupported instead of silently sending plaintext to port 443;
-- plaintext `http://` or bare-host login is disabled unless the caller explicitly opts into insecure transport;
-- insecure direct login is intended only for controlled trusted-LAN testing or the local compatibility relay;
-- future direct HTTPS support must be verified on target hardware before this safety gate is relaxed.
+Remote source is streamed directly into the existing document buffer. Invalid, oversized or interrupted opens do not expose partial source as a successful document.
 
-### Trusted-LAN HTTPS relay
-
-The optional `relay/` service provides the secure remote path without making the C64 client a TLS implementation. The C64U sends HTTP to a relay on a controlled LAN. Every relay request may carry a separate 32-byte random relay key in `X-See64You-Relay-Key`; the site bearer token or WordPress Authorization header remains independent. The relay then forwards only approved paths to one configured HTTPS origin using the host Python TLS stack with certificate verification enabled.
-
-The relay is deliberately constrained rather than acting as a general proxy:
-- the upstream origin is fixed and must use HTTPS;
-- redirects are not followed;
-- optional client IP/CIDR restrictions can limit the LAN source;
-- only configured endpoint prefixes are exposed;
-- relay authentication, request/response size limits and header filtering are enforced;
-- relay credentials, Host and Cookie headers are never forwarded upstream.
-
-This protects the internet-facing leg, but the C64U-to-relay leg remains plaintext. It therefore belongs only on a trusted LAN, not public Wi-Fi or another untrusted local network.
-
-Persistent publishing configuration is handled by a separate C64U helper program, `S64CFG.PRG`. The resident publisher and helper exchange a bounded, checksummed settings record through a dedicated REU block. The helper owns Ultimate-DOS file I/O and persists the active destination URL, explicit plain-HTTP consent and relay key in `SEE64YOU.CFG`. RUN/STOP restores the original in-memory settings; Save writes through a temporary file before replacement. A direct persistence prototype inside the publisher was rejected because it fell below the 1 KiB memory reserve, so this helper boundary is intentional rather than a temporary workaround.
-
-Target hardware still needs to validate the exact UCI behaviour and keyboard/network integration. No transport is required for local document editing.
-
-## Local C64U storage
-
-Local New/Open/Save/Save As use the Ultimate-DOS UCI target rather than depending on a mounted disk image. Open streams the canonical See64You wire representation directly into the existing document buffer. A failed parse or interrupted read clears the partial destination, so truncated source cannot appear to be a successfully opened document.
-
-Reads use the shared UCI executor, which acknowledges the Ultimate's streamed response blocks. Saves serialize incrementally to a temporary file, close it, then replace the destination through delete/rename operations. A failed write removes the temporary file without truncating the existing destination; a failed final rename leaves the complete temporary file recoverable. Writes are split into bounded payloads by the Ultimate-DOS layer and do not allocate a second document-sized buffer. Save As checks for an existing destination before asking the user to overwrite it.
-
-New, Open and Exit protect dirty documents with an explicit confirmation. A new document derives default title and slug metadata from its first Save As filename. The capability probe reports Ultimate-DOS separately from the HTTP target so File commands degrade cleanly when direct filesystem access is unavailable. Directory browsing remains deferred until its per-entry packet-boundary behavior is handled without flattening entries in the generic UCI stream.
-
-## Standalone web backend
+## Standalone backend
 
 The standalone site:
-- requires PHP but no database;
-- stores pages under `pages/`;
-- stores posts under `posts/`;
-- stores canonical See64You document files rather than generated HTML;
-- renders HTML on request;
-- exposes an authenticated API for the C64 client.
 
-Public rendering is intentionally server-side and JavaScript-free.
+- requires PHP but no database;
+- stores ordinary source files under `pages/` and `posts/`;
+- renders HTML server-side;
+- exposes authenticated page/post CRUD, settings, backup and draft-preview operations;
+- keeps the public site JavaScript-free.
+
+See `PROTOCOL.md` and `SITE.md`.
 
 ## WordPress backend
 
-The WordPress plugin exposes a deliberately small document API. WordPress remains responsible for accounts, permissions and normal REST authentication. See64You source is stored in post metadata while generated HTML is stored as the post content.
+The WordPress plugin maps the same document semantics onto WordPress REST operations. It uses WordPress-native permissions and Application Passwords, stores See64You source in post metadata and treats generated HTML as derived output.
 
-The C64 client uses a WordPress Application Password rather than the user's normal account password. Configuration converts `username:application-password` directly into a bounded Basic Authorization header without retaining a separate plaintext credential pair. The plugin's authenticated `/connection` endpoint is used as the initial capability/permission test. Remote WordPress access should use the trusted-LAN relay until direct C64U TLS is verified.
-
-WordPress document operations deliberately avoid returning an entire source body as one structured string. Lists are queried one item at a time. Open returns source as base64 strings representing 180 raw source bytes each; the client validates the advertised chunk count/length and decodes directly into the existing gap buffer. Create/update use the same streamed `application/x-see64you` wire representation as the standalone backend, while compact acknowledgements return only bounded identifiers/status. Updating a published document with status `draft` is the unpublish operation.
-
-The adapter filters list results through WordPress's per-post `edit_post` capability rather than relying only on broad post-type capabilities. Managed C64 lists also omit documents that have become incompatible with current C64 metadata/body limits. Canonical slugs are never silently changed for WordPress uniqueness: a collision is returned to the editor instead.
+WordPress support remains isolated from the editor and Standalone implementation. Service/hardware validation is tracked in `todo.md`.
 
 ## Security boundaries
 
-The C64 client cannot make an untrusted server safe. Backends therefore validate document type, slug and authentication independently.
+The server validates authentication, type, slug and operation independently of the client.
 
-Standalone-site login returns a short-lived signed token. Ordinary web clients should use HTTPS. On the C64U path, credentials, bearer tokens and unpublished source must not cross an untrusted network in plaintext. Until the direct authenticated/encrypted protocol is implemented and validated, remote publishing still requires the trusted relay or another verified secure transport.
+- Normal browser/API bearer-token use requires HTTPS.
+- Direct firmware-1.1 publishing uses the dedicated challenge/HMAC protocol and explicit plaintext-HTTP consent.
+- The direct transport does not claim source confidentiality.
+- The relay is trusted-LAN-only and never becomes an open proxy.
+- HTTPS support must never be inferred from accepting an `https://` string; it must be demonstrated by an actual TLS implementation.
+
+Current unresolved engineering and validation work belongs in `todo.md`, not this architecture document.
