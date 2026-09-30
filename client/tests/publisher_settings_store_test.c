@@ -21,6 +21,45 @@ static uint16_t read_offset;
 static uint8_t read_open;
 static uint8_t write_open;
 static uint8_t fail_write;
+static uint8_t create_new_opened;
+
+static S64UciResult mock_execute(
+    const S64UciCommandPart* parts,
+    uint8_t part_count,
+    S64UciReply* reply
+)
+{
+    const char* filename;
+    uint16_t i;
+    uint16_t length;
+
+    if (parts == 0 || part_count != 2u
+        || parts[0].length != 3u
+        || parts[0].data[0] != S64_DOS_TARGET_PRIMARY
+        || parts[0].data[1] != 0x02u
+        || parts[0].data[2] != 0x06u) {
+        return S64_UCI_PROTOCOL_ERROR;
+    }
+
+    filename = (const char*)parts[1].data;
+    length = parts[1].length;
+    if (length != strlen("SEE64YOU.CFG.TMP")) return S64_UCI_PROTOCOL_ERROR;
+    for (i = 0u; i < length; ++i) {
+        if (filename[i] != "SEE64YOU.CFG.TMP"[i]) return S64_UCI_PROTOCOL_ERROR;
+    }
+
+    temporary_length = 0u;
+    write_open = 1u;
+    create_new_opened = 1u;
+
+    if (reply != 0) {
+        if (reply->status != 0 && reply->status_capacity >= 6u) {
+            memcpy(reply->status, "00,OK", 6u);
+        }
+        reply->status_length = 5u;
+    }
+    return S64_UCI_OK;
+}
 
 static void require(int condition, const char* message)
 {
@@ -230,6 +269,8 @@ int main(void)
         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
     memset(&dos, 0, sizeof(dos));
+    dos.execute = mock_execute;
+    dos.target = S64_DOS_TARGET_PRIMARY;
     memset(reu_settings, 0, sizeof(reu_settings));
     stored_length = 0u;
     profile_one_length = 0u;
@@ -238,6 +279,7 @@ int main(void)
     read_source = stored;
     read_length = 0u;
     fail_write = 0u;
+    create_new_opened = 0u;
 
     s64_settings_exchange_init(&loaded);
     require(
@@ -265,6 +307,7 @@ int main(void)
         "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789");
     result = s64_settings_store_save(&dos, &settings);
     require(result == S64_SETTINGS_STORE_OK, "settings save succeeds");
+    require(create_new_opened, "settings save uses create-new temp file");
     require(stored_length == sizeof(settings), "settings file size");
 
     memset(&loaded, 0, sizeof(loaded));
