@@ -238,7 +238,6 @@ static S64SettingsStoreResult save_named(
 )
 {
     S64DosResult result;
-    S64DosResult close_result;
 
     if (dos == 0 || filename == 0 || settings == 0) {
         return S64_SETTINGS_STORE_INVALID;
@@ -251,15 +250,16 @@ static S64SettingsStoreResult save_named(
     }
 
     /*
-     * Preserve the existing settings until the replacement is fully written.
-     * Current Ultimate firmware is more reliable with OPEN_FILE $06
-     * (WRITE|CREATE_NEW) than CREATE_ALWAYS $0e, so create a fresh temp file,
-     * write and close it, then replace the destination.
+     * C64 Ultimate firmware can report non-fatal filesystem statuses for
+     * delete/close operations. Follow the proven Ultimate application pattern:
+     * treat cleanup deletes and CLOSE as best effort, and use the operations
+     * that actually establish correctness (CREATE_NEW, WRITE and RENAME) as
+     * the authoritative gates.
+     *
+     * The existing destination remains untouched until the replacement temp
+     * file has been completely written.
      */
-    result = s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
-    if (result != S64_DOS_OK && result != S64_DOS_NOT_FOUND) {
-        return S64_SETTINGS_STORE_IO_ERROR;
-    }
+    (void)s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
 
     result = open_create_new(dos, S64_SETTINGS_TEMP_FILENAME);
     if (result != S64_DOS_OK) {
@@ -271,17 +271,13 @@ static S64SettingsStoreResult save_named(
         (const uint8_t*)settings,
         (uint16_t)sizeof(*settings)
     );
-    close_result = s64_dos_close(dos);
-    if (result != S64_DOS_OK || close_result != S64_DOS_OK) {
+    (void)s64_dos_close(dos);
+    if (result != S64_DOS_OK) {
         (void)s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
         return S64_SETTINGS_STORE_IO_ERROR;
     }
 
-    result = s64_dos_delete_file(dos, filename);
-    if (result != S64_DOS_OK && result != S64_DOS_NOT_FOUND) {
-        (void)s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
-        return S64_SETTINGS_STORE_IO_ERROR;
-    }
+    (void)s64_dos_delete_file(dos, filename);
 
     result = s64_dos_rename_file(
         dos,
@@ -289,7 +285,6 @@ static S64SettingsStoreResult save_named(
         filename
     );
     if (result != S64_DOS_OK) {
-        (void)s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
         return S64_SETTINGS_STORE_IO_ERROR;
     }
 
