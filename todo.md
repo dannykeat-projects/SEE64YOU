@@ -6,6 +6,7 @@ This is the authoritative **live outstanding-work queue**. Completed milestones 
 
 - [ ] Validate the new deterministic publishing-settings storage path on stock C64 Ultimate 1.1: load/save/profile/key-import now select `/sd/` inside the settings-store boundary before file I/O, with host regression coverage for path selection/failure. Close after a cold-start hardware save/load/profile cycle passes without prior browser/key-import path setup.
 - [ ] Replace the software-IEC-dependent internal PRG chain with an Ultimate-DOS/SD-aware C64U chain loader while preserving the separate editor/publisher/settings memory budgets and REU handoff. Repeatedly validate editor -> publisher -> settings -> publisher -> editor on real hardware.
+  - [ ] Clear the previous screen immediately during each companion transition and show an explicit loading message (for example `LOADING PUBLISHER...`, `LOADING SETTINGS...`, `RETURNING TO EDITOR...`) so slow loads never resemble screen corruption or a hang.
 - [ ] Add remote list browsing to the direct Network `$03` publisher; direct open currently accepts a typed page/post slug.
 - [ ] Complete real-C64U Standalone CRUD acceptance for both pages and posts: list/open, create/update, draft/publish/unpublish and delete, with exact canonical source round-trip.
 - [ ] Complete local file acceptance on real C64U: New/Open/Save/Save As, dirty-document and overwrite prompts, exact reopen and failure/cancel cleanup.
