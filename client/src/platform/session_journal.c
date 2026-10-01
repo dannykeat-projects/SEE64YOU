@@ -178,7 +178,7 @@ uint8_t s64_session_journal_decode(
     decoded.turbo_control = wire[21];
 
     if (!journal_values_valid(&decoded)) return 0u;
-    *journal = decoded;
+    memcpy(journal, &decoded, sizeof(*journal));
     return 1u;
 }
 
@@ -273,15 +273,19 @@ S64SessionJournalResult s64_session_journal_store_load(
 
     if (first_result == S64_SESSION_JOURNAL_OK
         && second_result == S64_SESSION_JOURNAL_OK) {
-        *journal = second.sequence > first.sequence ? second : first;
+        if (second.sequence > first.sequence) {
+            memcpy(journal, &second, sizeof(*journal));
+        } else {
+            memcpy(journal, &first, sizeof(*journal));
+        }
         return S64_SESSION_JOURNAL_OK;
     }
     if (first_result == S64_SESSION_JOURNAL_OK) {
-        *journal = first;
+        memcpy(journal, &first, sizeof(*journal));
         return S64_SESSION_JOURNAL_OK;
     }
     if (second_result == S64_SESSION_JOURNAL_OK) {
-        *journal = second;
+        memcpy(journal, &second, sizeof(*journal));
         return S64_SESSION_JOURNAL_OK;
     }
 
@@ -341,7 +345,7 @@ S64SessionJournalResult s64_session_journal_store_save(
         return load_result;
     }
 
-    pending = *journal;
+    memcpy(&pending, journal, sizeof(pending));
     pending.sequence = next_sequence;
     if (!s64_session_journal_encode(&pending, wire)) {
         return S64_SESSION_JOURNAL_INVALID;
@@ -361,6 +365,6 @@ S64SessionJournalResult s64_session_journal_store_save(
         return S64_SESSION_JOURNAL_VERIFY_ERROR;
     }
 
-    *journal = pending;
+    memcpy(journal, &pending, sizeof(*journal));
     return S64_SESSION_JOURNAL_OK;
 }
