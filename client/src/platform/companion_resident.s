@@ -38,6 +38,12 @@ failure:
     .byte $00
 block_state:
     .byte $00
+read_count:
+    .byte $00
+read_first:
+    .byte $00
+read_second:
+    .byte $00
 timeout_lo:
     .byte $00
 timeout_mid:
@@ -55,6 +61,9 @@ start:
     sei
     lda #$00
     sta failure
+    sta read_count
+    sta read_first
+    sta read_second
     sta TARGET_MARKER
     lda #$01
     sta DEST_LO
@@ -154,22 +163,43 @@ drain_read_status:
     and #STATUS_AVAILABLE
     beq accept_read_block
     lda UCI_STATUS
-    lda #$04
-    sta failure
+    ldx read_count
+    cpx #$00
+    bne read_second_check
+    sta read_first
+read_second_check:
+    cpx #$01
+    bne read_count_next
+    sta read_second
+read_count_next:
+    inc read_count
     jmp drain_read_status
 
 accept_read_block:
     lda #ACCEPT_DATA
     sta UCI_CONTROL
-    lda failure
-    beq continue_read
-    sec
-    rts
-continue_read:
     lda block_state
     cmp #STATE_MORE
     beq next_read_block
+
+    lda read_count
+    beq read_status_ok
+    cmp #$02
+    bcc read_status_bad
+    lda read_first
+    cmp #'0'
+    bne read_status_bad
+    lda read_second
+    cmp #'0'
+    bne read_status_bad
+read_status_ok:
     clc
+    rts
+
+read_status_bad:
+    lda #$04
+    sta failure
+    sec
     rts
 
 close_file:
@@ -239,10 +269,20 @@ accept_close_block:
     bcc close_bad
     lda close_first
     cmp #'0'
-    bne close_bad
+    bne close_maybe_no_file
     lda close_second
     cmp #'0'
+    beq close_ok
+
+close_maybe_no_file:
+    lda close_first
+    cmp #'8'
     bne close_bad
+    lda close_second
+    cmp #'5'
+    bne close_bad
+
+close_ok:
     clc
     rts
 
