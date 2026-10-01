@@ -20,7 +20,7 @@ The conventional C64 build is a single editor runtime. The C64U package keeps th
 - `S64PUB.PRG` — publisher;
 - `S64CFG.PRG` — publishing settings.
 
-The split is intentional: each program keeps an independent conventional-RAM budget. REU handoff preserves the document, editor/history metadata and publishing settings across transitions.
+The split is intentional: each program keeps an independent conventional-RAM budget. REU handoff preserves the document, editor/history metadata and publishing settings across transitions. Production transitions still use the temporary software-IEC chain. The in-progress Ultimate-DOS replacement keeps its preflight/file-metadata code isolated from the conventional C64 link; the final replacement-safe transfer/startup trampoline remains a separate hardware-gated step.
 
 ## Canonical document
 

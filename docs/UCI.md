@@ -85,7 +85,7 @@ The hardware-proven chain currently uses the C64U SD-backed software IEC drive o
 
 Firmware-1.1 IEC names omit the `.PRG` suffix and use unshifted PETSCII. Editor -> publisher -> settings -> publisher -> editor has completed successfully on real hardware.
 
-A future Ultimate-DOS-aware loader can remove the software-IEC configuration dependency while retaining the same program boundaries and REU handoff. That implementation task belongs in `todo.md`.
+Production companion transitions still use the temporary software-IEC chain, but the first Ultimate-DOS loader foundation now exists. `client/src/platform/companion_loader.c` explicitly selects `/sd/`, opens the exact packaged `.PRG`, obtains its size, requires the `$0801` PRG load address, rejects an extent reaching the `$CC00` software-stack boundary, consumes the two-byte header and leaves the file positioned at the executable payload. `client/src/platform/dos_file.c` keeps the C64U-only `FILE_INFO`/`FILE_SEEK` helpers out of the conventional C64 editor link. `companion-stream-probe.prg` then reads each complete companion payload without executing it so real firmware can validate the transfer lane safely. The overwrite-safe resident transfer/startup stage remains outstanding in `todo.md`.
 
 ## REU and timing
 

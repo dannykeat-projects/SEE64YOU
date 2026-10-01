@@ -218,7 +218,10 @@ Diagnostic PRGs are regression tools, not the normal user workflow. Use them onl
 - `settings-exchange-probe.prg` — settings validation/REU exchange.
 - `settings-save-probe.prg` — instrumented real helper save path.
 - `settings-load-probe.prg` — read-only load/path diagnosis.
+- `companion-stream-probe.prg` — read-only companion preflight plus full Ultimate-DOS payload streaming from `/sd/`; it does not execute or overwrite the companion PRGs.
 - `recovery-probe.prg` — recovery storage workflow.
+
+For the companion-loader foundation gate, install **all files from one current `see64you-c64u-package` artifact**, launch `companion-stream-probe.prg`, and press `Y`. It checks `S64EDIT.PRG`, `S64PUB.PRG` and `S64CFG.PRG` in turn. Each line must report an exact full payload read and `PASS`, followed by `ALL STREAMS PASS`. This proves the large Ultimate-DOS read lane on that firmware/package only; it does not prove replacement loading, startup entry or application chaining.
 
 Do not re-run old incident sequences simply because they remain in Git history; reproduce the current failure first.
 
