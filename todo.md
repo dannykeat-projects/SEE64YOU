@@ -4,7 +4,7 @@ This is the authoritative **live outstanding-work queue**. Completed milestones 
 
 ## P0 - Finish the stock C64 Ultimate 1.1 path
 
-- [ ] Validate the new deterministic publishing-settings storage path on stock C64 Ultimate 1.1: load/save/profile/key-import now select `/sd/` inside the settings-store boundary before file I/O, with host regression coverage for path selection/failure. Close after a cold-start hardware save/load/profile cycle passes without prior browser/key-import path setup.
+- [ ] Fix and revalidate cold-start publishing-settings persistence on stock C64 Ultimate 1.1. Current hardware result: URL/direct key work through warm editor/publisher/settings chaining and TEST DIRECT KEY succeeds, but after a full power cycle the Publisher settings are gone. Trace the actual save/rename/load sequence and inspect `/sd/SEE64YOU.CFG`; do not assume REU persistence or another path tweak is the fix. Keep deterministic `/sd/` selection and host path/failure regressions. Close only after Save + Return, on-disk readback, full power cycle, automatic reload and TEST DIRECT KEY all pass without prior browsing/key import.
 - [ ] Replace the software-IEC-dependent internal PRG chain with an Ultimate-DOS/SD-aware C64U chain loader while preserving the separate editor/publisher/settings memory budgets and REU handoff. Repeatedly validate editor -> publisher -> settings -> publisher -> editor on real hardware.
   - [ ] Clear the previous screen immediately during each companion transition and show an explicit loading message (for example `LOADING PUBLISHER...`, `LOADING SETTINGS...`, `RETURNING TO EDITOR...`) so slow loads never resemble screen corruption or a hang.
 - [ ] Add remote list browsing to the direct Network `$03` publisher; direct open currently accepts a typed page/post slug.
@@ -19,6 +19,10 @@ This is the authoritative **live outstanding-work queue**. Completed milestones 
 - [ ] Integrate `JC-000/c64-test-harness` as the preferred reusable VICE/real-C64U smoke-test layer, including firmware-1.1-safe REST `/Temp` hygiene.
 - [ ] Add a developer command that uploads/runs the current C64U package so normal hardware cycles no longer require manual SD copying.
 - [ ] Evaluate `barryw/sim6502` / `u64sim` as an external CI lane for Ultimate-DOS/UCI state-machine regressions; keep real hardware as the final gate.
+
+## P1 - User setup and configuration
+
+- [ ] Implement the first-run setup wizard and simplified Basic/Advanced settings model specified in `docs/SETUP-UX.md`. The wizard must save, read back and validate the persistent configuration before reporting setup complete, then test the configured connection. Preserve an offline-editor escape path and keep diagnostics/transport/profile controls out of the normal setup flow.
 
 ## P1 - Compatibility and secondary backends
 
