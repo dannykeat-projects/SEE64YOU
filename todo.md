@@ -9,9 +9,8 @@ Completed troubleshooting/evidence belongs in canonical docs and Git history, no
 ## P0 — Establish the C64U-native runtime
 
 - [ ] Finish platform-contract enforcement and hardware validation: the editor rejects anything other than the required 16 MiB REU; the dedicated preflight probe now covers UCI, Ultimate-DOS $01, exact 16 MiB REU and non-destructive /sd/ write/read/cleanup verification with RECHECK/EXIT. Integrate the preflight into the final launcher/supervisor and complete the real-C64U gate.
-- [ ] Implement the central C64U system-state manager described in docs/C64U-RUNTIME.md:
+- [ ] Finish the central C64U system-state manager described in docs/C64U-RUNTIME.md. The host-tested manager API now enforces capture-before-apply, exposes INTERACTIVE / CPU_INTENSIVE / IO_SAFE / TRANSITION modes, restores idempotently and supports restoration verification. Next wire hardware backends (starting with turbo) through it, then integrate lifecycle/exit ownership:
   - capture every temporary setting See64You changes;
-  - expose INTERACTIVE / CPU_INTENSIVE / IO_SAFE / TRANSITION modes;
   - restore the user's prior state on clean exit;
   - verify restoration where possible;
   - never rewrite unrelated persistent Ultimate preferences.

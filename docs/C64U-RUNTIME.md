@@ -81,6 +81,8 @@ The manager follows:
 
 If the previous value cannot be determined and the setting is not guaranteed ephemeral, See64You should not silently change it.
 
+The first implementation layer is now a host-tested backend-driven manager in client/src/platform/system_state.*. It provides the four application modes, requires a successful capture before any mode write, avoids duplicate writes for the same mode, and makes clean restoration idempotent. A backend may verify restored state; verification failure remains visible and retryable. This layer deliberately contains no unverified hardware register policy. The existing direct turbo helper remains migration code until its hardware operations are routed through a manager backend.
+
 ## 5. Settings See64You should not take ownership of
 
 Do not automatically rewrite unrelated persistent machine preferences merely because they are reachable:

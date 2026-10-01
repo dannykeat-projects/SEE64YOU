@@ -97,6 +97,12 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host C64U system-state manager tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src \
+    client/tests/system_state_test.c client/src/platform/system_state.c \
+    -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host Ultimate DOS tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/dos_test.c client/src/platform/dos.c client/src/platform/dos_file.c -o "$TMP_BIN"
 "$TMP_BIN"
@@ -218,6 +224,7 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/platform/network.c \
         client/src/platform/reu.c \
         client/src/platform/requirements.c \
+        client/src/platform/system_state.c \
         client/src/platform/turbo.c \
         client/src/publisher/destination.c \
         client/src/publisher/state.c \
