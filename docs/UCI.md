@@ -43,7 +43,7 @@ Publishing-settings load/save/profile/key-import select `/sd/` inside the settin
 
 Saving prepares the record/checksum without updating REU. The existing firmware-compatible temp/write/close/delete/rename sequence remains; cleanup deletes and write-side CLOSE are best effort. Final persistent readback uses the same loader as cold startup, including STAT/open/read/close, checksum and field validation. A missing, unreadable, truncated, corrupt or different final record returns a verification error; Save + Return stays in Settings. Only verified settings are handed back through REU. Profiles use the same verification path.
 
-Host coverage verifies path selection, failed writes/readback, exact comparisons and disk reload with REU cleared. Current automatic-path loading and the production save/readback algorithm with scratch filenames and an imported direct key have passed on real firmware 1.1.0. Full power-cycle acceptance of the updated application package remains in `todo.md`.
+Host coverage verifies path selection, failed writes/readback, exact comparisons and disk reload with REU cleared. Real firmware 1.1.0 has passed normal Save/readback and profile save/load. After a full physical power cycle, the 334-byte active CFG matched the saved record exactly; the current loader started from `/` with no valid REU settings cache, selected `/sd/` and passed record/checksum/UI validation. The persisted direct key then passed an authenticated GET (HTTP 200). Normal companion chaining still requires the separate acceptance gate in `todo.md`.
 
 ## Network Target `$03`
 
