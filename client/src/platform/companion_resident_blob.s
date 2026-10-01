@@ -3,4 +3,4 @@
 .segment "RODATA"
 
 _s64_resident_loader_image:
-    .incbin "companion-resident.bin"
+    .incbin "build/companion-resident.bin"
