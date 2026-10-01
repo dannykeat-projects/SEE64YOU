@@ -119,10 +119,11 @@ The journal format/two-slot selection logic has host coverage. On real hardware,
 
 1. launch and confirm an ACTIVE journal is durably verified before the first temporary global change;
 2. force/reset while that state is active;
-3. relaunch and verify the newest valid ACTIVE record is detected;
-4. restore only settings whose journal restore-valid bits are present;
-5. complete a clean exit and verify a newer CLEAN record supersedes the old ACTIVE slot;
-6. corrupt/interfere with the newest slot in a controlled test and verify the older valid slot is selected rather than silently inventing state.
+3. relaunch and verify startup classification reports INTERRUPTED for the newest valid ACTIVE record, CLEAN for a clean record, NONE when neither slot exists, and a distinct error for invalid/unreadable storage;
+4. verify only settings whose journal restore-valid bits are present are exposed in the recovery snapshot;
+5. restore only those explicitly captured settings;
+6. complete recovery/clean exit and verify a newer CLEAN record supersedes the old ACTIVE slot;
+7. corrupt/interfere with the newest slot in a controlled test and verify the older valid slot is selected rather than silently inventing state.
 
 Do not claim arbitrary machine-state restoration beyond values See64You explicitly captures.
 

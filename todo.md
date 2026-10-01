@@ -14,7 +14,7 @@ Completed troubleshooting/evidence belongs in canonical docs and Git history, no
   - restore the user's prior state on clean exit;
   - verify restoration where possible;
   - never rewrite unrelated persistent Ultimate preferences.
-- [ ] Finish crash/interrupted-session journal integration. The host-tested versioned two-slot /sd/ journal plus lifecycle coordinator now guarantee ACTIVE persistence before any managed global change and CLEAN persistence only after restoration/verification succeeds; journal/write or restore failures fail closed. Next bind this to final launcher startup/exit and add interrupted-session recovery UI/actions.
+- [ ] Finish crash/interrupted-session journal integration. The host-tested two-slot journal, lifecycle coordinator and startup recovery classifier now guarantee ACTIVE-before-change/CLEAN-after-verified-restore ordering and distinguish no prior session, clean prior session, interrupted session, invalid journal and storage failure. Interrupted records reconstruct only explicitly captured restore-valid state. Next add launcher-driven restoration/verification + CLEAN supersession for interrupted sessions, then recovery UI/actions and final launcher binding.
 - [ ] Implement a 16 MiB REU allocator and versioned shared control block. Migrate document/history/clipboard/settings/handoff ownership behind allocator/control-block handles rather than adding more fixed ad-hoc banks.
 - [ ] Define and validate the application/module manifest: module ID, filename, ABI/application version, PRG load address/extent, byte length, startup address and integrity value.
 - [ ] Implement module preload/cache using Ultimate-DOS DOS_CMD_LOAD_REU into allocated high REU, with exact length/status/integrity checks.
