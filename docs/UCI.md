@@ -31,16 +31,19 @@ The transactional save path is:
 3. write;
 4. close;
 5. remove old destination;
-6. rename temp to destination.
+6. rename temp to destination;
+7. for publishing settings/profiles, reopen the exact final file from `/sd/`, validate its checksum/fields and compare the complete saved record before reporting success.
 
 Real firmware-1.1 testing exposed two details now covered by regression tests:
 
 - FILE_STAT filenames require explicit NUL termination;
 - status 82 is the firmware's normal file-not-found result for the relevant checks.
 
-Normal publishing-settings Save and cold reload have passed on the real device.
+Publishing-settings load/save/profile/key-import select `/sd/` inside the settings-store boundary before file I/O. Install all application PRGs from the same current package: an older settings helper can still search the cold `/` path even when the SD file itself is valid.
 
-Publishing-settings load/save/profile/key-import now select `/sd/` inside the settings-store boundary before file I/O, so callers no longer depend on a browser/key-import side effect. Host regression coverage verifies both selection and fail-before-write behaviour; the final cold-start firmware-1.1 hardware check remains in `todo.md`.
+Saving prepares the record/checksum without updating REU. The existing firmware-compatible temp/write/close/delete/rename sequence remains; cleanup deletes and write-side CLOSE are best effort. Final persistent readback uses the same loader as cold startup, including STAT/open/read/close, checksum and field validation. A missing, unreadable, truncated, corrupt or different final record returns a verification error; Save + Return stays in Settings. Only verified settings are handed back through REU. Profiles use the same verification path.
+
+Host coverage verifies path selection, failed writes/readback, exact comparisons and disk reload with REU cleared. Current automatic-path loading and the production save/readback algorithm with scratch filenames and an imported direct key have passed on real firmware 1.1.0. Full power-cycle acceptance of the updated application package remains in `todo.md`.
 
 ## Network Target `$03`
 

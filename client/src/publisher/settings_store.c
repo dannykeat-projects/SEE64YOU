@@ -250,6 +250,9 @@ static S64SettingsStoreResult save_named(
 )
 {
     S64DosResult result;
+    S64SettingsStoreResult verified_result;
+    /* Fixed scratch avoids consuming the helper software stack. */
+    static S64SettingsExchange verified;
 
     if (dos == 0 || filename == 0 || settings == 0) {
         return S64_SETTINGS_STORE_INVALID;
@@ -260,7 +263,7 @@ static S64SettingsStoreResult save_named(
 
     settings->state = S64_SETTINGS_STATE_READY;
     settings->result = S64_SETTINGS_RESULT_OK;
-    if (!s64_settings_exchange_store(settings)) {
+    if (!s64_settings_exchange_prepare(settings)) {
         return S64_SETTINGS_STORE_INVALID;
     }
 
@@ -268,8 +271,8 @@ static S64SettingsStoreResult save_named(
      * C64 Ultimate firmware can report non-fatal filesystem statuses for
      * delete/close operations. Follow the proven Ultimate application pattern:
      * treat cleanup deletes and CLOSE as best effort, and use the operations
-     * that actually establish correctness (CREATE_NEW, WRITE and RENAME) as
-     * the authoritative gates.
+     * that establish correctness as gates, then reopen and validate the final
+     * file. Status-only success cannot prove persistence.
      *
      * The existing destination remains untouched until the replacement temp
      * file has been completely written.
@@ -303,6 +306,13 @@ static S64SettingsStoreResult save_named(
         return S64_SETTINGS_STORE_IO_ERROR;
     }
 
+    verified_result = load_named(dos, filename, &verified);
+    if (verified_result != S64_SETTINGS_STORE_OK
+        || memcmp(settings, &verified, sizeof(verified)) != 0) {
+        memset(&verified, 0, sizeof(verified));
+        return S64_SETTINGS_STORE_VERIFY_ERROR;
+    }
+    memset(&verified, 0, sizeof(verified));
     return S64_SETTINGS_STORE_OK;
 }
 

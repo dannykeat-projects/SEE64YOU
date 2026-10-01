@@ -29,22 +29,27 @@ static S64UciResult diagnostic_execute(const S64UciCommandPart* parts,
 {
     S64UciCommandPart redirected[4];
     uint8_t i;
+    uint8_t terminated;
+    uint16_t name_length;
     const char* replacement;
     if (count > 4) return S64_UCI_PROTOCOL_ERROR;
     for (i = 0; i < count; ++i) {
         redirected[i] = parts[i];
         replacement = 0;
+        name_length = parts[i].length;
+        terminated = name_length != 0 && parts[i].data[name_length - 1] == 0;
+        if (terminated) --name_length;
         if (parts[i].flags & S64_UCI_PART_NATIVE_TEXT) {
-            if (parts[i].length == sizeof("SEE64YOU.CFG.TMP") - 1
-                && memcmp(parts[i].data, "SEE64YOU.CFG.TMP", parts[i].length) == 0)
+            if (name_length == sizeof("SEE64YOU.CFG.TMP") - 1
+                && memcmp(parts[i].data, "SEE64YOU.CFG.TMP", name_length) == 0)
                 replacement = PROBE_TEMP;
-            else if (parts[i].length == sizeof(S64_SETTINGS_FILENAME) - 1
-                && memcmp(parts[i].data, S64_SETTINGS_FILENAME, parts[i].length) == 0)
+            else if (name_length == sizeof(S64_SETTINGS_FILENAME) - 1
+                && memcmp(parts[i].data, S64_SETTINGS_FILENAME, name_length) == 0)
                 replacement = PROBE_FINAL;
         }
         if (replacement != 0) {
             redirected[i].data = (const uint8_t*)replacement;
-            redirected[i].length = strlen(replacement);
+            redirected[i].length = strlen(replacement) + terminated;
         }
     }
     return s64_uci_execute(redirected, count, reply);

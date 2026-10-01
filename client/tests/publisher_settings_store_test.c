@@ -21,6 +21,10 @@ static uint16_t read_offset;
 static uint8_t read_open;
 static uint8_t write_open;
 static uint8_t fail_write;
+static uint8_t bad_final;
+static uint8_t fail_reopen;
+static uint8_t fail_read_close;
+static uint8_t reu_writes;
 static uint8_t create_new_opened;
 static uint8_t fail_change_dir;
 static uint16_t change_dir_calls;
@@ -115,6 +119,7 @@ uint8_t s64_reu_store(uint8_t bank, uint16_t address, const void* source, uint16
         || (uint32_t)(address - S64_REU_SETTINGS_BASE) + length > sizeof(reu_settings)) {
         return 0u;
     }
+    ++reu_writes;
     memcpy(reu_settings + (address - S64_REU_SETTINGS_BASE), source, length);
     return 1u;
 }
@@ -159,6 +164,7 @@ S64DosResult s64_dos_file_exists(S64Dos* dos, const char* filename, uint8_t* exi
 S64DosResult s64_dos_open_read(S64Dos* dos, const char* filename)
 {
     (void)dos;
+    if (fail_reopen) return S64_DOS_TARGET_ERROR;
     if (strcmp(filename, S64_SETTINGS_FILENAME) == 0 && stored_length != 0u) {
         read_source = stored;
         read_length = stored_length;
@@ -225,10 +231,12 @@ S64DosResult s64_dos_write(S64Dos* dos, const uint8_t* data, uint16_t length)
 
 S64DosResult s64_dos_close(S64Dos* dos)
 {
+    S64DosResult result = read_open && fail_read_close
+        ? S64_DOS_TARGET_ERROR : S64_DOS_OK;
     (void)dos;
     read_open = 0u;
     write_open = 0u;
-    return S64_DOS_OK;
+    return result;
 }
 
 S64DosResult s64_dos_delete_file(S64Dos* dos, const char* filename)
@@ -259,6 +267,16 @@ S64DosResult s64_dos_rename_file(S64Dos* dos, const char* filename, const char* 
     if (strcmp(new_name, S64_SETTINGS_FILENAME) == 0) {
         memcpy(stored, temporary, temporary_length);
         stored_length = temporary_length;
+        if (bad_final == 1u) stored_length = 0u;
+        if (bad_final == 2u) --stored_length;
+        if (bad_final == 3u) stored[12] ^= 1u;
+        if (bad_final == 4u) {
+            S64SettingsExchange stale;
+            memcpy(&stale, stored, sizeof(stale));
+            strcpy(stale.base_url, "http://stale.local");
+            require(s64_settings_exchange_prepare(&stale), "seal stale fixture");
+            memcpy(stored, &stale, sizeof(stale));
+        }
     } else if (strcmp(new_name, "S64DEST1.CFG") == 0) {
         memcpy(profile_one, temporary, temporary_length);
         profile_one_length = temporary_length;
@@ -320,10 +338,12 @@ int main(void)
         "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789");
     result = s64_settings_store_save(&dos, &settings);
     require(result == S64_SETTINGS_STORE_OK, "settings save succeeds");
-    require(change_dir_calls == 3u, "settings save selects SD root");
+    require(change_dir_calls == 4u, "settings save selects SD root");
     require(create_new_opened, "settings save uses create-new temp file");
     require(stored_length == sizeof(settings), "settings file size");
 
+    require(reu_writes == 0u, "disk save does not publish REU handoff");
+    memset(reu_settings, 0, sizeof(reu_settings)); /* Complete power loss. */
     memset(&loaded, 0, sizeof(loaded));
     result = s64_settings_store_load(&dos, &loaded);
     require(result == S64_SETTINGS_STORE_OK, "settings load succeeds");
@@ -349,7 +369,7 @@ int main(void)
     );
     result = s64_settings_import_direct_key(&dos, loaded.direct_key);
     require(result == S64_SETTINGS_STORE_OK, "direct key file import succeeds");
-    require(change_dir_calls == 5u, "direct key import selects SD root");
+    require(change_dir_calls == 6u, "direct key import selects SD root");
     require(
         strcmp(
             loaded.direct_key,
@@ -385,7 +405,7 @@ int main(void)
     strcpy(settings.base_url, "http://profile.local:6464");
     result = s64_settings_profile_save(&dos, 0u, &settings);
     require(result == S64_SETTINGS_STORE_OK, "profile save succeeds");
-    require(change_dir_calls == 8u, "profile save selects SD root");
+    require(change_dir_calls == 10u, "profile save selects SD root");
     require(profile_one_length == sizeof(settings), "profile file size");
     require(stored_length == sizeof(settings), "profile save preserves active file");
 
@@ -400,7 +420,7 @@ int main(void)
     memset(&loaded, 0, sizeof(loaded));
     result = s64_settings_profile_load(&dos, 0u, &loaded);
     require(result == S64_SETTINGS_STORE_OK, "profile load succeeds");
-    require(change_dir_calls == 10u, "profile load selects SD root");
+    require(change_dir_calls == 12u, "profile load selects SD root");
     require(
         strcmp(loaded.base_url, "http://profile.local:6464") == 0,
         "profile URL round trip"
@@ -425,6 +445,23 @@ int main(void)
         "corrupt settings rejected"
     );
     stored[12] ^= 0x20u;
+
+    for (bad_final = 1u; bad_final <= 4u; ++bad_final) {
+        require(s64_settings_store_save(&dos, &settings) == S64_SETTINGS_STORE_VERIFY_ERROR,
+            "status-success missing/truncated/corrupt/stale final rejected");
+        require(reu_writes == 0u, "failed save leaves REU unpublished");
+    }
+    bad_final = 0u;
+    fail_reopen = 1u;
+    require(s64_settings_store_save(&dos, &settings) == S64_SETTINGS_STORE_VERIFY_ERROR,
+        "final reopen failure rejected");
+    fail_reopen = 0u;
+    fail_read_close = 1u;
+    require(s64_settings_store_save(&dos, &settings) == S64_SETTINGS_STORE_VERIFY_ERROR,
+        "readback close failure rejected");
+    fail_read_close = 0u;
+    require(s64_settings_store_save(&dos, &settings) == S64_SETTINGS_STORE_OK,
+        "save recovers after readback failures");
 
     fail_write = 1u;
     result = s64_settings_store_save(&dos, &settings);

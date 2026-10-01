@@ -142,7 +142,7 @@ int s64_settings_exchange_load(S64SettingsExchange* settings)
     return s64_settings_exchange_validate(settings);
 }
 
-int s64_settings_exchange_store(S64SettingsExchange* settings)
+int s64_settings_exchange_prepare(S64SettingsExchange* settings)
 {
     if (settings == 0 || !s64_settings_exchange_values_valid(settings)) {
         return 0;
@@ -155,6 +155,12 @@ int s64_settings_exchange_store(S64SettingsExchange* settings)
     settings->version = S64_SETTINGS_VERSION;
     settings->checksum = settings_checksum(settings);
 
+    return 1;
+}
+
+int s64_settings_exchange_store(S64SettingsExchange* settings)
+{
+    if (!s64_settings_exchange_prepare(settings)) return 0;
     return s64_reu_store(
         S64_REU_SETTINGS_BANK,
         S64_REU_SETTINGS_BASE,

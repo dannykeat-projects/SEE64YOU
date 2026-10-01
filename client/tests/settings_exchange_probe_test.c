@@ -7,6 +7,9 @@
 #undef main
 
 static S64SettingsExchange reu_record, backup;
+static S64SettingsExchange disk_record;
+static uint16_t disk_length;
+static uint8_t disk_exists, key_open;
 static uint8_t stores, loads, saves, keys, corrupt_read, fail_write, fail_store;
 static char selected = 'r', import_key;
 static char output[8192];
@@ -63,20 +66,40 @@ S64UciResult s64_uci_execute(const S64UciCommandPart* parts, uint8_t count, S64U
     for (i = 1; i < count; ++i) {
         if (parts[i].flags & S64_UCI_PART_NATIVE_TEXT) {
             const char* name = (const char*)parts[i].data;
-            assert((parts[i].length == strlen(PROBE_TEMP) && memcmp(name, PROBE_TEMP, parts[i].length) == 0)
-                || (parts[i].length == strlen(PROBE_FINAL) && memcmp(name, PROBE_FINAL, parts[i].length) == 0)
-                || (parts[i].length == strlen(S64_DIRECT_KEY_FILENAME) && memcmp(name, S64_DIRECT_KEY_FILENAME, parts[i].length) == 0)
-                || (parts[i].length == 4 && memcmp(name, "/sd/", 4) == 0));
+            uint16_t length = parts[i].length;
+            if (length && name[length - 1] == 0) --length;
+            assert((length == strlen(PROBE_TEMP) && memcmp(name, PROBE_TEMP, length) == 0)
+                || (length == strlen(PROBE_FINAL) && memcmp(name, PROBE_FINAL, length) == 0)
+                || (length == strlen(S64_DIRECT_KEY_FILENAME) && memcmp(name, S64_DIRECT_KEY_FILENAME, length) == 0)
+                || (length == 4 && memcmp(name, "/sd/", 4) == 0));
         }
     }
     if (opcode == 2 && parts[0].data[2] != 1) {
         assert(parts[0].data[2] == 6); /* Actual production CREATE_NEW. */
+        assert(stores == 1); /* Only the diagnostic's explicit REU round-trip. */
         ++saves;
+        disk_length = 0;
     }
+    if (opcode == 2 && parts[0].data[2] == 1)
+        key_open = parts[1].length == strlen(S64_DIRECT_KEY_FILENAME)
+            && memcmp(parts[1].data, S64_DIRECT_KEY_FILENAME, parts[1].length) == 0;
     if (opcode == 4) {
-        assert(parts[0].data[2] == 64 && parts[0].data[3] == 0);
-        assert(reply->data_sink((const uint8_t*)direct_secret, 64, reply->data_context));
+        uint16_t requested = parts[0].data[2] | ((uint16_t)parts[0].data[3] << 8);
+        if (key_open) {
+            assert(requested == 64);
+            assert(reply->data_sink((const uint8_t*)direct_secret, 64, reply->data_context));
+        } else {
+            assert(requested == sizeof(disk_record) && disk_exists);
+            assert(reply->data_sink((const uint8_t*)&disk_record, disk_length, reply->data_context));
+        }
     }
+    if (opcode == 5 && !fail_write) {
+        assert(disk_length + parts[1].length <= sizeof(disk_record));
+        memcpy((uint8_t*)&disk_record + disk_length, parts[1].data, parts[1].length);
+        disk_length += parts[1].length;
+    }
+    if (opcode == 10) disk_exists = 1;
+    if (opcode == 8 && !disk_exists) status_text = "82,FILE NOT FOUND";
     if (opcode == 5 && fail_write) status_text = "85,WRITE FAILED";
     strcpy(reply->status, status_text);
     reply->status_length = strlen(status_text);
@@ -86,6 +109,7 @@ S64UciResult s64_uci_execute(const S64UciCommandPart* parts, uint8_t count, S64U
 static void prepare(void)
 {
     stores = loads = saves = keys = corrupt_read = fail_write = fail_store = 0;
+    disk_length = disk_exists = key_open = 0;
     selected = 'r';
     import_key = 0;
     output[0] = 0;

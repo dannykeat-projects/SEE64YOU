@@ -100,16 +100,19 @@ static void end_save_trace(const char* stage, uint8_t result)
         save_trace_path_result, save_trace_path_status, save_trace_path);
     if (save_trace_path_truncated) cputs("PATH DISPLAY TRUNCATED\r\n");
     if (save_trace_count == 0)
-        cputs("NO SAVE DOS COMMANDS ISSUED\r\nINVALID=VALUES/REU STORE FAILURE\r\n");
+        cputs("NO SAVE DOS COMMANDS ISSUED\r\nINVALID=SETTINGS VALUES FAILURE\r\n");
     cputs("PRESS KEY FOR COMMAND RESULTS");
     cgetc();
     for (i = 0; i < save_trace_count; ++i) {
         entry = &save_trace[i];
         label = "OTHER";
         switch (entry->opcode) {
-            case 2: label = "CREATE_NEW TEMP (GATE)"; break;
-            case 3: label = "CLOSE (BEST EFFORT)"; break;
+            case 2: label = "OPEN FILE (GATE)"; break;
+            case 3: label = "CLOSE (READBACK CHECKED)"; break;
+            case 4: label = "READ FINAL FILE"; break;
             case 5: label = "WRITE (GATE)"; break;
+            case 8: label = "STAT FINAL FILE"; break;
+            case 17: label = "SELECT /SD/"; break;
             case 9: label = entry->final_file ? "DELETE CFG (BEST EFFORT)"
                 : "DELETE TEMP (BEST EFFORT)"; break;
             case 10: label = "RENAME TEMP TO CFG (GATE)"; break;
@@ -129,7 +132,7 @@ static void end_save_trace(const char* stage, uint8_t result)
     if (i) cprintf("FIRST FAILED DOS GATE: COMMAND %u\r\n", i);
     else cputs("NO FAILED DOS GATE CAPTURED\r\n");
     if (save_trace_overflow) cputs("TRACE FULL; LATER COMMANDS OMITTED\r\n");
-    cputs("STORE: 0=OK 2=INVALID 3=IO ERROR\r\nUI/DOS/REU BOOLEAN: 0=FAIL\r\nPRESS KEY TO RETURN TO SETTINGS");
+    cputs("STORE: 0=OK 2=INVALID 3=IO 4=VERIFY\r\nUI/DOS/REU BOOLEAN: 0=FAIL\r\nPRESS KEY TO RETURN TO SETTINGS");
     cgetc();
 }
 #endif
@@ -603,7 +606,9 @@ static void save_and_return(void)
         result = s64_settings_store_save(&dos, &settings);
         if (result != S64_SETTINGS_STORE_OK) {
             settings.result = S64_SETTINGS_RESULT_IO_ERROR;
-            set_status("SAVE FAILED - SETTINGS NOT WRITTEN");
+            set_status(result == S64_SETTINGS_STORE_VERIFY_ERROR
+                ? "SAVE FAILED - READBACK INVALID"
+                : "SAVE FAILED - SETTINGS NOT WRITTEN");
 #ifdef S64_SETTINGS_SAVE_TRACE
             end_save_trace("STORE SAVE", (uint8_t)result);
 #endif
@@ -625,7 +630,7 @@ static void save_and_return(void)
         return;
     }
 
-    set_status("Saved SEE64YOU.CFG to /sd/");
+    set_status("Saved and verified /sd/SEE64YOU.CFG");
 #ifdef S64_SETTINGS_SAVE_TRACE
     end_save_trace("SAVE COMPLETE", 0);
 #else

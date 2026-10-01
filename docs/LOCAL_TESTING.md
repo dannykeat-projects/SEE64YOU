@@ -109,7 +109,15 @@ Exercise:
 - failure/cancel paths without stale open handles;
 - filename/path handling from a fresh startup rather than relying on previous UI activity.
 
-Publishing settings should survive Save, exit/re-entry and cold application reload. For the deterministic-path acceptance check, start from a cold application state and do not browse to `/sd/` or import a key first; load/save/profile operations must select the settings storage path themselves.
+Install all application PRGs from one current `see64you-c64u-package` artifact before testing. Keep an existing valid `SEE64YOU.CFG`; replacing application PRGs must not remove it.
+
+1. Enter Publishing Settings, configure the URL/direct key and Save + Return. Success requires immediate final-file readback/validation; a verification failure must remain in Settings with `SAVE FAILED - READBACK INVALID`.
+2. Inspect `/sd/SEE64YOU.CFG` (current C64 record: 334 bytes); the temp should be gone. Do not publish the file contents: it contains keys.
+3. Completely power off the C64U, then power on and run the editor/current package. Do not browse to `/sd/` or import a key first.
+4. Enter Publisher. The saved URL/key must reload automatically and TEST DIRECT KEY must succeed.
+5. Save/load a destination profile and confirm its values round-trip; it must not replace the active CFG.
+
+A warm editor/publisher/settings round trip or a REST machine reset does not prove power-cycle persistence. REU is volatile handoff/cache only.
 
 ## 7. Recovery/autosave acceptance
 

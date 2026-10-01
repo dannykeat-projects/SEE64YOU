@@ -4,7 +4,7 @@
 #include <string.h>
 #include "platform/uci.h"
 
-#define S64_SAVE_TRACE_CAPACITY 8u
+#define S64_SAVE_TRACE_CAPACITY 16u
 typedef struct {
     uint8_t opcode;
     uint8_t attributes;

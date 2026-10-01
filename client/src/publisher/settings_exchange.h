@@ -38,6 +38,8 @@ void s64_settings_exchange_init(S64SettingsExchange* settings);
 int s64_settings_exchange_values_valid(const S64SettingsExchange* settings);
 int s64_settings_exchange_validate(const S64SettingsExchange* settings);
 int s64_settings_exchange_load(S64SettingsExchange* settings);
+/* Seal a record without publishing it to the volatile REU handoff. */
+int s64_settings_exchange_prepare(S64SettingsExchange* settings);
 int s64_settings_exchange_store(S64SettingsExchange* settings);
 
 const char* s64_settings_exchange_result_message(uint8_t result);
