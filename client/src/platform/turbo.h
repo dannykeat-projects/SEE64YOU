@@ -3,17 +3,30 @@
 
 #include <stdint.h>
 
+#include "platform/system_state.h"
+
+typedef uint8_t (*S64TurboReadFn)(void* context);
+typedef void (*S64TurboWriteFn)(void* context, uint8_t value);
+
 typedef struct {
-    uint8_t original;
-    uint8_t active;
-} S64TurboGuard;
+    S64TurboReadFn read;
+    S64TurboWriteFn write;
+    void* io_context;
+    uint8_t captured_control;
+    uint8_t controllable;
+} S64TurboBackend;
 
 /*
- * Temporarily request the fastest C64U CPU speed through $D031.
- * Returns 1 when register-controlled turbo was detected and enabled.
- * The caller must always pair a successful begin with s64_turbo_restore().
+ * The injected form is host-testable. The hardware form uses the existing
+ * C64U $D031 register path on cc65 builds and behaves as unavailable on host.
  */
-uint8_t s64_turbo_begin_max(S64TurboGuard* guard);
-void s64_turbo_restore(S64TurboGuard* guard);
+void s64_turbo_backend_init(
+    S64TurboBackend* backend,
+    S64TurboReadFn read,
+    S64TurboWriteFn write,
+    void* io_context
+);
+void s64_turbo_backend_init_hardware(S64TurboBackend* backend);
+void s64_turbo_backend_bind(S64SystemBackend* backend);
 
 #endif

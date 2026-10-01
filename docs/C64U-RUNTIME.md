@@ -81,7 +81,7 @@ The manager follows:
 
 If the previous value cannot be determined and the setting is not guaranteed ephemeral, See64You should not silently change it.
 
-The first implementation layer is now a host-tested backend-driven manager in client/src/platform/system_state.*. It provides the four application modes, requires a successful capture before any mode write, avoids duplicate writes for the same mode, and makes clean restoration idempotent. A backend may verify restored state; verification failure remains visible and retryable. This layer deliberately contains no unverified hardware register policy. The existing direct turbo helper remains migration code until its hardware operations are routed through a manager backend.
+The manager in client/src/platform/system_state.* is backend-driven and host-tested. It provides the four application modes, requires a successful capture before any mode write, avoids duplicate writes for the same mode, and makes clean restoration idempotent. A backend may verify restored state; verification failure remains visible and retryable. The C64U turbo backend now routes the existing direct-publisher/auth crypto acceleration through this manager instead of exposing an ad-hoc begin/restore guard. Launcher/module lifecycle ownership and real-hardware acceptance remain P0 work.
 
 ## 5. Settings See64You should not take ownership of
 
@@ -153,6 +153,8 @@ Known-safe settings for timing-sensitive operations until faster modes are prove
 Known CPU/interrupt/memory state for executable overlay replacement.
 
 Every scope restores the previous mode on exit.
+
+Current conservative turbo mapping, pending real-hardware acceptance: only CPU_INTENSIVE requests the existing maximum $D031 speed nibble while preserving the captured upper bits. INTERACTIVE, IO_SAFE and TRANSITION request the captured original byte. Direct publishing therefore accelerates SHA/HMAC/signing but returns to captured/original speed before Network $03 I/O. If register control cannot be safely detected, the backend makes no turbo change.
 
 ## 8. REU resource model
 

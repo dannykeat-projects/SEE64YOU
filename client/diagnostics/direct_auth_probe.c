@@ -6,6 +6,7 @@
 #include "crypto/sha256.h"
 #include "platform/dos.h"
 #include "platform/network.h"
+#include "platform/system_state.h"
 #include "platform/turbo.h"
 #include "platform/uci.h"
 #include "publisher/direct_auth.h"
@@ -23,7 +24,10 @@ static S64Dos dos;
 static S64SettingsExchange settings;
 static S64NetTransport network;
 static S64Sha256 sha;
-static S64TurboGuard turbo;
+static S64SystemState system_state;
+static S64SystemBackend system_backend;
+static S64TurboBackend turbo_backend;
+static uint8_t system_state_ready;
 static uint8_t key[32];
 static uint8_t body_digest[32];
 static char challenge[33];
@@ -255,7 +259,16 @@ int main(void)
     }
     cputs("CHALLENGE RECEIVED.\r\n");
 
-    (void)s64_turbo_begin_max(&turbo);
+    s64_turbo_backend_init_hardware(&turbo_backend);
+    s64_turbo_backend_bind(&system_backend);
+    s64_system_state_init(&system_state, &system_backend, &turbo_backend);
+    system_state_ready = s64_system_state_capture(&system_state) == S64_SYSTEM_OK;
+    if (system_state_ready) {
+        (void)s64_system_state_set_mode(
+            &system_state,
+            S64_SYSTEM_MODE_CPU_INTENSIVE
+        );
+    }
     s64_sha256_init(&sha);
     s64_sha256_final(&sha, body_digest);
     if (!s64_direct_sign(
@@ -266,11 +279,15 @@ int main(void)
         body_digest,
         signature
     )) {
-        s64_turbo_restore(&turbo);
+        if (system_state_ready) {
+            (void)s64_system_state_set_mode(&system_state, S64_SYSTEM_MODE_IO_SAFE);
+        }
         cputs("SIGNATURE BUILD FAILED.\r\n");
         goto finish;
     }
-    s64_turbo_restore(&turbo);
+    if (system_state_ready) {
+        (void)s64_system_state_set_mode(&system_state, S64_SYSTEM_MODE_IO_SAFE);
+    }
 
     cputs("SENDING AUTHENTICATED GET...\r\n");
     request_parts[0] = request_line;
@@ -302,6 +319,12 @@ int main(void)
     show_response_prefix();
 
 finish:
+    if (system_state_ready) {
+        if (s64_system_state_restore(&system_state) != S64_SYSTEM_OK) {
+            cputs("\r\nWARNING: TURBO RESTORE FAILED.\r\n");
+        }
+        system_state_ready = 0u;
+    }
     memset(key, 0, sizeof(key));
     memset(signature, 0, sizeof(signature));
     cputs("\r\nPRESS A KEY.\r\n");
