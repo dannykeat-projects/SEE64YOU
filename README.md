@@ -2,109 +2,158 @@
 
 **Write on a Commodore 64 Ultimate. Publish to the web.**
 
-See64You is a Notepad-style text editor and lightweight publishing system for the Commodore 64 Ultimate (C64U). The editor supports conventional C64 operation and a larger C64U/REU path, while publishing keeps web complexity on the server.
+See64You is a C64 Ultimate-native text editor and lightweight web publishing environment. It keeps the familiar 40-column Commodore interface while deliberately using the Ultimate platform underneath it: UCI, Ultimate-DOS, Network Target, a required 16 MiB REU, DMA/REU transfers, turbo control where hardware-proven, SD storage and modern keyboard support.
 
-## Goals
+See64You is **not** an original-C64 compatibility project. Ordinary-C64 memory limits, IEC loading speed and 64 KiB-only operation no longer constrain product architecture.
 
-- A fast, predictable plain-text editor with familiar desktop editing behaviour.
+## Product goals
+
+- A fast, predictable editor with familiar desktop editing behaviour.
 - A small Markdown-like source format that remains the canonical editable document.
-- Publish the same document to a tiny database-free PHP website or to WordPress through a See64You plugin.
+- Large working documents, clipboard and history backed by the 16 MiB REU.
+- Fast module transitions using validated modules cached in REU rather than software-IEC chaining.
+- Direct local storage through Ultimate-DOS.
+- Direct Standalone publishing through Ultimate Network Target $03 on the firmware-1.1 baseline.
+- A first-run setup wizard that hides UCI/REU/transport terminology from normal users.
+- Temporary machine changes managed centrally and restored to the user's previous settings on clean exit.
+- Publish the same source to a small database-free PHP site or, later, WordPress through the See64You adapter.
 - Public standalone sites that require no JavaScript and remain usable in very old browsers.
-- Optional styling, including a C64-inspired theme.
-- No HTML round-tripping: source text stays source text; HTML is generated for display.
-- Keep the C64 client independent of any one publishing backend.
+- Keep the editor useful offline and publishing backends separate from editor state.
+
+## Platform baseline
+
+The committed product target is the **Commodore 64 Ultimate / compatible Ultimate platform with the required capabilities**, initially validated against firmware 1.1.
+
+Required runtime capabilities:
+
+- Ultimate Command Interface;
+- Ultimate-DOS Target $01;
+- 16 MiB REU;
+- SD-backed storage.
+
+Network Target $03 is required for the current direct Standalone publishing path but is not required for offline editing.
+
+Where possible See64You probes capabilities instead of trusting firmware version strings. If a required machine setting cannot be safely changed from software, the first-run wizard gives the user the exact one-time Ultimate-menu instruction and immediately rechecks afterward.
+
+See docs/C64U-RUNTIME.md for the platform contract.
+
+## Runtime architecture
+
+The user launches one entry point, but See64You remains modular internally:
+
+~~~text
+SEE64YOU launcher/supervisor
+        |
+        +-- C64U system-state manager
+        +-- REU allocator / shared application state
+        +-- validated module cache
+        |
+        +-- Editor
+        +-- Publisher
+        +-- Settings
+        +-- Recovery / diagnostics
+~~~
+
+Editor, Publisher and Settings are separate executable overlays sharing canonical state through REU. At startup the launcher will validate the package and preload normal modules into REU using Ultimate-DOS. Transitions then use a very small overwrite-safe transfer stub rather than KERNAL LOAD or software IEC.
+
+The previous $C800-$CBFF resident-loader design and conventional-C64 memory-headroom constraints are retired as the production direction. The successful resident-loader probe remains useful evidence that replacement loading and cc65 startup work on real firmware 1.1.
+
+## Current migration status
+
+The repository still contains conventional-C64 code paths, software-IEC chaining and the earlier resident-loader diagnostics while the C64U-only architecture is being migrated. They are **transitional implementation**, not supported-product requirements.
+
+Do not preserve an old path merely to keep ordinary-C64 compatibility. Remove it when the new C64U-native replacement is hardware-proven and the associated tests/docs have migrated.
+
+The existing real-hardware baseline includes:
+
+- UCI at $DF1C-$DF1F on the tested firmware-1.1 machine;
+- Ultimate-DOS $01;
+- Network $03;
+- no HTTP Target $06 on that firmware;
+- settings save/readback and cold power-cycle reload;
+- authenticated direct GET;
+- exact direct document upload/reopen;
+- full Ultimate-DOS streaming of all current companion PRGs;
+- successful overwrite/launch/return through the resident replacement-loader probe.
+
+Outstanding implementation is tracked only in todo.md.
 
 ## Repository layout
 
-```
-client/       C64/C64U editor client (cc65)
+~~~text
+client/       C64 Ultimate client and diagnostics (cc65)
 site/         Standalone flat-file PHP site and publishing API
-wordpress/    WordPress publishing plugin
+wordpress/    WordPress publishing adapter
 relay/        Optional trusted-LAN HTTPS relay
-docs/         Stable architecture, protocol, editor and validation documentation
+docs/         Architecture, runtime, protocol, editor and validation documentation
 tools/        Validation/development helpers
-```
-
-## Implemented baseline
-
-The C64U application is split into editor, publisher and publishing-settings PRGs so each keeps an independent conventional-RAM budget while document/history/settings handoff lives in REU. The standalone site is usable end-to-end, and the stock C64 Ultimate firmware-1.1 publishing path uses Network Target `$03` with a dedicated direct key, one-time challenge/HMAC authentication and explicit plaintext-HTTP consent. Real hardware has authenticated, uploaded and reopened an exact 4,608-byte source document and has applied draft/published state changes.
-
-The standalone publisher is the active target. The WordPress implementation and tests remain in the repository, but WordPress-specific hardware/service validation is intentionally deferred until the general C64U path is complete. Remaining work is tracked only in `todo.md`.
+~~~
 
 ## Documentation map
 
-- `todo.md` — authoritative live work queue and unresolved validation.
-- `docs/ARCHITECTURE.md` — implemented component boundaries and data flow.
-- `docs/PROTOCOL.md` — current publishing/wire/authentication contracts.
-- `docs/UCI.md` — Ultimate/UCI transport and hardware behaviour.
-- `docs/EDITOR.md` and `docs/INPUT.md` — editor and keyboard behaviour.
-- `docs/LOCAL_TESTING.md` — current reproducible validation procedures only.
-- `docs/ENGINEERING-REFERENCES.md` — external projects, licensing and adoption boundaries.
+- todo.md — authoritative live work queue.
+- docs/ARCHITECTURE.md — system component boundaries and data flow.
+- docs/C64U-RUNTIME.md — C64U-only hardware/resource/state-management contract.
+- docs/SETUP-UX.md — first-run wizard and Basic/Advanced settings UX.
+- docs/UCI.md — UCI targets and hardware-proven behaviour.
+- docs/EDITOR.md and docs/INPUT.md — editor and keyboard behaviour.
+- docs/PROTOCOL.md — publishing/wire/authentication contracts.
+- docs/LOCAL_TESTING.md — current reproducible validation procedures.
+- docs/ENGINEERING-REFERENCES.md — external evidence, licensing and adoption boundaries.
 
-Historical investigations and completed troubleshooting are preserved by Git history rather than retained as active instructions.
+Git history is the archive for superseded conventional-C64 plans and completed troubleshooting.
 
-## Design principle
+## Building during migration
 
-The C64 client works with documents, not HTML:
+Requires cc65.
 
-```
-Document -> Publisher interface -> Standalone PHP site
-                             \-> WordPress plugin
-```
+The current C64U package is built with:
 
-A document has a title, body, type (page/post), status, slug and metadata. Publishing backends are responsible for storage and HTML rendering.
+~~~sh
+make -C client c64u publisher
+~~~
 
-## Building the C64 client
+Current migration artifacts include:
 
-Requires [cc65](https://cc65.github.io/).
-
-```sh
-make -C client
-```
-
-The conventional C64 output is:
-
-```
-client/build/see64you.prg
-```
-
-For the C64U build, `make -C client c64u publisher` produces:
-
-```
+~~~text
 client/build/SEE64YOU-C64U.PRG
 client/build/S64EDIT.PRG
 client/build/S64PUB.PRG
 client/build/S64CFG.PRG
-```
+~~~
 
-`SEE64YOU-C64U.PRG` is the user-facing entry point. The short aliases are deliberate CBM-DOS-safe internal chain names and are packaged together by CI.
+The final package/launcher/module names may change as the REU module-cache architecture lands.
+
+The repository may temporarily continue to build client/build/see64you.prg for regression purposes. It is no longer a product deliverable or compatibility gate and should be removed when no longer useful to migration.
 
 ## Running the standalone site locally
 
 Requires PHP 8.1+.
 
-```sh
+~~~sh
 php -S 127.0.0.1:8080 -t site
-```
+~~~
 
-Create an empty `site/ENABLE_SETUP` marker, open `http://127.0.0.1:8080/setup.php`, and complete the one-time setup. Successful setup removes the marker and creates the local configuration.
+Create an empty site/ENABLE_SETUP marker, open http://127.0.0.1:8080/setup.php, and complete the one-time server setup. Successful setup removes the marker and creates local configuration.
 
-To create a clean upload-ready package:
+Build a clean upload-ready package with:
 
-```sh
+~~~sh
 php tools/package-site.php
-```
+~~~
 
-The default output is `dist/see64you-site/`. It contains runtime files and starter content, excludes tests and local `config.php`, and includes a fresh `ENABLE_SETUP` marker.
-
-An authenticated backup is available from `api.php?action=backup`; it contains public settings and all page/post source, including drafts, but excludes authentication secrets.
+The default output is dist/see64you-site/.
 
 ## Remote publishing security
 
-The active firmware-1.1 direct publisher uses raw TCP/HTTP through Network Target `$03`. It never sends the normal site password or a reusable bearer token over that connection. Instead it signs each protected request with a dedicated 256-bit direct key and a single-use server challenge. Direct mode is still plaintext HTTP, so source bodies are not confidential and the user must explicitly enable that transport.
+The firmware-1.1 direct publisher uses raw TCP/HTTP through Network Target $03. It never sends the normal site password or a reusable bearer token over that connection. Instead it signs protected requests with a dedicated 256-bit direct key and a one-time challenge/HMAC exchange.
 
-For HTTPS-required destinations, WordPress, or environments where plaintext LAN/internet transport is unsuitable, the trusted-LAN relay remains the compatibility path. See `docs/PROTOCOL.md`, `docs/UCI.md` and `relay/README.md`.
+This provides authentication, integrity and replay protection, not confidentiality. Direct HTTP therefore requires explicit user consent. HTTPS-required destinations can use the trusted-LAN relay until a hardware/firmware path with verified TLS is adopted.
 
 ## Philosophy
 
-See64You should feel like a useful editor first and a retro demonstration second. Features must remain understandable on a 40-column display, keyboard-first, recoverable from ordinary files, and simple enough to run on ordinary PHP hosting.
+See64You should feel like a polished Commodore application, not a hardware demo. The 40-column interface stays deliberate and understandable, but implementation may use every useful C64 Ultimate facility behind it.
+
+The rule is no longer **make it fit an original C64**.
+
+The rule is **use C64U resources efficiently, safely and invisibly to the user**.

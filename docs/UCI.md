@@ -1,113 +1,190 @@
 # C64U / UCI integration
 
-See64You treats Ultimate features as platform capabilities. Editor and publisher code consume bounded platform interfaces rather than accessing UCI registers directly.
+See64You is a C64 Ultimate-native application. UCI is a core platform service, not an optional compatibility enhancement.
+
+Application modules use bounded platform interfaces; feature code should not manipulate UCI registers directly unless it is the platform layer responsible for that function.
 
 ## Hardware baseline
 
-Real C64 Ultimate firmware 1.1 validation established:
+Real C64 Ultimate firmware 1.1 validation has established:
 
-- the documented UCI window at `$DF1C-$DF1F` works on the tested device;
-- Ultimate-DOS Target `$01` is available;
-- Network Target `$03` is available;
-- HTTP Target `$06` is absent;
-- Network `$03` resolved `example.com`, opened TCP port 80, sent raw HTTP and received `HTTP/1.1 200 OK`.
+- the UCI window at $DF1C-$DF1F works on the tested device;
+- Ultimate-DOS Target $01 is available;
+- Network Target $03 is available;
+- HTTP Target $06 is absent on that firmware;
+- Network $03 resolved DNS, opened TCP, sent raw HTTP and received a valid response;
+- settings persistence, direct authentication and large direct document transfer work on hardware.
 
-Some external projects report `$DE1C-$DE1F` in other Ultimate configurations. That remains a compatibility investigation; production should not abandon the hardware-proven mapping without evidence.
+Other register-window reports remain compatibility evidence, not a reason to abandon the hardware-proven mapping.
+
+## Product requirement
+
+The new product baseline requires:
+
+- Command Interface enabled;
+- 16 MiB REU;
+- Ultimate-DOS;
+- SD storage.
+
+Network $03 is required for the current direct Standalone publisher, not for offline editing.
+
+Software IEC/device 8 is **not** a production requirement.
 
 ## Capability probing
 
-`client/src/platform/uci.c` probes the command interface and supported targets with bounded commands. A target is accepted only when its identity is convincing; the generic firmware reply `NO TARGET / 00,OK` is not a valid capability.
+Probe actual targets/features instead of enabling code solely from firmware version.
 
-Missing network facilities do not prevent offline editing.
+A target is accepted only when identity/behaviour is convincing. Generic NO TARGET / 00,OK-style responses must not be mistaken for capability.
 
-## Ultimate-DOS
+The startup capability inventory is specified in C64U-RUNTIME.md.
 
-Ultimate-DOS provides local C64U document and settings storage.
+## Ultimate-DOS $01/$02
 
-The transactional save path is:
+Ultimate-DOS provides two independent instances, $01 and $02, with separate directory/file state.
+
+See64You should use this intentionally so user-document context and application-resource/module operations do not constantly destroy each other's path/file state.
+
+Every subsystem must still establish its required path explicitly.
+
+### Transactional storage
+
+Document/configuration writes follow a transactional pattern:
 
 1. remove stale temp;
-2. create temp;
-3. write;
-4. close;
-5. remove old destination;
-6. rename temp to destination;
-7. for publishing settings/profiles, reopen the exact final file from `/sd/`, validate its checksum/fields and compare the complete saved record before reporting success.
+2. create/write temp;
+3. close;
+4. remove/replace destination;
+5. reopen and validate critical configuration before success.
 
-Real firmware-1.1 testing exposed two details now covered by regression tests:
+Real firmware-1.1 testing established relevant details including explicit filename termination and file-not-found status handling. Those behaviours remain regression-covered.
 
-- FILE_STAT filenames require explicit NUL termination;
-- status 82 is the firmware's normal file-not-found result for the relevant checks.
+### Direct file-to-REU loading
 
-Publishing-settings load/save/profile/key-import select `/sd/` inside the settings-store boundary before file I/O. Install all application PRGs from the same current package: an older settings helper can still search the cold `/` path even when the SD file itself is valid.
+Ultimate-DOS command DOS_CMD_LOAD_REU ($21) reads bytes from the currently opened file directly into REU at a supplied address/length.
 
-Saving prepares the record/checksum without updating REU. The existing firmware-compatible temp/write/close/delete/rename sequence remains; cleanup deletes and write-side CLOSE are best effort. Final persistent readback uses the same loader as cold startup, including STAT/open/read/close, checksum and field validation. A missing, unreadable, truncated, corrupt or different final record returns a verification error; Save + Return stays in Settings. Only verified settings are handed back through REU. Profiles use the same verification path.
+Official Ultimate documentation states that this function assumes a **16 MB REU configuration**.
 
-Host coverage verifies path selection, failed writes/readback, exact comparisons and disk reload with REU cleared. Real firmware 1.1.0 has passed normal Save/readback and profile save/load. After a full physical power cycle, the 334-byte active CFG matched the saved record exactly; the current loader started from `/` with no valid REU settings cache, selected `/sd/` and passed record/checksum/UI validation. The persisted direct key then passed an authenticated GET (HTTP 200). Normal companion chaining still requires the separate acceptance gate in `todo.md`.
+This is the preferred foundation for See64You's module cache:
 
-## Network Target `$03`
+- open validated module;
+- load it directly into allocated high REU;
+- verify transferred length/status/integrity;
+- transition from cached REU image later.
 
-`client/src/platform/network.c` provides bounded DNS/TCP open, write, read and close operations.
+The corresponding SAVE_REU operation may also be useful for carefully scoped future features, but normal canonical document persistence should remain explicit/transactional rather than treating raw REU images as the document format.
 
-The active Standalone publisher uses this target directly on firmware 1.1. It frames ordinary HTTP requests itself and authenticates protected operations with the challenge/HMAC protocol in `PROTOCOL.md`.
+## Network Target $03
 
-Direct mode intentionally:
+client/src/platform/network.c provides bounded DNS/TCP open, write, read and close operations.
 
-- does not send the site's normal password;
+The firmware-1.1 Standalone publisher frames ordinary HTTP itself and authenticates protected operations with the challenge/HMAC protocol in PROTOCOL.md.
+
+Direct mode:
+
+- never sends the normal site password;
 - does not use a reusable bearer token;
-- requires explicit consent for plaintext `http://`;
-- rejects `https://` because raw Network `$03` is not TLS;
-- restores C64U turbo before network/REU I/O.
+- requires explicit consent for plaintext http://;
+- rejects https:// unless a real TLS-capable path is being used.
 
-The document body remains plaintext. Authentication/integrity/replay protection do not imply confidentiality.
+Authentication/integrity/replay protection do not provide confidentiality.
 
-## HTTP Target `$06`
+## Control Target $04
 
-A bounded HTTP-target implementation remains available behind the publisher interface for compatible/newer firmware. Firmware 1.1 on the tested C64 Ultimate returns `NO TARGET` for IDENTIFY and `21,UNKNOWN COMMAND` for target commands, so `$06` is not used by the active package on that device.
+Control Target provides hardware-management functions and is part of the new platform evaluation.
 
-Do not infer TLS from a target accepting an `https://` resource. TLS support requires an actual verified TLS path.
+Use only narrow, capability-proven functions. Potential See64You uses include:
+
+- identify/capability information;
+- deliberate recovery/reboot after an unrecoverable state;
+- runtime palette capture/restore if See64You intentionally changes the runtime palette.
+
+Do not use Control Target as permission to rewrite unrelated machine preferences.
+
+## Software IEC Target $05
+
+Software IEC is legacy/diagnostic information for See64You.
+
+The old application chain depended on SD-backed software IEC/device 8 and exposed a real firmware/hardware stall. That dependency is retired from the product architecture.
+
+Do not repair or preserve software-IEC chaining unless it is needed for an isolated regression/control test.
+
+## HTTP Target $06
+
+HTTP Target is optional and capability-detected.
+
+It is documented on newer Ultimate firmware but is absent on the tested firmware-1.1 C64 Ultimate. Existing code may remain as a compatibility/future transport while it is useful.
+
+Never infer TLS merely because a URL begins with https:// or because $06 exists; TLS/security behaviour must be verified.
+
+## REU
+
+See64You now requires a 16 MiB REU.
+
+The REU contains shared application state, allocator-managed editor data and validated executable module cache. It is not merely a handoff buffer.
+
+Capacity probing must preserve occupied data. Future tests should focus on the required 16 MiB configuration instead of treating 128 KiB as the product minimum.
+
+REU is volatile working state. Canonical settings/documents that must survive power loss are persisted to SD.
+
+## Turbo
+
+Ultimate turbo registers can be software-controlled only when the user's Ultimate Turbo Control configuration exposes register control.
+
+See64You therefore:
+
+1. detects whether software control is available;
+2. captures the prior runtime setting;
+3. uses central INTERACTIVE / CPU_INTENSIVE / IO_SAFE / TRANSITION modes;
+4. restores the captured value afterward.
+
+Do not permanently force maximum turbo as a setup side effect.
+
+CPU-intensive operations can use higher speed once measured. Timing-sensitive UCI/network/REU paths stay at a hardware-proven safe setting until faster operation is validated.
+
+## Program/module transitions
+
+The old production path uses separate Editor/Publisher/Settings PRGs and software-IEC chaining. It is migration code only.
+
+Hardware evidence now includes:
+
+- full Ultimate-DOS streaming of all current matching companion PRGs;
+- successful companion-launch-probe replacement of the running PRG;
+- successful entry into the loaded target's cc65 startup and return to the resident probe.
+
+That completed the proof needed from the old $C800-$CBFF diagnostic design.
+
+The committed production direction is now:
+
+1. validate package manifest/module;
+2. cache module in 16 MiB REU using Ultimate-DOS;
+3. commit shared application state;
+4. transition through a tiny overwrite-safe transfer routine;
+5. enter the destination module;
+6. validate the shared ABI/control block.
+
+No permanent $C800-$CBFF reservation is assumed.
 
 ## Trusted-LAN relay
 
-The relay is a compatibility path for HTTPS-required origins and WordPress. The C64U speaks authenticated HTTP to a controlled LAN service; the relay forwards only approved requests to one fixed HTTPS origin with certificate verification.
-
-It is not a general proxy and is not the default Standalone requirement.
-
-## Program chaining
-
-The C64U application intentionally uses separate editor/publisher/settings PRGs to preserve memory headroom and carries state through REU.
-
-The hardware-proven chain currently uses the C64U SD-backed software IEC drive on device 8 with `/sd/` selected and no conflicting hardware drive 8. FAT files are:
-
-- `S64EDIT.PRG`
-- `S64PUB.PRG`
-- `S64CFG.PRG`
-
-Firmware-1.1 IEC names omit the `.PRG` suffix and use unshifted PETSCII. Editor -> publisher -> settings -> publisher -> editor has completed successfully on real hardware.
-
-Production companion transitions still use the temporary software-IEC chain, but the Ultimate-DOS replacement now has two bounded layers. `client/src/platform/companion_loader.c` selects `/sd/`, opens the exact packaged `.PRG`, obtains its size, requires the `$0801` PRG load address, and rejects any image reaching `$C800`; it then consumes the two-byte header and leaves the file positioned at the executable payload. The existing 1 KiB headroom guard already keeps every application BSS below `$C800`, while the software stack begins at `$CC00`, so `$C800-$CBFF` is the explicit resident-loader reservation. `client/src/platform/dos_file.c` keeps the C64U-only `FILE_INFO`/`FILE_SEEK` helpers out of the conventional C64 editor link. The read-only `companion-stream-probe.prg` has passed all three full companion reads on real firmware 1.1. `companion-launch-probe.prg` is the next gate: an assembly loader in the reserved `$C800-$CBFF` block performs the replacement read, closes the file, enters the standard cc65 startup at `$080D`, and verifies return from a large matching diagnostic target. Production transition wiring remains outstanding in `todo.md`.
-
-## REU and timing
-
-Publisher/settings companions may start with live document/history data already present in REU. Capacity probing must therefore preserve every byte it touches. The current probe is covered by a VICE capacity/preservation matrix from 128 KiB through 16 MiB and by exact real-hardware document upload.
-
-UCI/REU/network operations are timing-sensitive. Turbo acceleration is limited to measured CPU-only regions such as SHA/HMAC unless hardware evidence supports a wider scope.
+The relay remains an optional compatibility path for HTTPS-required origins and deferred WordPress use. It is not required by the direct Standalone firmware-1.1 path.
 
 ## Test infrastructure
 
-Host mocks and VICE cover logic but cannot establish firmware behaviour. Planned reusable external lanes are tracked in `todo.md`:
+Host/VICE/simulation can verify logic but not establish firmware behaviour.
 
-- `barryw/sim6502` / `u64sim` for deterministic UCI/Ultimate-DOS state-machine tests;
-- `JC-000/c64-test-harness` for common VICE/real-Ultimate smoke tests;
-- a developer package deploy/run command for normal hardware cycles.
+Preferred development lanes:
 
-Real C64U remains the final gate for firmware, timing and modern USB keyboard claims.
+- JC-000/c64-test-harness for reusable VICE/real-Ultimate smoke tests;
+- barryw/sim6502 / u64sim for deterministic UCI/Ultimate-DOS state-machine tests;
+- automated package upload/run helpers;
+- real C64U as the final timing/firmware/input authority.
 
-## References
+## Primary references
 
 - https://1541u-documentation.readthedocs.io/en/latest/uci/core_uci_architecture.html
+- https://1541u-documentation.readthedocs.io/en/master/uci/ultimate_dos_target.html
 - https://1541u-documentation.readthedocs.io/en/latest/uci/network_target.html
+- https://1541u-documentation.readthedocs.io/en/latest/uci/control_target.html
 - https://1541u-documentation.readthedocs.io/en/latest/uci/http_target.html
+- https://1541u-documentation.readthedocs.io/en/latest/config/turbo_mode.html
 - https://github.com/bdgscotland/c64-kb
-- https://github.com/barryw/sim6502
-- https://github.com/JC-000/c64-test-harness

@@ -1,123 +1,238 @@
 # Setup and configuration UX
 
-This document defines the intended user-facing setup flow for See64You. It is a product/UX specification; unresolved implementation work is tracked in `todo.md`.
+This document defines the user-facing setup flow for the C64 Ultimate-only See64You architecture. Implementation work is tracked in todo.md.
 
-## Goals
+## UX goal
 
-A new C64 Ultimate user should be able to go from a fresh See64You site and fresh C64U package to a working publisher without understanding UCI targets, REU handoff, relay keys, profiles or firmware transport details.
+A new user should be able to:
 
-The normal path should ask only for information the user actually needs. Advanced and diagnostic controls remain available, but should not dominate the first-run experience.
+1. copy the See64You package to SD;
+2. launch one PRG;
+3. follow only the hardware instructions that cannot be automated;
+4. enter/import website details;
+5. test the connection;
+6. begin editing.
 
-## First-run detection
+They should not need to understand UCI targets, REU banks, module caches, DMA transfers or companion PRGs.
 
-On entry to Publisher, attempt to load and validate the persistent publishing configuration. If no valid configuration exists, offer:
+Subsequent launches should normally open directly into the editor.
 
-1. **SET UP WEBSITE** — start the guided setup;
-2. **EDITOR ONLY** — return to editing without publishing;
-3. **ADVANCED** — open the full configuration screen.
+## First launch: platform check
 
-A missing or corrupt configuration must never prevent offline editing. A corrupt configuration should be reported distinctly from a configuration that has never existed.
+The launcher performs bounded checks before asking publishing questions.
 
-## Guided setup: stock C64 Ultimate / Standalone
+User-facing results should look like:
 
-The supported stock-firmware path should be the default and require as few decisions as possible.
+~~~text
+C64 ULTIMATE      READY
+COMMAND INTERFACE READY
+MEMORY 16 MB      READY
+STORAGE           READY
+NETWORK           READY
+~~~
 
-### Step 1 — Website address
+Technical target numbers belong behind Diagnostics.
 
-Prompt for the See64You site URL. Validate its syntax immediately. For firmware 1.1 direct Network `$03`, explain briefly that the C64U connection is direct HTTP and the document body is not encrypted. Require explicit consent before enabling plaintext HTTP; do not silently downgrade an HTTPS URL.
+Required checks include:
+
+- C64U/UCI availability;
+- Ultimate-DOS;
+- 16 MiB REU;
+- writable/readable application storage;
+- Network $03 for direct publishing;
+- optional Control/turbo capabilities.
+
+Offline editing should remain available if networking is unavailable.
+
+## Missing machine prerequisite
+
+If See64You cannot enable a prerequisite itself, explain the exact one-time action.
+
+Example:
+
+~~~text
+16 MB REU REQUIRED
+
+OPEN THE ULTIMATE MENU
+F2 SETTINGS
+C64 AND CARTRIDGE SETTINGS
+RAM EXPANSION UNIT: ENABLED
+REU SIZE: 16 MB
+
+RETURN HERE AND CHOOSE RECHECK
+~~~
+
+Do not send the user back to the beginning after changing one setting.
+
+If UCI itself is disabled, See64You cannot use UCI to enable it; guided manual configuration is therefore expected for that bootstrap case.
+
+## Automatic runtime configuration
+
+Once prerequisites exist, See64You may temporarily change runtime state to improve operation.
+
+Normal users should not be asked about temporary turbo modes, REU cache layout or DOS target selection.
+
+The system-state manager must capture prior values, apply temporary settings only where needed and restore them on clean exit.
+
+Setup must clearly distinguish:
+
+- **required persistent machine prerequisites** the user chooses once;
+- **temporary See64You runtime changes** that are restored automatically.
+
+## Publishing setup wizard
+
+### Step 1 — Website
+
+Prompt for the See64You site URL.
+
+For the firmware-1.1 direct Network $03 path, explain briefly that direct HTTP does not encrypt the document body. Require explicit consent. Never silently downgrade an HTTPS URL.
 
 ### Step 2 — Publishing key
 
-Prefer **IMPORT SEE64KEY.TXT**. The wizard should establish its own storage path and look for the standard key file without requiring the user to browse there first. Offer **TYPE KEY MANUALLY** as a fallback, not as the primary path.
+Prefer IMPORT SEE64KEY.TXT.
 
-The site pairing page remains the place where the dedicated direct key is provisioned. The normal site password must not be requested by the stock-firmware direct wizard.
+The wizard establishes its own deterministic storage path and looks for the standard key file. Manual entry remains a fallback.
 
-### Step 3 — Verify and save
+The normal site password must not be requested by the direct C64U wizard.
 
-Validate the URL/key combination and test the direct connection. If the connection succeeds, write the configuration transactionally to persistent storage.
+### Step 3 — Connection test
 
-Do not report setup complete merely because the write call returned success. The helper must immediately reopen the persisted configuration, validate its checksum/fields and compare the required values with what was just saved. A failed readback is a setup failure with a clear retry/diagnostics path.
+Validate syntax and credentials, then perform the actual direct connection/authentication test.
 
-### Step 4 — Complete
+Distinguish:
 
-Show a compact success screen such as:
+- network unavailable;
+- site unreachable;
+- authentication rejected;
+- invalid URL;
+- unsupported secure transport.
 
-```
+### Step 4 — Save and verify
+
+Persistent configuration is not considered saved until:
+
+1. in-memory values validate;
+2. transactional write/replace completes;
+3. the final file is reopened;
+4. checksum/fields validate;
+5. required values match;
+6. the verified values become active session state.
+
+### Step 5 — Complete
+
+Example:
+
+~~~text
 SEE64YOU IS READY
 
 WEBSITE: example.com
 CONNECTION: OK
 SETTINGS SAVED: OK
 
-RETURN TO EDITOR
-```
+START EDITING
+~~~
 
-Do not expose the direct key itself on this screen.
+Do not display the secret key.
 
-## Normal settings after setup
+## Offline/editor-only path
 
-The ordinary **Publishing Settings** screen should be a simple status/configuration page rather than the current engineering-style list.
+Publishing setup must never trap the user.
 
-Basic controls:
+Provide EDIT OFFLINE / SET UP LATER wherever network configuration is optional.
 
-- Website — show the configured site and allow changing it through the wizard;
-- Connection — show configured/not configured and provide **TEST CONNECTION**;
-- Publishing key — show configured/not configured and provide **REPLACE KEY**;
-- **RUN SETUP AGAIN**;
-- **ADVANCED SETTINGS**;
-- **SAVE / RETURN** where unsaved basic changes exist.
+A missing/corrupt publishing configuration is different from a hardware prerequisite needed by the C64U runtime itself.
 
-The user should not normally need to choose a destination type when the installed build only exposes the supported Standalone direct path.
+## Normal Settings screen
 
-## Advanced settings
+After setup, Basic Settings should contain only user-meaningful choices:
 
-Move implementation-specific or uncommon controls here:
+- Website/profile;
+- Connection status / TEST CONNECTION;
+- Publishing key configured/not configured / REPLACE KEY;
+- Default page/post behaviour;
+- Autosave/recovery preference;
+- visual/editor preferences that belong to See64You;
+- RUN SETUP AGAIN;
+- ADVANCED SETTINGS.
 
-- destination/backend selection when multiple supported backends are actually available;
-- explicit plaintext-HTTP control;
-- manual direct-key entry/disable;
-- relay configuration;
-- destination profiles;
-- WordPress configuration when that backend is enabled;
-- transport/storage diagnostics and troubleshooting information.
+Do not expose UCI target IDs in Basic Settings.
 
-Advanced settings must not weaken security defaults silently. Changes that affect transport security should require explicit confirmation.
+## Advanced Settings
+
+Advanced contains:
+
+- profiles/destinations;
+- transport selection when multiple validated transports exist;
+- explicit plaintext-HTTP policy;
+- relay settings;
+- WordPress settings when enabled;
+- storage locations;
+- performance policy;
+- cache/module diagnostics;
+- recovery management;
+- hardware capability details;
+- logs/diagnostic export.
+
+Security-sensitive downgrades require explicit confirmation.
+
+## Application installation/layout
+
+The intended package eventually presents a simple /sd/SEE64YOU/ folder.
+
+Normal users should launch SEE64YOU.PRG; internal Editor/Publisher/Settings modules are implementation details.
+
+The launcher validates module versions/integrity before caching them in REU. Users should not have to keep track of matching S64EDIT/S64PUB/S64CFG files manually once the new package format lands.
+
+## Transition UX
+
+Editor, Publisher and Settings remain executable overlays but appear as one application.
+
+Every transition clears/replaces stale UI immediately and may briefly show:
+
+- OPENING PUBLISHER...
+- OPENING SETTINGS...
+- RETURNING TO EDITOR...
+
+Normal transitions use validated REU-cached modules, not software IEC.
+
+## Persistence and migration
+
+Persistent settings are durable SD state. REU is fast working/cache state, not the sole durable copy.
+
+The current /sd/SEE64YOU.CFG has passed real-hardware cold persistence testing. Do not move it merely for folder neatness. Migration to the final application directory must write, reopen and verify the new copy before retiring the old location.
 
 ## Error handling
 
-Errors should say what failed and what the user can do next. Distinguish at least:
+Errors should state the problem and next useful action.
 
-- site URL invalid;
-- key missing/invalid;
-- network target unavailable;
-- connection/authentication failed;
-- settings storage unavailable;
-- settings write failed;
-- settings readback/verification failed;
-- saved configuration corrupt on later startup.
+Prefer:
 
-Where useful, provide **RETRY**, **ADVANCED/DIAGNOSTICS**, and **EDITOR ONLY** rather than leaving the user at a dead end.
+**NETWORK IS NOT AVAILABLE — EDIT OFFLINE OR RETRY**
 
-## Persistence contract
+over:
 
-Publishing configuration is persistent state. REU is only a handoff/cache mechanism and must never be treated as durable storage.
+**UCI ERROR 82**
 
-A successful setup/save means all of the following are true:
+Diagnostics may show the underlying status separately.
 
-1. configuration values validate in memory;
-2. the persistent file write/replace completes;
-3. the saved file is reopened from storage;
-4. checksum and required values validate on readback;
-5. the active session receives the verified settings.
+Useful actions include:
 
-Real-hardware acceptance additionally requires a full C64U power cycle followed by automatic settings reload and a successful connection test.
+- RETRY;
+- RECHECK HARDWARE;
+- EDIT OFFLINE;
+- ADVANCED;
+- DIAGNOSTICS;
+- RESTORE LAST GOOD SETTINGS.
 
-## Companion transitions
+## First-run acceptance
 
-Editor, Publisher and Settings remain separate PRGs for memory headroom. Every transition should immediately clear the previous screen and display an explicit message such as `LOADING PUBLISHER...`, `LOADING SETTINGS...` or `RETURNING TO EDITOR...` until the destination UI is ready. This avoids slow software-IEC loads appearing to be corruption or a hang.
+A new supported C64U user can:
 
-The planned Ultimate-DOS/SD-aware companion loader should improve transition speed and remove the software-IEC device-8 dependency without changing the wizard's user-facing model.
-
-## Acceptance criteria
-
-A first-time user on the supported C64U path can complete setup with only a site URL, the standard direct-key file and explicit HTTP consent; no UCI/DOS terminology is required. Setup survives a full power cycle. Re-running setup can replace a site/key cleanly. Failure at any stage preserves the last known-good persistent configuration. Offline editing remains available throughout.
+- satisfy the one-time UCI/16 MiB prerequisites without developer knowledge;
+- launch a single See64You entry point;
+- import/enter site information;
+- save and verify configuration;
+- power cycle and reload configuration;
+- edit while offline;
+- publish when networking is available;
+- exit with temporary machine settings restored.

@@ -1,68 +1,111 @@
 # See64You development instructions
 
+## Product baseline
+
+See64You is a **C64 Ultimate-only** application. The supported product architecture requires a **16 MiB REU** and deliberately uses Ultimate-specific facilities.
+
+Do not constrain product design to preserve ordinary-C64 compatibility, 64 KiB-only operation, software-IEC loading, original-drive timing or an original-C64 release artifact. Conventional-C64 code may remain temporarily during migration only where it still helps regression testing.
+
+Read docs/C64U-RUNTIME.md before platform/runtime work.
+
 ## Priorities
 
 1. Verify reported behaviour before changing it.
-2. Preserve a useful, responsive editor on real C64/C64U hardware.
-3. Keep the C64 client independent from WordPress and the standalone site.
-4. Keep published content recoverable from ordinary files.
-5. Prefer small, readable solutions over speculative abstractions.
+2. Preserve a useful, responsive editor on real C64 Ultimate hardware.
+3. Use C64U facilities aggressively where they improve capability, reliability or responsiveness.
+4. Keep resource use efficient even though more resources are available.
+5. Hide UCI/REU/DMA/transport complexity from normal users.
+6. Restore every temporary machine setting See64You changes when a clean exit is possible.
+7. Keep the editor independent from publishing backends and useful offline.
+8. Keep canonical content recoverable from ordinary files.
+9. Prefer small, measured solutions over speculative abstractions.
 
-## Architecture
+## C64U runtime rules
 
-- `client/` is the cc65 C64/C64U application.
-- `site/` is a self-contained flat-file PHP site and API.
-- `wordpress/` is the WordPress adapter.
-- Documents are canonical source text. Generated HTML is never the editing source.
-- Network/publisher code must sit behind a narrow interface so offline editing remains usable.
-- Reuse generic design lessons from Terra64, but do not couple either repository or copy game-specific code.
+- 40x25 text mode remains the baseline application UI.
+- Keyboard operation is mandatory; mouse support is an enhancement.
+- Modern USB keyboard users and the machine's native C64 keyboard are both first-class input targets.
+- The 16 MiB REU is the primary extended workspace. Introduce a central allocator rather than scattering fixed ad-hoc banks.
+- Keep only small hot buffers and currently executing code in conventional C64 RAM when REU-backed storage is more appropriate.
+- Prefer Ultimate-DOS and native UCI transfers over IEC/KERNAL file loading.
+- Use Ultimate-DOS targets $01 and $02 intentionally as independent filesystem contexts when that simplifies state.
+- Normal application modules should be validated and cached in REU, then launched through a tiny overwrite-safe transfer path.
+- Do not resurrect the $C800-$CBFF resident-loader reservation as a production constraint unless later evidence makes it necessary.
+- Capability-probe hardware features. Do not enable a feature solely because a firmware version is expected to have it.
+- Real C64U hardware is the final authority for UCI, DMA/REU, turbo, USB-keyboard and timing behaviour.
 
-## C64 client rules
+## System-state ownership
 
-- Treat 40x25 text mode as the baseline UI.
-- Keyboard operation is mandatory; mouse support is optional enhancement.
-- Avoid heap allocation in hot editor paths where a fixed buffer is practical.
-- Keep editor/model code platform-light so it can be host-tested.
-- Avoid full-screen redraws for routine typing.
-- C64 keyboard and modern USB keyboard mappings must both remain possible.
-- The C64U build may use REU-backed document, clipboard and history storage, but conventional-C64 editing must remain independent of REU.
-- On C64U, use temporary turbo acceleration only for verified CPU-bound work that materially improves responsiveness. Preserve and restore the prior turbo state and keep timing-sensitive I/O outside accelerated regions unless hardware testing proves otherwise.
+All temporary machine changes must go through a common system-state manager.
+
+For any setting See64You changes:
+
+1. read/capture the prior value when possible;
+2. persist enough session state to recover from an interrupted run where practical;
+3. apply the temporary setting;
+4. use it only for the necessary scope;
+5. restore the prior value on clean exit/module teardown;
+6. verify restoration where the interface permits.
+
+Examples include turbo/badline mode, runtime palette if ever changed, interrupt/memory-map state around transfers, temporary DOS contexts and network handles.
+
+Do not automatically rewrite unrelated persistent Ultimate configuration such as SID/audio, HDMI preferences, drive configuration, home directory, DHCP/static network settings or palette merely because the API can reach them.
+
+If a prerequisite cannot safely be enabled by software, guide the user through the exact one-time Ultimate menu setting and recheck it.
+
+## Performance rules
+
+- Do not run permanently at maximum turbo merely because it exists.
+- Define central modes such as interactive, CPU-intensive and I/O-safe.
+- Use the fastest hardware-proven mode for CPU-heavy work.
+- Restore the user's prior turbo state after temporary acceleration.
+- Keep timing-sensitive I/O at a proven-safe mode until hardware testing demonstrates faster operation is reliable.
+- Continue incremental screen redraws and streaming data paths; extra hardware is not permission for unnecessary copying.
+
+## Editor/model rules
+
+- Keep editor/model logic platform-light enough for host tests.
+- Avoid heap allocation in hot paths when bounded structures are simpler, but do not preserve tiny original-C64 limits that no longer serve the product.
+- Evolve document/history/clipboard storage toward the shared REU allocator.
+- Large-document design should use paging/pieces/chunks rather than repeatedly shifting an enormous flat REU region.
+- Generated HTML is never the editing source.
 
 ## Web rules
 
 - Standalone public pages must work without JavaScript.
 - Plain theme must work without CSS.
-- No database is required for the standalone site.
+- The standalone site requires no database.
 - Validate slugs and document types before constructing paths.
-- Escape generated HTML by default. Only the intentionally supported markup subset may create HTML.
+- Escape generated HTML by default; only the frozen supported markup subset may create HTML.
 - Store password hashes, never plaintext site passwords.
-- Reusable passwords/bearer tokens must use HTTPS or the trusted relay outside controlled testing.
-- The firmware-1.1 direct path may use explicit plaintext HTTP only with the dedicated one-time challenge/HMAC authentication protocol; do not silently downgrade HTTPS.
-- Writes should be atomic where the hosting filesystem permits.
+- Reusable passwords/bearer tokens require HTTPS or the trusted relay outside controlled testing.
+- The firmware-1.1 direct path may use explicit plaintext HTTP only with the dedicated challenge/HMAC protocol; never silently downgrade HTTPS.
+- Writes should be transactional/atomic where the storage environment permits.
 
 ## WordPress rules
 
 - Prefer WordPress-native authentication and permissions.
 - Never store a user's normal WordPress password.
-- Preserve the See64You source in post metadata so editing round-trips exactly.
+- Preserve See64You source in post metadata so editing round-trips exactly.
 - Generated HTML is derived from source and can be replaced on every publish.
 
 ## Documentation ownership
 
-- `todo.md` is the **only live work queue**. Put unresolved tasks, deferred work and validation gates there.
-- README and subsystem docs describe **implemented behaviour and durable architecture**, not temporary incidents or speculative next steps.
-- `docs/LOCAL_TESTING.md` contains only current reproducible test procedures. Completed diagnostic narratives belong in Git history, not the active runbook.
-- `docs/ENGINEERING-REFERENCES.md` records external evidence, licences and adoption boundaries; it is not a second TODO list.
-- When a code change alters behaviour, interfaces, file names, key mappings, transport, storage, packaging or validation expectations, update the corresponding canonical doc in the same change.
-- When hardware/VICE testing resolves a problem, update `todo.md` immediately and remove or rewrite any now-stale diagnostic instructions in the same PR.
-- Before committing, explicitly review documentation impact. If no docs change is needed, record why in the PR description/checklist.
-- Prefer deleting superseded planning documents once their work is complete; Git history is the archive.
+- todo.md is the **only live work queue**.
+- README and subsystem docs describe durable architecture, current contracts and explicitly labelled migration state.
+- docs/C64U-RUNTIME.md owns hardware/resource/system-state architecture.
+- docs/LOCAL_TESTING.md contains only current reproducible validation procedures.
+- docs/ENGINEERING-REFERENCES.md records external evidence, licences and adoption boundaries.
+- When behaviour, interfaces, package names, key mappings, transport, storage, resource ownership, setup or validation expectations change, update the corresponding canonical doc in the same change.
+- Remove superseded plans rather than leaving contradictory active documentation; Git history is the archive.
 
 ## Workflow
 
-- Read `todo.md` before starting substantial work.
-- Inspect current source, branch/PR state and relevant canonical docs before editing.
-- Update `todo.md` when work is completed, deferred, discovered or reprioritised.
-- Validate the smallest relevant scope first, then run the full available validation required by risk/project rules.
-- Keep a downloadable `see64you.prg` for the current integration version: integration validation must build it first and publish it as the `see64you-prg` artifact whenever the C64 build succeeds.
-- Do not claim C64U hardware validation unless it actually ran on C64U hardware.
+- Read todo.md before substantial work.
+- Inspect current branch/PR state, source and canonical docs before editing.
+- Re-check the branch head immediately before a write because local/Codex work may advance it concurrently.
+- Update todo.md when work is completed, deferred, discovered or reprioritised.
+- Validate the smallest relevant scope first, then the full available validation required by risk.
+- The primary downloadable product artifact is the **current C64U package**, not a conventional-C64 PRG.
+- Do not merge/main/deploy solely because CI is green; follow the explicit delivery instruction.
+- Do not claim real-hardware validation unless it actually ran on real C64U hardware.
