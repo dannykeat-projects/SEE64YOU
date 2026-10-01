@@ -106,7 +106,9 @@ launch_target:
     sei
     lda TARGET_MARKER
     cmp #$5a
-    beq pass
+    bne target_failed
+    jmp pass
+target_failed:
     lda #$08
     jmp fail
 
