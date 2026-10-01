@@ -60,6 +60,36 @@ Known-good direct-publishing setup:
 
 Do not assume a browser-selected/path-import directory is still active for a later DOS operation.
 
+### Remote access from this development PC
+
+Ultimate64 Manager is installed at `C:\Program Files\Ultimate64 Manager\ultimate64-manager.exe`. Its connection/profile files are under `C:\Users\User\AppData\Roaming\ultimate64-manager\` (`settings.json`, `profiles.json`). Read the current host from those files if the address changes; do not print or commit passwords. The tested C64U address is `192.168.1.119` (firmware 1.1.0); verify it before a new session.
+
+Command-line access uses the device's FTP and REST services directly with `curl.exe`, rather than a confirmed Manager CLI. Passing `--help` to the installed Manager launched its GUI; no usable CLI was established. Windows UI automation is optional and must respect a user request to stop Computer Use.
+
+Read-only examples, from the repository root:
+
+```powershell
+curl.exe --silent --show-error --max-time 10 http://192.168.1.119/v1/info
+curl.exe --silent --show-error --max-time 10 ftp://192.168.1.119/sd/
+New-Item -ItemType Directory -Force client/build/hardware | Out-Null
+curl.exe --silent --show-error --max-time 10 ftp://192.168.1.119/sd/SEE64YOU.CFG -o client/build/hardware/SEE64YOU.CFG
+curl.exe --silent --show-error --max-time 10 'http://192.168.1.119/v1/machine:readmem?address=0400&length=1000' -o client/build/hardware/screen.bin
+```
+
+CFG downloads contain keys: keep them in ignored `client/build/`, inspect only validation results and never paste contents into logs/PRs. Screen RAM is a 40x25 screen-code matrix, not plain ASCII, and may contain user text.
+
+An authorized run of an existing SD PRG uses REST (this resets/replaces the running C64 program; preserve unsaved work first):
+
+```powershell
+curl.exe --silent --show-error --max-time 10 -X PUT 'http://192.168.1.119/v1/runners:run_prg?file=/sd/SEE64YOU-C64U.PRG'
+```
+
+FTP also supports authorized uploads via `curl.exe -T <local-file> ftp://192.168.1.119/sd/<filename>`. Preserve installed files/settings, keep package versions together, and clean up only scratch files created by the test.
+
+On the tested firmware, `/v1/machine:input` returns HTTP 404. Simple menu keys can be supplied through the KERNAL keyboard buffer (`$0277`, count `$00C6`) using REST `machine:writemem`; this did not reliably inject the editor's Ctrl modifier. Use a physical Ctrl+P press for the editor transition. REST `machine:reset`/`machine:reboot` are not full power-cycle tests; the user must physically power off and back on. Remote power-on has not been established.
+
+The tested session needed no FTP/REST password. If network authentication is enabled later, use securely supplied credentials (REST uses `X-Password`) without exposing them in tool output or project notes. Required device services are Web Remote Control and FTP File Service; direct PRG/memory control also depends on device remote/DMA support.
+
 ## 4. Editor/publisher chain smoke test
 
 1. Run `SEE64YOU-C64U.PRG`.
