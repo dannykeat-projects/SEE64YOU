@@ -88,14 +88,16 @@ The last result closes the old resident-loader proof gate. The $C800-$CBFF loade
 
 As the new architecture lands, validate these in order.
 
-### 6.1 16 MiB requirement
+### 6.1 Platform/16 MiB requirement
 
 From a cold launch:
 
 - detect missing/undersized REU cleanly;
 - show exact user setup guidance;
 - recheck without restarting the entire wizard;
-- positively verify access near the intended high-REU range without corrupting existing state.
+- positively verify access near the intended high-REU range without corrupting existing state;
+- verify /sd/ can create, write, reopen and exactly read a temporary marker;
+- verify the preflight temporary file is removed and no pre-existing S64CHK?.TMP candidate is overwritten.
 
 ### 6.2 System-state capture/restore
 
