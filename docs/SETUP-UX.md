@@ -42,6 +42,8 @@ Required checks include:
 - Network $03 for direct publishing;
 - optional Control/turbo capabilities.
 
+The current C64U editor bootstrap now enforces UCI, Ultimate-DOS $01 and an exact 16 MiB REU, with R = RECHECK and X = EXIT after guided prerequisite instructions. Writable/readable SD application-storage verification and the final integrated launcher/wizard remain P0 migration work.
+
 Offline editing should remain available if networking is unavailable.
 
 ## Missing machine prerequisite

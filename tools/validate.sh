@@ -91,6 +91,12 @@ echo "== Host direct C64U auth signing tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/direct_auth_test.c client/src/publisher/direct_auth.c client/src/crypto/sha256.c client/src/charset.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host C64U platform requirement tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src \
+    client/tests/platform_requirements_test.c client/src/platform/requirements.c \
+    -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host Ultimate DOS tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/dos_test.c client/src/platform/dos.c client/src/platform/dos_file.c -o "$TMP_BIN"
 "$TMP_BIN"
@@ -211,6 +217,7 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/platform/http.c \
         client/src/platform/network.c \
         client/src/platform/reu.c \
+        client/src/platform/requirements.c \
         client/src/platform/turbo.c \
         client/src/publisher/destination.c \
         client/src/publisher/state.c \

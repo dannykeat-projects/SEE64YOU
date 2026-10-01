@@ -8,7 +8,7 @@ Completed troubleshooting/evidence belongs in canonical docs and Git history, no
 
 ## P0 — Establish the C64U-native runtime
 
-- [ ] Enforce and hardware-validate the new platform contract: UCI, Ultimate-DOS, SD storage and 16 MiB REU. Missing prerequisites must produce clear setup guidance and a RECHECK path.
+- [ ] Finish platform-contract enforcement and hardware validation: startup now rejects missing UCI, missing Ultimate-DOS $01 and non-16 MiB REU with guided RECHECK/EXIT; add writable/readable SD storage verification and complete the real-C64U gate.
 - [ ] Implement the central C64U system-state manager described in docs/C64U-RUNTIME.md:
   - capture every temporary setting See64You changes;
   - expose INTERACTIVE / CPU_INTENSIVE / IO_SAFE / TRANSITION modes;

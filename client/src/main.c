@@ -7,6 +7,7 @@
 #include "editor.h"
 #include "input/input.h"
 #include "platform/dos.h"
+#include "platform/requirements.h"
 #include "platform/uci.h"
 #ifdef S64_REU_BUFFER
 #include "platform/chain.h"
@@ -69,6 +70,80 @@ static void show_local_result(S64LocalResult result)
 }
 
 #ifdef S64_REU_BUFFER
+static void show_platform_requirement(S64PlatformRequirement requirement)
+{
+    clrscr();
+    cputs("SEE64YOU SETUP\r\n\r\n");
+
+    switch (requirement) {
+        case S64_PLATFORM_MISSING_UCI:
+            cputs("COMMAND INTERFACE REQUIRED\r\n\r\n");
+            cputs("OPEN ULTIMATE MENU\r\n");
+            cputs("F2 SETTINGS\r\n");
+            cputs("C64 AND CARTRIDGE SETTINGS\r\n");
+            cputs("COMMAND INTERFACE: ENABLED\r\n");
+            break;
+        case S64_PLATFORM_MISSING_DOS:
+            cputs("ULTIMATE-DOS REQUIRED\r\n\r\n");
+            cputs("COMMAND INTERFACE IS READY\r\n");
+            cputs("CHECK ULTIMATE FIRMWARE\r\n");
+            break;
+        case S64_PLATFORM_MISSING_REU:
+            cputs("16 MB REU REQUIRED\r\n\r\n");
+            cputs("OPEN ULTIMATE MENU\r\n");
+            cputs("F2 SETTINGS\r\n");
+            cputs("C64 AND CARTRIDGE SETTINGS\r\n");
+            cputs("RAM EXPANSION UNIT: ENABLED\r\n");
+            cputs("REU SIZE: 16 MB\r\n");
+            break;
+        case S64_PLATFORM_WRONG_REU_SIZE:
+            cputs("REU SIZE MUST BE 16 MB\r\n\r\n");
+            cputs("OPEN ULTIMATE MENU\r\n");
+            cputs("F2 SETTINGS\r\n");
+            cputs("C64 AND CARTRIDGE SETTINGS\r\n");
+            cputs("REU SIZE: 16 MB\r\n");
+            break;
+        default:
+            cputs("PLATFORM CHECK FAILED\r\n");
+            break;
+    }
+
+    cputs("\r\nR RECHECK    X EXIT");
+}
+
+static unsigned char platform_preflight(void)
+{
+    S64PlatformRequirements requirements;
+    S64PlatformRequirement requirement;
+    unsigned char key;
+
+    for (;;) {
+        s64_uci_probe_capabilities(&uci_capabilities);
+        requirements.interface_present = uci_capabilities.interface_present;
+        requirements.dos_target = uci_capabilities.dos_target;
+        requirements.reu_present = s64_reu_probe();
+        requirements.reu_banks = requirements.reu_present
+            ? s64_reu_probe_banks()
+            : 0u;
+
+        requirement = s64_platform_check_requirements(&requirements);
+        if (requirement == S64_PLATFORM_READY) {
+            return 1u;
+        }
+
+        show_platform_requirement(requirement);
+        for (;;) {
+            key = (unsigned char)cgetc();
+            if (key == 'R' || key == 'r') {
+                break;
+            }
+            if (key == 'X' || key == 'x') {
+                return 0u;
+            }
+        }
+    }
+}
+
 static unsigned char restore_publisher_handoff(void)
 {
     if (!s64_editor_handoff_restore(&editor, &document, &local_document)) {
@@ -489,9 +564,7 @@ int main(void)
 #ifdef S64_REU_BUFFER
     unsigned char restored_handoff;
 
-    if (!s64_reu_probe() || s64_reu_probe_banks() < 2u) {
-        clrscr();
-        cputs("SEE64YOU C64U\r\n128K REU REQUIRED\r\n");
+    if (!platform_preflight()) {
         return 1;
     }
 #endif
@@ -505,7 +578,9 @@ int main(void)
     restored_handoff = restore_publisher_handoff();
 #endif
     s64_ui_init();
+#ifndef S64_REU_BUFFER
     s64_uci_probe_capabilities(&uci_capabilities);
+#endif
     s64_ui_set_http_ready(uci_capabilities.http_target);
     s64_ui_set_dos_ready(uci_capabilities.dos_target);
     s64_ui_render(&editor);
