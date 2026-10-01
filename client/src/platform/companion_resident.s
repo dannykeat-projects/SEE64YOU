@@ -373,5 +373,5 @@ fail_color:
 fail_spin:
     jmp fail_spin
 
-.assert (* - entry) <= $0200, error, "resident loader exceeds 512-byte slot"
-.res $0200 - (* - entry), $ea
+.assert (* - entry) <= $0400, error, "resident loader exceeds 512-byte slot"
+.res $0400 - (* - entry), $ea

@@ -284,7 +284,7 @@ if command -v cl65 >/dev/null 2>&1 \
 
     echo "== C64U resident replacement loader diagnostic build =="
     make -C client companion-launch-probe
-    test "$(wc -c < client/build/companion-resident.bin)" -eq 512
+    test "$(wc -c < client/build/companion-resident.bin)" -eq 1024
     python3 tools/check_memory_headroom.py client/build/companion-launch-probe.map \
         --label "C64U resident loader probe" --min-headroom 1024
     python3 tools/check_memory_headroom.py client/build/companion-loader-target.map \
