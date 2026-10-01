@@ -14,7 +14,7 @@ Completed troubleshooting/evidence belongs in canonical docs and Git history, no
   - restore the user's prior state on clean exit;
   - verify restoration where possible;
   - never rewrite unrelated persistent Ultimate preferences.
-- [ ] Add the crash/interrupted-session journal so the next launch can safely detect an unclean See64You session and restore only state that was explicitly captured.
+- [ ] Finish crash/interrupted-session journal integration. A host-tested versioned journal format and two-slot /sd/ persistence layer now detect ACTIVE vs CLEAN sessions, checksum every record, retain explicit restorable-state valid bits, and fall back to the previous valid slot after a torn/corrupt newest write. Next wire journal creation before the launcher's first global state change, clean marking after verified restoration, and startup recovery UI/actions.
 - [ ] Implement a 16 MiB REU allocator and versioned shared control block. Migrate document/history/clipboard/settings/handoff ownership behind allocator/control-block handles rather than adding more fixed ad-hoc banks.
 - [ ] Define and validate the application/module manifest: module ID, filename, ABI/application version, PRG load address/extent, byte length, startup address and integrity value.
 - [ ] Implement module preload/cache using Ultimate-DOS DOS_CMD_LOAD_REU into allocated high REU, with exact length/status/integrity checks.

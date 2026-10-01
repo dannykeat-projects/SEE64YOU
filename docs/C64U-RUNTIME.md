@@ -125,6 +125,10 @@ On next launch after an unclean session, perform only restoration actions that a
 
 The journal does not promise to restore arbitrary C64 RAM or another program that was running before See64You.
 
+The first journal implementation is now host-tested in client/src/platform/session_journal.*. Its fixed 24-byte wire format is encoded explicitly rather than serialising compiler struct layout. It records format version, ACTIVE/CLEAN state, caller-supplied package version and session ID, a monotonically increasing sequence, recovery reference, and explicit restore-valid flags plus values for state See64You actually captured. The current restore payload can carry the captured turbo-control byte only when its valid bit is set.
+
+Until the final /sd/SEE64YOU/ tree lands, the journal uses two small root-SD slots, S64JRN0.DAT and S64JRN1.DAT. Each update writes and reopens/verifies the alternate sequence slot; the previous valid slot is not deleted first. Startup chooses the highest valid sequence. If the newest slot is torn/corrupt, the previous valid slot remains available, which can cause a safe false-positive interrupted-session recovery rather than losing the captured state. Launcher lifecycle integration and real-hardware persistence testing remain P0 work.
+
 ## 7. Performance governor
 
 Use central modes rather than ad-hoc turbo writes.
