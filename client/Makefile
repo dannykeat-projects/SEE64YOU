@@ -22,6 +22,7 @@ COMPANION_LOADER_TARGET := build/S64LDTST.PRG
 RESIDENT_LOADER_BIN := build/companion-resident.bin
 RESIDENT_LOADER_OBJ := build/companion-resident.o
 RESIDENT_LOADER_BLOB_OBJ := build/companion-resident-blob.o
+PLATFORM_PREFLIGHT_PROBE_TARGET := build/platform-preflight-probe.prg
 REU_PROBE_TARGET := build/reu-probe.prg
 REU_BUFFER_PROBE_TARGET := build/reu-buffer-probe.prg
 REU_EDITOR_PROBE_TARGET := build/reu-editor-probe.prg
@@ -32,7 +33,7 @@ PUBLISHER_CHAIN_TARGET := build/S64PUB.PRG
 SETTINGS_TARGET := build/see64you-settings.prg
 SETTINGS_CHAIN_TARGET := build/S64CFG.PRG
 SOURCES := src/main.c src/charset.c src/buffer.c src/history.c src/clipboard.c src/document.c src/editor.c src/editor_format.c src/ui.c src/ui_status.s src/input/input.c src/input/repeat.s src/platform/uci.c src/platform/dos.c src/storage/local.c
-C64U_SOURCES := $(filter-out src/buffer.c src/history.c,$(SOURCES)) src/buffer_reu.c src/history_reu.c src/platform/reu.c src/platform/requirements.c src/platform/reu_dma.s src/platform/chain.s src/publisher/editor_handoff.c src/publisher/editor_handoff_record.s
+C64U_SOURCES := $(filter-out src/buffer.c src/history.c,$(SOURCES)) src/buffer_reu.c src/history_reu.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/editor_handoff.c src/publisher/editor_handoff_record.s
 EDITOR_PROBE_SOURCES := diagnostics/editor_probe.c src/buffer.c src/history.c src/clipboard.c src/editor.c src/editor_format.c
 UI_PROBE_SOURCES := diagnostics/ui_probe.c diagnostics/ui_conio_shim.c src/buffer.c src/history.c src/clipboard.c src/editor.c src/editor_format.c src/ui.c src/ui_status.s
 INPUT_REPEAT_PROBE_SOURCES := diagnostics/input_repeat_probe.c src/input/repeat.s
@@ -48,6 +49,7 @@ SETTINGS_EXCHANGE_PROBE_SOURCES := diagnostics/settings_exchange_probe.c src/cha
 COMPANION_STREAM_PROBE_SOURCES := diagnostics/companion_stream_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/platform/dos_file.c src/platform/companion_loader.c
 COMPANION_LAUNCH_PROBE_SOURCES := diagnostics/companion_launch_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/platform/dos_file.c src/platform/companion_loader.c src/platform/companion_resident_enter.s
 COMPANION_LOADER_TARGET_SOURCES := diagnostics/companion_loader_target.c diagnostics/companion_loader_target_pad.s
+PLATFORM_PREFLIGHT_PROBE_SOURCES := diagnostics/platform_preflight_probe.c src/charset.c src/platform/requirements.c src/platform/uci.c src/platform/reu.c src/platform/reu_dma.s
 REU_PROBE_SOURCES := diagnostics/reu_probe.c src/platform/reu.c src/platform/reu_dma.s
 REU_BUFFER_PROBE_SOURCES := diagnostics/reu_buffer_probe.c src/buffer_reu.c src/platform/reu.c src/platform/reu_dma.s
 REU_EDITOR_PROBE_SOURCES := diagnostics/reu_editor_probe.c src/buffer_reu.c src/history_reu.c src/clipboard.c src/editor.c src/platform/reu.c src/platform/reu_dma.s
@@ -66,7 +68,7 @@ LD65 ?= ld65
 # but unlinked because it does not fit while retaining the 1 KiB software stack.
 CFLAGS := -t c64 -Os -I src -DS64_NATIVE_PETSCII=1 -Wl -D,__STACKSIZE__=0x0400
 
-.PHONY: all c64u publisher settings editor-probe ui-probe input-repeat-probe publisher-charset-probe uci-absence-probe network-probe https-probe direct-site-probe direct-auth-probe hmac-probe settings-io-probe settings-exchange-probe settings-save-probe settings-load-probe companion-stream-probe companion-launch-probe companion-loader-target reu-probe reu-buffer-probe reu-editor-probe recovery-probe publisher-companion-fit clean
+.PHONY: all c64u publisher settings editor-probe ui-probe input-repeat-probe publisher-charset-probe uci-absence-probe platform-preflight-probe network-probe https-probe direct-site-probe direct-auth-probe hmac-probe settings-io-probe settings-exchange-probe settings-save-probe settings-load-probe companion-stream-probe companion-launch-probe companion-loader-target reu-probe reu-buffer-probe reu-editor-probe recovery-probe publisher-companion-fit clean
 
 all: $(TARGET)
 
@@ -204,6 +206,12 @@ hmac-probe: $(HMAC_PROBE_TARGET)
 $(HMAC_PROBE_TARGET): $(HMAC_PROBE_SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -m build/hmac-probe.map -o $@ $(HMAC_PROBE_SOURCES)
+
+platform-preflight-probe: $(PLATFORM_PREFLIGHT_PROBE_TARGET)
+
+$(PLATFORM_PREFLIGHT_PROBE_TARGET): $(PLATFORM_PREFLIGHT_PROBE_SOURCES)
+	@mkdir -p build
+	$(CL65) $(CFLAGS) -m build/platform-preflight-probe.map -o $@ $(PLATFORM_PREFLIGHT_PROBE_SOURCES)
 
 reu-probe: $(REU_PROBE_TARGET)
 

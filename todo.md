@@ -8,7 +8,7 @@ Completed troubleshooting/evidence belongs in canonical docs and Git history, no
 
 ## P0 — Establish the C64U-native runtime
 
-- [ ] Finish platform-contract enforcement and hardware validation: startup now rejects missing UCI, missing Ultimate-DOS $01 and non-16 MiB REU with guided RECHECK/EXIT; add writable/readable SD storage verification and complete the real-C64U gate.
+- [ ] Finish platform-contract enforcement and hardware validation: the editor now rejects anything other than the required 16 MiB REU; a dedicated preflight probe covers UCI, Ultimate-DOS $01 and REU guidance with RECHECK/EXIT without consuming scarce editor overlay RAM. Integrate that preflight into the final launcher/supervisor, add writable/readable SD storage verification and complete the real-C64U gate.
 - [ ] Implement the central C64U system-state manager described in docs/C64U-RUNTIME.md:
   - capture every temporary setting See64You changes;
   - expose INTERACTIVE / CPU_INTENSIVE / IO_SAFE / TRANSITION modes;

@@ -42,7 +42,7 @@ Required checks include:
 - Network $03 for direct publishing;
 - optional Control/turbo capabilities.
 
-The current C64U editor bootstrap now enforces UCI, Ultimate-DOS $01 and an exact 16 MiB REU, with R = RECHECK and X = EXIT after guided prerequisite instructions. Writable/readable SD application-storage verification and the final integrated launcher/wizard remain P0 migration work.
+The current C64U editor enforces the exact 16 MiB REU requirement with a deliberately tiny guard. A separate platform-preflight diagnostic exercises the richer UCI, Ultimate-DOS $01 and REU guidance with R = RECHECK / X = EXIT so this logic can be hardware-validated without consuming the editor's narrow conventional-RAM safety margin. The final launcher/supervisor will own that full preflight. Writable/readable SD application-storage verification and launcher integration remain P0 migration work.
 
 Offline editing should remain available if networking is unavailable.
 

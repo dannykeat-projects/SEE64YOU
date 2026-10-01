@@ -17,7 +17,7 @@ Initial supported baseline:
 
 Network Target $03 is required for current direct web publishing but not for offline editing.
 
-The current C64U editor bootstrap enforces UCI, Ultimate-DOS $01 and an exact 16 MiB REU before entering the editor. Writable/readable SD application-storage verification and real-hardware acceptance of the full preflight remain P0 work.
+The current C64U editor has a deliberately small exact-16-MiB REU guard. The fuller UCI, Ultimate-DOS $01 and REU guidance/RECHECK logic is isolated in a platform-preflight diagnostic until the launcher/supervisor owns it; this avoids spending the editor overlay's conventional-RAM safety margin on one-time setup UI. Writable/readable SD application-storage verification and real-hardware acceptance of the full preflight remain P0 work.
 
 Optional capabilities are detected individually. Firmware version alone does not enable a code path.
 

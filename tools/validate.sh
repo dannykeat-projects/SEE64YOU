@@ -286,6 +286,9 @@ if command -v cl65 >/dev/null 2>&1 \
     echo "== Conventional-C64 UCI absence diagnostic build =="
     make -C client uci-absence-probe
 
+    echo "== C64U platform preflight diagnostic build =="
+    make -C client platform-preflight-probe
+
     echo "== C64U network target diagnostic build =="
     make -C client network-probe
 

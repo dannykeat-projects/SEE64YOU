@@ -34,6 +34,9 @@ jobs:
           python3 tools/check_memory_headroom.py client/build/see64you-c64u.map \
             --label "C64U editor" --min-headroom 1024
 
+      - name: Build C64U platform preflight probe
+        run: make -C client platform-preflight-probe
+
       - name: Build REU diagnostic PRG
         run: make -C client reu-probe
 
@@ -147,6 +150,14 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Publish C64U platform preflight probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-platform-preflight-probe
+          path: client/build/platform-preflight-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Publish REU diagnostic PRG
         uses: actions/upload-artifact@v4
         with:
@@ -255,6 +266,7 @@ jobs:
             client/build/S64EDIT.PRG
             client/build/S64PUB.PRG
             client/build/S64CFG.PRG
+            client/build/platform-preflight-probe.prg
             client/build/direct-auth-probe.prg
             client/build/settings-io-probe.prg
             client/build/settings-exchange-probe.prg
