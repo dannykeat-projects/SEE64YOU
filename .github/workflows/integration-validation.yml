@@ -52,8 +52,9 @@ jobs:
           test "$(wc -c < client/build/companion-resident.bin)" -eq 1024
           python3 tools/check_memory_headroom.py client/build/companion-launch-probe.map \
             --label "C64U resident loader probe" --min-headroom 1024
-          python3 tools/check_memory_headroom.py client/build/companion-loader-target.map \
-            --label "C64U resident loader target" --min-headroom 1024
+          python3 tools/check_prg_extent.py client/build/S64LDTST.PRG \
+            --label "C64U resident loader target" \
+            --load-address 0x0801 --max-end 0xC7FF
 
       - name: Build direct Standalone site probe
         run: make -C client direct-site-probe

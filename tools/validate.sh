@@ -32,6 +32,9 @@ if command -v python3 >/dev/null 2>&1; then
 
     echo "== Memory map guard tests =="
     python3 tools/tests/memory_map_test.py
+
+    echo "== PRG extent guard tests =="
+    python3 tools/tests/prg_extent_test.py
 else
     echo "SKIP Python tests (python3 not found)"
 fi
@@ -287,8 +290,9 @@ if command -v cl65 >/dev/null 2>&1 \
     test "$(wc -c < client/build/companion-resident.bin)" -eq 1024
     python3 tools/check_memory_headroom.py client/build/companion-launch-probe.map \
         --label "C64U resident loader probe" --min-headroom 1024
-    python3 tools/check_memory_headroom.py client/build/companion-loader-target.map \
-        --label "C64U resident loader target" --min-headroom 1024
+    python3 tools/check_prg_extent.py client/build/S64LDTST.PRG \
+        --label "C64U resident loader target" \
+        --load-address 0x0801 --max-end 0xC7FF
 
     echo "== C64U HTTPS target diagnostic build =="
     make -C client https-probe
