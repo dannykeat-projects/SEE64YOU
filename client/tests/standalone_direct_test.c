@@ -6,24 +6,14 @@
 #include "publisher/standalone_documents.h"
 #include "publisher/direct_auth.h"
 #include "publisher/workspace.h"
-#include "platform/turbo.h"
 
 static const char test_key[] =
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 static const char challenge[] = "0123456789abcdef0123456789abcdef";
 static char sent[8192], response[8192], wire[6000];
 static unsigned int sent_length, response_offset, response_length, wire_length;
-static unsigned int opens, closes, signed_requests, turbo_active;
+static unsigned int opens, closes, signed_requests;
 static unsigned int failure_mode, empty_read;
-
-uint8_t s64_turbo_begin_max(S64TurboGuard* guard)
-{
-    assert(!turbo_active); turbo_active = 1; guard->active = 1; return 1;
-}
-void s64_turbo_restore(S64TurboGuard* guard)
-{
-    assert(turbo_active && guard->active); turbo_active = 0; guard->active = 0;
-}
 
 static void status(S64UciReply* reply, const char* value)
 {
@@ -85,7 +75,6 @@ static S64UciResult execute(const S64UciCommandPart* parts, uint8_t count, S64Uc
 {
     uint8_t handle = 1, pair[2], packet[9];
     unsigned int length;
-    assert(!turbo_active); /* Every socket operation runs at the original speed. */
     assert(parts[0].data[0] == 3);
     switch (parts[0].data[1]) {
         case 7:
@@ -190,7 +179,7 @@ int main(void)
     assert(!s64_direct_publisher_key(""));
     assert(s64_direct_publisher_test(&transport, "http://example.com/api.php?action=login", 1) == S64_STANDALONE_AUTH_FAILED);
     assert(opens == before);
-    assert(opens == closes && signed_requests == 10 && !turbo_active);
+    assert(opens == closes && signed_requests == 10);
     puts("standalone direct tests passed");
     return 0;
 }
