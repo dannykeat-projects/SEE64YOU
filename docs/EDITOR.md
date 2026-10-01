@@ -1,10 +1,12 @@
 # Editor design
 
-See64You should feel closer to a small desktop text editor than a command-line editor.
+See64You should feel like a small desktop text editor running on a Commodore 64 Ultimate, not like a command-line editor or an original-C64 memory demo.
+
+The 40x25 text interface remains deliberate. The implementation behind it is free to use the C64U's 16 MiB REU, turbo, Ultimate-DOS and other validated platform features.
 
 ## Screen
 
-```
+~~~text
  SEE64YOU  FILE EDIT SEARCH FORMAT PUB
 ----------------------------------------
 Document text occupies the main viewport.
@@ -14,96 +16,194 @@ discoverable through menus rather than requiring
 users to memorise everything.
 ----------------------------------------
 Ln 12 Col 8  INS  MODIFIED       POST
-```
+~~~
 
-The exact menu presentation will evolve after VICE/hardware testing.
+The exact menu presentation can evolve through hardware testing, but normal editing must stay readable and responsive at 40 columns.
 
 ## Input model
 
-Modern USB keyboard target:
-- arrows: cursor movement
-- Shift+arrows: extend selection
-- Ctrl+arrows: word movement
-- Ctrl+Shift+arrows: wordwise selection
-- Ctrl+A/C/X/V/F/H/S: conventional desktop actions
-- Ctrl+Z: Undo; Ctrl+Shift+Z: Redo
-- Home/End, Page Up/Page Down: conventional navigation
+Modern USB keyboard users are first-class:
 
-Original C64 keyboard cannot reproduce every modern chord naturally. It will have a separate mapping, likely using Commodore/function-key assisted commands or an explicit mark mode. The modern mapping must not make an original keyboard unusable.
+- arrows: cursor movement;
+- Shift+arrows where distinguishable: selection extension;
+- Ctrl+arrows: word movement;
+- Ctrl+Shift+arrows where distinguishable: wordwise selection;
+- Ctrl+A/C/X/V/F/H/S: familiar desktop actions;
+- Ctrl+Z: Undo;
+- Ctrl+Shift+Z: Redo;
+- Home/End, Page Up/Page Down: conventional navigation where firmware exposes them distinctly.
 
-## Current selection controls
+The C64U's native C64 keyboard remains fully usable. Where the C64 keyboard matrix cannot express a PC-style chord cleanly, See64You provides a C64-native equivalent such as MARK mode or function-key commands.
 
-Because the C64 uses Shift to obtain left/up cursor movement, Shift+Arrow cannot be the only selection mechanism. The current reliable mapping uses F1 to toggle MARK mode. Movement extends or shrinks the marked range; F3 copies, F5 cuts and F7 pastes. Selected characters are rendered in reverse video.
+The requirement is not “behave like an original C64”; it is “make both physical input styles intuitive on C64U”.
 
-Ctrl+A/C/X/V are also normalized when the KERNAL reports a Control chord. These mappings require C64U USB-keyboard validation before they are treated as guaranteed.
+## Current reliable selection controls
+
+Because the C64 keyboard uses Shift to obtain left/up cursor movement, Shift+Arrow cannot be the universal selection rule.
+
+The current reliable mapping uses:
+
+- F1: toggle MARK mode;
+- movement while MARK is active: extend/shrink selection;
+- F3: copy;
+- F5: cut;
+- F7: paste.
+
+Selected characters render in reverse video.
+
+Ctrl+A/C/X/V are also normalized where firmware/key mapping preserves the expected Control chord. Hardware validation remains authoritative for modern USB Delete/Home/End/Page keys.
 
 ## Editing model
 
 The editor core owns:
-- text buffer
-- cursor
-- selection range
-- insert/overwrite state
-- dirty state
-- viewport offset
-- bounded single-level undo/redo history
 
-UI rendering should read editor state; it should not become the document model.
+- logical document;
+- cursor;
+- selection;
+- insert/overwrite state;
+- dirty state;
+- viewport;
+- undo/redo state.
 
-## Undo/redo and recovery
+UI rendering reads editor state; it does not become the document model.
 
-The base C64 editor keeps one bounded 256-byte reversible edit transaction in ordinary RAM. Consecutive typing is coalesced, while cursor movement or another editing command starts a new transaction. Ctrl+Z undoes the current transaction and Ctrl+Shift+Z reapplies it. The C64U build uses the implemented 16-level REU history backend without changing the conventional-C64 model.
+## C64U-only storage direction
 
-When Ultimate DOS storage is available, dirty documents also use the reserved `SEE64YOU.REC` recovery file. The first edit after a clean state is eligible for an immediate recovery write; during active editing the snapshot is refreshed at roughly 30-second intervals. Recovery writes use the same temporary-file replacement path as normal local saves and do not assign a real filename to an unsaved document.
+The current repository already has an REU-backed editor/history path, but its fixed capacities were chosen while ordinary-C64 compatibility was still a product constraint.
 
-At startup, an existing recovery snapshot is offered for recovery or discard. A recovered document remains dirty and must be saved explicitly. Successful Save/Save As, a confirmed New/Open replacement, or confirmed discard on Exit removes the recovery snapshot. Systems without Ultimate DOS continue editing normally without recovery storage.
+That constraint is retired.
+
+The target editor uses the shared 16 MiB REU allocator from C64U-RUNTIME.md.
+
+Large state should live in allocator-managed REU:
+
+- document pages/pieces;
+- undo/redo history;
+- clipboard;
+- search/index scratch;
+- preview/format scratch.
+
+Conventional RAM remains for executing code, screen/UI state and small hot working buffers.
+
+## Large-document model
+
+Do not simply stretch the existing flat gap buffer until every operation becomes a huge REU move.
+
+Benchmark a paged/piece-based design with goals including:
+
+- logical positions larger than old 16-bit assumptions;
+- small hot page/cache buffers;
+- bounded local edits;
+- efficient sequential streaming to storage/network;
+- no full-document copy for ordinary save/publish operations;
+- predictable recovery.
+
+A piece table, paged gap buffer or similar model should be selected through measurement rather than ideology.
+
+The product does not need to support absurd document sizes merely because 16 MiB exists. It does need to stop imposing limits that only existed for original-C64 compatibility.
+
+## Undo/redo
+
+The current C64U implementation has a fixed 16-level REU history backend. That is migration state, not the final product limit.
+
+Target behaviour:
+
+- allocator-backed variable history;
+- consecutive typing coalescing;
+- transactions for multi-character commands;
+- preserve history while memory is available;
+- reclaim oldest history only under explicit memory pressure;
+- never sacrifice active unsaved source for history.
+
+Ctrl+Z / Ctrl+Shift+Z remain the primary modern bindings.
+
+## Clipboard
+
+Clipboard becomes allocator-backed rather than preserving the old small fixed-capacity design.
+
+Copy/cut/paste should be limited by available application memory and sensible operation bounds, not by legacy base-C64 buffer sizes.
+
+## Recovery
+
+Recovery has two layers:
+
+- fast REU session/history state;
+- durable SD recovery surviving reset/power loss.
+
+The existing SEE64YOU.REC path and transactional save logic remain useful during migration.
+
+A recovered document remains dirty until explicitly saved. Successful Save/Save As or deliberate discard clears stale durable recovery.
 
 ## Word wrap and viewport
 
-Word Wrap is enabled by default, preserving the original 40-column soft viewport behaviour. F8 toggles it.
+Word Wrap is enabled by default. F8 toggles it.
 
-When Word Wrap is off, one logical document line occupies one screen row and the editor keeps a horizontal viewport offset. Moving the cursor beyond the left/right edge scrolls the view just enough to keep the insertion point visible; Home returns the current line to the first column. Re-enabling Word Wrap clears the horizontal offset.
+When Word Wrap is off, one logical document line occupies one screen row and the editor maintains horizontal viewport state.
 
-This is a visual layout setting only. It never inserts or removes newline characters from the canonical source.
+Soft wrap is visual only and never inserts/removes canonical newline characters.
 
 ## Search and navigation
 
-The current editor supports a compact keyboard-driven search flow:
+Current search/navigation behaviour includes:
 
-- Ctrl+F enters a search term and selects the next match;
-- F2 repeats Find Next;
-- F4 repeats Find Previous;
-- Ctrl+G prompts for a 1-based line number;
-- searches wrap at the start/end of the document.
+- Ctrl+F: Find;
+- F2: Find Next;
+- F4: Find Previous;
+- Ctrl+G: Go To Line;
+- Ctrl+H or F6: Replace / Replace All;
+- wrapped search.
 
-Ctrl+H or F6 opens a bounded Replace flow: enter the search text, replacement text, then explicitly choose one replacement or Replace All. Replace All preflights the resulting document size before changing text, so an oversized expansion is rejected rather than partially applied.
+Replace All must continue to preflight/allocate before committing changes so failure never leaves a partially transformed document.
+
+As document positions grow, search/navigation APIs must stop assuming 16-bit position types where that would become a real limit.
 
 ## Markup
 
-The editor remains source-oriented. Formatting commands insert/remove a deliberately small markup subset instead of creating a full WYSIWYG engine.
+See64You remains source-oriented. Formatting commands insert/remove the frozen See64You Markup v1 syntax from MARKUP.md.
 
-See64You Markup v1 is frozen and specified in [MARKUP.md](MARKUP.md). Its supported subset is:
-- `# Heading`
-- `## Heading`
-- `**bold**`
-- `*italic*`
-- `- list item`
-- `[label](https://example.com)`
+Supported source conveniences include:
 
-The formatting core now implements these source transformations:
+- Bold: **...**
+- Italic: *...*
+- Heading 1/2: # / ##
+- List item: -
+- Link: [label](url)
 
-- Bold wraps/toggles `**selection**`. With no selection it inserts `****` and leaves the cursor between the marker pairs.
-- Italic wraps/toggles `*selection*`; applying Italic inside Bold produces the conventional `***selection***` nesting, and toggling it again removes only the italic layer.
-- Heading 1 and Heading 2 replace/toggle the current logical line prefix (`# ` or `## `).
-- List Item toggles `- ` at the start of the current logical line.
-- Link requires selected label text and an `http://` or `https://` URL, producing `[label](url)`. Labels/new URLs that would break this deliberately small syntax are rejected instead of escaped ambiguously.
+Formatting operations must remain transactional from the user's perspective: either the whole source transformation succeeds or the document remains unchanged.
 
-Every transformation checks buffer capacity before insertion and is designed to complete fully or leave the source unchanged. Keyboard bindings are live for Bold, Italic and List Item. Heading markers are simple enough to type directly, so the validated Ctrl+1/Ctrl+2 bindings were removed. A future FORMAT menu and link prompt are convenience UI only; the source syntax does not depend on them because users can type the frozen v1 markers directly. The isolated URL/link formatter remains host-tested but is not linked into the conventional-C64 build because doing so overflowed the C64 BSS memory area by 936 bytes while retaining the 1 KiB software stack.
+The link formatter was previously kept out of one build because of conventional-C64 BSS headroom. That reason is no longer a product constraint. Reintroduce useful formatting UI when it fits the C64U-native runtime and is worth the interface complexity.
 
-## Large documents
+## Performance
 
-The conventional-C64 build keeps a bounded document, 256-byte clipboard and bounded RAM undo transaction. CI enforces a conventional-RAM headroom guard so feature growth cannot silently consume the software-stack margin.
+Use the central runtime performance governor rather than editor-specific turbo writes.
 
-The C64U build uses the same editor interfaces with REU-backed storage: a substantially larger document buffer, large clipboard and 16-level undo/redo history. It requires at least 128 KiB REU. Repeated reads/searches use chunked REU access, logical cursor movement avoids relocating the gap until an edit, and companion startup capacity probing preserves existing REU contents.
+Potential CPU_INTENSIVE work includes:
 
-Automated validation covers a 6,000-byte editor workload and REU capacity/preservation from 128 KiB through 16 MiB. Real-hardware interactive responsiveness and the remaining user-facing acceptance checks are tracked in `todo.md`; they are not duplicated here.
+- large Find/Replace All;
+- indexing;
+- source transforms;
+- preview generation.
+
+Routine typing/rendering should remain incremental even at high turbo. Extra CPU is not a reason to redraw the entire screen for each keystroke.
+
+## Memory pressure
+
+The editor cooperates with the shared REU allocator.
+
+When memory is tight, disposable caches and oldest history are reclaimed before canonical source.
+
+Any operation that cannot obtain enough memory must fail clearly before destructive mutation.
+
+## Acceptance
+
+Real C64U hardware remains the final gate for:
+
+- typing latency;
+- cursor visibility;
+- modern USB keyboard mapping;
+- native C64 keyboard mapping;
+- large-document navigation/edit latency;
+- deep undo/redo;
+- large clipboard;
+- recovery;
+- module transitions preserving exact editor state.

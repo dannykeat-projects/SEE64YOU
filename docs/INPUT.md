@@ -1,43 +1,63 @@
 # Keyboard and input
 
-See64You uses a normalized input layer so editor commands do not depend directly on PETSCII key values. Printable keyboard input is validated against an explicit 7-bit source-text PETSCII/ASCII mapping rather than assuming printable PETSCII occupies ASCII byte ranges.
+See64You runs on the C64 Ultimate and supports both:
 
-## Why selection cannot simply be Shift+Arrow
+- the machine's native C64 keyboard model;
+- modern USB keyboards presented by the C64U.
 
-On a physical C64 keyboard, left and up are themselves produced by shifted cursor keys. A rule that interprets every Shift+cursor combination as "extend selection" would therefore make ordinary left/up movement ambiguous.
+Neither is treated as a compatibility afterthought.
 
-USB keyboards presented to C64 software may ultimately have the same ambiguity because the application receives the C64 keyboard model rather than a PC GUI key-event API.
+The editor consumes normalized input actions rather than embedding PETSCII/key-matrix rules throughout editor logic.
 
-For that reason the reliable baseline is **MARK mode**:
+## Native C64 keyboard reality
+
+The C64 has physical Cursor Right and Cursor Down keys; left/up are shifted forms. Therefore a simple rule that interprets every Shift+cursor chord as “extend selection” is ambiguous.
+
+The reliable baseline remains MARK mode for the native keyboard.
+
+Current C64-oriented controls:
 
 - F1: toggle MARK mode;
-- F2: find next;
-- cursor keys while MARK is active: extend/shrink the selection;
-- F3: copy;
-- F4: find previous;
-- F5: cut;
+- F2: Find Next;
+- cursor movement while MARK is active: extend/shrink selection;
+- F3: Copy;
+- F4: Find Previous;
+- F5: Cut;
 - F6: Replace / Replace All;
-- F7: paste;
+- F7: Paste;
 - F8: toggle Word Wrap;
-- Ctrl+Left/Right: move one word at a time;
-- Ctrl+Up/Down: page up/down;
-- Ctrl+Delete or Commodore+Delete: delete the character under the cursor (forward delete);
-- RUN/STOP: exit the current development shell (inside a prompt it cancels the prompt).
+- Ctrl+Left/Right: word movement;
+- Ctrl+Up/Down: page movement;
+- Ctrl+Delete or Commodore+Delete: forward delete;
+- RUN/STOP: cancel/exit the current shell/context where applicable.
 
-The eventual menus will expose the same commands, so function-key shortcuts are never mandatory.
+Menus expose important commands so function-key memorisation is never mandatory.
 
-## Control shortcuts
+## Modern USB keyboard goal
 
-The C64 KERNAL maintains `SHFLAG` at `$028D`:
+Where the C64U firmware exposes distinct keys/chords, prefer familiar behaviour:
 
-- bit 0: Shift;
-- bit 1: Commodore;
-- bit 2: Control.
+- Arrow keys: movement;
+- Shift+Arrow: selection;
+- Ctrl+Arrow: word movement;
+- Home/End;
+- Page Up/Page Down;
+- Delete: forward delete;
+- Ctrl+A/C/X/V;
+- Ctrl+S;
+- Ctrl+F/H/G;
+- Ctrl+Z / Ctrl+Shift+Z.
 
-The input layer uses this state alongside buffered keyboard characters. Where firmware/key mapping preserves the expected Control chord, See64You recognizes:
+Do not assume a PC key necessarily reaches C64 software as a unique event. Hardware-test it.
+
+If the KERNAL abstraction loses a useful distinction, add a narrowly scoped C64U/native input adapter rather than leaking low-level scanning into editor code.
+
+## Current Control shortcuts
+
+Where firmware/key mapping preserves the expected Control chord, See64You recognizes:
 
 - Ctrl+A: Select all
-- Ctrl+B: toggle bold markers around the selection (or insert an empty bold pair)
+- Ctrl+B: Bold
 - Ctrl+C: Copy
 - Ctrl+X: Cut
 - Ctrl+V: Paste
@@ -48,22 +68,62 @@ The input layer uses this state alongside buffered keyboard characters. Where fi
 - Ctrl+F: Find
 - Ctrl+G: Go to line
 - Ctrl+H: Replace
-- Ctrl+I: toggle italic markers around the selection (or insert an empty italic pair)
-- Ctrl+L: toggle list-item formatting on the current line
+- Ctrl+I: Italic
+- Ctrl+L: List item
 - Ctrl+Z: Undo
 - Ctrl+Shift+Z: Redo
 
-Find, Replace, Go to line and local file commands have working prompt flows. Ctrl+Z and Ctrl+Shift+Z use the bounded base-C64 undo/redo transaction layer; ordinary consecutive typing is coalesced into one undo step. On a physical C64 keyboard, Commodore+F1 creates a new document, Commodore+F3 opens, Commodore+F5 saves and Commodore+F7 invokes Save As. Navigation uses C64 CTRL with Left/Right for word movement and Up/Down for page movement; forward delete accepts either CTRL+Delete or Commodore+Delete. In VICE's stock GTK symbolic map, host Left Ctrl maps to C64 CTRL and Tab maps to the Commodore key. Modifier+cursor/delete commands are decoded from the raw C64 keyboard-matrix key so the KERNAL's modifier-specific PETSCII tables cannot reverse or transform the intended direction. The conventional-C64 build keeps its bounded RAM undo/redo transaction; the C64U build uses the implemented 16-level REU history backend. A distinct modern USB Delete key remains a C64U hardware-validation item because firmware may present it through the C64 keyboard abstraction rather than as a unique key code.
+The current native-keyboard file shortcuts remain:
+
+- Commodore+F1: New
+- Commodore+F3: Open
+- Commodore+F5: Save
+- Commodore+F7: Save As
+
+These may be redesigned as menus mature, but keyboard-only operation must remain complete.
+
+## Modifier state
+
+The C64 KERNAL SHFLAG byte at $028D exposes Shift, Commodore and Control bits.
+
+The input layer may combine:
+
+- KERNAL buffered characters;
+- modifier state;
+- narrowly scoped raw matrix information where necessary;
+- C64U-specific evidence for modern USB keys when available.
+
+Modifier+cursor/delete commands already avoid relying solely on modifier-specific PETSCII tables because those tables can reverse/transform direction.
+
+## VICE symbolic note
+
+In VICE's stock GTK symbolic map, host Left Ctrl maps to C64 CTRL and Tab maps to Commodore.
+
+Because C64 left/up imply Shift, Tab/Commodore+Left/Up may also trigger the C64's Shift+Commodore character-set behaviour. That is why arrow-based navigation uses C64 CTRL rather than Commodore.
+
+This is a VICE/input-model fact, not a reason to constrain the C64U product to the original keyboard.
+
+## Source characters
+
+Canonical SEE64YOU/1 currently uses a defined 7-bit ASCII repertoire at the wire boundary.
+
+The C64 editor stores native PETSCII and validates/converts deliberately. Unsupported source characters are rejected rather than silently substituted.
+
+This character repertoire is a document/protocol decision, not a conventional-C64 compatibility requirement. A future protocol version may broaden it deliberately.
 
 ## Validation rule
 
-Do not assume PC-specific USB keys such as End or Page Down reach C64 software distinctly. Hardware-test them. If the KERNAL abstraction proves insufficient, add a narrowly scoped raw keyboard-matrix scanner rather than leaking hardware scanning into editor code.
+Record:
+
+- C64U firmware;
+- keyboard type;
+- whether the key is native/USB;
+- exact observed command.
+
+Do not convert VICE behaviour into a hardware claim.
 
 References:
+
 - Commodore 64 Programmer's Reference Guide, SHFLAG at $028D.
-- cc65 `conio.h` / `cgetc()`.
-
-
-### VICE symbolic modifier note
-
-The C64 has only physical Cursor Right and Cursor Down keys; Cursor Left and Cursor Up are the shifted forms of those keys. Consequently, Commodore+Left/Up also contains SHIFT at the C64 level. SHIFT+Commodore is the C64's character-set toggle, which is why Tab+Left/Up in VICE symbolic mode can make the screen appear to switch case/graphics. SEE64YOU therefore uses C64 CTRL, not Commodore, for arrow-based navigation commands. Tab/Commodore remains valid with Delete because that combination does not require SHIFT.
+- cc65 conio/cgetc behaviour.
+- docs/LOCAL_TESTING.md for current hardware acceptance.

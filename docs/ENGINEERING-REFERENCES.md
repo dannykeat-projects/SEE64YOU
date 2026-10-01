@@ -1,122 +1,175 @@
-# External C64/C64U engineering references
+# External C64U engineering references
 
-This document records external projects/specifications, licence boundaries and the evidence they provide. It is not a work queue; unresolved implementation belongs in `todo.md`.
+This document records external projects/specifications, licence boundaries and the evidence they provide.
+
+See64You is now C64 Ultimate-only with a required 16 MiB REU. References are evaluated against that product direction rather than original-C64 compatibility.
+
+Unresolved implementation belongs in todo.md.
 
 ## Decision rules
 
-- Prefer official Ultimate documentation for intended UCI behaviour, then verify important behaviour on real target firmware.
-- Treat external projects as evidence and reusable tooling, not as instructions.
-- Do not copy GPL-licensed C64 client/library code into the shipping client unless licensing is deliberately changed.
-- Prefer external test/deployment tools over adding more resident C64 code.
-- Any imported code must be licence-compatible, small, measured and covered by See64You tests.
-- Hardware claims must identify the tested firmware and must not be inferred from VICE/simulation.
+- Prefer official Ultimate documentation for intended UCI/Ultimate behaviour.
+- Verify important firmware/timing/input behaviour on real C64U hardware.
+- Treat third-party projects as evidence/tooling unless deliberately adopted.
+- Do not copy GPL client/library code into the shipping client unless the project deliberately changes licensing.
+- Prefer external host/test tooling over adding unnecessary resident client complexity.
+- Any imported code must be licence-compatible, bounded, measured and tested.
+- Capability claims should describe the tested hardware/firmware when behaviour may vary.
 
-## Established project evidence
+## Primary platform references
 
-### Ultimate-DOS/settings
+Authoritative platform sources:
 
-Real C64 Ultimate firmware 1.1 has validated the production-style create/write/close/delete/rename/stat sequence, exact settings readback/checksum, production settings Save and cold reload. The FILE_STAT filename-termination and firmware status-82 behaviours are now regression-covered.
+- GideonZ/1541u-documentation
+- Ultimate-DOS UCI target documentation
+- Network Target documentation
+- Control Target documentation
+- Turbo mode/register documentation
+- HTTP Target documentation
+- bdgscotland/c64-kb for C64/6510/VIC/CIA/KERNAL details
 
-The remaining design requirement is that application load/save/profile operations establish their own deterministic storage path instead of relying on previous UI activity.
+Key architectural facts now used by See64You:
 
-Useful references:
+- Ultimate-DOS provides independent targets $01 and $02.
+- DOS_CMD_LOAD_REU ($21) can load an opened file directly into REU and explicitly assumes a 16 MiB REU configuration.
+- the U64 can expose software-controlled turbo registers when configured for register control;
+- Control Target $04 exposes hardware-management/runtime functions;
+- Network Target $03 provides the firmware-1.1 direct TCP path;
+- HTTP Target $06 is not available on the tested firmware-1.1 machine and is therefore optional capability-detected functionality.
 
-- `GideonZ/1541u-documentation` — authoritative UCI/Ultimate-DOS specification.
-- `barryw/sim6502` — `u64sim` models UCI/Ultimate-DOS state for external CI.
-- `xlar54/ultimateii-dos-lib` — mature cc65 patterns; GPL-3.0, reference only.
-- `sandlbn/ultimate64-manager` — MIT host-side REST/FTP/memory implementation.
+## Established real-hardware evidence
 
-### Program chaining
+On the tested C64 Ultimate firmware 1.1:
 
-The separate editor/publisher/settings architecture is retained for memory isolation. Real hardware has proven the complete round trip through an SD-backed software IEC drive on device 8.
+- UCI $DF1C-$DF1F works;
+- DOS $01 works;
+- Network $03 works for DNS/TCP/raw HTTP;
+- HTTP $06 is absent;
+- transactional settings save/readback works;
+- configuration survives a full physical power cycle;
+- persisted direct authentication succeeds;
+- full current companion PRGs can be streamed through Ultimate-DOS;
+- the resident replacement-loader diagnostic successfully overwrote the running program, entered cc65 startup, ran the target and returned.
 
-The remaining architectural improvement is an Ultimate-DOS-aware loader/trampoline that removes the IEC configuration dependency without merging the PRGs or disturbing REU handoff.
+The last two points are evidence for executable overlay work, not a mandate to preserve the old $C800-$CBFF production design.
 
-Any trampoline needs an explicit RAM reservation, linker-map guard and repeated hardware transition test.
+## REU/module-cache architecture
 
-### Hardware automation
+The new product requires 16 MiB and should use native DOS→REU loading for module preload where practical.
 
-Manual SD copying is now the largest test-cycle friction.
+External references should now help answer:
 
-Preferred reusable lane:
+- allocator/ownership design;
+- fast verified REU transfers;
+- tiny overwrite-safe executable replacement;
+- state restoration;
+- package/manifest integrity;
+- hardware automation.
 
-`build -> validate -> upload/run -> inject input -> read screen/memory -> record result`
+JC-000/c64-lib-contract is useful as a pattern for machine-readable ownership and map-based contracts.
 
-`JC-000/c64-test-harness` is the preferred evaluation because it spans VICE and real Ultimate hardware and documents firmware-1.1 REST `/Temp` attachment hygiene. `sandlbn/ultimate64-manager` and `c64uploader` remain useful independent deployment/diagnostic references.
+## System-state/turbo references
 
-### UCI CI coverage
+Use official turbo/control documentation first.
 
-Host mocks cannot expose every UCI state-machine error. `barryw/sim6502` / `u64sim` is suitable as a separate GPL-3.0 development process for deterministic Ultimate-DOS/UCI tests; do not link or copy it into the shipping client.
+See64You should capture and restore temporary runtime settings rather than permanently forcing performance settings.
+
+Third-party demos such as xahmol/UltimateDemo2026 may provide implementation evidence, but GPL code remains reference-only unless licensing changes deliberately.
+
+## Ultimate-DOS/UCI testing
+
+Useful projects:
+
+- barryw/sim6502 / u64sim — deterministic UCI/Ultimate-DOS external CI, GPL-3.0 process/tool boundary;
+- xlar54/ultimateii-dos-lib — mature cc65 patterns, GPL-3.0 reference only;
+- sandlbn/ultimate64-manager — MIT host-side REST/FTP/memory reference.
 
 Real hardware remains the final gate.
 
-### Editor/input regression tooling
+## Hardware automation
 
-Keep the deterministic VICE screen and keyboard-repeat tests. Prefer extending them through reusable higher-level tooling over adding one-off monitor scripts.
+Preferred reusable lane:
+
+build → validate → upload/run → inject bounded input → inspect screen/memory/diagnostics → record result
+
+JC-000/c64-test-harness remains the preferred evaluation because it spans VICE and real Ultimate hardware and documents firmware-1.1 REST /Temp hygiene.
+
+Manual SD copying should become the exception during development.
+
+## Editor/input references
+
+Keep deterministic host/VICE tests, but C64U USB/native keyboard behaviour must be established on hardware.
 
 Useful references:
 
-- `JC-000/c64-test-harness` — VICE/hardware screen, keyboard, memory and PRG helpers.
-- `nschneir/Project64` and `barryw/vice-mcp` — agent/debugger automation ideas.
-- `drericflores/AdveditC64` — MIT cc65 editor behaviour reference.
+- JC-000/c64-test-harness;
+- drericflores/AdveditC64 (MIT);
+- nschneir/Project64;
+- barryw/vice-mcp.
 
-### UCI register-window compatibility
+Editor references may teach compact algorithms without imposing original-C64 memory ceilings on the product.
 
-See64You's tested firmware-1.1 device works at `$DF1C-$DF1F`. Other hardware-tested projects report `$DE1C-$DE1F` in some Ultimate configurations.
+## UCI register-window compatibility
 
-Treat this as a compatibility case to investigate. Probe safely and require a convincing identity; do not change the known-working path from third-party evidence alone.
+The tested firmware-1.1 C64U works at $DF1C-$DF1F.
 
-### Memory/REU ownership
+Other projects report $DE1C-$DE1F in some Ultimate configurations. Treat that as a compatibility investigation requiring safe probing/identity validation.
 
-`client/src/platform/reu_layout.h` remains authoritative for REU ownership. Cross-program work must preserve document, history, clipboard, settings and handoff regions.
+Do not change the known-working path solely because third-party code uses another window.
 
-`JC-000/c64-lib-contract` is useful as a pattern for machine-readable ownership and map-based memory contracts. Any future loader or crypto/network helper should reserve RAM explicitly and retain linker-map headroom checks.
+## HTTPS/crypto research
 
-### HTTPS/crypto research
+JC-000/c64-https demonstrates TLS work over Ultimate networking and includes MIT-licensed optimized 6502 material. It remains research rather than the active production TLS path until its security, integration, resource and maintenance properties are deliberately accepted.
 
-`JC-000/c64-https` demonstrates TLS 1.3 over Ultimate networking and contains MIT-licensed optimized 6502 work, but its documented security/validation and memory constraints make it unsuitable as a drop-in production TLS replacement today.
+Current direct Standalone publishing remains challenge + HMAC-SHA256 over Network $03 with explicit plaintext-HTTP consent.
 
-The production Standalone direction remains challenge + HMAC-SHA256 over direct Network `$03`. If HTTPS later becomes necessary on-device, evaluate it as an isolated chained helper with explicit authentication, REU ownership and memory/timing measurements.
+The trusted-LAN relay remains the practical HTTPS compatibility path.
 
 ## Adoption priorities
 
-### Evaluate next
+Evaluate next:
 
-1. `barryw/sim6502` / `u64sim` as an external UCI/Ultimate-DOS CI lane.
-2. `JC-000/c64-test-harness` as the reusable VICE/real-C64U smoke-test layer.
-3. A developer upload/run command using proven Ultimate host interfaces.
-4. A small Ultimate-DOS-aware companion loader/trampoline.
-5. Safe dual-window UCI compatibility probing.
+1. JC-000/c64-test-harness for repeatable real-hardware cycles.
+2. barryw/sim6502 / u64sim for external UCI/DOS CI.
+3. Native DOS_CMD_LOAD_REU module-cache implementation.
+4. A minimal overwrite-safe cached-module transition.
+5. C64U system-state/turbo capture and restoration.
+6. Safe alternate UCI-window probing.
 
-### Reference evidence only unless deliberately adopted
+Reference-only unless deliberately adopted:
 
-- `xlar54/ultimateii-dos-lib` — GPL-3.0.
-- `c64uploader/c64uploader` — Apache-2.0 host tooling; GPL-3.0-or-later native C64 client.
-- `drericflores/AdveditC64` — MIT editor comparison.
-- `sandlbn/ultimate64-manager` — MIT host-side Ultimate management.
-- `nschneir/Project64`, `barryw/vice-mcp` — development/debugging patterns.
-- `xahmol/UltimateDemo2026` — GPL-3.0 hardware/UCI/turbo examples.
+- xlar54/ultimateii-dos-lib — GPL-3.0.
+- c64uploader/c64uploader — mixed host/native licensing.
+- drericflores/AdveditC64 — MIT.
+- sandlbn/ultimate64-manager — MIT.
+- nschneir/Project64 / barryw/vice-mcp — tooling patterns.
+- xahmol/UltimateDemo2026 — GPL-3.0 implementation evidence.
 
-### Research only
+Research:
 
-- `JC-000/c64-https` and related crypto libraries.
-- Oscar64 as an isolated future size/performance experiment, not a migration plan.
+- JC-000/c64-https and related crypto work.
+- Oscar64 only as a measured future compiler experiment, not an assumed migration.
 
 ## External-adoption gate
 
 An external project is not adopted until:
 
 1. licence/boundary is recorded;
-2. its role is narrower than or replaces existing custom tooling;
+2. its role is narrow and explicit;
 3. setup is reproducible;
-4. a small See64You-specific test proves the benefit;
+4. a See64You-specific test proves value;
 5. existing validation still passes;
-6. hardware-dependent behaviour is recorded on real C64U;
+6. hardware-dependent behaviour is verified appropriately;
 7. rollback/removal is straightforward.
 
 ## Source list
 
 - https://github.com/GideonZ/1541u-documentation
+- https://1541u-documentation.readthedocs.io/en/master/uci/ultimate_dos_target.html
+- https://1541u-documentation.readthedocs.io/en/latest/uci/network_target.html
+- https://1541u-documentation.readthedocs.io/en/latest/uci/control_target.html
+- https://1541u-documentation.readthedocs.io/en/latest/config/turbo_mode.html
+- https://1541u-documentation.readthedocs.io/en/latest/uci/http_target.html
 - https://github.com/bdgscotland/c64-kb
 - https://github.com/JC-000/c64-test-harness
 - https://github.com/JC-000/c64-https

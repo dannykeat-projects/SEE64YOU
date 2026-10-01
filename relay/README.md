@@ -1,63 +1,69 @@
 # See64You secure local relay
 
-The relay is an optional compatibility path for destinations that require HTTPS, including deferred WordPress use. The active stock-firmware C64U Standalone path publishes directly through Network Target `$03` and does not require a relay.
+The relay is an optional compatibility path for C64 Ultimate destinations that require HTTPS, including deferred WordPress use.
 
-When used, the relay keeps the C64U hop on a trusted LAN and performs the remote HTTPS connection using Python's normal certificate-verifying TLS stack.
+The firmware-1.1 Standalone baseline publishes directly through Network Target $03 and does not require a relay.
+
+The relay keeps the C64U hop on a trusted LAN and performs the remote HTTPS connection using Python's certificate-verifying TLS stack.
 
 ## Security model
 
 The relay is deliberately **not** a general web proxy.
 
-- The upstream origin is fixed in `config.json` and must use `https://`.
-- Redirects are not followed.
-- Requests require a 64-hex-character `X-See64You-Relay-Key`.
-- `allowed_clients` can restrict access to the C64U's IP address or subnet.
-- Only configured path prefixes are forwarded.
-- Request and response sizes are bounded.
-- The relay never forwards its own relay key upstream.
-- Upstream TLS certificate verification is enabled and cannot be disabled by configuration.
+- upstream origin is fixed in config.json and must use https://;
+- redirects are not followed;
+- requests require X-See64You-Relay-Key;
+- allowed_clients can restrict C64U IP/subnet;
+- only configured path prefixes are forwarded;
+- request/response sizes are bounded;
+- relay key is never forwarded upstream;
+- upstream TLS certificate verification cannot be disabled by configuration.
 
-The LAN leg is still plaintext HTTP. Treat the configured LAN as trusted and prefer a dedicated/home network rather than public Wi-Fi.
+The LAN leg is plaintext HTTP. Use it only on a trusted LAN.
 
 ## Setup
 
-Python 3.10+ is sufficient; no third-party packages are required.
+Python 3.10+; no third-party packages required.
 
-Generate a relay key:
+Generate a key:
 
-```sh
+~~~sh
 python relay/see64you_relay.py --generate-key
-```
+~~~
 
-Copy the sample configuration:
+Copy configuration:
 
-```sh
+~~~sh
 cp relay/config.example.json relay/config.json
-```
+~~~
 
-On Windows, copy the file in Explorer or PowerShell instead.
+Configure:
 
-Set:
-
-- `upstream_base` to the remote HTTPS site root. For a standalone site in `https://example.com/site/`, keep the trailing slash.
-- `relay_key` to the generated key.
-- `allowed_clients` to the C64U IP/CIDR where practical.
-- `allowed_path_prefixes` to the endpoints that this relay should expose.
+- upstream_base;
+- relay_key;
+- allowed_clients where practical;
+- allowed_path_prefixes.
 
 Run:
 
-```sh
+~~~sh
 python relay/see64you_relay.py --config relay/config.json
-```
+~~~
 
-Set the publisher's site URL to the relay machine's base LAN address, for example:
+Configure the C64U profile to use the relay machine's LAN base URL, for example:
 
-```text
+~~~text
 http://192.168.1.10:6464
-```
+~~~
 
-Do not append `/api.php`; the publisher constructs backend paths itself. Configure the same relay key in publishing settings. The relay maps the request onto the configured `upstream_base` and forwards it over verified HTTPS.
+Do not append /api.php; the publisher constructs backend paths.
 
-Destination URL, explicit plain-HTTP consent and relay key are persisted by `S64CFG.PRG` in `SEE64YOU.CFG`. RUN/STOP cancels unsaved settings changes; Save + Return writes them and returns to the publisher.
+The C64U setup/settings UX should hide relay details from users who do not need this path. Relay configuration belongs in Advanced Settings.
 
-The direct firmware-1.1 publisher is compiled Standalone-first and does not need the relay for its normal path. WordPress/legacy compatibility validation is tracked in `todo.md`.
+## C64U architecture note
+
+See64You is now C64 Ultimate-only with a 16 MiB REU baseline. That change does not alter the relay security boundary.
+
+The new launcher/system-state/module-cache architecture changes how the client starts and switches overlays, not how relay requests are authenticated/forwarded.
+
+Persistent C64U configuration remains transactional and will migrate into the final /sd/SEE64YOU/ layout only after readback-verified migration from the already-proven existing configuration.
