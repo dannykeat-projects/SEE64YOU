@@ -221,7 +221,9 @@ Diagnostic PRGs are regression tools, not the normal user workflow. Use them onl
 - `companion-stream-probe.prg` — read-only companion preflight plus full Ultimate-DOS payload streaming from `/sd/`; it does not execute or overwrite the companion PRGs.
 - `recovery-probe.prg` — recovery storage workflow.
 
-For the companion-loader foundation gate, install **all files from one current `see64you-c64u-package` artifact**, launch `companion-stream-probe.prg`, and press `Y`. It checks `S64EDIT.PRG`, `S64PUB.PRG` and `S64CFG.PRG` in turn. Each line must report an exact full payload read and `PASS`, followed by `ALL STREAMS PASS`. This proves the large Ultimate-DOS read lane on that firmware/package only; it does not prove replacement loading, startup entry or application chaining.
+For the companion-loader foundation gate, install **all files from one current `see64you-c64u-package` artifact**, launch `companion-stream-probe.prg`, and press `Y`. It checks `S64EDIT.PRG`, `S64PUB.PRG` and `S64CFG.PRG` in turn. Each line must report an exact full payload read and `PASS`, followed by `ALL STREAMS PASS`. This full-stream gate has passed on real firmware 1.1.
+
+The next destructive-but-contained gate is `companion-launch-probe.prg` with its matching `S64LDTST.PRG`. It preflights the test PRG, copies a 512-byte resident loader into `$C800-$C9FF`, streams the replacement payload over the running probe, closes the DOS file, enters the standard cc65 startup at `$080D`, and expects the loaded target's `main()` to return to the resident loader. Success leaves `TARGET RAN` and `RETURN PASS` visible with a green border. A loader failure leaves `FAIL 0N` with a red border, where `N` is the resident failure code. This probe deliberately replaces the running PRG; reset is the recovery route after a stuck failure.
 
 Do not re-run old incident sequences simply because they remain in Git history; reproduce the current failure first.
 

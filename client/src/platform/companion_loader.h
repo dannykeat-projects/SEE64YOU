@@ -7,6 +7,7 @@
 
 #define S64_COMPANION_LOAD_ADDRESS 0x0801u
 #define S64_COMPANION_START_ADDRESS 0x080du
+#define S64_COMPANION_RESIDENT_BASE 0xc800u
 #define S64_COMPANION_STACK_BASE 0xcc00u
 
 typedef enum {
@@ -33,12 +34,17 @@ typedef struct {
 const char* s64_companion_filename(S64CompanionProgram program);
 
 /*
- * Select the current proven SD root, open one packaged companion, obtain its
- * exact size, and consume/validate its two-byte PRG load address. On success
- * the file remains open and positioned at the first payload byte so a
- * replacement-safe resident transfer routine can take over without using the
- * caller's overwritten C runtime. On failure any opened file is closed.
+ * Select /sd/, open an exact PRG name, obtain its size, and consume/validate
+ * the two-byte PRG load address. On success the file remains open and
+ * positioned at the payload. Images that would reach the resident loader at
+ * $C800 are rejected before any replacement write can occur.
  */
+S64CompanionResult s64_companion_open_named_preflight(
+    S64Dos* dos,
+    const char* filename,
+    S64CompanionImage* image
+);
+
 S64CompanionResult s64_companion_open_preflight(
     S64Dos* dos,
     S64CompanionProgram program,

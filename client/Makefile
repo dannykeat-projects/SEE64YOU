@@ -17,6 +17,11 @@ SETTINGS_EXCHANGE_PROBE_TARGET := build/settings-exchange-probe.prg
 SETTINGS_SAVE_PROBE_TARGET := build/settings-save-probe.prg
 SETTINGS_LOAD_PROBE_TARGET := build/settings-load-probe.prg
 COMPANION_STREAM_PROBE_TARGET := build/companion-stream-probe.prg
+COMPANION_LAUNCH_PROBE_TARGET := build/companion-launch-probe.prg
+COMPANION_LOADER_TARGET := build/S64LDTST.PRG
+RESIDENT_LOADER_BIN := build/companion-resident.bin
+RESIDENT_LOADER_OBJ := build/companion-resident.o
+RESIDENT_LOADER_BLOB_OBJ := build/companion-resident-blob.o
 REU_PROBE_TARGET := build/reu-probe.prg
 REU_BUFFER_PROBE_TARGET := build/reu-buffer-probe.prg
 REU_EDITOR_PROBE_TARGET := build/reu-editor-probe.prg
@@ -41,6 +46,8 @@ HMAC_PROBE_SOURCES := diagnostics/hmac_probe.c src/crypto/sha256.c
 SETTINGS_IO_PROBE_SOURCES := diagnostics/settings_io_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/publisher/settings_exchange.c src/platform/reu.c src/platform/reu_dma.s
 SETTINGS_EXCHANGE_PROBE_SOURCES := diagnostics/settings_exchange_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/publisher/settings_store.c
 COMPANION_STREAM_PROBE_SOURCES := diagnostics/companion_stream_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/platform/dos_file.c src/platform/companion_loader.c
+COMPANION_LAUNCH_PROBE_SOURCES := diagnostics/companion_launch_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/platform/dos_file.c src/platform/companion_loader.c src/platform/companion_resident_enter.s
+COMPANION_LOADER_TARGET_SOURCES := diagnostics/companion_loader_target.c diagnostics/companion_loader_target_pad.s
 REU_PROBE_SOURCES := diagnostics/reu_probe.c src/platform/reu.c src/platform/reu_dma.s
 REU_BUFFER_PROBE_SOURCES := diagnostics/reu_buffer_probe.c src/buffer_reu.c src/platform/reu.c src/platform/reu_dma.s
 REU_EDITOR_PROBE_SOURCES := diagnostics/reu_editor_probe.c src/buffer_reu.c src/history_reu.c src/clipboard.c src/editor.c src/platform/reu.c src/platform/reu_dma.s
@@ -52,12 +59,14 @@ PUBLISHER_SOURCES := src/publisher/main.c src/platform/chain_editor.s $(filter-o
 SETTINGS_SOURCES := src/publisher/settings_main.c src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/destination.c src/publisher/settings_exchange.c src/publisher/settings_store.c
 
 CL65 ?= cl65
+CA65 ?= ca65
+LD65 ?= ld65
 # Keep the active conventional-C64 editor inside base RAM. Basic formatting is
 # linked in editor_format.c. The larger URL/link formatter remains host/module-tested
 # but unlinked because it does not fit while retaining the 1 KiB software stack.
 CFLAGS := -t c64 -Os -I src -DS64_NATIVE_PETSCII=1 -Wl -D,__STACKSIZE__=0x0400
 
-.PHONY: all c64u publisher settings editor-probe ui-probe input-repeat-probe publisher-charset-probe uci-absence-probe network-probe https-probe direct-site-probe direct-auth-probe hmac-probe settings-io-probe settings-exchange-probe settings-save-probe settings-load-probe companion-stream-probe reu-probe reu-buffer-probe reu-editor-probe recovery-probe publisher-companion-fit clean
+.PHONY: all c64u publisher settings editor-probe ui-probe input-repeat-probe publisher-charset-probe uci-absence-probe network-probe https-probe direct-site-probe direct-auth-probe hmac-probe settings-io-probe settings-exchange-probe settings-save-probe settings-load-probe companion-stream-probe companion-launch-probe companion-loader-target reu-probe reu-buffer-probe reu-editor-probe recovery-probe publisher-companion-fit clean
 
 all: $(TARGET)
 
@@ -73,6 +82,30 @@ companion-stream-probe: $(COMPANION_STREAM_PROBE_TARGET)
 $(COMPANION_STREAM_PROBE_TARGET): $(COMPANION_STREAM_PROBE_SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -m build/companion-stream-probe.map -o $@ $(COMPANION_STREAM_PROBE_SOURCES)
+
+.PHONY: companion-loader-target
+companion-loader-target: $(COMPANION_LOADER_TARGET)
+
+$(COMPANION_LOADER_TARGET): $(COMPANION_LOADER_TARGET_SOURCES)
+	@mkdir -p build
+	$(CL65) $(CFLAGS) -m build/companion-loader-target.map -o $@ $(COMPANION_LOADER_TARGET_SOURCES)
+
+$(RESIDENT_LOADER_OBJ): src/platform/companion_resident.s
+	@mkdir -p build
+	$(CA65) -o $@ $<
+
+$(RESIDENT_LOADER_BIN): $(RESIDENT_LOADER_OBJ) cfg/companion_resident.cfg
+	$(LD65) -C cfg/companion_resident.cfg -o $@ $(RESIDENT_LOADER_OBJ)
+
+$(RESIDENT_LOADER_BLOB_OBJ): src/platform/companion_resident_blob.s $(RESIDENT_LOADER_BIN)
+	$(CA65) -I build -o $@ $<
+
+.PHONY: companion-launch-probe
+companion-launch-probe: $(COMPANION_LAUNCH_PROBE_TARGET) $(COMPANION_LOADER_TARGET)
+
+$(COMPANION_LAUNCH_PROBE_TARGET): $(COMPANION_LAUNCH_PROBE_SOURCES) $(RESIDENT_LOADER_BLOB_OBJ)
+	@mkdir -p build
+	$(CL65) $(CFLAGS) -m build/companion-launch-probe.map -o $@ $(COMPANION_LAUNCH_PROBE_SOURCES) $(RESIDENT_LOADER_BLOB_OBJ)
 
 .PHONY: settings-load-probe
 settings-load-probe: $(SETTINGS_LOAD_PROBE_TARGET)

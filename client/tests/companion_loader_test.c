@@ -163,11 +163,19 @@ int main(void)
         "invalid image closes file");
 
     mock_reset();
-    mock.file_size = 2UL + (0xcc00UL - 0x0801UL) + 1UL;
+    mock.file_size = 2UL + (0xc800UL - 0x0801UL) + 1UL;
     result = s64_companion_open_preflight(
         &dos, S64_COMPANION_PUBLISHER, &image);
     require(result == S64_COMPANION_INVALID_IMAGE,
-        "image overlapping C stack rejected");
+        "image overlapping resident loader rejected");
+
+    mock_reset();
+    mock.file_size = 4096UL;
+    result = s64_companion_open_named_preflight(
+        &dos, "S64LDTST.PRG", &image);
+    require(result == S64_COMPANION_OK,
+        "named diagnostic target preflight succeeds");
+    require_open_name("S64LDTST.PRG");
 
     mock_reset();
     mock.file_size = 14UL;

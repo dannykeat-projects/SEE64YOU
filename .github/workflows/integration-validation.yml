@@ -46,6 +46,15 @@ jobs:
       - name: Build C64U companion DOS stream probe
         run: make -C client companion-stream-probe
 
+      - name: Build C64U resident replacement loader probe
+        run: |
+          make -C client companion-launch-probe
+          test "$(wc -c < client/build/companion-resident.bin)" -eq 512
+          python3 tools/check_memory_headroom.py client/build/companion-launch-probe.map \
+            --label "C64U resident loader probe" --min-headroom 1024
+          python3 tools/check_memory_headroom.py client/build/companion-loader-target.map \
+            --label "C64U resident loader target" --min-headroom 1024
+
       - name: Build direct Standalone site probe
         run: make -C client direct-site-probe
 
@@ -169,6 +178,16 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Publish C64U resident replacement loader probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-companion-launch-probe
+          path: |
+            client/build/companion-launch-probe.prg
+            client/build/S64LDTST.PRG
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Publish direct Standalone site probe
         uses: actions/upload-artifact@v4
         with:
@@ -241,6 +260,8 @@ jobs:
             client/build/settings-save-probe.prg
             client/build/settings-load-probe.prg
             client/build/companion-stream-probe.prg
+            client/build/companion-launch-probe.prg
+            client/build/S64LDTST.PRG
           if-no-files-found: error
           retention-days: 30
 

@@ -4,7 +4,7 @@
 #define S64_COMPANION_MIN_PAYLOAD \
     ((uint16_t)(S64_COMPANION_START_ADDRESS - S64_COMPANION_LOAD_ADDRESS + 1u))
 #define S64_COMPANION_MAX_PAYLOAD \
-    ((uint16_t)(S64_COMPANION_STACK_BASE - S64_COMPANION_LOAD_ADDRESS))
+    ((uint16_t)(S64_COMPANION_RESIDENT_BASE - S64_COMPANION_LOAD_ADDRESS))
 
 typedef struct {
     uint8_t bytes[2];
@@ -42,13 +42,12 @@ const char* s64_companion_filename(S64CompanionProgram program)
         : 0;
 }
 
-S64CompanionResult s64_companion_open_preflight(
+S64CompanionResult s64_companion_open_named_preflight(
     S64Dos* dos,
-    S64CompanionProgram program,
+    const char* filename,
     S64CompanionImage* image
 )
 {
-    const char* filename;
     S64CompanionHeader header;
     S64DosResult result;
     uint32_t file_size;
@@ -57,8 +56,7 @@ S64CompanionResult s64_companion_open_preflight(
     uint16_t load_address;
     uint8_t opened = 0u;
 
-    if (dos == 0 || image == 0
-        || (filename = s64_companion_filename(program)) == 0) {
+    if (dos == 0 || filename == 0 || image == 0) {
         return S64_COMPANION_INVALID_ARGUMENT;
     }
 
@@ -106,4 +104,16 @@ dos_error:
 invalid_image:
     if (opened) (void)s64_dos_close(dos);
     return S64_COMPANION_INVALID_IMAGE;
+}
+
+S64CompanionResult s64_companion_open_preflight(
+    S64Dos* dos,
+    S64CompanionProgram program,
+    S64CompanionImage* image
+)
+{
+    const char* filename = s64_companion_filename(program);
+
+    if (filename == 0) return S64_COMPANION_INVALID_ARGUMENT;
+    return s64_companion_open_named_preflight(dos, filename, image);
 }
