@@ -57,7 +57,7 @@ RECOVERY_PROBE_SOURCES := diagnostics/recovery_probe.c src/buffer.c src/document
 PUBLISHER_CORE_SOURCES := src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/http.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/publisher/destination.c src/publisher/state.c src/publisher/workspace.c src/publisher/handoff.c src/publisher/plaintext.c src/publisher/preview.c src/publisher/relay.c src/publisher/settings_bridge.c src/publisher/standalone.c
 PUBLISHER_DOCUMENT_SOURCES := src/publisher/standalone_documents.c
 PUBLISHER_COMPANION_FIT_SOURCES := diagnostics/publisher_companion_fit.c $(PUBLISHER_CORE_SOURCES) $(PUBLISHER_DOCUMENT_SOURCES)
-PUBLISHER_SOURCES := src/publisher/main.c src/platform/chain_editor.s $(filter-out src/platform/http.c src/publisher/relay.c src/publisher/standalone.c,$(PUBLISHER_CORE_SOURCES)) src/platform/network.c src/platform/system_state.c src/platform/turbo.c src/crypto/sha256.c src/publisher/direct_auth.c src/publisher/standalone_direct.c
+PUBLISHER_SOURCES := src/publisher/main.c src/platform/chain_editor.s $(filter-out src/platform/http.c src/publisher/relay.c src/publisher/standalone.c,$(PUBLISHER_CORE_SOURCES)) src/platform/network.c src/crypto/sha256.c src/publisher/direct_auth.c src/publisher/standalone_direct.c
 SETTINGS_SOURCES := src/publisher/settings_main.c src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/destination.c src/publisher/settings_exchange.c src/publisher/settings_store.c
 
 CL65 ?= cl65

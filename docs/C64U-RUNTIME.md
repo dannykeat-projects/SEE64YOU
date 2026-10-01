@@ -81,7 +81,7 @@ The manager follows:
 
 If the previous value cannot be determined and the setting is not guaranteed ephemeral, See64You should not silently change it.
 
-The manager in client/src/platform/system_state.* is backend-driven and host-tested. It provides the four application modes, requires a successful capture before any mode write, avoids duplicate writes for the same mode, and makes clean restoration idempotent. A backend may verify restored state; verification failure remains visible and retryable. The C64U turbo backend now routes the existing direct-publisher/auth crypto acceleration through this manager instead of exposing an ad-hoc begin/restore guard. Launcher/module lifecycle ownership and real-hardware acceptance remain P0 work.
+The manager in client/src/platform/system_state.* is backend-driven and host-tested. It provides the four application modes, requires a successful capture before any mode write, avoids duplicate writes for the same mode, and makes clean restoration idempotent. A backend may verify restored state; verification failure remains visible and retryable. The C64U turbo backend removes the old ad-hoc begin/restore guard and is exercised by host tests plus the direct-auth diagnostic. Linking the manager/backend into the current production publisher overflowed its conventional-RAM budget, so production publisher acceleration is intentionally disabled until launcher/session ownership or the C64U-native module layout removes that migration constraint. Launcher/module lifecycle ownership and real-hardware acceptance remain P0 work.
 
 ## 5. Settings See64You should not take ownership of
 
@@ -154,7 +154,7 @@ Known CPU/interrupt/memory state for executable overlay replacement.
 
 Every scope restores the previous mode on exit.
 
-Current conservative turbo mapping, pending real-hardware acceptance: only CPU_INTENSIVE requests the existing maximum $D031 speed nibble while preserving the captured upper bits. INTERACTIVE, IO_SAFE and TRANSITION request the captured original byte. Direct publishing therefore accelerates SHA/HMAC/signing but returns to captured/original speed before Network $03 I/O. If register control cannot be safely detected, the backend makes no turbo change.
+Current conservative turbo mapping, pending real-hardware acceptance: only CPU_INTENSIVE requests the existing maximum $D031 speed nibble while preserving the captured upper bits. INTERACTIVE, IO_SAFE and TRANSITION request the captured original byte. If register control cannot be safely detected, the backend makes no turbo change. The direct-auth diagnostic currently exercises this mapping; production publisher SHA/HMAC remains unaccelerated until the manager can be linked without violating the publisher's conventional-RAM safety budget.
 
 ## 8. REU resource model
 

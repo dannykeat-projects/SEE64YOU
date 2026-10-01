@@ -9,7 +9,7 @@ Completed troubleshooting/evidence belongs in canonical docs and Git history, no
 ## P0 — Establish the C64U-native runtime
 
 - [ ] Finish platform-contract enforcement and hardware validation: the editor rejects anything other than the required 16 MiB REU; the dedicated preflight probe now covers UCI, Ultimate-DOS $01, exact 16 MiB REU and non-destructive /sd/ write/read/cleanup verification with RECHECK/EXIT. Integrate the preflight into the final launcher/supervisor and complete the real-C64U gate.
-- [ ] Finish the central C64U system-state manager described in docs/C64U-RUNTIME.md. The host-tested manager now owns the turbo backend used by direct-publisher/auth crypto: capture-before-apply, CPU_INTENSIVE acceleration, conservative IO_SAFE/original-speed restoration and verified teardown are centralized. Hardware acceptance of the turbo policy is still pending. Next integrate manager ownership across launcher/module lifecycle and explicit exit:
+- [ ] Finish the central C64U system-state manager described in docs/C64U-RUNTIME.md. The host-tested manager and turbo backend now enforce capture-before-apply, CPU_INTENSIVE policy, conservative IO_SAFE/original-speed restoration and verified teardown. The direct-auth diagnostic is migrated to it. Production publisher turbo acceleration is deliberately deferred because linking the manager/backend into the current overlay broke its conventional-RAM safety budget; re-enable acceleration when launcher/session ownership or the C64U-native module layout removes that constraint. Next integrate manager ownership across launcher/module lifecycle and explicit exit:
   - capture every temporary setting See64You changes;
   - restore the user's prior state on clean exit;
   - verify restoration where possible;

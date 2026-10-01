@@ -4,8 +4,6 @@
 #include "workspace.h"
 #include "charset.h"
 #include "platform/network.h"
-#include "platform/system_state.h"
-#include "platform/turbo.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -20,10 +18,6 @@ static char host[96], uri[256];
 static S64NetTransport network;
 static uint8_t socket_handle;
 static uint16_t status_code;
-static S64SystemState system_state;
-static S64SystemBackend system_backend;
-static S64TurboBackend turbo_backend;
-static uint8_t system_state_ready;
 
 typedef int (*BodyWriter)(S64DocumentSink sink, void* context, const void* source);
 typedef struct {
@@ -221,37 +215,12 @@ cleanup:
     return outcome;
 }
 
-static void request_system_begin(void)
-{
-    s64_turbo_backend_init_hardware(&turbo_backend);
-    s64_turbo_backend_bind(&system_backend);
-    s64_system_state_init(&system_state, &system_backend, &turbo_backend);
-    system_state_ready = s64_system_state_capture(&system_state) == S64_SYSTEM_OK;
-}
-
-static void request_system_mode(S64SystemMode mode)
-{
-    if (system_state_ready) {
-        (void)s64_system_state_set_mode(&system_state, mode);
-    }
-}
-
-static void request_system_end(void)
-{
-    if (system_state_ready) {
-        (void)s64_system_state_restore(&system_state);
-        system_state_ready = 0u;
-    }
-}
-
 static uint8_t hash_body(const uint8_t* data, uint16_t length, void* context)
 {
     BodyHash* hash = (BodyHash*)context;
     if (length > (uint16_t)(65535u - hash->length)) return 0;
     hash->length += length;
-    request_system_mode(S64_SYSTEM_MODE_CPU_INTENSIVE);
     s64_sha256_update(&hash->sha, data, length);
-    request_system_mode(S64_SYSTEM_MODE_IO_SAFE);
     return 1;
 }
 
@@ -274,8 +243,6 @@ static S64StandaloneResult request(S64HttpTransport* transport, const char* url,
     if (!query || (uint16_t)(query - uri) + sizeof("?action=challenge") > 256u)
         return S64_STANDALONE_INVALID_ARGUMENT;
 
-    request_system_begin();
-
     if (test) strcpy(query, "?action=settings");
     memcpy(challenge_uri, uri, (uint16_t)(query - uri));
     strcpy(challenge_uri + (query - uri), "?action=challenge");
@@ -286,9 +253,7 @@ static S64StandaloneResult request(S64HttpTransport* transport, const char* url,
         goto cleanup;
     }
 
-    request_system_mode(S64_SYSTEM_MODE_CPU_INTENSIVE);
     s64_sha256_final(&body_hash.sha, digest);
-    request_system_mode(S64_SYSTEM_MODE_IO_SAFE);
 
     s64_net_init(&network, transport->execute);
     result = exchange("GET", challenge_uri, 0, 0, 0, 0, 0, collect_text, 0);
@@ -314,9 +279,7 @@ static S64StandaloneResult request(S64HttpTransport* transport, const char* url,
     }
     challenge[32] = 0;
 
-    request_system_mode(S64_SYSTEM_MODE_CPU_INTENSIVE);
     i = (uint8_t)s64_direct_sign(direct_key, challenge, method, uri, digest, signature);
-    request_system_mode(S64_SYSTEM_MODE_IO_SAFE);
     if (!i) {
         result = S64_STANDALONE_PROTOCOL_ERROR;
         goto cleanup;
@@ -326,7 +289,6 @@ static S64StandaloneResult request(S64HttpTransport* transport, const char* url,
 
 cleanup:
     memset(signature, 0, sizeof(signature));
-    request_system_end();
     return result;
 }
 
