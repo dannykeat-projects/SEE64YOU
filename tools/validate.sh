@@ -92,6 +92,12 @@ echo "== Host Ultimate DOS tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/dos_test.c client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host companion loader preflight tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src \
+    client/tests/companion_loader_test.c client/src/platform/companion_loader.c \
+    client/src/platform/dos.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host settings I/O probe tests =="
 cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/tests/settings_io_probe_test.c client/src/platform/dos.c \
@@ -197,6 +203,7 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/editor_format.c \
         client/src/editor_format_link.c \
         client/src/platform/dos.c \
+        client/src/platform/companion_loader.c \
         client/src/platform/http.c \
         client/src/platform/network.c \
         client/src/platform/reu.c \
@@ -270,6 +277,9 @@ if command -v cl65 >/dev/null 2>&1 \
 
     echo "== C64U network target diagnostic build =="
     make -C client network-probe
+
+    echo "== C64U companion DOS stream diagnostic build =="
+    make -C client companion-stream-probe
 
     echo "== C64U HTTPS target diagnostic build =="
     make -C client https-probe

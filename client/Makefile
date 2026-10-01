@@ -16,6 +16,7 @@ SETTINGS_IO_PROBE_TARGET := build/settings-io-probe.prg
 SETTINGS_EXCHANGE_PROBE_TARGET := build/settings-exchange-probe.prg
 SETTINGS_SAVE_PROBE_TARGET := build/settings-save-probe.prg
 SETTINGS_LOAD_PROBE_TARGET := build/settings-load-probe.prg
+COMPANION_STREAM_PROBE_TARGET := build/companion-stream-probe.prg
 REU_PROBE_TARGET := build/reu-probe.prg
 REU_BUFFER_PROBE_TARGET := build/reu-buffer-probe.prg
 REU_EDITOR_PROBE_TARGET := build/reu-editor-probe.prg
@@ -39,6 +40,7 @@ DIRECT_AUTH_PROBE_SOURCES := diagnostics/direct_auth_probe.c src/charset.c src/c
 HMAC_PROBE_SOURCES := diagnostics/hmac_probe.c src/crypto/sha256.c
 SETTINGS_IO_PROBE_SOURCES := diagnostics/settings_io_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/publisher/settings_exchange.c src/platform/reu.c src/platform/reu_dma.s
 SETTINGS_EXCHANGE_PROBE_SOURCES := diagnostics/settings_exchange_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/publisher/settings_store.c
+COMPANION_STREAM_PROBE_SOURCES := diagnostics/companion_stream_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/platform/companion_loader.c
 REU_PROBE_SOURCES := diagnostics/reu_probe.c src/platform/reu.c src/platform/reu_dma.s
 REU_BUFFER_PROBE_SOURCES := diagnostics/reu_buffer_probe.c src/buffer_reu.c src/platform/reu.c src/platform/reu_dma.s
 REU_EDITOR_PROBE_SOURCES := diagnostics/reu_editor_probe.c src/buffer_reu.c src/history_reu.c src/clipboard.c src/editor.c src/platform/reu.c src/platform/reu_dma.s
@@ -55,7 +57,7 @@ CL65 ?= cl65
 # but unlinked because it does not fit while retaining the 1 KiB software stack.
 CFLAGS := -t c64 -Os -I src -DS64_NATIVE_PETSCII=1 -Wl -D,__STACKSIZE__=0x0400
 
-.PHONY: all c64u publisher settings editor-probe ui-probe input-repeat-probe publisher-charset-probe uci-absence-probe network-probe https-probe direct-site-probe direct-auth-probe hmac-probe reu-probe reu-buffer-probe reu-editor-probe recovery-probe publisher-companion-fit clean
+.PHONY: all c64u publisher settings editor-probe ui-probe input-repeat-probe publisher-charset-probe uci-absence-probe network-probe https-probe direct-site-probe direct-auth-probe hmac-probe settings-io-probe settings-exchange-probe settings-save-probe settings-load-probe companion-stream-probe reu-probe reu-buffer-probe reu-editor-probe recovery-probe publisher-companion-fit clean
 
 all: $(TARGET)
 
@@ -64,6 +66,13 @@ $(TARGET): $(SOURCES)
 	$(CL65) $(CFLAGS) -m build/see64you.map -o $@ $(SOURCES)
 
 c64u: $(C64U_TARGET) $(C64U_CHAIN_TARGET) $(C64U_SHORT_CHAIN_TARGET) $(SETTINGS_IO_PROBE_TARGET) $(SETTINGS_EXCHANGE_PROBE_TARGET) $(SETTINGS_SAVE_PROBE_TARGET) $(SETTINGS_LOAD_PROBE_TARGET)
+
+.PHONY: companion-stream-probe
+companion-stream-probe: $(COMPANION_STREAM_PROBE_TARGET)
+
+$(COMPANION_STREAM_PROBE_TARGET): $(COMPANION_STREAM_PROBE_SOURCES)
+	@mkdir -p build
+	$(CL65) $(CFLAGS) -m build/companion-stream-probe.map -o $@ $(COMPANION_STREAM_PROBE_SOURCES)
 
 .PHONY: settings-load-probe
 settings-load-probe: $(SETTINGS_LOAD_PROBE_TARGET)

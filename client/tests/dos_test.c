@@ -191,6 +191,38 @@ int main(void)
     require(mock.bytes[0][1] == 0x03u, "close opcode");
 
     mock_reset();
+    memset(mock.response, 0, sizeof(mock.response));
+    mock.response[0] = 0x05u;
+    mock.response[1] = 0xbcu;
+    mock.response_length = 12u;
+    {
+        uint32_t size = 0u;
+        result = s64_dos_file_size(&dos, &size);
+        require(result == S64_DOS_OK && size == 48133UL,
+            "file info decodes 32-bit size");
+        require(mock.lengths[0] == 2u && mock.bytes[0][1] == 0x07u,
+            "file info opcode");
+    }
+
+    mock_reset();
+    mock.response_length = 3u;
+    {
+        uint32_t size = 123u;
+        result = s64_dos_file_size(&dos, &size);
+        require(result == S64_DOS_TARGET_ERROR && size == 0u,
+            "short file info rejected");
+    }
+
+    mock_reset();
+    result = s64_dos_seek(&dos, 0x12345678UL);
+    require(result == S64_DOS_OK, "file seek succeeds");
+    require(mock.lengths[0] == 6u && mock.bytes[0][1] == 0x06u,
+        "file seek opcode and length");
+    require(mock.bytes[0][2] == 0x78u && mock.bytes[0][3] == 0x56u
+        && mock.bytes[0][4] == 0x34u && mock.bytes[0][5] == 0x12u,
+        "file seek position is little endian");
+
+    mock_reset();
     result = s64_dos_file_exists(&dos, "old.s64", &exists);
     require(result == S64_DOS_OK && exists == 1u, "existing file stat succeeds");
     require(mock.bytes[0][1] == 0x08u, "file stat opcode");

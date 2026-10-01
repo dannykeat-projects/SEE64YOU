@@ -33,6 +33,8 @@ const char* s64_dos_result_message(S64DosResult result);
 S64DosResult s64_dos_open_read(S64Dos* dos, const char* filename);
 S64DosResult s64_dos_open_write(S64Dos* dos, const char* filename);
 S64DosResult s64_dos_close(S64Dos* dos);
+S64DosResult s64_dos_seek(S64Dos* dos, uint32_t position);
+S64DosResult s64_dos_file_size(S64Dos* dos, uint32_t* size);
 
 S64DosResult s64_dos_read(
     S64Dos* dos,

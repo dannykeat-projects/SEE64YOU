@@ -43,6 +43,9 @@ jobs:
       - name: Build C64U HTTPS target probe
         run: make -C client https-probe
 
+      - name: Build C64U companion DOS stream probe
+        run: make -C client companion-stream-probe
+
       - name: Build direct Standalone site probe
         run: make -C client direct-site-probe
 
@@ -158,6 +161,14 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Publish C64U companion DOS stream probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-companion-stream-probe
+          path: client/build/companion-stream-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Publish direct Standalone site probe
         uses: actions/upload-artifact@v4
         with:
@@ -229,6 +240,7 @@ jobs:
             client/build/settings-exchange-probe.prg
             client/build/settings-save-probe.prg
             client/build/settings-load-probe.prg
+            client/build/companion-stream-probe.prg
           if-no-files-found: error
           retention-days: 30
 
