@@ -193,6 +193,7 @@ if ($HostCc) {
             "client/tests/launcher_recovery_runtime_test.c",
             "client/src/launcher/recovery_runtime.c",
             "client/src/platform/module_session.c",
+            "client/src/platform/transfer_capsule.c",
             "client/src/launcher/recovery_flow.c",
             "client/src/platform/session_recovery.c",
             "client/src/platform/session_journal.c",
@@ -206,6 +207,15 @@ if ($HostCc) {
         Invoke-CTest "launcher_exit" @("client/tests/launcher_exit_test.c")
         Invoke-CTest "module_session" @(
             "client/tests/module_session_test.c",
+            "client/src/platform/module_session.c",
+            "client/src/platform/module_manifest.c",
+            "client/src/platform/reu_runtime.c",
+            "client/src/platform/session_journal.c",
+            "client/src/platform/dos.c"
+        )
+        Invoke-CTest "transfer_capsule" @(
+            "client/tests/transfer_capsule_test.c",
+            "client/src/platform/transfer_capsule.c",
             "client/src/platform/module_session.c",
             "client/src/platform/module_manifest.c",
             "client/src/platform/reu_runtime.c",
