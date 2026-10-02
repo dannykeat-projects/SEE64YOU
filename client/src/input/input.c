@@ -51,6 +51,7 @@ static S64InputType s64_control_command(unsigned char key, unsigned char modifie
             ? S64_INPUT_SAVE_AS
             : S64_INPUT_SAVE;                   /* Ctrl+Shift+S / Ctrl+S */
         case 0x16u: return S64_INPUT_PASTE;       /* Ctrl+V */
+        case 0x17u: return S64_INPUT_TOGGLE_WRAP; /* Ctrl+W */
         case 0x18u: return S64_INPUT_CUT;         /* Ctrl+X */
         case 0x1Au: return (modifiers & S64_MOD_SHIFT) != 0u
             ? S64_INPUT_REDO
@@ -225,7 +226,7 @@ void s64_input_read(S64InputEvent* event)
             event->type = S64_INPUT_PASTE;
             return;
         case CH_F8:
-            event->type = S64_INPUT_TOGGLE_WRAP;
+            event->type = S64_INPUT_HELP;
             return;
         case CH_STOP:
             event->type = S64_INPUT_EXIT;
