@@ -1,6 +1,10 @@
 #include <cbm.h>
 #include <c64.h>
 #include <conio.h>
+#ifdef S64_REU_BUFFER
+#include <joystick.h>
+#include <mouse.h>
+#endif
 
 #include "input.h"
 #include "charset.h"
@@ -21,6 +25,14 @@
 
 static unsigned char modifier_repeat_state = 0xffu;
 static unsigned char modifier_repeat_tick;
+#ifdef S64_REU_BUFFER
+static unsigned char joystick_ready;
+static unsigned char mouse_ready;
+static unsigned char joystick_previous;
+static unsigned char joystick_repeat_tick;
+static unsigned char joystick_repeating;
+static unsigned char mouse_previous_buttons;
+#endif
 
 static unsigned char s64_is_printable(unsigned char key)
 {
@@ -42,6 +54,7 @@ static S64InputType s64_control_command(unsigned char key, unsigned char modifie
         case 0x08u: return S64_INPUT_REPLACE;    /* Ctrl+H */
         case 0x09u: return S64_INPUT_FORMAT_ITALIC;/* Ctrl+I */
         case 0x0Cu: return S64_INPUT_FORMAT_LIST; /* Ctrl+L */
+        case 0x0Du: return S64_INPUT_MENU;        /* Ctrl+M where distinct */
         case 0x0Eu: return S64_INPUT_NEW;        /* Ctrl+N */
         case 0x0Fu: return S64_INPUT_OPEN;       /* Ctrl+O */
 #ifdef S64_REU_BUFFER
@@ -124,6 +137,113 @@ static unsigned char s64_modifier_ready(
     return 1u;
 }
 
+#ifdef S64_REU_BUFFER
+static unsigned char s64_joystick_event(S64InputEvent* event)
+{
+    unsigned char state;
+    unsigned char now;
+    unsigned char interval;
+
+    if (!joystick_ready) {
+        return 0u;
+    }
+
+    state = joy_read(JOY_2);
+    if (state == 0u) {
+        joystick_previous = 0u;
+        joystick_repeating = 0u;
+        return 0u;
+    }
+
+    now = S64_JIFFY_LOW;
+    if (state != joystick_previous) {
+        joystick_previous = state;
+        joystick_repeat_tick = now;
+        joystick_repeating = 0u;
+    } else {
+        interval = joystick_repeating ? S64_REPEAT_RATE : S64_REPEAT_DELAY;
+        if ((unsigned char)(now - joystick_repeat_tick) < interval) {
+            return 0u;
+        }
+        joystick_repeat_tick = now;
+        joystick_repeating = 1u;
+    }
+
+    if (JOY_BTN_FIRE(state)) event->type = S64_INPUT_ACTIVATE;
+    else if (JOY_BTN_UP(state)) event->type = S64_INPUT_UP;
+    else if (JOY_BTN_DOWN(state)) event->type = S64_INPUT_DOWN;
+    else if (JOY_BTN_LEFT(state)) event->type = S64_INPUT_LEFT;
+    else if (JOY_BTN_RIGHT(state)) event->type = S64_INPUT_RIGHT;
+    else return 0u;
+    return 1u;
+}
+
+static unsigned char s64_mouse_event(S64InputEvent* event)
+{
+    struct mouse_info info;
+    unsigned char pressed;
+
+    if (!mouse_ready) {
+        return 0u;
+    }
+
+    mouse_info(&info);
+    pressed = (unsigned char)(info.buttons & MOUSE_BTN_LEFT);
+    if (pressed && !mouse_previous_buttons) {
+        event->type = S64_INPUT_POINTER_CLICK;
+        event->column = (unsigned char)(info.pos.x / 8);
+        event->row = (unsigned char)(info.pos.y / 8);
+        if (event->column > 39u) event->column = 39u;
+        if (event->row > 24u) event->row = 24u;
+        mouse_previous_buttons = pressed;
+        return 1u;
+    }
+
+    mouse_previous_buttons = pressed;
+    return 0u;
+}
+#endif
+
+void s64_input_init(void)
+{
+#ifdef S64_REU_BUFFER
+    struct mouse_box box;
+
+    joystick_ready = joy_install((void*)joy_static_stddrv) == JOY_ERR_OK;
+    mouse_ready = mouse_install(&mouse_def_callbacks, (void*)mouse_static_stddrv)
+        == MOUSE_ERR_OK;
+    joystick_previous = 0u;
+    joystick_repeating = 0u;
+    mouse_previous_buttons = 0u;
+
+    if (mouse_ready) {
+        box.minx = 0;
+        box.miny = 0;
+        box.maxx = 319;
+        box.maxy = 199;
+        mouse_hide();
+        mouse_setbox(&box);
+        mouse_move(160, 100);
+        mouse_show();
+    }
+#endif
+}
+
+void s64_input_shutdown(void)
+{
+#ifdef S64_REU_BUFFER
+    if (mouse_ready) {
+        mouse_hide();
+        (void)mouse_uninstall();
+        mouse_ready = 0u;
+    }
+    if (joystick_ready) {
+        (void)joy_uninstall();
+        joystick_ready = 0u;
+    }
+#endif
+}
+
 void s64_input_read(S64InputEvent* event)
 {
     unsigned char key;
@@ -132,11 +252,19 @@ void s64_input_read(S64InputEvent* event)
 
     event->type = S64_INPUT_NONE;
     event->character = 0u;
+    event->column = 0u;
+    event->row = 0u;
 
     for (;;) {
         s64_input_sync_repeat();
         modifiers = S64_SHFLAG;
         raw_key = S64_KEYCODE;
+
+#ifdef S64_REU_BUFFER
+        if (s64_mouse_event(event) || s64_joystick_event(event)) {
+            return;
+        }
+#endif
 
         if (s64_modifier_ready(raw_key, modifiers, &event->type)) {
             if (S64_KEY_COUNT != 0u) {
@@ -161,6 +289,10 @@ void s64_input_read(S64InputEvent* event)
     }
 
     if ((modifiers & S64_MOD_COMMODORE) != 0u) {
+        if (key == 'm' || key == 'M') {
+            event->type = S64_INPUT_MENU;
+            return;
+        }
         switch (key) {
             case CH_F1:
                 event->type = S64_INPUT_NEW;
