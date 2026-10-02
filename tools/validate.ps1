@@ -227,6 +227,19 @@ if ($HostCc) {
             "client/tests/module_transfer_test.c",
             "client/src/platform/module_transfer.c"
         )
+        Invoke-CTest "module_runtime" @(
+            "client/tests/module_runtime_test.c",
+            "client/src/platform/module_runtime.c",
+            "client/src/platform/transfer_capsule.c",
+            "client/src/platform/module_session.c",
+            "client/src/platform/module_manifest.c",
+            "client/src/platform/reu_runtime.c",
+            "client/src/platform/session_lifecycle.c",
+            "client/src/platform/session_journal.c",
+            "client/src/platform/system_state.c",
+            "client/src/platform/turbo.c",
+            "client/src/platform/dos.c"
+        )
         Invoke-CTest "module_integrity" @(
             "client/tests/module_integrity_test.c",
             "client/src/platform/module_integrity.c",
