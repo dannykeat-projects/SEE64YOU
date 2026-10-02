@@ -323,8 +323,26 @@ are rejected without modifying caller output. Session cleanup clears/readbacks
 the capsule before revoking the shared module-session record and before
 restore/verify -> CLEAN.
 
-Executable RAM overwrite/editor entry is still unimplemented. Cold-start editor
-must not adopt arbitrary leftover REU state.
+The execution-transfer implementation is now staged but not yet enabled in the
+production launcher. A host-tested transfer plan derives the exact REU payload
+source (cached PRG address + 2), RAM destination, payload length and startup
+address from the verified capsule. It rejects REU wrap, RAM images below $0801,
+images extending into $D000+, and startup addresses outside the copied payload.
+
+The tiny 6502 transfer stub is linked into launcher builds as ordinary data and
+is copied transiently into application-owned screen RAM at $0700 immediately
+before execution. Its parameter block is at $07D0. This avoids reviving the old
+permanent $C800-$CBFF loader reservation and keeps the stub below the current
+$0801+ module image. The stub programs the REU registers, uses the same delayed
+$FF00 trigger sequence as the previously hardware-proven REU DMA path, restores
+the CPU memory-configuration byte and flags, then jumps indirectly to the
+validated startup address. The assembly is size-guarded to remain below the
+parameter block.
+
+Production SEE64YOU.PRG still stops after TRANSFER CAPSULE READY / TRANSFER PLAN
+READY / EDITOR HANDOFF PENDING; it does not call the new execution stub yet.
+That final call remains gated on build/CI confirmation and real-C64U validation.
+Cold-start editor must not adopt arbitrary leftover REU state.
 
 All launcher exits after durable ACTIVE, including partially failed session
 start, now converge on session end: restore, verify, then durable CLEAN. If
