@@ -321,6 +321,9 @@ uint8_t s64_launcher_transfer_capsule_prepare(
 )
 {
     S64TransferCapsule capsule;
+    S64ModuleManifest shared_manifest;
+    const S64ModuleDescriptor* expected;
+    const S64ModuleDescriptor* shared;
 
     if (runtime == 0
         || !runtime->lifecycle.active_record_written
@@ -329,6 +332,26 @@ uint8_t s64_launcher_transfer_capsule_prepare(
         || runtime->system_state.mode != S64_SYSTEM_MODE_TRANSITION
         || destination < S64_MODULE_EDITOR
         || destination > S64_MODULE_SETTINGS
+        || !s64_module_session_load(
+            &runtime->reu_control,
+            &runtime->lifecycle.journal,
+            &shared_manifest
+        )) {
+        return 0u;
+    }
+
+    expected = &runtime->module_manifest.modules[(uint8_t)destination - 1u];
+    shared = &shared_manifest.modules[(uint8_t)destination - 1u];
+    if (expected->id != shared->id
+        || expected->cache_state != shared->cache_state
+        || expected->abi_version != shared->abi_version
+        || expected->app_version != shared->app_version
+        || expected->load_address != shared->load_address
+        || expected->startup_address != shared->startup_address
+        || expected->byte_length != shared->byte_length
+        || expected->integrity != shared->integrity
+        || expected->cache_address != shared->cache_address
+        || expected->cache_capacity != shared->cache_capacity
         || !s64_transfer_capsule_store(
             &runtime->reu_control,
             &runtime->lifecycle.journal,
