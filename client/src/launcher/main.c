@@ -1,8 +1,10 @@
 #include <conio.h>
+#include <time.h>
 
 #include "launcher/recovery_flow.h"
 #include "launcher/recovery_runtime.h"
 #include "platform/preflight.h"
+#include "platform/session_lifecycle.h"
 
 static void show_title(void)
 {
@@ -123,10 +125,29 @@ static unsigned char handle_recovery_blocked(
     }
 }
 
+static unsigned char retry_lifecycle(
+    const char* message,
+    unsigned char allow_retry
+)
+{
+    unsigned char key;
+    for (;;) {
+        show_title();
+        cputs(message);
+        cputs("\r\n\r\n");
+        cputs(allow_retry ? "R RETRY    X EXIT" : "X EXIT");
+        key = (unsigned char)cgetc();
+        if (allow_retry && (key == 'R' || key == 'r')) return 1u;
+        if (key == 'X' || key == 'x') return 0u;
+    }
+}
+
 int main(void)
 {
     S64LauncherRecoveryRuntime recovery_runtime;
     S64LauncherRecoveryResult result;
+    S64SessionLifecycleResult lifecycle_result;
+    uint32_t session_id;
 
     if (!run_preflight()) {
         return 1;
@@ -142,19 +163,45 @@ int main(void)
         if (result == S64_LAUNCHER_RECOVERY_READY_NONE
             || result == S64_LAUNCHER_RECOVERY_READY_CLEAN
             || result == S64_LAUNCHER_RECOVERY_READY_RESTORED) {
-            show_title();
-            cputs("PLATFORM READY\r\n");
-            if (result == S64_LAUNCHER_RECOVERY_READY_RESTORED) {
-                cputs(s64_launcher_recovery_message(result));
-                cputs("\r\n");
-            }
-            cputs("RECOVERY READY\r\n\r\n");
-            cputs("EDITOR HANDOFF PENDING\r\n");
-            return 0;
+            break;
         }
 
         if (!handle_recovery_blocked(result)) {
             return 1;
         }
+    }
+
+    session_id = (uint32_t)clock();
+    if (session_id == 0UL) session_id = 1UL;
+
+    for (;;) {
+        lifecycle_result = s64_launcher_session_begin(
+            &recovery_runtime,
+            session_id,
+            0x0201u,
+            0UL,
+            S64_SYSTEM_MODE_INTERACTIVE
+        );
+        if (lifecycle_result == S64_SESSION_LIFECYCLE_OK) break;
+        if (!retry_lifecycle("SESSION START FAILED", 1u)) return 1;
+    }
+
+    show_title();
+    cputs("PLATFORM READY\r\n");
+    if (result == S64_LAUNCHER_RECOVERY_READY_RESTORED) {
+        cputs(s64_launcher_recovery_message(result));
+        cputs("\r\n");
+    }
+    cputs("RECOVERY READY\r\n");
+    cputs("SESSION ACTIVE\r\n\r\n");
+    cputs("EDITOR HANDOFF PENDING\r\n");
+
+    for (;;) {
+        lifecycle_result = s64_launcher_session_end(&recovery_runtime);
+        if (lifecycle_result == S64_SESSION_LIFECYCLE_OK) {
+            cputs("SESSION CLEAN\r\n");
+            return 0;
+        }
+        if (!retry_lifecycle("SESSION CLEANUP FAILED", 1u)) return 1;
     }
 }

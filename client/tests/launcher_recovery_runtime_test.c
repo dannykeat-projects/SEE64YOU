@@ -97,6 +97,10 @@ int main(void)
     require(runtime.recovery_backend.restore != 0
         && runtime.recovery_backend.verify != 0,
         "launcher owns restore/verify callbacks");
+    require(runtime.lifecycle.system_state == &runtime.system_state,
+        "launcher runtime owns lifecycle system state");
+    require(runtime.lifecycle.store.save != 0,
+        "launcher runtime owns lifecycle journal save callback");
 
     result = s64_launcher_recovery_runtime_run(&runtime);
     require(result == S64_LAUNCHER_RECOVERY_READY_NONE,
@@ -106,6 +110,16 @@ int main(void)
         s64_launcher_recovery_runtime_run(0)
             == S64_LAUNCHER_RECOVERY_INVALID,
         "null runtime is rejected"
+    );
+    require(
+        s64_launcher_session_begin(
+            0, 1UL, 1u, 0UL, S64_SYSTEM_MODE_INTERACTIVE
+        ) == S64_SESSION_LIFECYCLE_INVALID,
+        "null lifecycle runtime begin is rejected"
+    );
+    require(
+        s64_launcher_session_end(0) == S64_SESSION_LIFECYCLE_INVALID,
+        "null lifecycle runtime end is rejected"
     );
 
     puts("launcher recovery runtime tests passed");

@@ -68,6 +68,18 @@ void s64_launcher_recovery_runtime_init(
         turbo_context
     );
     s64_turbo_backend_bind(&runtime->system_backend);
+    s64_system_state_init(
+        &runtime->system_state,
+        &runtime->system_backend,
+        &runtime->turbo
+    );
+    runtime->lifecycle_store.save = save_journal;
+    runtime->lifecycle_store.context = runtime;
+    s64_session_lifecycle_init(
+        &runtime->lifecycle,
+        &runtime->system_state,
+        &runtime->lifecycle_store
+    );
 
     runtime->store.load = load_journal;
     runtime->store.save = save_journal;
@@ -107,6 +119,18 @@ void s64_launcher_recovery_runtime_init_hardware(
 #endif
     s64_turbo_backend_init_hardware(&runtime->turbo);
     s64_turbo_backend_bind(&runtime->system_backend);
+    s64_system_state_init(
+        &runtime->system_state,
+        &runtime->system_backend,
+        &runtime->turbo
+    );
+    runtime->lifecycle_store.save = save_journal;
+    runtime->lifecycle_store.context = runtime;
+    s64_session_lifecycle_init(
+        &runtime->lifecycle,
+        &runtime->system_state,
+        &runtime->lifecycle_store
+    );
 
     runtime->store.load = load_journal;
     runtime->store.save = save_journal;
@@ -128,4 +152,31 @@ S64LauncherRecoveryResult s64_launcher_recovery_runtime_run(
         &runtime->recovery,
         &runtime->recovery_backend
     );
+}
+
+
+S64SessionLifecycleResult s64_launcher_session_begin(
+    S64LauncherRecoveryRuntime* runtime,
+    uint32_t session_id,
+    uint16_t package_version,
+    uint32_t recovery_ref,
+    S64SystemMode initial_mode
+)
+{
+    if (runtime == 0) return S64_SESSION_LIFECYCLE_INVALID;
+    return s64_session_lifecycle_begin(
+        &runtime->lifecycle,
+        session_id,
+        package_version,
+        recovery_ref,
+        initial_mode
+    );
+}
+
+S64SessionLifecycleResult s64_launcher_session_end(
+    S64LauncherRecoveryRuntime* runtime
+)
+{
+    if (runtime == 0) return S64_SESSION_LIFECYCLE_INVALID;
+    return s64_session_lifecycle_end(&runtime->lifecycle);
 }

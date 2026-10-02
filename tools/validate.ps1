@@ -177,6 +177,8 @@ if ($HostCc) {
             "client/src/launcher/recovery_flow.c",
             "client/src/platform/session_recovery.c",
             "client/src/platform/session_journal.c",
+            "client/src/platform/session_lifecycle.c",
+            "client/src/platform/system_state.c",
             "client/src/platform/dos.c",
             "client/src/platform/turbo.c"
         )
