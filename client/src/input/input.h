@@ -20,6 +20,9 @@ typedef enum {
     S64_INPUT_TOGGLE_INSERT,
     S64_INPUT_TOGGLE_WRAP,
     S64_INPUT_HELP,
+    S64_INPUT_MENU,
+    S64_INPUT_ACTIVATE,
+    S64_INPUT_POINTER_CLICK,
     S64_INPUT_TOGGLE_MARK,
     S64_INPUT_COPY,
     S64_INPUT_CUT,
@@ -46,8 +49,12 @@ typedef enum {
 typedef struct {
     S64InputType type;
     unsigned char character;
+    unsigned char column;
+    unsigned char row;
 } S64InputEvent;
 
+void s64_input_init(void);
+void s64_input_shutdown(void);
 void s64_input_read(S64InputEvent* event);
 void s64_input_sync_repeat(void);
 void s64_input_restore_repeat(void);
