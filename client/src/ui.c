@@ -577,10 +577,10 @@ void s64_ui_show_help(void)
         "Ctrl/CBM+Delete = forward delete",
         "RUN/STOP = cancel or exit",
         "",
-        "Top labels are not menus yet.",
-        "Use these shortcuts for their commands.",
-        "",
-        "PRESS ANY KEY TO RETURN"
+        "CBM+M OR JOYSTICK FIRE OPENS MENUS",
+        "ARROWS/JOYSTICK MOVE, ENTER/FIRE SELECT",
+        "MOUSE: CLICK TOP LABEL, THEN ITEM",
+        "PRESS ANY KEY/CLICK/FIRE TO RETURN"
     };
     unsigned char row;
 
