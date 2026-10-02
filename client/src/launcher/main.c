@@ -4,6 +4,7 @@
 #include "launcher/recovery_flow.h"
 #include "launcher/recovery_runtime.h"
 #include "platform/preflight.h"
+#include "platform/module_preload.h"
 #include "platform/reu_runtime.h"
 #include "platform/session_lifecycle.h"
 
@@ -150,6 +151,7 @@ int main(void)
     S64SessionLifecycleResult lifecycle_result;
     S64SystemResult system_result;
     uint32_t session_id;
+    unsigned char exit_status = 1u;
 
     if (!run_preflight()) {
         return 1;
@@ -185,13 +187,15 @@ int main(void)
             S64_SYSTEM_MODE_INTERACTIVE
         );
         if (lifecycle_result == S64_SESSION_LIFECYCLE_OK) break;
+        /* A failed begin can still own ACTIVE if restore/CLEAN failed. */
+        if (recovery_runtime.lifecycle.active_record_written) goto cleanup;
         if (!retry_lifecycle("SESSION START FAILED", 1u)) return 1;
     }
 
     if (!s64_launcher_runtime_control_create(&recovery_runtime)) {
         for (;;) {
             if (!retry_lifecycle("REU CONTROL VERIFY FAILED", 1u)) {
-                return 1;
+                goto cleanup;
             }
             if (s64_launcher_runtime_control_create(&recovery_runtime)) {
                 break;
@@ -200,13 +204,25 @@ int main(void)
     }
 
     if (!s64_launcher_module_cache_plan(&recovery_runtime)) {
-        if (!retry_lifecycle("MODULE CACHE PLAN FAILED", 0u)) return 1;
+        if (!retry_lifecycle("MODULE CACHE PLAN FAILED", 0u)) goto cleanup;
     }
 
     for (;;) {
         if (s64_launcher_module_manifest_load(&recovery_runtime)) break;
-        if (!retry_lifecycle("MODULE MANIFEST FAILED", 1u)) return 1;
+        if (!retry_lifecycle("MODULE MANIFEST FAILED", 1u)) goto cleanup;
     }
+
+    if (s64_system_state_set_mode(&recovery_runtime.system_state,
+            S64_SYSTEM_MODE_IO_SAFE) != S64_SYSTEM_OK) goto cleanup;
+    for (;;) {
+        show_title();
+        cputs("PRELOADING MODULES...\r\n");
+        if (s64_module_preload(&recovery_runtime.dos,
+                &recovery_runtime.module_manifest)) break;
+        if (!retry_lifecycle("MODULE PRELOAD FAILED", 1u)) goto cleanup;
+    }
+    if (s64_launcher_session_resume_interactive(&recovery_runtime)
+            != S64_SYSTEM_OK) goto cleanup;
 
     show_title();
     cputs("PLATFORM READY\r\n");
@@ -219,11 +235,12 @@ int main(void)
     cputs("REU CONTROL READY\r\n");
     cputs("MODULE CACHE RESERVED\r\n");
     cputs("MODULE MANIFEST READY\r\n\r\n");
+    cputs("MODULES LOADED - CRC PENDING\r\n");
     cputs("OPENING EDITOR...\r\n");
 
     system_result = s64_launcher_session_prepare_transition(&recovery_runtime);
     if (system_result != S64_SYSTEM_OK) {
-        if (!retry_lifecycle("TRANSITION PREP FAILED", 0u)) return 1;
+        if (!retry_lifecycle("TRANSITION PREP FAILED", 0u)) goto cleanup;
     }
 
     /*
@@ -233,14 +250,17 @@ int main(void)
     cputs("EDITOR HANDOFF PENDING\r\n");
     system_result = s64_launcher_session_resume_interactive(&recovery_runtime);
     if (system_result != S64_SYSTEM_OK) {
-        if (!retry_lifecycle("TRANSITION CANCEL FAILED", 0u)) return 1;
+        if (!retry_lifecycle("TRANSITION CANCEL FAILED", 0u)) goto cleanup;
     }
 
+    exit_status = 0u;
+cleanup:
+    /* All exits that may own durable ACTIVE restore/verify before CLEAN. */
     for (;;) {
         lifecycle_result = s64_launcher_session_end(&recovery_runtime);
         if (lifecycle_result == S64_SESSION_LIFECYCLE_OK) {
             cputs("SESSION CLEAN\r\n");
-            return 0;
+            return exit_status;
         }
         if (!retry_lifecycle("SESSION CLEANUP FAILED", 1u)) return 1;
     }

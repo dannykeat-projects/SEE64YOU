@@ -132,7 +132,7 @@ The production transition model is:
 
 1. package manifest validates module filename, load address, length, version and integrity;
 2. launcher opens the module with Ultimate-DOS;
-3. DOS_CMD_LOAD_REU loads the executable payload into its assigned high-REU cache region;
+3. DOS_CMD_LOAD_REU loads the full PRG, including its two-byte load header, into its assigned high-REU cache region;
 4. later transitions select the already validated cached image;
 5. a tiny overwrite-safe routine DMA/copies the cached PRG image into its C64 load range;
 6. CPU/memory state is established;

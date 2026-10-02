@@ -157,11 +157,19 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
     client/src/launcher/recovery_runtime.c client/src/launcher/recovery_flow.c \
     client/src/platform/session_recovery.c client/src/platform/session_journal.c \
     client/src/platform/session_lifecycle.c client/src/platform/system_state.c \
-    client/src/platform/module_manifest.c client/src/platform/reu_runtime.c client/src/platform/dos.c client/src/platform/turbo.c \
+    client/src/platform/module_manifest.c client/src/platform/reu_runtime.c client/src/platform/dos.c client/src/platform/turbo.c client/src/charset.c \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host Ultimate DOS tests =="
+cc -std=c99 -Wall -Wextra -Iclient/tests/launcher_stubs -Iclient/src \
+    client/tests/launcher_exit_test.c -o "$TMP_BIN"
+"$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src \
+    client/tests/module_preload_test.c client/src/platform/module_preload.c \
+    client/src/platform/module_manifest.c client/src/platform/dos.c \
+    client/src/platform/dos_file.c client/src/platform/dos_reu.c -o "$TMP_BIN"
+"$TMP_BIN"
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/dos_test.c client/src/platform/dos.c client/src/platform/dos_file.c -o "$TMP_BIN"
 "$TMP_BIN"
 
@@ -277,6 +285,8 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/editor_format_link.c \
         client/src/platform/dos.c \
         client/src/platform/dos_file.c \
+        client/src/platform/dos_reu.c \
+        client/src/platform/module_preload.c \
         client/src/platform/companion_loader.c \
         client/src/platform/http.c \
         client/src/platform/network.c \

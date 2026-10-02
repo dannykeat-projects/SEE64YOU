@@ -228,6 +228,33 @@ Module descriptors contain ID, filename, ABI/application version, size, load add
 
 ## 11. Executable transition
 
+The launcher now preloads the three manifest-described files using Ultimate-DOS
+`$21` in IO_SAFE mode. Its application-resource context is explicitly DOS `$01`
+at `/sd/`; no user-document handle shares this context during startup. Each file
+is opened, its exact size checked with FILE_INFO, transferred and closed. The
+focused DOS API accepts an already-open file and rejects zero/unrepresentable
+lengths, non-24-bit addresses and extents outside 16 MiB before issuing a command.
+It requires successful status and the exact reported transfer count/destination.
+The official protocol uses two little-endian 32-bit fields; the reply contains
+six-character hexadecimal fields that firmware may pad with spaces.
+DOS reply parsing compares wire ASCII explicitly. Manifest reads convert ASCII
+to native text before comparing the parser's PETSCII identities/delimiters.
+
+Caches contain **full PRG files**, including the two-byte load-address header.
+Manifest lengths and CRC32 therefore describe those exact cached bytes. A future
+execution transfer must skip those two header bytes when copying into C64 RAM.
+Cache states are EMPTY, LOADED_UNVERIFIED and READY. This slice only produces
+LOADED_UNVERIFIED; CRC verification and executable handoff remain unimplemented.
+Any failed transfer/size/close leaves that entry EMPTY. A retry resets all states
+before loading the full set again. Cache state currently lives in the launcher's
+descriptors; it is not yet a shared executable authorization record.
+
+All launcher exits after durable ACTIVE, including partially failed session
+start, now converge on session end: restore, verify, then durable CLEAN. If
+cleanup fails, the launcher offers retry/exit and leaves ACTIVE available for
+interrupted-session recovery. An error exit stays an error even after successful
+cleanup. Real firmware-1.1 `$21` transfer and preservation remain hardware gates.
+
 The transition path should be as small as practical.
 
 Normal flow:

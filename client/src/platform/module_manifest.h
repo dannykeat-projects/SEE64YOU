@@ -17,6 +17,8 @@ typedef enum {
 
 typedef struct {
     uint8_t id;
+    /* Transfer success is not integrity verification. */
+    uint8_t cache_state;
     char filename[S64_MODULE_FILENAME_CAPACITY];
     uint16_t abi_version;
     uint16_t app_version;
@@ -27,6 +29,10 @@ typedef struct {
     uint32_t cache_address;
     uint32_t cache_capacity;
 } S64ModuleDescriptor;
+
+#define S64_MODULE_CACHE_EMPTY 0u
+#define S64_MODULE_CACHE_LOADED_UNVERIFIED 1u
+#define S64_MODULE_CACHE_READY 2u
 
 typedef struct {
     S64ModuleDescriptor modules[S64_MODULE_COUNT];

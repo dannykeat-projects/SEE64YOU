@@ -1,4 +1,5 @@
 #include "launcher/recovery_runtime.h"
+#include "charset.h"
 
 #include <string.h>
 
@@ -276,11 +277,17 @@ static uint8_t manifest_sink(
 )
 {
     S64LauncherManifestSink* sink = (S64LauncherManifestSink*)context;
+    uint16_t i;
+    uint8_t native;
     if (sink == 0 || data == 0
         || (uint32_t)sink->length + length > sink->capacity) {
         return 0u;
     }
-    memcpy(sink->data + sink->length, data, length);
+    /* Parser identities/delimiters are native literals; DOS bytes are ASCII. */
+    for (i = 0u; i < length; ++i) {
+        if (!s64_charset_ascii_to_native(data[i], &native)) return 0u;
+        sink->data[sink->length + i] = (char)native;
+    }
     sink->length = (uint16_t)(sink->length + length);
     return 1u;
 }

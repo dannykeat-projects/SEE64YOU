@@ -130,6 +130,15 @@ Do not claim arbitrary machine-state restoration beyond values See64You explicit
 
 ### 6.4 DOS-to-REU module load
 
+Build `make -C client launcher c64u publisher module-manifest` and keep
+`SEE64YOU.PRG`, `S64EDIT.PRG`, `S64PUB.PRG`, `S64CFG.PRG` and `S64MODULE.MNF`
+together in `/sd/`. Run the launcher with an exact 16 MiB REU. Expect
+`MODULES LOADED - CRC PENDING`, `EDITOR HANDOFF PENDING`, then `SESSION CLEAN`.
+This does not launch the editor or prove cache integrity. Test missing/mismatched
+module files and choose X: machine settings must restore before CLEAN. If restore
+or journal cleanup fails, ACTIVE must remain recoverable. Use scratch package
+copies and preserve the user's existing configuration/journals.
+
 Using the required 16 MiB configuration:
 
 - open a known module through Ultimate-DOS;

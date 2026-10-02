@@ -11,6 +11,7 @@ typedef struct {
 } FakeRegister;
 
 static uint8_t fake_reu_control[S64_REU_RUNTIME_CONTROL_CAPACITY];
+static unsigned manifest_closes;
 
 uint8_t s64_reu_store(
     uint8_t bank,
@@ -84,6 +85,23 @@ static S64UciResult mock_execute(
         if (reply->status != 0 && reply->status_capacity != 0u) {
             reply->status[0] = '\0';
         }
+    }
+
+    if (opcode == 0x02u || opcode == 0x03u) {
+        if (opcode == 0x03u) ++manifest_closes;
+        strcpy(reply->status, "00,OK");
+        reply->status_length = 5u;
+        return S64_UCI_OK;
+    }
+    if (opcode == 0x04u) {
+        static const char manifest[] =
+            "S64MODULES1\n"
+            "EDITOR|S64EDIT.PRG|0801|080D|48|1234ABCD\n"
+            "PUBLISHER|S64PUB.PRG|0801|080D|48|1234ABCD\n"
+            "SETTINGS|S64CFG.PRG|0801|080D|48|1234ABCD\n";
+        require(reply->data_sink((const uint8_t*)manifest,
+            sizeof(manifest) - 1u, reply->data_context), "manifest sink accepts ASCII data");
+        return S64_UCI_OK;
     }
 
     if (opcode == 0x11u) {
@@ -191,6 +209,9 @@ int main(void)
         "launcher control block records all module cache allocations");
     require(!s64_module_descriptor_loadable(&runtime.module_manifest.modules[0]),
         "cache planning does not pretend unmeasured module is loadable");
+    require(s64_launcher_module_manifest_load(&runtime),
+        "launcher reads and parses wire ASCII manifest through DOS");
+    require(manifest_closes == 1u, "manifest handle closes after read");
     require(
         s64_launcher_session_prepare_transition(&runtime) == S64_SYSTEM_OK,
         "active launcher session enters transition mode"

@@ -35,6 +35,8 @@ S64DosResult s64_dos_open_write(S64Dos* dos, const char* filename);
 S64DosResult s64_dos_close(S64Dos* dos);
 S64DosResult s64_dos_seek(S64Dos* dos, uint32_t position);
 S64DosResult s64_dos_file_size(S64Dos* dos, uint32_t* size);
+/* Reads the current open file position; verifies reported length/address. */
+S64DosResult s64_dos_load_reu(S64Dos* dos, uint32_t address, uint32_t length);
 
 S64DosResult s64_dos_read(
     S64Dos* dos,

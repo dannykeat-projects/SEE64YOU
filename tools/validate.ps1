@@ -60,7 +60,7 @@ if ($HostCc) {
 
         $Output = Join-Path $TestDir ($Name + ".exe")
         Write-Host "== Host $Name tests =="
-        & $HostCc.Path -std=c99 -Wall -Wextra -Iclient/src @Sources -o $Output
+        & $HostCc.Path -std=c99 -Wall -Wextra -Iclient/tests/launcher_stubs -Iclient/src @Sources -o $Output
         if ($LASTEXITCODE -ne 0) { throw "Host $Name test build failed" }
         & $Output
         if ($LASTEXITCODE -ne 0) { throw "Host $Name tests failed" }
@@ -181,6 +181,7 @@ if ($HostCc) {
             "client/src/platform/dos.c"
         )
         Invoke-CTest "launcher_recovery_runtime" @(
+            "client/src/charset.c",
             "client/tests/launcher_recovery_runtime_test.c",
             "client/src/launcher/recovery_runtime.c",
             "client/src/launcher/recovery_flow.c",
@@ -192,6 +193,15 @@ if ($HostCc) {
             "client/src/platform/reu_runtime.c",
             "client/src/platform/dos.c",
             "client/src/platform/turbo.c"
+        )
+        Invoke-CTest "launcher_exit" @("client/tests/launcher_exit_test.c")
+        Invoke-CTest "module_preload" @(
+            "client/tests/module_preload_test.c",
+            "client/src/platform/module_preload.c",
+            "client/src/platform/module_manifest.c",
+            "client/src/platform/dos.c",
+            "client/src/platform/dos_file.c",
+            "client/src/platform/dos_reu.c"
         )
         Invoke-CTest "local_documents" @(
             "client/tests/local_documents_test.c",
