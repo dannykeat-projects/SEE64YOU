@@ -597,7 +597,6 @@ void s64_ui_show_help(void)
     partial_char_edit = 0u;
     cursor_position_valid = 0u;
     cursor_visible = 0u;
-    clrscr();
 }
 
 
