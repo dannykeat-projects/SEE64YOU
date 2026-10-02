@@ -342,7 +342,22 @@ parameter block.
 Production SEE64YOU.PRG still stops after TRANSFER CAPSULE READY / TRANSFER PLAN
 READY / EDITOR HANDOFF PENDING; it does not call the new execution stub yet.
 That final call remains gated on build/CI confirmation and real-C64U validation.
-Cold-start editor must not adopt arbitrary leftover REU state.
+
+Because REU can survive reset, a valid capsule alone is not sufficient proof of
+an immediate handoff. The transient transfer stub now writes a one-shot
+conventional-RAM arrival marker at $02A7-$02A9 immediately after DMA and before
+jumping to the destination. The destination consumes and clears this marker
+before managed-session adoption. A cold/direct module launch therefore cannot
+adopt persistent REU state merely because a previous ACTIVE capsule still
+exists.
+
+A lightweight destination runtime owner is now host-testable independently of
+the launcher. Given trusted arrival, it loads the runtime control and verified
+capsule, adopts the original turbo snapshot without a fresh capture/write,
+adopts the ACTIVE lifecycle and can resume INTERACTIVE. Untrusted/cold arrival
+is rejected without claiming ownership. A dedicated managed-editor fit target
+links this ownership stack beside the current C64U editor and requires at least
+1 KiB conventional-RAM headroom before production S64EDIT.PRG is switched to it.
 
 All launcher exits after durable ACTIVE, including partially failed session
 start, now converge on session end: restore, verify, then durable CLEAN. If
