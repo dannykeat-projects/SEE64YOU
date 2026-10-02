@@ -265,6 +265,11 @@ typedef struct {
     uint16_t length;
 } S64LauncherManifestSink;
 
+static char manifest_text[S64_MODULE_MANIFEST_MAX_SIZE];
+static S64LauncherManifestSink manifest_read_sink;
+static uint32_t manifest_size;
+static uint16_t manifest_bytes_read;
+
 static uint8_t manifest_sink(
     const uint8_t* data,
     uint16_t length,
@@ -285,10 +290,6 @@ uint8_t s64_launcher_module_manifest_load(
     S64LauncherRecoveryRuntime* runtime
 )
 {
-    char text[S64_MODULE_MANIFEST_MAX_SIZE];
-    S64LauncherManifestSink sink;
-    uint32_t size = 0UL;
-    uint16_t bytes_read = 0u;
     S64DosResult result;
 
     if (runtime == 0
@@ -299,40 +300,42 @@ uint8_t s64_launcher_module_manifest_load(
     if (s64_dos_change_dir(&runtime->dos, "/sd/") != S64_DOS_OK) {
         return 0u;
     }
-    result = s64_dos_open_read(
-        &runtime->dos,
-        S64_MODULE_MANIFEST_FILENAME
-    );
-    if (result != S64_DOS_OK) return 0u;
+    if (s64_dos_open_read(
+            &runtime->dos,
+            S64_MODULE_MANIFEST_FILENAME
+        ) != S64_DOS_OK) {
+        return 0u;
+    }
 
-    result = s64_dos_file_size(&runtime->dos, &size);
-    if (result != S64_DOS_OK
-        || size == 0UL
-        || size > S64_MODULE_MANIFEST_MAX_SIZE) {
+    manifest_size = 0UL;
+    if (s64_dos_file_size(&runtime->dos, &manifest_size) != S64_DOS_OK
+        || manifest_size == 0UL
+        || manifest_size > S64_MODULE_MANIFEST_MAX_SIZE) {
         (void)s64_dos_close(&runtime->dos);
         return 0u;
     }
 
-    sink.data = text;
-    sink.capacity = (uint16_t)size;
-    sink.length = 0u;
+    manifest_read_sink.data = manifest_text;
+    manifest_read_sink.capacity = (uint16_t)manifest_size;
+    manifest_read_sink.length = 0u;
+    manifest_bytes_read = 0u;
     result = s64_dos_read(
         &runtime->dos,
-        (uint16_t)size,
+        (uint16_t)manifest_size,
         manifest_sink,
-        &sink,
-        &bytes_read
+        &manifest_read_sink,
+        &manifest_bytes_read
     );
     if (s64_dos_close(&runtime->dos) != S64_DOS_OK) return 0u;
     if (result != S64_DOS_OK
-        || bytes_read != (uint16_t)size
-        || sink.length != (uint16_t)size) {
+        || manifest_bytes_read != (uint16_t)manifest_size
+        || manifest_read_sink.length != (uint16_t)manifest_size) {
         return 0u;
     }
 
     return s64_module_manifest_parse(
         &runtime->module_manifest,
-        text,
-        (uint16_t)size
+        manifest_text,
+        (uint16_t)manifest_size
     );
 }
