@@ -2,6 +2,34 @@
 #include <stdlib.h>
 #include "platform/module_manifest.h"
 
+uint8_t s64_reu_store(
+    uint8_t bank,
+    uint16_t address,
+    const void* source,
+    uint16_t length
+)
+{
+    (void)bank;
+    (void)address;
+    (void)source;
+    (void)length;
+    return 1u;
+}
+
+uint8_t s64_reu_load(
+    uint8_t bank,
+    uint16_t address,
+    void* destination,
+    uint16_t length
+)
+{
+    (void)bank;
+    (void)address;
+    (void)destination;
+    (void)length;
+    return 1u;
+}
+
 static void require(int ok,const char* msg){if(!ok){fprintf(stderr,"FAIL: %s\n",msg);exit(1);}}
 
 int main(void){
