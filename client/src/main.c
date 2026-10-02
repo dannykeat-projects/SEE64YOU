@@ -519,7 +519,7 @@ static S64InputType run_menu(unsigned char initial_group)
                     }
                     return S64_INPUT_NONE;
                 }
-                clicked = s64_menu_item_at(group, menu_input.row);
+                clicked = s64_menu_item_at(group, menu_input.column, menu_input.row);
                 if (clicked != S64_MENU_NONE) {
                     return s64_menu_command(group, clicked);
                 }
