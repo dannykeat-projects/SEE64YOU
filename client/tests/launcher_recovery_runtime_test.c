@@ -14,6 +14,7 @@ typedef struct {
 static uint8_t fake_reu_control[S64_REU_RUNTIME_CONTROL_CAPACITY];
 static unsigned manifest_closes, dos_commands;
 static uint8_t fake_session[S64_MODULE_SESSION_WIRE_SIZE];
+static uint8_t fake_capsule[S64_TRANSFER_CAPSULE_WIRE_SIZE];
 static uint8_t fail_session_store, fail_clean;
 static unsigned clean_saves;
 
@@ -27,6 +28,10 @@ uint8_t s64_reu_store(
     if (bank == 5u && address == 0x100u && length == sizeof(fake_session)) {
         if (fail_session_store) return 0u;
         memcpy(fake_session, source, length);
+        return 1u;
+    }
+    if (bank == 5u && address == 0x200u && length == sizeof(fake_capsule)) {
+        memcpy(fake_capsule, source, length);
         return 1u;
     }
     if (bank != S64_REU_RUNTIME_CONTROL_BANK
@@ -48,6 +53,10 @@ uint8_t s64_reu_load(
 {
     if (bank == 5u && address == 0x100u && length == sizeof(fake_session)) {
         memcpy(destination, fake_session, length);
+        return 1u;
+    }
+    if (bank == 5u && address == 0x200u && length == sizeof(fake_capsule)) {
+        memcpy(destination, fake_capsule, length);
         return 1u;
     }
     if (bank != S64_REU_RUNTIME_CONTROL_BANK
@@ -149,7 +158,7 @@ static S64SessionJournalResult save_clean_test(void* context, S64SessionJournal*
     require(journal->state == S64_SESSION_STATE_CLEAN,
         "cleanup attempts only a CLEAN supersession");
     require(runtime->module_session_invalidated && fake_session[0] == 0u
-        && runtime->system_state.restored,
+        && fake_capsule[0] == 0u && runtime->system_state.restored,
         "shared revocation and verified restoration precede CLEAN");
     ++clean_saves;
     if (fail_clean) return S64_SESSION_JOURNAL_IO_ERROR;
@@ -237,8 +246,8 @@ int main(void)
         "launcher control block inherits journal session metadata");
     require(s64_launcher_module_cache_plan(&runtime),
         "launcher allocates and persists three module cache slots");
-    require(runtime.reu_control.allocation_count == S64_MODULE_COUNT + 1u,
-        "launcher control block records module caches and shared session allocation");
+    require(runtime.reu_control.allocation_count == S64_MODULE_COUNT + 2u,
+        "launcher control block records module caches, shared session and transfer capsule");
     require(!s64_module_descriptor_loadable(&runtime.module_manifest.modules[0]),
         "cache planning does not pretend unmeasured module is loadable");
     require(s64_launcher_module_manifest_load(&runtime),
@@ -272,6 +281,13 @@ int main(void)
     );
     require(runtime.system_state.mode == S64_SYSTEM_MODE_TRANSITION,
         "transition mode is recorded");
+    require(s64_launcher_transfer_capsule_prepare(&runtime, S64_MODULE_EDITOR),
+        "transition prepares and verifies editor capsule");
+    require(fake_capsule[0] == 'S' && fake_capsule[3] == 'T'
+        && fake_capsule[6] == S64_MODULE_EDITOR,
+        "editor capsule is published to allocator-owned REU");
+    require(!s64_launcher_transfer_capsule_prepare(&runtime, (S64ModuleId)0),
+        "invalid transfer destination is rejected");
     require(runtime.lifecycle.active_record_written,
         "transition keeps durable session logically active");
     require(
@@ -336,8 +352,9 @@ int main(void)
     require(s64_launcher_session_end(&destination_runtime) == S64_SESSION_LIFECYCLE_OK,
         "launcher can retry CLEAN after verified restore");
     require(clean_saves == 2u, "both CLEAN save attempts occur after revocation");
-    require(destination_runtime.module_session_invalidated && fake_session[0] == 0u,
-        "closed session has no shared readiness record");
+    require(destination_runtime.module_session_invalidated
+        && fake_session[0] == 0u && fake_capsule[0] == 0u,
+        "closed session has no shared readiness or transfer capsule");
     puts("launcher recovery runtime tests passed");
     return 0;
 }
