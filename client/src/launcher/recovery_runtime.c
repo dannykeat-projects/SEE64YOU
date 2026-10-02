@@ -267,7 +267,6 @@ typedef struct {
 
 static char manifest_text[S64_MODULE_MANIFEST_MAX_SIZE];
 static S64LauncherManifestSink manifest_read_sink;
-static uint32_t manifest_size;
 static uint16_t manifest_bytes_read;
 
 static uint8_t manifest_sink(
@@ -307,35 +306,27 @@ uint8_t s64_launcher_module_manifest_load(
         return 0u;
     }
 
-    manifest_size = 0UL;
-    if (s64_dos_file_size(&runtime->dos, &manifest_size) != S64_DOS_OK
-        || manifest_size == 0UL
-        || manifest_size > S64_MODULE_MANIFEST_MAX_SIZE) {
-        (void)s64_dos_close(&runtime->dos);
-        return 0u;
-    }
-
     manifest_read_sink.data = manifest_text;
-    manifest_read_sink.capacity = (uint16_t)manifest_size;
+    manifest_read_sink.capacity = S64_MODULE_MANIFEST_MAX_SIZE;
     manifest_read_sink.length = 0u;
     manifest_bytes_read = 0u;
     result = s64_dos_read(
         &runtime->dos,
-        (uint16_t)manifest_size,
+        S64_MODULE_MANIFEST_MAX_SIZE,
         manifest_sink,
         &manifest_read_sink,
         &manifest_bytes_read
     );
     if (s64_dos_close(&runtime->dos) != S64_DOS_OK) return 0u;
     if (result != S64_DOS_OK
-        || manifest_bytes_read != (uint16_t)manifest_size
-        || manifest_read_sink.length != (uint16_t)manifest_size) {
+        || manifest_bytes_read == 0u
+        || manifest_bytes_read != manifest_read_sink.length) {
         return 0u;
     }
 
     return s64_module_manifest_parse(
         &runtime->module_manifest,
         manifest_text,
-        (uint16_t)manifest_size
+        manifest_bytes_read
     );
 }
