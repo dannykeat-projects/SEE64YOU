@@ -48,6 +48,16 @@ int main(void)
     assert(!s64_module_transfer_plan(&capsule, &plan));
 
     fixture(&capsule);
+    capsule.module.load_address = 0x0700u;
+    assert(!s64_module_transfer_plan(&capsule, &plan));
+
+    fixture(&capsule);
+    capsule.module.load_address = 0xcf00u;
+    capsule.module.startup_address = 0xcf10u;
+    capsule.module.byte_length = 0x0202UL;
+    assert(!s64_module_transfer_plan(&capsule, &plan));
+
+    fixture(&capsule);
     capsule.module.cache_address = 0x00fffffeUL;
     assert(!s64_module_transfer_plan(&capsule, &plan));
 
