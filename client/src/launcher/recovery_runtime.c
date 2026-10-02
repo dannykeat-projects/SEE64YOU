@@ -181,10 +181,11 @@ S64SessionLifecycleResult s64_launcher_session_end(
     if (runtime == 0) return S64_SESSION_LIFECYCLE_INVALID;
     /* Revoke cached readiness before restore/CLEAN, including failed publication.
      * A failed CLEAN save can retry after system state has already restored. */
-    if (runtime->reu_control.allocation_count == S64_MODULE_COUNT + 1u
+    if (runtime->reu_control.allocation_count == S64_MODULE_COUNT + 2u
         && !runtime->module_session_invalidated) {
         if (s64_system_state_set_mode(&runtime->system_state,
                 S64_SYSTEM_MODE_IO_SAFE) != S64_SYSTEM_OK
+            || !s64_launcher_transfer_capsule_clear(runtime)
             || !s64_launcher_module_session_clear(runtime))
             return S64_SESSION_LIFECYCLE_RESTORE_FAILED;
     }
@@ -265,7 +266,8 @@ uint8_t s64_launcher_module_cache_plan(
         )) {
         return 0u;
     }
-    if (!s64_module_session_reserve(&runtime->reu_control)) return 0u;
+    if (!s64_module_session_reserve(&runtime->reu_control)
+        || !s64_transfer_capsule_reserve(&runtime->reu_control)) return 0u;
     return s64_reu_runtime_store_verified(&runtime->reu_control);
 }
 
@@ -300,6 +302,47 @@ uint8_t s64_launcher_module_session_clear(S64LauncherRecoveryRuntime* runtime)
         && s64_module_session_clear(&runtime->reu_control);
     if (cleared) runtime->module_session_invalidated = 1u;
     return cleared;
+}
+
+uint8_t s64_launcher_transfer_capsule_clear(
+    S64LauncherRecoveryRuntime* runtime
+)
+{
+    return runtime != 0
+        && runtime->lifecycle.active_record_written
+        && !runtime->lifecycle.clean_record_written
+        && runtime->system_state.mode == S64_SYSTEM_MODE_IO_SAFE
+        && s64_transfer_capsule_clear(&runtime->reu_control);
+}
+
+uint8_t s64_launcher_transfer_capsule_prepare(
+    S64LauncherRecoveryRuntime* runtime,
+    S64ModuleId destination
+)
+{
+    S64TransferCapsule capsule;
+
+    if (runtime == 0
+        || !runtime->lifecycle.active_record_written
+        || runtime->lifecycle.clean_record_written
+        || runtime->module_session_invalidated
+        || runtime->system_state.mode != S64_SYSTEM_MODE_TRANSITION
+        || destination < S64_MODULE_EDITOR
+        || destination > S64_MODULE_SETTINGS
+        || !s64_transfer_capsule_store(
+            &runtime->reu_control,
+            &runtime->lifecycle.journal,
+            &runtime->module_manifest,
+            destination
+        )
+        || !s64_transfer_capsule_load(&runtime->reu_control, &capsule)
+        || capsule.destination != destination
+        || memcmp(&capsule.journal, &runtime->lifecycle.journal,
+            sizeof(capsule.journal)) != 0
+        || capsule.module.id != (uint8_t)destination) {
+        return 0u;
+    }
+    return 1u;
 }
 
 uint8_t s64_launcher_module_session_publish(S64LauncherRecoveryRuntime* runtime)
@@ -354,7 +397,7 @@ uint8_t s64_launcher_module_manifest_load(
     S64DosResult result;
 
     if (runtime == 0
-        || runtime->reu_control.allocation_count != S64_MODULE_COUNT + 1u) {
+        || runtime->reu_control.allocation_count != S64_MODULE_COUNT + 2u) {
         return 0u;
     }
 
