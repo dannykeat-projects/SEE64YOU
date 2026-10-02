@@ -151,6 +151,7 @@ int main(void)
     S64LauncherRecoveryResult result;
     S64SessionLifecycleResult lifecycle_result;
     S64SystemResult system_result;
+    S64ModuleTransferPlan transfer_plan;
     uint32_t session_id;
     unsigned char exit_status = 1u;
 
@@ -258,12 +259,20 @@ int main(void)
         )) {
         if (!retry_lifecycle("TRANSFER CAPSULE FAILED", 0u)) goto cleanup;
     }
+    if (!s64_launcher_transfer_plan_load(
+            &recovery_runtime,
+            &transfer_plan
+        )) {
+        if (!retry_lifecycle("TRANSFER PLAN FAILED", 0u)) goto cleanup;
+    }
 
     /*
      * The overwrite-safe execution copy is the next migration slice. The
-     * verified capsule now binds the ACTIVE session to the exact editor image.
+     * verified capsule and transfer plan now bind the ACTIVE session to the
+     * exact editor payload, RAM destination and startup address.
      */
     cputs("TRANSFER CAPSULE READY\r\n");
+    cputs("TRANSFER PLAN READY\r\n");
     cputs("EDITOR HANDOFF PENDING\r\n");
     system_result = s64_launcher_session_resume_interactive(&recovery_runtime);
     if (system_result != S64_SYSTEM_OK) {
