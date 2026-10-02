@@ -40,11 +40,12 @@ Do not suppress genuine warnings/errors.
 During migration:
 
 ~~~sh
-make -C client c64u publisher
+make -C client launcher c64u publisher
 ~~~
 
 Current package files:
 
+- SEE64YOU.PRG — new C64U launcher shell; recovery loop is live, editor handoff intentionally pending;
 - SEE64YOU-C64U.PRG
 - S64EDIT.PRG
 - S64PUB.PRG

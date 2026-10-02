@@ -34,6 +34,12 @@ jobs:
           python3 tools/check_memory_headroom.py client/build/see64you-c64u.map \
             --label "C64U editor" --min-headroom 1024
 
+      - name: Build SEE64YOU launcher
+        run: |
+          make -C client launcher
+          python3 tools/check_memory_headroom.py client/build/see64you-launcher.map \
+            --label "C64U launcher" --min-headroom 1024
+
       - name: Build C64U platform preflight probe
         run: make -C client platform-preflight-probe
 
@@ -262,6 +268,7 @@ jobs:
         with:
           name: see64you-c64u-package
           path: |
+            client/build/SEE64YOU.PRG
             client/build/SEE64YOU-C64U.PRG
             client/build/S64EDIT.PRG
             client/build/S64PUB.PRG
