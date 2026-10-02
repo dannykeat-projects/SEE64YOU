@@ -286,6 +286,20 @@ int main(void)
     require(fake_capsule[0] == 'S' && fake_capsule[3] == 'T'
         && fake_capsule[6] == S64_MODULE_EDITOR,
         "editor capsule is published to allocator-owned REU");
+    {
+        S64ModuleTransferPlan plan;
+        require(s64_launcher_transfer_plan_load(&runtime, &plan),
+            "launcher derives transfer plan from verified capsule");
+        require(plan.reu_source
+                == runtime.module_manifest.modules[0].cache_address + 2UL
+            && plan.ram_destination
+                == runtime.module_manifest.modules[0].load_address
+            && plan.payload_length
+                == runtime.module_manifest.modules[0].byte_length - 2UL
+            && plan.startup_address
+                == runtime.module_manifest.modules[0].startup_address,
+            "transfer plan skips PRG header and preserves exact editor targets");
+    }
     require(!s64_launcher_transfer_capsule_prepare(&runtime, (S64ModuleId)0),
         "invalid transfer destination is rejected");
     require(runtime.lifecycle.active_record_written,
