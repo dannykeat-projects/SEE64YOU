@@ -142,6 +142,19 @@ static uint8_t verify_state(
     return backend->read(backend->io_context) == snapshot->turbo_control;
 }
 
+uint8_t s64_turbo_backend_adopt(S64TurboBackend* backend,
+    const S64SystemSnapshot* snapshot)
+{
+    if (backend == 0 || snapshot == 0 || snapshot->turbo_control_valid > 1u
+        || backend->read == 0 || backend->write == 0
+        || (snapshot->turbo_control_valid
+            && backend->read(backend->io_context) != snapshot->turbo_control))
+        return 0u;
+    backend->captured_control = snapshot->turbo_control;
+    backend->controllable = snapshot->turbo_control_valid;
+    return 1u;
+}
+
 void s64_turbo_backend_init(
     S64TurboBackend* backend,
     S64TurboReadFn read,

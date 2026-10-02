@@ -165,7 +165,12 @@ the matching package to a disposable name in `/sd/` and run it. This wraps the
 actual launcher, backs up and seeds 17 separate 16-byte REU sentinel blocks
 outside the runtime/cache range, then selects speed nibble 2 through an outer
 diagnostic system-state manager. Expect the normal verified launcher/CLEAN path,
-`CACHE GATE PASS` and `START <prior> INNER <prior-upper-bits|2> FINAL <prior>`.
+`ADOPTION PASS`, `CACHE GATE PASS` and
+`START <prior> INNER <prior-upper-bits|2> FINAL <prior>`.
+The adoption stage constructs a second active session through the real platform
+APIs, initializes an independent destination, adopts the verified source journal
+without destination DOS calls, accelerates temporarily and exits from that owner.
+It does not overwrite executable code or enter the editor.
 The launcher clears/readbacks shared readiness before restore/CLEAN.
 The diagnostic also reloads the shared allocator control and newest DOS journal after
 launcher exit and requires the metadata load API to reject the CLEAN session

@@ -269,6 +269,27 @@ uint8_t s64_launcher_module_cache_plan(
     return s64_reu_runtime_store_verified(&runtime->reu_control);
 }
 
+uint8_t s64_launcher_module_session_adopt(S64LauncherRecoveryRuntime* runtime,
+    S64ModuleId destination, uint16_t package_version,
+    const S64SessionJournal* journal)
+{
+    S64SystemSnapshot snapshot;
+    if (runtime == 0 || journal == 0 || package_version == 0u
+        || destination < S64_MODULE_EDITOR || destination > S64_MODULE_SETTINGS
+        || runtime->system_state.captured || runtime->lifecycle.active_record_written
+        || runtime->lifecycle.clean_record_written
+        || journal->package_version != package_version
+        || !s64_reu_runtime_load(&runtime->reu_control)
+        || !s64_module_session_load(&runtime->reu_control, journal, &runtime->module_manifest)
+        || !s64_session_journal_restore_snapshot(journal, &snapshot)
+        || !s64_turbo_backend_adopt(&runtime->turbo, &snapshot)) return 0u;
+    if (s64_session_lifecycle_adopt(&runtime->lifecycle, journal)
+            != S64_SESSION_LIFECYCLE_OK) return 0u;
+    runtime->module_session_invalidated = 0u;
+    runtime->current_module = (uint8_t)destination;
+    return 1u;
+}
+
 uint8_t s64_launcher_module_session_clear(S64LauncherRecoveryRuntime* runtime)
 {
     uint8_t cleared;

@@ -173,6 +173,14 @@ if ($HostCc) {
             "client/tests/dos_test.c",
             "client/src/platform/dos.c"
         )
+        Invoke-CTest "session_adopt" @(
+            "client/tests/session_adopt_test.c",
+            "client/src/platform/system_state.c",
+            "client/src/platform/turbo.c",
+            "client/src/platform/session_lifecycle.c",
+            "client/src/platform/session_journal.c",
+            "client/src/platform/dos.c"
+        )
         Invoke-CTest "launcher_recovery_flow" @(
             "client/tests/launcher_recovery_flow_test.c",
             "client/src/launcher/recovery_flow.c",

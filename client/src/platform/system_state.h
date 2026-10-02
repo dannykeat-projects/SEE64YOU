@@ -71,6 +71,10 @@ void s64_system_state_init(
 );
 
 S64SystemResult s64_system_state_capture(S64SystemState* state);
+/* Fresh destination only: adopt the trusted caller snapshot at TRANSITION.
+ * No capture, hardware write or new ownership boundary. */
+S64SystemResult s64_system_state_adopt(S64SystemState* state,
+    const S64SystemSnapshot* snapshot);
 S64SystemResult s64_system_state_set_mode(
     S64SystemState* state,
     S64SystemMode mode

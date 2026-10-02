@@ -8,10 +8,11 @@
 typedef struct {
     uint8_t value;
     uint8_t writable;
+    unsigned reads, writes;
 } FakeRegister;
 
 static uint8_t fake_reu_control[S64_REU_RUNTIME_CONTROL_CAPACITY];
-static unsigned manifest_closes;
+static unsigned manifest_closes, dos_commands;
 static uint8_t fake_session[S64_MODULE_SESSION_WIRE_SIZE];
 static uint8_t fail_session_store, fail_clean;
 static unsigned clean_saves;
@@ -69,12 +70,14 @@ static void require(int condition, const char* message)
 
 static uint8_t fake_read(void* context)
 {
+    ++((FakeRegister*)context)->reads;
     return ((FakeRegister*)context)->value;
 }
 
 static void fake_write(void* context, uint8_t value)
 {
     FakeRegister* reg = (FakeRegister*)context;
+    ++reg->writes;
     if (reg->writable) reg->value = value;
 }
 
@@ -85,6 +88,7 @@ static S64UciResult mock_execute(
 )
 {
     uint8_t opcode;
+    ++dos_commands;
 
     if (part_count == 0u || parts[0].length < 2u
         || parts[0].data[0] != S64_DOS_TARGET_PRIMARY) {
@@ -155,7 +159,9 @@ static S64SessionJournalResult save_clean_test(void* context, S64SessionJournal*
 
 int main(void)
 {
-    S64LauncherRecoveryRuntime runtime;
+    S64LauncherRecoveryRuntime runtime, destination_runtime;
+    S64SessionJournal wrong_journal;
+    unsigned prior_commands, prior_writes;
     FakeRegister reg;
     S64LauncherRecoveryResult result;
 
@@ -238,7 +244,9 @@ int main(void)
     require(s64_launcher_module_manifest_load(&runtime),
         "launcher reads and parses wire ASCII manifest through DOS");
     require(manifest_closes == 1u, "manifest handle closes after read");
-    runtime.lifecycle.journal.state = S64_SESSION_STATE_ACTIVE;
+    require(s64_session_journal_prepare(&runtime.lifecycle.journal,
+        runtime.reu_control.session_id, runtime.reu_control.app_version, 0x2345UL,
+        &runtime.system_state.snapshot), "fixture retains the real captured restore state");
     runtime.lifecycle.journal.sequence = 3u;
     require(!s64_launcher_module_session_clear(&runtime),
         "shared metadata requires IO_SAFE scope");
@@ -273,26 +281,62 @@ int main(void)
     require(runtime.system_state.mode == S64_SYSTEM_MODE_INTERACTIVE,
         "interactive mode restored without cleaning session");
 
-    require(!runtime.module_session_invalidated, "published metadata needs exit revocation");
-    runtime.lifecycle.store.save = save_clean_test;
-    runtime.lifecycle.store.context = &runtime;
+    require(s64_launcher_session_prepare_transition(&runtime) == S64_SYSTEM_OK,
+        "caller reaches original-state TRANSITION before adoption");
+    s64_launcher_recovery_runtime_init(&destination_runtime, mock_execute,
+        fake_read, fake_write, &reg);
+    prior_commands = dos_commands;
+    prior_writes = reg.writes;
+    wrong_journal = runtime.lifecycle.journal;
+    wrong_journal.state = S64_SESSION_STATE_CLEAN;
+    require(!s64_launcher_module_session_adopt(&destination_runtime, S64_MODULE_EDITOR,
+        0x201u, &wrong_journal), "CLEAN transfer cannot adopt a session");
+    require(!s64_launcher_module_session_adopt(&destination_runtime, S64_MODULE_EDITOR,
+        0x202u, &runtime.lifecycle.journal), "different compiled package cannot adopt");
+    require(!s64_launcher_module_session_adopt(&destination_runtime, (S64ModuleId)0,
+        0x201u, &runtime.lifecycle.journal), "invalid destination cannot adopt");
+    reg.value = 0x2fu;
+    require(!s64_launcher_module_session_adopt(&destination_runtime, S64_MODULE_EDITOR,
+        0x201u, &runtime.lifecycle.journal), "unexpected turbo at TRANSITION rejects adoption");
+    require(!destination_runtime.system_state.captured
+        && !destination_runtime.lifecycle.active_record_written,
+        "rejected adoption claims no machine/session ownership");
+    reg.value = 0x25u;
+    require(s64_launcher_module_session_adopt(&destination_runtime, S64_MODULE_EDITOR,
+        0x201u, &runtime.lifecycle.journal), "verified destination adopts the ACTIVE session");
+    require(dos_commands == prior_commands && reg.writes == prior_writes,
+        "adoption does not use DOS or write/probe turbo");
+    require(destination_runtime.lifecycle.journal.sequence == 3u
+        && destination_runtime.lifecycle.journal.recovery_ref == 0x2345UL
+        && destination_runtime.system_state.snapshot.turbo_control == 0x25u
+        && destination_runtime.system_state.mode == S64_SYSTEM_MODE_TRANSITION
+        && destination_runtime.current_module == S64_MODULE_EDITOR,
+        "adoption retains the original journal and restore state");
+    require(!s64_launcher_module_session_adopt(&destination_runtime, S64_MODULE_EDITOR,
+        0x201u, &runtime.lifecycle.journal), "owned destination cannot adopt twice");
+    require(s64_system_state_set_mode(&destination_runtime.system_state,
+        S64_SYSTEM_MODE_CPU_INTENSIVE) == S64_SYSTEM_OK && reg.value == 0x2fu,
+        "adopted destination may accelerate through the common manager");
+    require(!destination_runtime.module_session_invalidated, "published metadata needs exit revocation");
+    destination_runtime.lifecycle.store.save = save_clean_test;
+    destination_runtime.lifecycle.store.context = &destination_runtime;
     fail_session_store = 1u;
-    require(s64_launcher_session_end(&runtime) == S64_SESSION_LIFECYCLE_RESTORE_FAILED,
+    require(s64_launcher_session_end(&destination_runtime) == S64_SESSION_LIFECYCLE_RESTORE_FAILED,
         "failed shared revocation blocks cleanup");
-    require(clean_saves == 0u && !runtime.system_state.restored
-        && runtime.lifecycle.journal.state == S64_SESSION_STATE_ACTIVE,
+    require(clean_saves == 0u && !destination_runtime.system_state.restored
+        && destination_runtime.lifecycle.journal.state == S64_SESSION_STATE_ACTIVE,
         "revocation failure retains ACTIVE without recording CLEAN");
     fail_session_store = 0u;
     fail_clean = 1u;
-    require(s64_launcher_session_end(&runtime) == S64_SESSION_LIFECYCLE_JOURNAL_CLEAN_FAILED,
+    require(s64_launcher_session_end(&destination_runtime) == S64_SESSION_LIFECYCLE_JOURNAL_CLEAN_FAILED,
         "failed CLEAN save remains visible after revocation and restoration");
-    require(runtime.module_session_invalidated && runtime.system_state.restored,
+    require(destination_runtime.module_session_invalidated && destination_runtime.system_state.restored,
         "CLEAN retry does not need to reapply a mode after restoration");
     fail_clean = 0u;
-    require(s64_launcher_session_end(&runtime) == S64_SESSION_LIFECYCLE_OK,
+    require(s64_launcher_session_end(&destination_runtime) == S64_SESSION_LIFECYCLE_OK,
         "launcher can retry CLEAN after verified restore");
     require(clean_saves == 2u, "both CLEAN save attempts occur after revocation");
-    require(runtime.module_session_invalidated && fake_session[0] == 0u,
+    require(destination_runtime.module_session_invalidated && fake_session[0] == 0u,
         "closed session has no shared readiness record");
     puts("launcher recovery runtime tests passed");
     return 0;

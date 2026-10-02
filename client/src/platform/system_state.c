@@ -52,6 +52,20 @@ S64SystemResult s64_system_state_capture(S64SystemState* state)
     return S64_SYSTEM_OK;
 }
 
+S64SystemResult s64_system_state_adopt(S64SystemState* state,
+    const S64SystemSnapshot* snapshot)
+{
+    if (state == 0 || snapshot == 0 || snapshot->turbo_control_valid > 1u
+        || state->captured || state->backend.apply_mode == 0
+        || state->backend.restore == 0) return S64_SYSTEM_INVALID;
+    state->snapshot = *snapshot;
+    state->captured = 1u;
+    state->modified = 1u;
+    state->restored = 0u;
+    state->mode = S64_SYSTEM_MODE_TRANSITION;
+    return S64_SYSTEM_OK;
+}
+
 S64SystemResult s64_system_state_set_mode(
     S64SystemState* state,
     S64SystemMode mode

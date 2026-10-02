@@ -140,6 +140,23 @@ S64SessionLifecycleResult s64_session_lifecycle_begin(
         : result;
 }
 
+S64SessionLifecycleResult s64_session_lifecycle_adopt(
+    S64SessionLifecycle* lifecycle, const S64SessionJournal* journal)
+{
+    S64SystemSnapshot snapshot;
+    if (lifecycle == 0 || journal == 0 || lifecycle->system_state == 0
+        || lifecycle->store.save == 0 || lifecycle->active_record_written
+        || lifecycle->clean_record_written || journal->state != S64_SESSION_STATE_ACTIVE
+        || journal->sequence == 0UL
+        || !s64_session_journal_restore_snapshot(journal, &snapshot))
+        return S64_SESSION_LIFECYCLE_INVALID;
+    lifecycle->system_result = s64_system_state_adopt(lifecycle->system_state, &snapshot);
+    if (lifecycle->system_result != S64_SYSTEM_OK) return S64_SESSION_LIFECYCLE_INVALID;
+    lifecycle->journal = *journal;
+    lifecycle->active_record_written = 1u;
+    return S64_SESSION_LIFECYCLE_OK;
+}
+
 S64SessionLifecycleResult s64_session_lifecycle_end(
     S64SessionLifecycle* lifecycle
 )

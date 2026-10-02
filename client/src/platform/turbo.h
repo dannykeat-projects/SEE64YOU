@@ -28,5 +28,8 @@ void s64_turbo_backend_init(
 );
 void s64_turbo_backend_init_hardware(S64TurboBackend* backend);
 void s64_turbo_backend_bind(S64SystemBackend* backend);
+/* Read-only validation of the trusted original byte at TRANSITION; no probe. */
+uint8_t s64_turbo_backend_adopt(S64TurboBackend* backend,
+    const S64SystemSnapshot* snapshot);
 
 #endif

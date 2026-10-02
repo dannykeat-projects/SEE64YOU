@@ -51,6 +51,10 @@ S64SessionLifecycleResult s64_session_lifecycle_begin(
     S64SystemMode initial_mode
 );
 
+/* Trusted ACTIVE transfer only. Does not capture state or rewrite ACTIVE. */
+S64SessionLifecycleResult s64_session_lifecycle_adopt(
+    S64SessionLifecycle* lifecycle, const S64SessionJournal* journal);
+
 S64SessionLifecycleResult s64_session_lifecycle_end(
     S64SessionLifecycle* lifecycle
 );

@@ -137,6 +137,13 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
     client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host C64U session adoption tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src \
+    client/tests/session_adopt_test.c client/src/platform/system_state.c \
+    client/src/platform/turbo.c client/src/platform/session_lifecycle.c \
+    client/src/platform/session_journal.c client/src/platform/dos.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host C64U session recovery tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/session_recovery_test.c client/src/platform/session_recovery.c \

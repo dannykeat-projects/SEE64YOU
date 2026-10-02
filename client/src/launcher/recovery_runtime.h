@@ -23,6 +23,7 @@ typedef struct {
     S64ReuRuntimeControl reu_control;
     S64ModuleManifest module_manifest;
     uint8_t module_session_invalidated;
+    uint8_t current_module;
 } S64LauncherRecoveryRuntime;
 
 void s64_launcher_recovery_runtime_init(
@@ -55,6 +56,11 @@ uint8_t s64_launcher_runtime_control_create(
 uint8_t s64_launcher_module_cache_plan(
     S64LauncherRecoveryRuntime* runtime
 );
+/* Destination already initialized; journal comes from a verified transfer.
+ * Only REU reads and read-only turbo validation, never DOS/capture/ACTIVE save. */
+uint8_t s64_launcher_module_session_adopt(S64LauncherRecoveryRuntime* runtime,
+    S64ModuleId destination, uint16_t package_version,
+    const S64SessionJournal* journal);
 uint8_t s64_launcher_module_session_clear(S64LauncherRecoveryRuntime* runtime);
 uint8_t s64_launcher_module_session_publish(S64LauncherRecoveryRuntime* runtime);
 uint8_t s64_launcher_module_manifest_load(

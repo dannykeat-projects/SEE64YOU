@@ -28,6 +28,61 @@ static S64ReuRuntimeControl gate_control;
 static S64SessionJournal gate_journal;
 static S64ModuleManifest gate_manifest;
 static S64Dos gate_dos;
+static S64LauncherRecoveryRuntime adoption_source, adoption_destination;
+static unsigned adoption_dos_calls;
+
+static S64UciResult adoption_execute(const S64UciCommandPart* parts,
+    uint8_t count, S64UciReply* reply)
+{
+    ++adoption_dos_calls;
+    return s64_uci_execute(parts, count, reply);
+}
+
+/* Simulates module replacement using independent initialized owners. Actual
+ * overwrite-safe execution transfer is deliberately not part of this gate. */
+static uint8_t adoption_gate(void)
+{
+    uint8_t passed = 0u, adopted = 0u;
+    S64LauncherRecoveryRuntime* owner = &adoption_source;
+    s64_launcher_recovery_runtime_init_hardware(&adoption_source);
+    if (s64_launcher_recovery_runtime_run(&adoption_source)
+            > S64_LAUNCHER_RECOVERY_READY_RESTORED) return 0u;
+    if (s64_launcher_session_begin(&adoption_source, 1UL, 0x0201u, 0UL,
+            S64_SYSTEM_MODE_INTERACTIVE) != S64_SESSION_LIFECYCLE_OK) goto cleanup;
+    if (!s64_launcher_runtime_control_create(&adoption_source)
+        || !s64_launcher_module_cache_plan(&adoption_source)
+        || !s64_launcher_module_manifest_load(&adoption_source)
+        || s64_system_state_set_mode(&adoption_source.system_state,
+            S64_SYSTEM_MODE_IO_SAFE) != S64_SYSTEM_OK
+        || !s64_launcher_module_session_clear(&adoption_source)
+        || !s64_module_preload(&adoption_source.dos, &adoption_source.module_manifest)
+        || !s64_module_cache_verify(&adoption_source.module_manifest,
+            &adoption_source.system_state)
+        || !s64_launcher_module_session_publish(&adoption_source)
+        || s64_launcher_session_prepare_transition(&adoption_source)
+            != S64_SYSTEM_OK) goto cleanup;
+    s64_launcher_recovery_runtime_init_hardware(&adoption_destination);
+    adoption_destination.dos.execute = adoption_execute;
+    adoption_dos_calls = 0u;
+    if (!s64_launcher_module_session_adopt(&adoption_destination, S64_MODULE_EDITOR,
+            0x0201u, &adoption_source.lifecycle.journal)) goto cleanup;
+    adopted = 1u;
+    owner = &adoption_destination;
+    if (adoption_dos_calls != 0u
+        || owner->lifecycle.journal.sequence != adoption_source.lifecycle.journal.sequence
+        || owner->system_state.snapshot.turbo_control != requested_turbo
+        || s64_system_state_set_mode(&owner->system_state,
+            S64_SYSTEM_MODE_CPU_INTENSIVE) != S64_SYSTEM_OK) goto cleanup;
+    passed = 1u;
+cleanup:
+    if (owner->lifecycle.active_record_written
+        && s64_launcher_session_end(owner) != S64_SESSION_LIFECYCLE_OK) passed = 0u;
+    if (adopted && (owner->lifecycle.journal.state != S64_SESSION_STATE_CLEAN
+        || !owner->system_state.restored
+        || outer_turbo.read(outer_turbo.io_context) != requested_turbo)) passed = 0u;
+    cputs(passed ? "ADOPTION PASS\r\n" : "ADOPTION FAIL\r\n");
+    return passed;
+}
 
 /* Diagnostic-only preset; production modes keep their existing mapping. */
 static uint8_t test_mode(void* context, S64SystemMode mode)
@@ -90,6 +145,7 @@ int main(void)
         if (gate_journal.sequence != 0UL) --gate_journal.sequence;
         if (s64_module_session_load(&gate_control, &gate_journal, &gate_manifest))
             passed = 0u;
+        if (passed && !adoption_gate()) passed = 0u;
         for (i = 0u; i < SAMPLE_COUNT; ++i) {
             address = addresses[i];
             if (!s64_reu_load((uint8_t)(address >> 16), (uint16_t)address,

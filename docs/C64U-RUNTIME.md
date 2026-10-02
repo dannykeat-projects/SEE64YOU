@@ -290,7 +290,22 @@ the bound journal; it does not replace durable recovery or independently prove
 that cache bytes have remained unchanged since verification. The launcher clears/readbacks shared readiness before restoration and durable
 CLEAN, including failed publication, so an old ACTIVE capsule cannot authorize
 a closed session. Failed revocation blocks CLEAN and preserves recovery state.
-Session adoption and the verified transfer capsule remain unimplemented.
+A fresh destination runtime can now adopt the verified caller's ACTIVE journal:
+load allocator/control and READY descriptors from REU, check the compiled package
+and destination ID, validate the original turbo byte read-only at TRANSITION,
+then adopt the original snapshot and journal into the central manager/lifecycle.
+It does not recapture, probe/write turbo, read DOS or save another ACTIVE record.
+An unavailable turbo setting remains unowned. Subsequent managed acceleration
+and exit still restore the original caller snapshot before CLEAN. Adoption
+rejects owned destinations, invalid/CLEAN/zero-sequence transfers, mismatched
+package/cache metadata and unexpected turbo state without claiming ownership.
+
+The existing hardware gate now simulates source/destination replacement with
+independent runtime instances, checks zero destination DOS calls during adoption,
+accelerates in the adopted owner and proves restore/verify -> CLEAN with captured
+byte 2. No executable code is overwritten in this gate. The verified transfer
+capsule and editor entry wiring remain unimplemented; cold-start editor must
+not adopt arbitrary leftover REU state.
 
 All launcher exits after durable ACTIVE, including partially failed session
 start, now converge on session end: restore, verify, then durable CLEAN. If
