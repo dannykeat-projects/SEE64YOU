@@ -377,6 +377,9 @@ if command -v cl65 >/dev/null 2>&1 \
     echo "== C64U platform preflight diagnostic build =="
     make -C client platform-preflight-probe
 
+    echo "== C64U module-cache hardware gate build =="
+    make -C client module-cache-gate
+
     echo "== C64U network target diagnostic build =="
     make -C client network-probe
 

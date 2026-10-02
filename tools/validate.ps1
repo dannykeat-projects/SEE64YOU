@@ -238,6 +238,7 @@ if ($Cl65) {
     $Cc65Path = Join-Path (Split-Path -Parent $Cl65.Path) "cc65.exe"
     $Ca65Path = Join-Path (Split-Path -Parent $Cl65.Path) "ca65.exe"
     $C64ModuleSources = @(
+        "client/diagnostics/module_cache_gate.c",
         "client/src/charset.c",
         "client/src/document.c",
         "client/src/editor_format.c",

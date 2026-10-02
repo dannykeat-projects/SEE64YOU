@@ -273,8 +273,14 @@ passed with the matching package, followed by verified restoration and a durable
 CLEAN journal from captured turbo byte 0. Same-length PRG-header corruption
 has also been rejected on hardware, followed by X exit and a newer durable CLEAN.
 Journal slots can be reused with WRITE | CREATE_ALWAYS, excluding CREATE_NEW.
-Other starting modes and unrelated REU
-allocation preservation remain hardware gates. The
+The reproducible module-cache gate also passed with captured turbo byte 2,
+verified restoration to 2 and a newer durable CLEAN. An outer diagnostic-only
+manager restored its initial byte 0. Seventeen 16-byte sentinel blocks in the
+migration document/history/clipboard/settings/handoff regions, the unused
+control tail, immediately after the cache allocation range and distant banks
+through bank 255 survived the real launcher run. The probe restored and checked
+the original sentinel bytes. This is sampled preservation evidence, not an
+exhaustive check of every unrelated REU byte. The
 session-lived launcher runtime uses static storage to keep its large control
 structure off the cc65 software stack.
 
@@ -435,7 +441,10 @@ Firmware 1.1 has already demonstrated:
 - full DOS streaming of all matching application companions;
 - overwrite replacement loader entering cc65 startup and returning successfully.
 
-These results justify the new architecture but do not mean the REU module cache/system manager are already implemented.
+The launcher now additionally demonstrates direct REU preload, whole-package
+CRC verification, corruption rejection, sampled unrelated-region preservation,
+and verified turbo restoration with durable CLEAN from captured bytes 0 and 2.
+Executable cached-module handoff remains unimplemented.
 
 ## 22. Retired production constraints
 

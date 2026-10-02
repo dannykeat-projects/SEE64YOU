@@ -155,7 +155,22 @@ verification time and check that unrelated REU allocations are preserved. DMA
 must remain IO_SAFE while CRC chunks use managed CPU_INTENSIVE. Record the
 starting and final turbo byte, including corruption/exit paths. Firmware-1.1
 startup through CLEAN measured 12.4 seconds from captured turbo byte 0 after
-chunk acceleration; a second starting turbo configuration remains unverified.
+chunk acceleration. Captured turbo byte 2 and sampled unrelated-region
+preservation also passed with the diagnostic below.
+
+For the reproducible preservation/second-turbo gate, build
+`make -C client module-cache-gate`. Upload `build/module-cache-gate.prg` alongside
+the matching package to a disposable name in `/sd/` and run it. This wraps the
+actual launcher, backs up and seeds 17 separate 16-byte REU sentinel blocks
+outside the runtime/cache range, then selects speed nibble 2 through an outer
+diagnostic system-state manager. Expect the normal verified launcher/CLEAN path,
+`CACHE GATE PASS` and `START <prior> INNER <prior-upper-bits|2> FINAL <prior>`.
+It checks preservation, restores/readbacks all original sentinel bytes and
+restores/verifies the outer turbo state. Independently read the two journal
+slots: the newer CLEAN must contain the inner captured turbo byte. Record the
+original turbo byte before the run so it can be restored if the diagnostic is
+interrupted. Remove only the uploaded diagnostic afterward; keep its local PRG
+and map. This checks sampled preservation, not all unrelated REU bytes.
 
 Using the required 16 MiB configuration:
 

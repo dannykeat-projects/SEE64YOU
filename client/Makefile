@@ -4,6 +4,7 @@ C64U_CHAIN_TARGET := build/SEE64YOU-C64U.PRG
 C64U_SHORT_CHAIN_TARGET := build/S64EDIT.PRG
 LAUNCHER_TARGET := build/SEE64YOU.PRG
 LAUNCHER_IMAGE := build/see64you-launcher.prg
+MODULE_CACHE_GATE_TARGET := build/module-cache-gate.prg
 EDITOR_PROBE_TARGET := build/editor-probe.prg
 UI_PROBE_TARGET := build/ui-probe.prg
 INPUT_REPEAT_PROBE_TARGET := build/input-repeat-probe.prg
@@ -95,6 +96,13 @@ launcher: $(LAUNCHER_IMAGE)
 $(LAUNCHER_IMAGE): $(LAUNCHER_SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -m build/see64you-launcher.map -o $@ $(LAUNCHER_SOURCES)
+
+.PHONY: module-cache-gate
+module-cache-gate: $(MODULE_CACHE_GATE_TARGET)
+
+$(MODULE_CACHE_GATE_TARGET): diagnostics/module_cache_gate.c $(LAUNCHER_SOURCES)
+	@mkdir -p build
+	$(CL65) $(CFLAGS) -m build/module-cache-gate.map -o $@ diagnostics/module_cache_gate.c $(filter-out src/launcher/main.c,$(LAUNCHER_SOURCES))
 
 .PHONY: companion-stream-probe
 companion-stream-probe: $(COMPANION_STREAM_PROBE_TARGET)
