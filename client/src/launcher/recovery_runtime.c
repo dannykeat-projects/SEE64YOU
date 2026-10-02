@@ -376,6 +376,21 @@ uint8_t s64_launcher_transfer_capsule_prepare(
     return 1u;
 }
 
+uint8_t s64_launcher_transfer_plan_load(
+    S64LauncherRecoveryRuntime* runtime,
+    S64ModuleTransferPlan* plan
+)
+{
+    S64TransferCapsule capsule;
+
+    return runtime != 0 && plan != 0
+        && runtime->lifecycle.active_record_written
+        && !runtime->lifecycle.clean_record_written
+        && runtime->system_state.mode == S64_SYSTEM_MODE_TRANSITION
+        && s64_transfer_capsule_load(&runtime->reu_control, &capsule)
+        && s64_module_transfer_plan(&capsule, plan);
+}
+
 uint8_t s64_launcher_module_session_publish(S64LauncherRecoveryRuntime* runtime)
 {
     if (runtime == 0) return 0u;
