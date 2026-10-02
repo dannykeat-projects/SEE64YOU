@@ -33,6 +33,7 @@ PUBLISHER_TARGET := build/see64you-publisher.prg
 PUBLISHER_CHAIN_TARGET := build/S64PUB.PRG
 SETTINGS_TARGET := build/see64you-settings.prg
 SETTINGS_CHAIN_TARGET := build/S64CFG.PRG
+MODULE_MANIFEST_TARGET := build/S64MODULE.MNF
 SOURCES := src/main.c src/charset.c src/buffer.c src/history.c src/clipboard.c src/document.c src/editor.c src/editor_format.c src/ui.c src/ui_status.s src/input/input.c src/input/repeat.s src/platform/uci.c src/platform/dos.c src/storage/local.c
 C64U_SOURCES := $(filter-out src/buffer.c src/history.c,$(SOURCES)) src/buffer_reu.c src/history_reu.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/editor_handoff.c src/publisher/editor_handoff_record.s
 EDITOR_PROBE_SOURCES := diagnostics/editor_probe.c src/buffer.c src/history.c src/clipboard.c src/editor.c src/editor_format.c
@@ -70,7 +71,7 @@ LD65 ?= ld65
 # but unlinked because it does not fit while retaining the 1 KiB software stack.
 CFLAGS := -t c64 -Os -I src -DS64_NATIVE_PETSCII=1 -Wl -D,__STACKSIZE__=0x0400
 
-.PHONY: all c64u launcher publisher settings editor-probe ui-probe input-repeat-probe publisher-charset-probe uci-absence-probe platform-preflight-probe network-probe https-probe direct-site-probe direct-auth-probe hmac-probe settings-io-probe settings-exchange-probe settings-save-probe settings-load-probe companion-stream-probe companion-launch-probe companion-loader-target reu-probe reu-buffer-probe reu-editor-probe recovery-probe publisher-companion-fit clean
+.PHONY: all c64u launcher publisher settings module-manifest editor-probe ui-probe input-repeat-probe publisher-charset-probe uci-absence-probe platform-preflight-probe network-probe https-probe direct-site-probe direct-auth-probe hmac-probe settings-io-probe settings-exchange-probe settings-save-probe settings-load-probe companion-stream-probe companion-launch-probe companion-loader-target reu-probe reu-buffer-probe reu-editor-probe recovery-probe publisher-companion-fit clean
 
 all: $(TARGET)
 
@@ -79,6 +80,12 @@ $(TARGET): $(SOURCES)
 	$(CL65) $(CFLAGS) -m build/see64you.map -o $@ $(SOURCES)
 
 c64u: $(C64U_TARGET) $(C64U_CHAIN_TARGET) $(C64U_SHORT_CHAIN_TARGET) $(SETTINGS_IO_PROBE_TARGET) $(SETTINGS_EXCHANGE_PROBE_TARGET) $(SETTINGS_SAVE_PROBE_TARGET) $(SETTINGS_LOAD_PROBE_TARGET)
+
+module-manifest: $(MODULE_MANIFEST_TARGET)
+
+$(MODULE_MANIFEST_TARGET): $(C64U_SHORT_CHAIN_TARGET) $(PUBLISHER_CHAIN_TARGET) $(SETTINGS_CHAIN_TARGET)
+	python3 ../tools/generate_module_manifest.py build --output $@
+	python3 ../tools/generate_module_manifest.py build --validate $@
 
 launcher: $(LAUNCHER_TARGET)
 

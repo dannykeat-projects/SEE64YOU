@@ -33,6 +33,9 @@ if command -v python3 >/dev/null 2>&1; then
     echo "== Memory map guard tests =="
     python3 tools/tests/memory_map_test.py
 
+    echo "== Module manifest generator tests =="
+    python3 tools/tests/module_manifest_generator_test.py
+
     echo "== PRG extent guard tests =="
     python3 tools/tests/prg_extent_test.py
 else

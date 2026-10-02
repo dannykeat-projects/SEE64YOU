@@ -34,12 +34,6 @@ jobs:
           python3 tools/check_memory_headroom.py client/build/see64you-c64u.map \
             --label "C64U editor" --min-headroom 1024
 
-      - name: Build SEE64YOU launcher
-        run: |
-          make -C client launcher
-          python3 tools/check_memory_headroom.py client/build/see64you-launcher.map \
-            --label "C64U launcher" --min-headroom 1024
-
       - name: Build C64U platform preflight probe
         run: make -C client platform-preflight-probe
 
@@ -247,6 +241,17 @@ jobs:
           python3 tools/check_memory_headroom.py client/build/see64you-settings.map \
             --label "C64U settings helper" --min-headroom 1024
 
+      - name: Generate exact module manifest
+        run: |
+          make -C client module-manifest
+          cat client/build/S64MODULE.MNF
+
+      - name: Build SEE64YOU launcher
+        run: |
+          make -C client launcher
+          python3 tools/check_memory_headroom.py client/build/see64you-launcher.map \
+            --label "C64U launcher" --min-headroom 1024
+
       - name: Publish C64U publisher PRG
         uses: actions/upload-artifact@v4
         with:
@@ -273,6 +278,7 @@ jobs:
             client/build/S64EDIT.PRG
             client/build/S64PUB.PRG
             client/build/S64CFG.PRG
+            client/build/S64MODULE.MNF
             client/build/platform-preflight-probe.prg
             client/build/direct-auth-probe.prg
             client/build/settings-io-probe.prg
