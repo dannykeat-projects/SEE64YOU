@@ -171,6 +171,15 @@ if ($HostCc) {
             "client/src/platform/session_journal.c",
             "client/src/platform/dos.c"
         )
+        Invoke-CTest "launcher_recovery_runtime" @(
+            "client/tests/launcher_recovery_runtime_test.c",
+            "client/src/launcher/recovery_runtime.c",
+            "client/src/launcher/recovery_flow.c",
+            "client/src/platform/session_recovery.c",
+            "client/src/platform/session_journal.c",
+            "client/src/platform/dos.c",
+            "client/src/platform/turbo.c"
+        )
         Invoke-CTest "local_documents" @(
             "client/tests/local_documents_test.c",
             "client/src/buffer.c",
