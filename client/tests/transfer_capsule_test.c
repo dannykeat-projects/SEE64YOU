@@ -113,6 +113,21 @@ int main(void)
         S64_MODULE_EDITOR));
     manifest.modules[0].cache_state = S64_MODULE_CACHE_READY;
 
+    manifest.modules[0].startup_address = 0x7000u;
+    assert(!s64_transfer_capsule_store(&control, &journal, &manifest,
+        S64_MODULE_EDITOR));
+    manifest.modules[0].startup_address = 0x080du;
+
+    manifest.modules[0].byte_length = 65536UL;
+    assert(!s64_transfer_capsule_store(&control, &journal, &manifest,
+        S64_MODULE_EDITOR));
+    manifest.modules[0].byte_length = 4096UL;
+
+    manifest.modules[0].cache_address += 256UL;
+    assert(!s64_transfer_capsule_store(&control, &journal, &manifest,
+        S64_MODULE_EDITOR));
+    manifest.modules[0].cache_address -= 256UL;
+
     assert(!s64_transfer_capsule_store(&control, &journal, &manifest,
         (S64ModuleId)0));
     fail_store = 1u;
