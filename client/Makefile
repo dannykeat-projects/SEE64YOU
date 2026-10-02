@@ -2,6 +2,7 @@ TARGET := build/see64you.prg
 C64U_TARGET := build/see64you-c64u.prg
 C64U_CHAIN_TARGET := build/SEE64YOU-C64U.PRG
 C64U_SHORT_CHAIN_TARGET := build/S64EDIT.PRG
+MANAGED_EDITOR_FIT_TARGET := build/managed-editor-fit.prg
 LAUNCHER_TARGET := build/SEE64YOU.PRG
 LAUNCHER_IMAGE := build/see64you-launcher.prg
 MODULE_CACHE_GATE_TARGET := build/module-cache-gate.prg
@@ -38,6 +39,7 @@ SETTINGS_CHAIN_TARGET := build/S64CFG.PRG
 MODULE_MANIFEST_TARGET := build/S64MODULE.MNF
 SOURCES := src/main.c src/charset.c src/buffer.c src/history.c src/clipboard.c src/document.c src/editor.c src/editor_format.c src/ui.c src/ui_status.s src/menu.c src/input/input.c src/input/repeat.s src/platform/uci.c src/platform/dos.c src/storage/local.c
 C64U_SOURCES := $(filter-out src/buffer.c src/history.c,$(SOURCES)) src/buffer_reu.c src/history_reu.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/editor_handoff.c src/publisher/editor_handoff_record.s
+MANAGED_EDITOR_RUNTIME_SOURCES := src/platform/module_runtime.c src/platform/transfer_capsule.c src/platform/module_session.c src/platform/module_manifest.c src/platform/reu_runtime.c src/platform/session_lifecycle.c src/platform/session_journal.c src/platform/system_state.c src/platform/turbo.c
 EDITOR_PROBE_SOURCES := diagnostics/editor_probe.c src/buffer.c src/history.c src/clipboard.c src/editor.c src/editor_format.c
 UI_PROBE_SOURCES := diagnostics/ui_probe.c diagnostics/ui_conio_shim.c src/buffer.c src/history.c src/clipboard.c src/editor.c src/editor_format.c src/ui.c src/ui_status.s
 INPUT_REPEAT_PROBE_SOURCES := diagnostics/input_repeat_probe.c src/input/repeat.s
@@ -73,7 +75,7 @@ LD65 ?= ld65
 # but unlinked because it does not fit while retaining the 1 KiB software stack.
 CFLAGS := -t c64 -Os -I src -DS64_NATIVE_PETSCII=1 -Wl -D,__STACKSIZE__=0x0400
 
-.PHONY: all c64u launcher publisher settings module-manifest editor-probe ui-probe input-repeat-probe publisher-charset-probe uci-absence-probe platform-preflight-probe network-probe https-probe direct-site-probe direct-auth-probe hmac-probe settings-io-probe settings-exchange-probe settings-save-probe settings-load-probe companion-stream-probe companion-launch-probe companion-loader-target reu-probe reu-buffer-probe reu-editor-probe recovery-probe publisher-companion-fit clean
+.PHONY: all c64u managed-editor-fit launcher publisher settings module-manifest editor-probe ui-probe input-repeat-probe publisher-charset-probe uci-absence-probe platform-preflight-probe network-probe https-probe direct-site-probe direct-auth-probe hmac-probe settings-io-probe settings-exchange-probe settings-save-probe settings-load-probe companion-stream-probe companion-launch-probe companion-loader-target reu-probe reu-buffer-probe reu-editor-probe recovery-probe publisher-companion-fit clean
 
 all: $(TARGET)
 
@@ -172,6 +174,12 @@ $(C64U_CHAIN_TARGET): $(C64U_TARGET)
 
 $(C64U_SHORT_CHAIN_TARGET): $(C64U_TARGET)
 	cp $< $@
+
+managed-editor-fit: $(MANAGED_EDITOR_FIT_TARGET)
+
+$(MANAGED_EDITOR_FIT_TARGET): $(C64U_SOURCES) $(MANAGED_EDITOR_RUNTIME_SOURCES)
+	@mkdir -p build
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -m build/managed-editor-fit.map -o $@ $(C64U_SOURCES) $(MANAGED_EDITOR_RUNTIME_SOURCES)
 
 editor-probe: $(EDITOR_PROBE_TARGET)
 
