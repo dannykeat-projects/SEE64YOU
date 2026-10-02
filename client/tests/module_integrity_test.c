@@ -6,12 +6,30 @@
 
 static S64ModuleManifest manifest;
 static uint8_t cache[S64_MODULE_COUNT][65536];
-static unsigned reads, fail_read;
+static unsigned reads, fail_read, mode_calls, fail_mode;
+static S64SystemState system_state;
+static S64SystemMode hardware_mode;
+static uint8_t capture(void* context, S64SystemSnapshot* snapshot)
+{ (void)context; snapshot->turbo_control = 0x82; snapshot->turbo_control_valid = 1; return 1; }
+static uint8_t apply(void* context, S64SystemMode mode)
+{
+    (void)context;
+    ++mode_calls;
+    if (mode_calls == fail_mode) return 0;
+    hardware_mode = mode;
+    return 1;
+}
+static uint8_t restore(void* context, const S64SystemSnapshot* snapshot)
+{ (void)context; assert(snapshot->turbo_control == 0x82); hardware_mode = S64_SYSTEM_MODE_UNMANAGED; return 1; }
+static uint8_t verify(void* context, const S64SystemSnapshot* snapshot)
+{ (void)context; (void)snapshot; return hardware_mode == S64_SYSTEM_MODE_UNMANAGED; }
+static const S64SystemBackend backend = { capture, apply, restore, verify };
 
 uint8_t s64_reu_load(uint8_t bank, uint16_t address, void* destination, uint16_t length)
 {
     uint32_t linear = ((uint32_t)bank << 16) | address;
     unsigned i;
+    assert(hardware_mode == S64_SYSTEM_MODE_IO_SAFE);
     ++reads;
     assert(length > 0 && length <= 256);
     assert((uint32_t)address + length <= 65536UL);
@@ -54,7 +72,11 @@ static void fixture(void)
     manifest.modules[2].cache_capacity = 256;
     manifest.modules[2].byte_length = 256;
     manifest.modules[2].integrity = 0x29058c73UL;
-    reads = fail_read = 0;
+    reads = fail_read = mode_calls = fail_mode = 0;
+    s64_system_state_init(&system_state, &backend, 0);
+    assert(s64_system_state_capture(&system_state) == S64_SYSTEM_OK);
+    assert(s64_system_state_set_mode(&system_state, S64_SYSTEM_MODE_IO_SAFE) == S64_SYSTEM_OK);
+    mode_calls = 0;
 }
 static void unverified(void)
 {
@@ -66,30 +88,41 @@ int main(void)
 {
     unsigned i;
     fixture();
-    assert(s64_module_cache_verify(&manifest));
+    assert(s64_module_cache_verify(&manifest, &system_state));
     assert(reads == 6); /* Includes the split of the first file across banks. */
     for (i = 0; i < S64_MODULE_COUNT; ++i)
         assert(manifest.modules[i].cache_state == S64_MODULE_CACHE_READY);
+    assert(mode_calls == 12);
+    assert(hardware_mode == S64_SYSTEM_MODE_IO_SAFE);
     cache[0][0] ^= 1; /* Header bytes are part of integrity, too. */
-    assert(!s64_module_cache_verify(&manifest));
+    assert(!s64_module_cache_verify(&manifest, &system_state));
     unverified();
     fixture(); cache[2][255] ^= 1;
-    assert(!s64_module_cache_verify(&manifest)); unverified();
+    assert(!s64_module_cache_verify(&manifest, &system_state)); unverified();
     for (i = 1; i <= 6; ++i) {
         fixture(); fail_read = i;
-        assert(!s64_module_cache_verify(&manifest)); unverified();
+        assert(!s64_module_cache_verify(&manifest, &system_state)); unverified();
     }
+    for (i = 1; i <= 12; ++i) {
+        fixture(); fail_mode = i;
+        assert(!s64_module_cache_verify(&manifest, &system_state)); unverified();
+        assert(hardware_mode == S64_SYSTEM_MODE_IO_SAFE);
+        assert(s64_system_state_restore(&system_state) == S64_SYSTEM_OK);
+        assert(hardware_mode == S64_SYSTEM_MODE_UNMANAGED);
+    }
+    fixture();
+    assert(!s64_module_cache_verify(&manifest, 0)); assert(reads == 0); unverified();
     fixture(); manifest.modules[1].cache_state = S64_MODULE_CACHE_EMPTY;
-    assert(!s64_module_cache_verify(&manifest)); unverified();
+    assert(!s64_module_cache_verify(&manifest, &system_state)); unverified();
     fixture(); manifest.modules[0].cache_address = 0x1000000UL;
-    assert(!s64_module_cache_verify(&manifest)); assert(reads == 0); unverified();
+    assert(!s64_module_cache_verify(&manifest, &system_state)); assert(reads == 0); unverified();
     fixture(); manifest.modules[0].cache_address = 0xfffffcUL;
-    assert(!s64_module_cache_verify(&manifest)); assert(reads == 0); unverified();
+    assert(!s64_module_cache_verify(&manifest, &system_state)); assert(reads == 0); unverified();
     fixture(); manifest.modules[1].cache_address = 0x050000UL;
     manifest.modules[1].byte_length = 65536UL;
     manifest.modules[1].integrity = 0xb11de6a1UL;
-    assert(s64_module_cache_verify(&manifest));
-    assert(!s64_module_cache_verify(0));
+    assert(s64_module_cache_verify(&manifest, &system_state));
+    assert(!s64_module_cache_verify(0, &system_state));
     puts("module integrity tests passed");
     return 0;
 }

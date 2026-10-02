@@ -36,8 +36,8 @@ S64SystemResult s64_system_state_set_mode(S64SystemState* s, S64SystemMode m)
 { (void)s; (void)m; return stage == 5 ? S64_SYSTEM_INVALID : S64_SYSTEM_OK; }
 uint8_t s64_module_preload(S64Dos* d, S64ModuleManifest* m)
 { (void)d; (void)m; return stage != 6; }
-uint8_t s64_module_cache_verify(S64ModuleManifest* m)
-{ (void)m; return stage != 10; }
+uint8_t s64_module_cache_verify(S64ModuleManifest* m, S64SystemState* s)
+{ (void)m; (void)s; return stage != 10; }
 S64SystemResult s64_launcher_session_prepare_transition(S64LauncherRecoveryRuntime* r)
 { (void)r; return stage == 8 ? S64_SYSTEM_INVALID : S64_SYSTEM_OK; }
 S64SystemResult s64_launcher_session_resume_interactive(S64LauncherRecoveryRuntime* r)

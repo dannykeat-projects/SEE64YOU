@@ -213,9 +213,9 @@ int main(void)
         if (!retry_lifecycle("MODULE MANIFEST FAILED", 1u)) goto cleanup;
     }
 
-    if (s64_system_state_set_mode(&recovery_runtime.system_state,
-            S64_SYSTEM_MODE_IO_SAFE) != S64_SYSTEM_OK) goto cleanup;
     for (;;) {
+        if (s64_system_state_set_mode(&recovery_runtime.system_state,
+                S64_SYSTEM_MODE_IO_SAFE) != S64_SYSTEM_OK) goto cleanup;
         show_title();
         cputs("PRELOADING MODULES...\r\n");
         if (!s64_module_preload(&recovery_runtime.dos,
@@ -224,7 +224,8 @@ int main(void)
             continue;
         }
         cputs("VERIFYING MODULES...\r\n");
-        if (s64_module_cache_verify(&recovery_runtime.module_manifest)) break;
+        if (s64_module_cache_verify(&recovery_runtime.module_manifest,
+                &recovery_runtime.system_state)) break;
         if (!retry_lifecycle("MODULE INTEGRITY FAILED", 1u)) goto cleanup;
     }
     if (s64_launcher_session_resume_interactive(&recovery_runtime)

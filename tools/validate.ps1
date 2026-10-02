@@ -198,7 +198,8 @@ if ($HostCc) {
         Invoke-CTest "module_integrity" @(
             "client/tests/module_integrity_test.c",
             "client/src/platform/module_integrity.c",
-            "client/src/platform/module_manifest.c"
+            "client/src/platform/module_manifest.c",
+            "client/src/platform/system_state.c"
         )
         Invoke-CTest "module_preload" @(
             "client/tests/module_preload_test.c",

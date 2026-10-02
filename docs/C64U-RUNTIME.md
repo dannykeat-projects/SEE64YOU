@@ -252,8 +252,15 @@ before loading the full set again. CRC32 uses the standard reflected polynomial 
 and 256-byte static DMA scratch keep conventional RAM bounded. Reads split at
 bank boundaries and cover only each exact file extent. Reverification revokes
 prior READY state; any descriptor, DMA or checksum failure leaves no module
-READY. Retry reloads the files before hashing again. Verification remains in
-IO_SAFE mode; faster hashing/turbo and elapsed startup time need hardware evidence.
+READY. Retry reloads the files before hashing again. The verifier requires an
+active IO_SAFE system-state scope. Each DMA runs in IO_SAFE; only the CRC loop
+uses CPU_INTENSIVE, returning to IO_SAFE after each chunk. Mode failures also
+reject readiness and attempt IO_SAFE before the session owner restores/verifies.
+The launcher rechecks IO_SAFE before every preload retry. On firmware 1.1,
+complete startup through verified CLEAN took 12.4 seconds with captured turbo
+byte 0, compared with over 200 seconds for the prior IO_SAFE-only verifier.
+This measures the complete launcher, including preflight, preload and journals;
+it is not an isolated CRC benchmark. Turbo readback returned to byte 0.
 Cache state currently lives in the launcher's
 descriptors; it is not yet a shared executable authorization record.
 
@@ -266,8 +273,8 @@ passed with the matching package, followed by verified restoration and a durable
 CLEAN journal from captured turbo byte 0. Same-length PRG-header corruption
 has also been rejected on hardware, followed by X exit and a newer durable CLEAN.
 Journal slots can be reused with WRITE | CREATE_ALWAYS, excluding CREATE_NEW.
-Other starting modes, unrelated REU
-allocation preservation and startup performance remain hardware gates. The
+Other starting modes and unrelated REU
+allocation preservation remain hardware gates. The
 session-lived launcher runtime uses static storage to keep its large control
 structure off the cc65 software stack.
 

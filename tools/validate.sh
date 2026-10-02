@@ -164,7 +164,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
 echo "== Host Ultimate DOS tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/module_integrity_test.c client/src/platform/module_integrity.c \
-    client/src/platform/module_manifest.c -o "$TMP_BIN"
+    client/src/platform/module_manifest.c client/src/platform/system_state.c -o "$TMP_BIN"
 "$TMP_BIN"
 cc -std=c99 -Wall -Wextra -Iclient/tests/launcher_stubs -Iclient/src \
     client/tests/launcher_exit_test.c -o "$TMP_BIN"

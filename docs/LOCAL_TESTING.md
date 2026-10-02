@@ -151,7 +151,11 @@ copies and preserve the user's existing configuration/journals. Also change one
 byte in a scratch module PRG while retaining its size and the original manifest:
 expect MODULE INTEGRITY FAILED, never MODULE CACHE VERIFIED. Choosing X must
 restore/clean the session; restore the matching package before retrying. Record
-verification time and check that unrelated REU allocations are preserved.
+verification time and check that unrelated REU allocations are preserved. DMA
+must remain IO_SAFE while CRC chunks use managed CPU_INTENSIVE. Record the
+starting and final turbo byte, including corruption/exit paths. Firmware-1.1
+startup through CLEAN measured 12.4 seconds from captured turbo byte 0 after
+chunk acceleration; a second starting turbo configuration remains unverified.
 
 Using the required 16 MiB configuration:
 
