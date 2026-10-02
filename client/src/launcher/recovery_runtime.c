@@ -87,11 +87,24 @@ void s64_launcher_recovery_runtime_init_hardware(
     if (runtime == 0) return;
 
     memset(runtime, 0, sizeof(*runtime));
+#ifdef __CC65__
     s64_dos_init(
         &runtime->dos,
         s64_uci_execute,
         S64_DOS_TARGET_PRIMARY
     );
+#else
+    /*
+     * The hardware initializer is never executed by host tests. Keep its DOS
+     * execute pointer null off-target so the host object does not acquire an
+     * unnecessary link-time dependency on the memory-mapped UCI transport.
+     */
+    s64_dos_init(
+        &runtime->dos,
+        0,
+        S64_DOS_TARGET_PRIMARY
+    );
+#endif
     s64_turbo_backend_init_hardware(&runtime->turbo);
     s64_turbo_backend_bind(&runtime->system_backend);
 
