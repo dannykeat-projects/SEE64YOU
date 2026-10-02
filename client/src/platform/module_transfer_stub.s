@@ -24,6 +24,11 @@ PARAM_LENGTH_HI = $07d6
 PARAM_START_LO = $07d7
 PARAM_START_HI = $07d8
 PARAM_SAVED_MEM = $07d9
+PARAM_DESTINATION = $07da
+
+ARRIVAL_0 = $02a7
+ARRIVAL_1 = $02a8
+ARRIVAL_DEST = $02a9
 
 TRANSFER_FROM_REU_DELAYED = $ed
 
@@ -61,6 +66,13 @@ _s64_module_transfer_stub_image:
     sta $ff00
     lda PARAM_SAVED_MEM
     sta $01
+
+    lda #'S'
+    sta ARRIVAL_0
+    lda #'6'
+    sta ARRIVAL_1
+    lda PARAM_DESTINATION
+    sta ARRIVAL_DEST
 
     plp
     jmp (PARAM_START_LO)
