@@ -329,6 +329,14 @@ if ($Cl65) {
     } finally {
         Remove-Item -Recurse -Force $ModuleDir -ErrorAction SilentlyContinue
     }
+    $Make = Get-Command make -ErrorAction SilentlyContinue
+    if ($Make) {
+        Invoke-Checked "C64U managed editor runtime fit build" {
+            & $Make.Path -C client managed-editor-fit
+        }
+    } else {
+        Write-Host "SKIP managed editor fit build (make not found)"
+    }
 } else {
     Write-Host "SKIP cc65 build (cl65 not found)"
 }
