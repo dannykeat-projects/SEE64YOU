@@ -591,8 +591,6 @@ void s64_ui_show_help(void)
         gotoxy(0u, row);
         cputs(lines[row]);
     }
-    (void)cgetc();
-
     header_rendered = 0u;
     body_rows = 0u;
     partial_first_row = 0u;
