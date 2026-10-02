@@ -8,6 +8,7 @@
 #include "platform/reu_runtime.h"
 #include "platform/session_lifecycle.h"
 #include "platform/system_state.h"
+#include "platform/transfer_capsule.h"
 #include "platform/turbo.h"
 
 typedef struct {
@@ -63,6 +64,11 @@ uint8_t s64_launcher_module_session_adopt(S64LauncherRecoveryRuntime* runtime,
     const S64SessionJournal* journal);
 uint8_t s64_launcher_module_session_clear(S64LauncherRecoveryRuntime* runtime);
 uint8_t s64_launcher_module_session_publish(S64LauncherRecoveryRuntime* runtime);
+uint8_t s64_launcher_transfer_capsule_clear(S64LauncherRecoveryRuntime* runtime);
+uint8_t s64_launcher_transfer_capsule_prepare(
+    S64LauncherRecoveryRuntime* runtime,
+    S64ModuleId destination
+);
 uint8_t s64_launcher_module_manifest_load(
     S64LauncherRecoveryRuntime* runtime
 );
