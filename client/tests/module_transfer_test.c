@@ -24,6 +24,7 @@ int main(void)
     fixture(&capsule);
     memset(&plan, 0xa5, sizeof(plan));
     assert(s64_module_transfer_plan(&capsule, &plan));
+    assert(plan.destination == S64_MODULE_EDITOR);
     assert(plan.reu_source == 0x030002UL);
     assert(plan.ram_destination == 0x0801u);
     assert(plan.payload_length == 0x3000u);
