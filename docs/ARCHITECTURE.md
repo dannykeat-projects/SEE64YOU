@@ -136,8 +136,8 @@ The production transition model is:
 4. later transitions select the already validated cached image;
 5. a tiny overwrite-safe routine DMA/copies the cached PRG image into its C64 load range;
 6. CPU/memory state is established;
-7. execution enters the module startup;
-8. the new module validates the shared control block and continues.
+7. the transfer stub writes a one-shot conventional-RAM arrival proof and execution enters the module startup;
+8. the new module consumes that proof, validates the transfer capsule/shared control block, adopts the existing ACTIVE lifecycle without recapturing global state, and continues.
 
 No normal module transition should depend on IEC device 8, KERNAL LOAD or the current software-IEC chain.
 
