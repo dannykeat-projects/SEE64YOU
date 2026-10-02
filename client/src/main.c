@@ -6,6 +6,7 @@
 #include "document.h"
 #include "editor.h"
 #include "input/input.h"
+#include "menu.h"
 #include "platform/dos.h"
 #include "platform/uci.h"
 #ifdef S64_REU_BUFFER
@@ -473,6 +474,65 @@ static void prompt_replace(void)
     s64_ui_message("Choose R or A");
 }
 
+static S64InputType run_menu(unsigned char initial_group)
+{
+    S64InputEvent menu_input;
+    unsigned char group = initial_group < S64_MENU_GROUPS ? initial_group : 0u;
+    unsigned char item = 0u;
+    unsigned char count;
+    unsigned char clicked;
+
+    for (;;) {
+        s64_ui_render(&editor);
+        s64_menu_render(group, item);
+        s64_input_read(&menu_input);
+
+        switch (menu_input.type) {
+            case S64_INPUT_LEFT:
+                group = group == 0u ? S64_MENU_GROUPS - 1u : (unsigned char)(group - 1u);
+                item = 0u;
+                break;
+            case S64_INPUT_RIGHT:
+                group = (unsigned char)((group + 1u) % S64_MENU_GROUPS);
+                item = 0u;
+                break;
+            case S64_INPUT_UP:
+                count = s64_menu_item_count(group);
+                item = item == 0u ? (unsigned char)(count - 1u) : (unsigned char)(item - 1u);
+                break;
+            case S64_INPUT_DOWN:
+                count = s64_menu_item_count(group);
+                item = (unsigned char)((item + 1u) % count);
+                break;
+            case S64_INPUT_NEWLINE:
+            case S64_INPUT_ACTIVATE:
+                return s64_menu_command(group, item);
+            case S64_INPUT_HELP:
+                return S64_INPUT_HELP;
+            case S64_INPUT_POINTER_CLICK:
+                if (menu_input.row == 0u) {
+                    clicked = s64_menu_group_at(menu_input.column);
+                    if (clicked != S64_MENU_NONE) {
+                        group = clicked;
+                        item = 0u;
+                        break;
+                    }
+                    return S64_INPUT_NONE;
+                }
+                clicked = s64_menu_item_at(group, menu_input.row);
+                if (clicked != S64_MENU_NONE) {
+                    return s64_menu_command(group, clicked);
+                }
+                return S64_INPUT_NONE;
+            case S64_INPUT_MENU:
+            case S64_INPUT_EXIT:
+                return S64_INPUT_NONE;
+            default:
+                break;
+        }
+    }
+}
+
 int main(void)
 {
     S64InputEvent input;
@@ -505,6 +565,7 @@ int main(void)
     restored_handoff = restore_publisher_handoff();
 #endif
     s64_ui_init();
+    s64_input_init();
     s64_uci_probe_capabilities(&uci_capabilities);
     s64_ui_set_http_ready(uci_capabilities.http_target);
     s64_ui_set_dos_ready(uci_capabilities.dos_target);
@@ -523,6 +584,29 @@ int main(void)
         maybe_autosave();
         s64_input_read(&input);
         cursor_only = 0u;
+
+        if (input.type == S64_INPUT_MENU || input.type == S64_INPUT_ACTIVATE) {
+            input.type = run_menu(0u);
+            if (input.type == S64_INPUT_NONE) {
+                s64_ui_render(&editor);
+                continue;
+            }
+        } else if (input.type == S64_INPUT_POINTER_CLICK) {
+            if (input.row == 0u) {
+                unsigned char group = s64_menu_group_at(input.column);
+                if (group != S64_MENU_NONE) {
+                    input.type = run_menu(group);
+                    if (input.type == S64_INPUT_NONE) {
+                        s64_ui_render(&editor);
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
+            } else {
+                continue;
+            }
+        }
 
         switch (input.type) {
             case S64_INPUT_CHARACTER:
@@ -668,6 +752,7 @@ int main(void)
                 break;
             case S64_INPUT_HELP:
                 s64_ui_show_help();
+                s64_input_read(&input);
                 s64_ui_render(&editor);
                 continue;
 
@@ -791,6 +876,7 @@ int main(void)
     }
 
     s64_input_restore_repeat();
+    s64_input_shutdown();
     clrscr();
     return 0;
 }
