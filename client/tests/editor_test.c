@@ -501,6 +501,31 @@ int main(void)
     require(s64_editor_redo(&editor), "redo formatting");
     require_text(&editor, "**hello**", "redo formatting restores markers");
 
+    s64_editor_init(&editor);
+    insert_text(&editor, "abc\ndefgh\nijk");
+    require(s64_editor_point(&editor, 1u, 3u, 0u), "pointer places cursor on second line");
+    require(s64_buffer_cursor(&editor.buffer) == 7u, "pointer maps visible cell to document");
+    require(editor.line == 2u && editor.column == 4u, "pointer updates logical position");
+    require(s64_editor_point(&editor, 0u, 1u, 0u), "pointer begins drag selection");
+    require(s64_editor_point(&editor, 1u, 2u, 1u), "pointer extends drag selection");
+    require(s64_editor_selection_start(&editor) == 1u, "pointer drag selection start");
+    require(s64_editor_selection_end(&editor) == 6u, "pointer drag selection end");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "123456789012345678901234567890123456789012345");
+    require(s64_editor_point(&editor, 1u, 2u, 0u), "wrapped pointer maps second visual row");
+    require(s64_buffer_cursor(&editor.buffer) == 42u, "wrapped pointer position");
+
+    s64_editor_toggle_word_wrap(&editor);
+    editor.view_column = 5u;
+    require(s64_editor_point(&editor, 0u, 3u, 0u), "horizontal pointer maps scrolled view");
+    require(s64_buffer_cursor(&editor.buffer) == 8u, "horizontal pointer includes viewport offset");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "ab\nq");
+    require(s64_editor_point(&editor, 1u, 20u, 0u), "pointer clamps after short line");
+    require(s64_buffer_cursor(&editor.buffer) == 4u, "pointer clamps to logical line end");
+
     puts("editor tests passed");
     return 0;
 }
