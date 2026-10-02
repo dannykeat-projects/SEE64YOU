@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import tempfile
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -10,6 +11,7 @@ SCRIPT = ROOT / "tools" / "generate_module_manifest.py"
 spec = importlib.util.spec_from_file_location("module_manifest_generator", SCRIPT)
 module = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
+sys.modules[spec.name] = module
 spec.loader.exec_module(module)
 
 def make_prg(path: Path, load: int, startup: int, tail: bytes) -> None:
