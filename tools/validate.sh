@@ -129,6 +129,13 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host C64U launcher recovery flow tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src \
+    client/tests/launcher_recovery_flow_test.c client/src/launcher/recovery_flow.c \
+    client/src/platform/session_recovery.c client/src/platform/session_journal.c \
+    client/src/platform/dos.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host Ultimate DOS tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/dos_test.c client/src/platform/dos.c client/src/platform/dos_file.c -o "$TMP_BIN"
 "$TMP_BIN"
@@ -253,6 +260,7 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/platform/session_journal.c \
         client/src/platform/session_lifecycle.c \
         client/src/platform/session_recovery.c \
+        client/src/launcher/recovery_flow.c \
         client/src/platform/system_state.c \
         client/src/platform/turbo.c \
         client/src/publisher/destination.c \

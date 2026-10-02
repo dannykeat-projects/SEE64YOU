@@ -17,6 +17,8 @@ They should not need to understand UCI targets, REU banks, module caches, DMA tr
 
 Subsequent launches should normally open directly into the editor.
 
+Interrupted-session machine-state recovery follows the same appliance-like rule. When a valid ACTIVE journal contains explicitly captured restorable state, the launcher restores and verifies it automatically, writes a CLEAN supersession and continues. Only failures interrupt startup: transient storage/restore/verification/CLEAN-write failures expose RETRY, while invalid recovery data directs the user to DIAGNOSTICS. Normal users are never asked to interpret journal state.
+
 ## First launch: platform check
 
 The launcher performs bounded checks before asking publishing questions.

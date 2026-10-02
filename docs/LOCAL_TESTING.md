@@ -115,7 +115,7 @@ Repeat from at least two different starting configurations.
 
 ### 6.3 Interrupted-session journal
 
-The journal format/two-slot selection logic plus interrupted-session restore/verify/CLEAN resolution have host coverage. On real hardware, once launcher integration lands:
+The journal format/two-slot selection logic, interrupted-session restore/verify/CLEAN resolution and launcher startup policy have host coverage. NONE/CLEAN starts silently; valid INTERRUPTED state is automatically restored; retryable failures remain ACTIVE and return RETRY rather than pretending recovery completed. On real hardware, once launcher integration lands:
 
 1. launch and confirm an ACTIVE journal is durably verified before the first temporary global change;
 2. force/reset while that state is active;
