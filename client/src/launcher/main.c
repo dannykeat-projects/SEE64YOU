@@ -252,11 +252,18 @@ int main(void)
     if (system_result != S64_SYSTEM_OK) {
         if (!retry_lifecycle("TRANSITION PREP FAILED", 0u)) goto cleanup;
     }
+    if (!s64_launcher_transfer_capsule_prepare(
+            &recovery_runtime,
+            S64_MODULE_EDITOR
+        )) {
+        if (!retry_lifecycle("TRANSFER CAPSULE FAILED", 0u)) goto cleanup;
+    }
 
     /*
-     * The cached-module transfer is the next migration slice. Until it lands,
-     * cancel the transition explicitly rather than invoking the legacy chain.
+     * The overwrite-safe execution copy is the next migration slice. The
+     * verified capsule now binds the ACTIVE session to the exact editor image.
      */
+    cputs("TRANSFER CAPSULE READY\r\n");
     cputs("EDITOR HANDOFF PENDING\r\n");
     system_result = s64_launcher_session_resume_interactive(&recovery_runtime);
     if (system_result != S64_SYSTEM_OK) {
