@@ -25,13 +25,13 @@ Current C64-oriented controls:
 - F5: Cut;
 - F6: Replace / Replace All;
 - F7: Paste;
-- F8: toggle Word Wrap;
+- F8: Help;
 - Ctrl+Left/Right: word movement;
 - Ctrl+Up/Down: page movement;
 - Ctrl+Delete or Commodore+Delete: forward delete;
 - RUN/STOP: cancel/exit the current shell/context where applicable.
 
-Menus expose important commands so function-key memorisation is never mandatory.
+The top FILE / EDIT / SEARCH / FORMAT / PUB labels currently identify command groups; they are not yet interactive menus. F8 opens an in-app Help screen that lists the usable shortcuts for each group, so users do not need external documentation. Interactive menu navigation can be added later without changing the normalized command model.
 
 ## Modern USB keyboard goal
 
@@ -46,7 +46,8 @@ Where the C64U firmware exposes distinct keys/chords, prefer familiar behaviour:
 - Ctrl+A/C/X/V;
 - Ctrl+S;
 - Ctrl+F/H/G;
-- Ctrl+Z / Ctrl+Shift+Z.
+- Ctrl+Z / Ctrl+Shift+Z;
+- Ctrl+W: toggle Word Wrap.
 
 Do not assume a PC key necessarily reaches C64 software as a unique event. Hardware-test it.
 
@@ -72,6 +73,7 @@ Where firmware/key mapping preserves the expected Control chord, See64You recogn
 - Ctrl+L: List item
 - Ctrl+Z: Undo
 - Ctrl+Shift+Z: Redo
+- Ctrl+W: toggle Word Wrap
 
 The current native-keyboard file shortcuts remain:
 
