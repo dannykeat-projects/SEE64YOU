@@ -197,8 +197,6 @@ static unsigned char s64_mouse_event(S64InputEvent* event)
         mouse_show();
         mouse_visible = 1u;
     }
-    mouse_previous_x = info.pos.x;
-    mouse_previous_y = info.pos.y;
     if (pressed && !mouse_previous_buttons) {
         event->type = S64_INPUT_POINTER_CLICK;
         event->column = (unsigned char)(info.pos.x / 8);
@@ -206,6 +204,18 @@ static unsigned char s64_mouse_event(S64InputEvent* event)
         if (event->column > 39u) event->column = 39u;
         if (event->row > 24u) event->row = 24u;
         mouse_previous_buttons = pressed;
+        return 1u;
+    }
+
+    if (pressed && mouse_previous_buttons
+        && (info.pos.x != mouse_previous_x || info.pos.y != mouse_previous_y)) {
+        event->type = S64_INPUT_POINTER_DRAG;
+        event->column = (unsigned char)(info.pos.x / 8);
+        event->row = (unsigned char)(info.pos.y / 8);
+        if (event->column > 39u) event->column = 39u;
+        if (event->row > 24u) event->row = 24u;
+        mouse_previous_x = info.pos.x;
+        mouse_previous_y = info.pos.y;
         return 1u;
     }
 
