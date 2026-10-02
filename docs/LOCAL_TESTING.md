@@ -143,7 +143,8 @@ Do not claim arbitrary machine-state restoration beyond values See64You explicit
 Build `make -C client launcher c64u publisher module-manifest` and keep
 `SEE64YOU.PRG`, `S64EDIT.PRG`, `S64PUB.PRG`, `S64CFG.PRG` and `S64MODULE.MNF`
 together in `/sd/`. Run the launcher with an exact 16 MiB REU. Expect
-`VERIFYING MODULES...`, `MODULE CACHE VERIFIED`, `EDITOR HANDOFF PENDING`, then `SESSION CLEAN`.
+`VERIFYING MODULES...`, `MODULE CACHE VERIFIED`, `SHARED SESSION READY`,
+`EDITOR HANDOFF PENDING`, then `SESSION CLEAN`.
 This verifies cached-file CRC32 but does not launch the editor. Test missing/mismatched
 module files and choose X: machine settings must restore before CLEAN. If restore
 or journal cleanup fails, ACTIVE must remain recoverable. Use scratch package
@@ -165,12 +166,18 @@ actual launcher, backs up and seeds 17 separate 16-byte REU sentinel blocks
 outside the runtime/cache range, then selects speed nibble 2 through an outer
 diagnostic system-state manager. Expect the normal verified launcher/CLEAN path,
 `CACHE GATE PASS` and `START <prior> INNER <prior-upper-bits|2> FINAL <prior>`.
+The launcher clears/readbacks shared readiness before restore/CLEAN.
+The diagnostic also reloads the shared allocator control and newest DOS journal after
+launcher exit and requires the metadata load API to reject the CLEAN session
+and a simulated leftover ACTIVE capsule, proving exit revoked the REU record.
 It checks preservation, restores/readbacks all original sentinel bytes and
 restores/verifies the outer turbo state. Independently read the two journal
 slots: the newer CLEAN must contain the inner captured turbo byte. Record the
 original turbo byte before the run so it can be restored if the diagnostic is
 interrupted. Remove only the uploaded diagnostic afterward; keep its local PRG
-and map. This checks sampled preservation, not all unrelated REU bytes.
+and map. The sample immediately beyond runtime-owned memory is now 0x050180, after
+the allocator-owned session record; update the probe when ownership changes.
+This checks sampled preservation, not all unrelated REU bytes.
 
 Using the required 16 MiB configuration:
 

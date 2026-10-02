@@ -216,6 +216,7 @@ int main(void)
     for (;;) {
         if (s64_system_state_set_mode(&recovery_runtime.system_state,
                 S64_SYSTEM_MODE_IO_SAFE) != S64_SYSTEM_OK) goto cleanup;
+        if (!s64_launcher_module_session_clear(&recovery_runtime)) goto cleanup;
         show_title();
         cputs("PRELOADING MODULES...\r\n");
         if (!s64_module_preload(&recovery_runtime.dos,
@@ -228,6 +229,7 @@ int main(void)
                 &recovery_runtime.system_state)) break;
         if (!retry_lifecycle("MODULE INTEGRITY FAILED", 1u)) goto cleanup;
     }
+    if (!s64_launcher_module_session_publish(&recovery_runtime)) goto cleanup;
     if (s64_launcher_session_resume_interactive(&recovery_runtime)
             != S64_SYSTEM_OK) goto cleanup;
 
@@ -243,6 +245,7 @@ int main(void)
     cputs("MODULE CACHE RESERVED\r\n");
     cputs("MODULE MANIFEST READY\r\n\r\n");
     cputs("MODULE CACHE VERIFIED\r\n");
+    cputs("SHARED SESSION READY\r\n");
     cputs("OPENING EDITOR...\r\n");
 
     system_result = s64_launcher_session_prepare_transition(&recovery_runtime);

@@ -261,8 +261,36 @@ complete startup through verified CLEAN took 12.4 seconds with captured turbo
 byte 0, compared with over 200 seconds for the prior IO_SAFE-only verifier.
 This measures the complete launcher, including preflight, preload and journals;
 it is not an isolated CRC benchmark. Turbo readback returned to byte 0.
-Cache state currently lives in the launcher's
-descriptors; it is not yet a shared executable authorization record.
+After cache planning, the allocator reserves a separate 128-byte, 256-aligned
+RUNTIME allocation tagged with module-session flag 1. With today's three cache
+slots this is 0x050100..0x05017F; code discovers it from allocator ownership,
+not that address. The control wire format/ABI and module manifest stay unchanged.
+Before every preload the launcher writes/readbacks a zero record, revoking shared
+readiness before cached bytes change. After all CRCs pass it publishes and
+readbacks the record, then decodes it through the destination-facing load API.
+
+The version-1 record uses fixed little-endian encoding: bytes 0..7 contain ASCII
+S64M, record version, runtime ABI, module count and a zero reserved byte; bytes
+8..31 contain the exact 24-byte durable ACTIVE journal; bytes 32..109 contain
+three 26-byte descriptors (ID, READY state, ABI/app version, load/start address,
+full PRG length, CRC32, cache address/capacity); bytes 110..125 are reserved zero;
+bytes 126..127 contain a nonzero rotate/XOR checksum. Canonical filenames are
+reconstructed from IDs. Struct memory is never serialized. Static bounded
+scratch makes the codec non-reentrant.
+
+A consumer reads the shared allocator control and supplies the current journal
+from its trusted active lifecycle/verified handoff capsule. Cold inspection must
+read the newest durable DOS journal; normal handoffs need no fresh SD read.
+Loading requires ACTIVE with a nonzero sequence, exact journal-byte
+agreement, matching control session/package, supported record/ABI, checksum and
+reserved bytes, all three READY descriptors and unique exact MODULE allocation
+ownership for their extents. CLEAN, stale, damaged or mismatched metadata fails
+without modifying the caller's output. The record supplies restore state via
+the bound journal; it does not replace durable recovery or independently prove
+that cache bytes have remained unchanged since verification. The launcher clears/readbacks shared readiness before restoration and durable
+CLEAN, including failed publication, so an old ACTIVE capsule cannot authorize
+a closed session. Failed revocation blocks CLEAN and preserves recovery state.
+Session adoption and the verified transfer capsule remain unimplemented.
 
 All launcher exits after durable ACTIVE, including partially failed session
 start, now converge on session end: restore, verify, then durable CLEAN. If
@@ -277,7 +305,7 @@ The reproducible module-cache gate also passed with captured turbo byte 2,
 verified restoration to 2 and a newer durable CLEAN. An outer diagnostic-only
 manager restored its initial byte 0. Seventeen 16-byte sentinel blocks in the
 migration document/history/clipboard/settings/handoff regions, the unused
-control tail, immediately after the cache allocation range and distant banks
+control tail, immediately after the cache/session allocation range and distant banks
 through bank 255 survived the real launcher run. The probe restored and checked
 the original sentinel bytes. This is sampled preservation evidence, not an
 exhaustive check of every unrelated REU byte. The
@@ -444,6 +472,9 @@ Firmware 1.1 has already demonstrated:
 The launcher now additionally demonstrates direct REU preload, whole-package
 CRC verification, corruption rejection, sampled unrelated-region preservation,
 and verified turbo restoration with durable CLEAN from captured bytes 0 and 2.
+The shared session record also round trips through the consumer decoder on
+hardware, and the diagnostic rejects it against the newest durable CLEAN and
+a simulated leftover ACTIVE capsule after exit revocation.
 Executable cached-module handoff remains unimplemented.
 
 ## 22. Retired production constraints

@@ -7,12 +7,12 @@
 #include "launcher/main.c"
 #undef main
 
-/* Samples assume today's control/cache range [0x020000, 0x050100).
+/* Samples assume today's control/cache range [0x020000, 0x050180).
  * Every sentinel is backed up in C64 RAM and restored before returning. */
 static const uint32_t addresses[] = {
     0x000000UL, 0x00efc0UL, 0x00f000UL, 0x00ffc0UL,
     0x010000UL, 0x01f000UL, 0x01fc00UL, 0x01ff00UL,
-    0x0200c0UL, 0x050100UL, 0x060000UL, 0x070040UL,
+    0x0200c0UL, 0x050180UL, 0x060000UL, 0x070040UL,
     0x0ffff0UL, 0x1fffc0UL, 0x3fffc0UL, 0x7fffc0UL, 0xffffc0UL
 };
 #define SAMPLE_COUNT (sizeof(addresses) / sizeof(addresses[0]))
@@ -24,6 +24,10 @@ static S64SystemState outer;
 static S64TurboBackend outer_turbo;
 static S64SystemBackend outer_backend;
 static uint8_t requested_turbo;
+static S64ReuRuntimeControl gate_control;
+static S64SessionJournal gate_journal;
+static S64ModuleManifest gate_manifest;
+static S64Dos gate_dos;
 
 /* Diagnostic-only preset; production modes keep their existing mapping. */
 static uint8_t test_mode(void* context, S64SystemMode mode)
@@ -71,6 +75,20 @@ int main(void)
         result = launcher_main();
         if (result != 0
             || outer_turbo.read(outer_turbo.io_context) != requested_turbo)
+            passed = 0u;
+        /* The persisted descriptors must not authorize a closed session. */
+        s64_dos_init(&gate_dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
+        if (!s64_reu_runtime_load(&gate_control)
+            || s64_session_journal_store_load(&gate_dos, &gate_journal)
+                != S64_SESSION_JOURNAL_OK
+            || gate_journal.state != S64_SESSION_STATE_CLEAN
+            || s64_module_session_load(&gate_control, &gate_journal, &gate_manifest))
+            passed = 0u;
+        /* Simulate a leftover ACTIVE capsule from immediately before CLEAN.
+         * This must fail because exit physically revoked the shared record. */
+        gate_journal.state = S64_SESSION_STATE_ACTIVE;
+        if (gate_journal.sequence != 0UL) --gate_journal.sequence;
+        if (s64_module_session_load(&gate_control, &gate_journal, &gate_manifest))
             passed = 0u;
         for (i = 0u; i < SAMPLE_COUNT; ++i) {
             address = addresses[i];
