@@ -56,6 +56,12 @@ int s64_editor_replace_all(
 );
 void s64_editor_toggle_insert(S64Editor* editor);
 void s64_editor_toggle_word_wrap(S64Editor* editor);
+int s64_editor_point(
+    S64Editor* editor,
+    unsigned char view_row,
+    unsigned char view_column,
+    unsigned char extend_selection
+);
 
 int s64_editor_format_bold(S64Editor* editor);
 int s64_editor_format_italic(S64Editor* editor);
