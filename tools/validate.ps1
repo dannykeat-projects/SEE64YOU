@@ -290,6 +290,7 @@ if ($Cl65) {
         "client/src/document.c",
         "client/src/editor.c",
         "client/src/ui.c",
+        "client/src/menu.c",
         "client/src/input/input.c",
         "client/src/platform/uci.c",
         "client/src/platform/dos.c",
