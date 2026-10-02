@@ -31,7 +31,7 @@ Current C64-oriented controls:
 - Ctrl+Delete or Commodore+Delete: forward delete;
 - RUN/STOP: cancel/exit the current shell/context where applicable.
 
-The top FILE / EDIT / SEARCH / FORMAT / PUB labels currently identify command groups; they are not yet interactive menus. F8 opens an in-app Help screen that lists the usable shortcuts for each group, so users do not need external documentation. Interactive menu navigation can be added later without changing the normalized command model.
+FILE / EDIT / SEARCH / FORMAT / PUB are now interactive menus as well as command-group labels. Commodore+M opens the menu bar; Left/Right changes group, Up/Down changes item, and Enter activates the selected command. Existing direct shortcuts remain available. F8 opens the integrated Help screen.
 
 ## Modern USB keyboard goal
 
@@ -83,6 +83,28 @@ The current native-keyboard file shortcuts remain:
 - Commodore+F7: Save As
 
 These may be redesigned as menus mature, but keyboard-only operation must remain complete.
+
+## Joystick and mouse
+
+The C64U editor installs cc65's standard C64 joystick and 1351 mouse drivers in the C64U build only.
+
+Current joystick behaviour uses port 2 so it can coexist with the C64U USB-mouse path on port 1:
+
+- directions move the editor cursor;
+- Fire opens FILE from the editor;
+- directions navigate an open menu;
+- Fire activates the selected menu item;
+- Help can be dismissed with joystick input.
+
+Current mouse behaviour targets the C64U's 1351-compatible USB mouse path:
+
+- the pointer remains hidden until actual mouse activity;
+- clicking FILE / EDIT / SEARCH / FORMAT / PUB opens that menu;
+- clicking a visible menu item activates it;
+- clicking outside the active menu dismisses it;
+- Help can be dismissed with a mouse click.
+
+Mouse click-to-position in document text, drag selection and scrolling are intentionally still pending. They need editor-position mapping and real-hardware validation rather than being approximated in the menu layer.
 
 ## Modifier state
 
