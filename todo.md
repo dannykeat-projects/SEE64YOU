@@ -62,12 +62,11 @@ Completed troubleshooting/evidence belongs in canonical docs and Git history, no
 
 ## P1 — Finish editor/storage/publishing acceptance
 
-- [ ] Turn the editor's FILE / EDIT / SEARCH / FORMAT / PUB command-group labels into keyboard-navigable menus without removing the established direct shortcuts; keep F8 Help as the discoverability fallback.
 - [ ] Add remote list browsing to the direct Network $03 publisher; direct open currently accepts a typed page/post slug.
 - [ ] Complete real-C64U Standalone CRUD acceptance for pages/posts: list/open, create/update, draft/publish/unpublish and delete with exact canonical round-trip.
 - [ ] Complete local New/Open/Save/Save As hardware acceptance, including overwrite, exact reopen and failure/cancel cleanup.
 - [ ] Close recovery/autosave hardware acceptance, including REU fast state plus durable SD recovery.
-- [ ] Finish modern USB/native-keyboard editor acceptance: punctuation, locks, forward Delete, navigation, selection/clipboard, undo/redo, search/replace, Go To Line and formatting.
+- [ ] Finish real-C64U input acceptance: modern USB/native keyboard punctuation, locks, forward Delete, navigation, selection/clipboard, undo/redo, search/replace, Go To Line and formatting; joystick port-2 cursor/menu navigation; and USB-mouse/1351 menu pointing.
 - [ ] Stress large documents, deep history, large clipboard, recovery and repeated overlay transitions on real hardware.
 
 ## P1 — Retire migration baggage
@@ -88,7 +87,7 @@ Completed troubleshooting/evidence belongs in canonical docs and Git history, no
 
 ## P2 — C64U-native enhancements
 
-- [ ] Mouse selection/menu support where it improves the editor without making keyboard use secondary.
+- [ ] Extend mouse editing beyond the now-implemented menu support: click-to-position in document text, drag selection and useful scrolling, without making keyboard use secondary.
 - [ ] Transactional in-app update staging/verification using C64U storage/network facilities while preserving manual SD installation.
 - [ ] Bounded rotating diagnostic log without keys/secrets.
 - [ ] Optional server-assisted spell-check workflow if a sensible bounded design emerges.
