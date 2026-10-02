@@ -82,11 +82,17 @@ unsigned char s64_menu_item_count(unsigned char group)
     return group < S64_MENU_GROUPS ? groups[group].count : 0u;
 }
 
-unsigned char s64_menu_item_at(unsigned char group, unsigned char row)
+unsigned char s64_menu_item_at(
+    unsigned char group,
+    unsigned char column,
+    unsigned char row
+)
 {
     unsigned char item;
 
-    if (group >= S64_MENU_GROUPS || row == 0u) {
+    if (group >= S64_MENU_GROUPS || row == 0u
+        || column < groups[group].popup_col
+        || column >= (unsigned char)(groups[group].popup_col + S64_MENU_WIDTH)) {
         return S64_MENU_NONE;
     }
     item = (unsigned char)(row - 1u);
