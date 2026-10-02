@@ -180,3 +180,34 @@ S64SessionLifecycleResult s64_launcher_session_end(
     if (runtime == 0) return S64_SESSION_LIFECYCLE_INVALID;
     return s64_session_lifecycle_end(&runtime->lifecycle);
 }
+
+
+S64SystemResult s64_launcher_session_prepare_transition(
+    S64LauncherRecoveryRuntime* runtime
+)
+{
+    if (runtime == 0
+        || !runtime->lifecycle.active_record_written
+        || runtime->lifecycle.clean_record_written) {
+        return S64_SYSTEM_INVALID;
+    }
+    return s64_system_state_set_mode(
+        &runtime->system_state,
+        S64_SYSTEM_MODE_TRANSITION
+    );
+}
+
+S64SystemResult s64_launcher_session_resume_interactive(
+    S64LauncherRecoveryRuntime* runtime
+)
+{
+    if (runtime == 0
+        || !runtime->lifecycle.active_record_written
+        || runtime->lifecycle.clean_record_written) {
+        return S64_SYSTEM_INVALID;
+    }
+    return s64_system_state_set_mode(
+        &runtime->system_state,
+        S64_SYSTEM_MODE_INTERACTIVE
+    );
+}

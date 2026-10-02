@@ -147,6 +147,7 @@ int main(void)
     S64LauncherRecoveryRuntime recovery_runtime;
     S64LauncherRecoveryResult result;
     S64SessionLifecycleResult lifecycle_result;
+    S64SystemResult system_result;
     uint32_t session_id;
 
     if (!run_preflight()) {
@@ -194,7 +195,22 @@ int main(void)
     }
     cputs("RECOVERY READY\r\n");
     cputs("SESSION ACTIVE\r\n\r\n");
+    cputs("OPENING EDITOR...\r\n");
+
+    system_result = s64_launcher_session_prepare_transition(&recovery_runtime);
+    if (system_result != S64_SYSTEM_OK) {
+        if (!retry_lifecycle("TRANSITION PREP FAILED", 0u)) return 1;
+    }
+
+    /*
+     * The cached-module transfer is the next migration slice. Until it lands,
+     * cancel the transition explicitly rather than invoking the legacy chain.
+     */
     cputs("EDITOR HANDOFF PENDING\r\n");
+    system_result = s64_launcher_session_resume_interactive(&recovery_runtime);
+    if (system_result != S64_SYSTEM_OK) {
+        if (!retry_lifecycle("TRANSITION CANCEL FAILED", 0u)) return 1;
+    }
 
     for (;;) {
         lifecycle_result = s64_launcher_session_end(&recovery_runtime);

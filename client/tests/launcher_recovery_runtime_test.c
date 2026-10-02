@@ -121,6 +121,35 @@ int main(void)
         s64_launcher_session_end(0) == S64_SESSION_LIFECYCLE_INVALID,
         "null lifecycle runtime end is rejected"
     );
+    require(
+        s64_launcher_session_prepare_transition(0) == S64_SYSTEM_INVALID,
+        "null transition runtime is rejected"
+    );
+    require(
+        s64_launcher_session_resume_interactive(0) == S64_SYSTEM_INVALID,
+        "null resume runtime is rejected"
+    );
+
+    require(
+        s64_system_state_capture(&runtime.system_state) == S64_SYSTEM_OK,
+        "test runtime captures system state"
+    );
+    runtime.lifecycle.active_record_written = 1u;
+    runtime.lifecycle.clean_record_written = 0u;
+    require(
+        s64_launcher_session_prepare_transition(&runtime) == S64_SYSTEM_OK,
+        "active launcher session enters transition mode"
+    );
+    require(runtime.system_state.mode == S64_SYSTEM_MODE_TRANSITION,
+        "transition mode is recorded");
+    require(runtime.lifecycle.active_record_written,
+        "transition keeps durable session logically active");
+    require(
+        s64_launcher_session_resume_interactive(&runtime) == S64_SYSTEM_OK,
+        "cancelled handoff resumes interactive mode"
+    );
+    require(runtime.system_state.mode == S64_SYSTEM_MODE_INTERACTIVE,
+        "interactive mode restored without cleaning session");
 
     puts("launcher recovery runtime tests passed");
     return 0;

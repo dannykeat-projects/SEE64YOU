@@ -43,6 +43,14 @@ S64SessionLifecycleResult s64_launcher_session_begin(
     S64SystemMode initial_mode
 );
 
+S64SystemResult s64_launcher_session_prepare_transition(
+    S64LauncherRecoveryRuntime* runtime
+);
+
+S64SystemResult s64_launcher_session_resume_interactive(
+    S64LauncherRecoveryRuntime* runtime
+);
+
 S64SessionLifecycleResult s64_launcher_session_end(
     S64LauncherRecoveryRuntime* runtime
 );
