@@ -546,6 +546,7 @@ int main(void)
     unsigned char cursor_only;
     unsigned char inserted_value;
     unsigned char removed_value;
+    unsigned char mouse_selecting = 0u;
 #ifdef S64_REU_BUFFER
     unsigned char restored_handoff;
 
@@ -592,6 +593,7 @@ int main(void)
                 continue;
             }
         } else if (input.type == S64_INPUT_POINTER_CLICK) {
+            mouse_selecting = 0u;
             if (input.row == 0u) {
                 unsigned char group = s64_menu_group_at(input.column);
                 if (group != S64_MENU_NONE) {
@@ -603,9 +605,27 @@ int main(void)
                 } else {
                     continue;
                 }
+            } else if (input.row < 24u) {
+                if (s64_editor_point(&editor, (unsigned char)(input.row - 1u),
+                    input.column, 0u)) {
+                    mouse_selecting = 1u;
+                    s64_ui_render(&editor);
+                }
+                continue;
             } else {
                 continue;
             }
+        } else if (input.type == S64_INPUT_POINTER_DRAG) {
+            if (mouse_selecting) {
+                unsigned char row = input.row;
+                if (row < 1u) row = 1u;
+                if (row > 23u) row = 23u;
+                if (s64_editor_point(&editor, (unsigned char)(row - 1u),
+                    input.column, 1u)) {
+                    s64_ui_render(&editor);
+                }
+            }
+            continue;
         }
 
         switch (input.type) {
