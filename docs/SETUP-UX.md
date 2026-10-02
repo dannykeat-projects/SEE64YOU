@@ -44,7 +44,7 @@ Required checks include:
 - Network $03 for direct publishing;
 - optional Control/turbo capabilities.
 
-The current C64U editor enforces the exact 16 MiB REU requirement with a deliberately tiny guard. A separate platform-preflight diagnostic exercises UCI, Ultimate-DOS $01, exact 16 MiB REU and writable/readable /sd/ storage with R = RECHECK / X = EXIT so this logic can be hardware-validated without consuming the editor's narrow conventional-RAM safety margin. Its storage check selects an unused temporary filename, writes a fixed marker, reopens and verifies it, then deletes it and verifies absence; existing candidate files are never intentionally overwritten. The final launcher/supervisor will own that full preflight. Launcher integration and real-hardware acceptance remain P0 migration work.
+The shared platform-preflight service now exercises UCI, Ultimate-DOS $01, exact 16 MiB REU and writable/readable /sd/ storage. Both the diagnostic and SEE64YOU.PRG launcher call the same implementation. Its storage check selects an unused temporary filename, writes a fixed marker, reopens and verifies it, then deletes it and verifies absence; existing candidate files are never intentionally overwritten. The launcher gives exact setup guidance and supports immediate R = RECHECK / X = EXIT. Real-hardware acceptance remains P0 migration work.
 
 Offline editing should remain available if networking is unavailable.
 

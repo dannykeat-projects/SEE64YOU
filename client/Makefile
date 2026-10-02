@@ -50,7 +50,7 @@ SETTINGS_EXCHANGE_PROBE_SOURCES := diagnostics/settings_exchange_probe.c src/cha
 COMPANION_STREAM_PROBE_SOURCES := diagnostics/companion_stream_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/platform/dos_file.c src/platform/companion_loader.c
 COMPANION_LAUNCH_PROBE_SOURCES := diagnostics/companion_launch_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/platform/dos_file.c src/platform/companion_loader.c src/platform/companion_resident_enter.s
 COMPANION_LOADER_TARGET_SOURCES := diagnostics/companion_loader_target.c diagnostics/companion_loader_target_pad.s
-PLATFORM_PREFLIGHT_PROBE_SOURCES := diagnostics/platform_preflight_probe.c src/charset.c src/platform/requirements.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s
+PLATFORM_PREFLIGHT_PROBE_SOURCES := diagnostics/platform_preflight_probe.c src/charset.c src/platform/preflight.c src/platform/requirements.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s
 REU_PROBE_SOURCES := diagnostics/reu_probe.c src/platform/reu.c src/platform/reu_dma.s
 REU_BUFFER_PROBE_SOURCES := diagnostics/reu_buffer_probe.c src/buffer_reu.c src/platform/reu.c src/platform/reu_dma.s
 REU_EDITOR_PROBE_SOURCES := diagnostics/reu_editor_probe.c src/buffer_reu.c src/history_reu.c src/clipboard.c src/editor.c src/platform/reu.c src/platform/reu_dma.s
@@ -60,7 +60,7 @@ PUBLISHER_DOCUMENT_SOURCES := src/publisher/standalone_documents.c
 PUBLISHER_COMPANION_FIT_SOURCES := diagnostics/publisher_companion_fit.c $(PUBLISHER_CORE_SOURCES) $(PUBLISHER_DOCUMENT_SOURCES)
 PUBLISHER_SOURCES := src/publisher/main.c src/platform/chain_editor.s $(filter-out src/platform/http.c src/publisher/relay.c src/publisher/standalone.c,$(PUBLISHER_CORE_SOURCES)) src/platform/network.c src/crypto/sha256.c src/publisher/direct_auth.c src/publisher/standalone_direct.c
 SETTINGS_SOURCES := src/publisher/settings_main.c src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/destination.c src/publisher/settings_exchange.c src/publisher/settings_store.c
-LAUNCHER_SOURCES := src/launcher/main.c src/launcher/recovery_runtime.c src/launcher/recovery_flow.c src/platform/session_recovery.c src/platform/session_journal.c src/platform/dos.c src/platform/turbo.c src/platform/uci.c src/charset.c
+LAUNCHER_SOURCES := src/launcher/main.c src/launcher/recovery_runtime.c src/launcher/recovery_flow.c src/platform/preflight.c src/platform/requirements.c src/platform/session_recovery.c src/platform/session_journal.c src/platform/dos.c src/platform/turbo.c src/platform/uci.c src/platform/reu.c src/platform/reu_dma.s src/charset.c
 
 CL65 ?= cl65
 CA65 ?= ca65

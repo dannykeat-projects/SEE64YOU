@@ -266,6 +266,7 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/platform/network.c \
         client/src/platform/reu.c \
         client/src/platform/requirements.c \
+        client/src/platform/preflight.c \
         client/src/platform/session_journal.c \
         client/src/platform/session_lifecycle.c \
         client/src/platform/session_recovery.c \
