@@ -337,8 +337,16 @@ uint8_t s64_launcher_transfer_capsule_prepare(
         )
         || !s64_transfer_capsule_load(&runtime->reu_control, &capsule)
         || capsule.destination != destination
-        || memcmp(&capsule.journal, &runtime->lifecycle.journal,
-            sizeof(capsule.journal)) != 0
+        || capsule.journal.state != runtime->lifecycle.journal.state
+        || capsule.journal.sequence != runtime->lifecycle.journal.sequence
+        || capsule.journal.session_id != runtime->lifecycle.journal.session_id
+        || capsule.journal.package_version
+            != runtime->lifecycle.journal.package_version
+        || capsule.journal.recovery_ref != runtime->lifecycle.journal.recovery_ref
+        || capsule.journal.restore_flags
+            != runtime->lifecycle.journal.restore_flags
+        || capsule.journal.turbo_control
+            != runtime->lifecycle.journal.turbo_control
         || capsule.module.id != (uint8_t)destination) {
         return 0u;
     }
