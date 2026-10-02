@@ -68,7 +68,58 @@ static const S64ReuAllocation* capsule_allocation(
     return found;
 }
 
+static const char* canonical_filename(S64ModuleId destination)
+{
+    static const char* const filenames[S64_MODULE_COUNT] = {
+        "S64EDIT.PRG", "S64PUB.PRG", "S64CFG.PRG"
+    };
+
+    return destination >= S64_MODULE_EDITOR
+        && destination <= S64_MODULE_SETTINGS
+        ? filenames[(uint8_t)destination - 1u] : 0;
+}
+
+static uint8_t transfer_module_valid(
+    const S64ReuRuntimeControl* control,
+    const S64ModuleDescriptor* module,
+    S64ModuleId destination
+)
+{
+    const char* filename = canonical_filename(destination);
+    uint32_t payload_length;
+    uint8_t matches = 0u;
+    uint8_t i;
+
+    if (control == 0 || module == 0 || filename == 0
+        || module->id != (uint8_t)destination
+        || strcmp(module->filename, filename) != 0
+        || module->cache_state != S64_MODULE_CACHE_READY
+        || module->app_version != control->app_version
+        || !s64_module_descriptor_loadable(module)) {
+        return 0u;
+    }
+
+    payload_length = module->byte_length - 2UL;
+    if (payload_length > 65536UL - module->load_address
+        || module->startup_address < module->load_address
+        || (uint32_t)module->startup_address
+            >= (uint32_t)module->load_address + payload_length) {
+        return 0u;
+    }
+
+    for (i = 0u; i < control->allocation_count; ++i) {
+        const S64ReuAllocation* allocation = &control->allocations[i];
+        if (allocation->owner == S64_REU_OWNER_MODULE
+            && allocation->address == module->cache_address
+            && allocation->length == module->cache_capacity) {
+            ++matches;
+        }
+    }
+    return matches == 1u;
+}
+
 static const S64ModuleDescriptor* destination_module(
+    const S64ReuRuntimeControl* control,
     const S64ModuleManifest* manifest,
     S64ModuleId destination
 )
@@ -81,10 +132,7 @@ static const S64ModuleDescriptor* destination_module(
         return 0;
     }
     module = &manifest->modules[(uint8_t)destination - 1u];
-    return module->id == (uint8_t)destination
-        && module->cache_state == S64_MODULE_CACHE_READY
-        && s64_module_descriptor_loadable(module)
-        ? module : 0;
+    return transfer_module_valid(control, module, destination) ? module : 0;
 }
 
 uint8_t s64_transfer_capsule_reserve(S64ReuRuntimeControl* control)
@@ -131,7 +179,7 @@ uint8_t s64_transfer_capsule_store(
 {
     const S64ReuAllocation* allocation = capsule_allocation(control);
     const S64ModuleDescriptor* module =
-        destination_module(manifest, destination);
+        destination_module(control, manifest, destination);
 
     if (allocation == 0 || journal == 0 || module == 0
         || journal->state != S64_SESSION_STATE_ACTIVE
@@ -226,11 +274,14 @@ uint8_t s64_transfer_capsule_load(
     decoded.module.integrity = get32(wire + CAPSULE_MODULE_OFFSET + 14u);
     decoded.module.cache_address = get32(wire + CAPSULE_MODULE_OFFSET + 18u);
     decoded.module.cache_capacity = get32(wire + CAPSULE_MODULE_OFFSET + 22u);
+    strncpy(decoded.module.filename, canonical_filename(decoded.destination),
+        sizeof(decoded.module.filename) - 1u);
 
-    if (decoded.module.id != (uint8_t)decoded.destination
-        || decoded.module.cache_state != S64_MODULE_CACHE_READY
-        || decoded.module.app_version != control->app_version
-        || !s64_module_descriptor_loadable(&decoded.module)) {
+    if (!transfer_module_valid(
+            control,
+            &decoded.module,
+            decoded.destination
+        )) {
         return 0u;
     }
 
