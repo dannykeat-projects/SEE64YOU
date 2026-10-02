@@ -62,6 +62,7 @@ Completed troubleshooting/evidence belongs in canonical docs and Git history, no
 
 ## P1 — Finish editor/storage/publishing acceptance
 
+- [ ] Turn the editor's FILE / EDIT / SEARCH / FORMAT / PUB command-group labels into keyboard-navigable menus without removing the established direct shortcuts; keep F8 Help as the discoverability fallback.
 - [ ] Add remote list browsing to the direct Network $03 publisher; direct open currently accepts a typed page/post slug.
 - [ ] Complete real-C64U Standalone CRUD acceptance for pages/posts: list/open, create/update, draft/publish/unpublish and delete with exact canonical round-trip.
 - [ ] Complete local New/Open/Save/Save As hardware acceptance, including overwrite, exact reopen and failure/cancel cleanup.
