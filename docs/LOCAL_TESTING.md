@@ -180,8 +180,8 @@ restores/verifies the outer turbo state. Independently read the two journal
 slots: the newer CLEAN must contain the inner captured turbo byte. Record the
 original turbo byte before the run so it can be restored if the diagnostic is
 interrupted. Remove only the uploaded diagnostic afterward; keep its local PRG
-and map. The sample immediately beyond runtime-owned memory is now 0x050180, after
-the allocator-owned session record; update the probe when ownership changes.
+and map. The sample immediately beyond runtime-owned memory is now 0x050240, after
+the allocator-owned session record and transfer capsule; update the probe when ownership changes.
 This checks sampled preservation, not all unrelated REU bytes.
 
 Using the required 16 MiB configuration:
@@ -194,7 +194,33 @@ Using the required 16 MiB configuration:
 
 ### 6.5 Cached module transition
 
-After all normal modules have been validated/cached:
+Current software-only gate before enabling execution:
+
+1. run the normal validation suite and require the transfer-capsule, module-transfer and module-runtime host tests to pass;
+2. build `make -C client launcher managed-editor-fit c64u publisher module-manifest`;
+3. require `build/managed-editor-fit.map` to retain at least 1 KiB conventional-RAM headroom;
+4. confirm SEE64YOU.PRG still reaches `TRANSFER CAPSULE READY`, `TRANSFER PLAN READY`, `EDITOR HANDOFF PENDING` and CLEAN without calling the execution stub;
+5. do not enable production transfer if any cc65/link/headroom check fails.
+
+The staged execution path uses a transient stub copied to screen RAM at $0700
+with parameters at $07D0. It DMA-copies the cached PRG **body** (cache address +
+2, excluding the two-byte PRG header) to the manifest load address, then writes
+a one-shot arrival marker at $02A7-$02A9 and jumps to the validated startup
+address. The destination must consume/clear that marker before adopting the
+ACTIVE session. REU state alone must never authorize a cold/direct module launch.
+
+Once production Editor adoption is wired and the software gates pass, perform
+the first real firmware-1.1 test with a matching disposable package:
+
+1. start SEE64YOU.PRG and observe normal preload/verification;
+2. require direct cached Editor entry rather than `EDITOR HANDOFF PENDING`;
+3. verify no fresh SD read or software-IEC/KERNAL LOAD occurs during the handoff;
+4. verify the Editor consumes the arrival proof, adopts the exact ACTIVE journal/shared descriptor and resumes INTERACTIVE without recapturing or rewriting the original turbo snapshot;
+5. perform a simple edit/input smoke test;
+6. exit through the managed owner and verify capsule + shared readiness are revoked, the original machine state is restored/verified, and a newer durable CLEAN journal is written;
+7. reset/interfere at bounded points and confirm failures leave ACTIVE recoverable rather than silently claiming CLEAN.
+
+Only after Launcher → Editor passes should the same cached transition be expanded and tested through:
 
 - Editor → Publisher;
 - Publisher → Editor;
