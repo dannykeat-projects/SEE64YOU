@@ -32,6 +32,9 @@ static unsigned char joystick_previous;
 static unsigned char joystick_repeat_tick;
 static unsigned char joystick_repeating;
 static unsigned char mouse_previous_buttons;
+static int mouse_previous_x;
+static int mouse_previous_y;
+static unsigned char mouse_visible;
 #endif
 
 static unsigned char s64_is_printable(unsigned char key)
@@ -189,6 +192,13 @@ static unsigned char s64_mouse_event(S64InputEvent* event)
 
     mouse_info(&info);
     pressed = (unsigned char)(info.buttons & MOUSE_BTN_LEFT);
+    if (!mouse_visible
+        && (info.pos.x != mouse_previous_x || info.pos.y != mouse_previous_y || pressed)) {
+        mouse_show();
+        mouse_visible = 1u;
+    }
+    mouse_previous_x = info.pos.x;
+    mouse_previous_y = info.pos.y;
     if (pressed && !mouse_previous_buttons) {
         event->type = S64_INPUT_POINTER_CLICK;
         event->column = (unsigned char)(info.pos.x / 8);
@@ -215,6 +225,9 @@ void s64_input_init(void)
     joystick_previous = 0u;
     joystick_repeating = 0u;
     mouse_previous_buttons = 0u;
+    mouse_previous_x = 160;
+    mouse_previous_y = 100;
+    mouse_visible = 0u;
 
     if (mouse_ready) {
         box.minx = 0;
@@ -224,7 +237,6 @@ void s64_input_init(void)
         mouse_hide();
         mouse_setbox(&box);
         mouse_move(160, 100);
-        mouse_show();
     }
 #endif
 }
@@ -233,7 +245,7 @@ void s64_input_shutdown(void)
 {
 #ifdef S64_REU_BUFFER
     if (mouse_ready) {
-        mouse_hide();
+        if (mouse_visible) mouse_hide();
         (void)mouse_uninstall();
         mouse_ready = 0u;
     }
