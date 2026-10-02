@@ -194,6 +194,7 @@ if ($HostCc) {
             "client/src/launcher/recovery_runtime.c",
             "client/src/platform/module_session.c",
             "client/src/platform/transfer_capsule.c",
+            "client/src/platform/module_transfer.c",
             "client/src/launcher/recovery_flow.c",
             "client/src/platform/session_recovery.c",
             "client/src/platform/session_journal.c",
@@ -221,6 +222,10 @@ if ($HostCc) {
             "client/src/platform/reu_runtime.c",
             "client/src/platform/session_journal.c",
             "client/src/platform/dos.c"
+        )
+        Invoke-CTest "module_transfer" @(
+            "client/tests/module_transfer_test.c",
+            "client/src/platform/module_transfer.c"
         )
         Invoke-CTest "module_integrity" @(
             "client/tests/module_integrity_test.c",
