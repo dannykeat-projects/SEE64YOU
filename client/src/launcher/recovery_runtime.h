@@ -5,6 +5,7 @@
 #include "platform/dos.h"
 #include "platform/module_manifest.h"
 #include "platform/module_session.h"
+#include "platform/module_transfer.h"
 #include "platform/reu_runtime.h"
 #include "platform/session_lifecycle.h"
 #include "platform/system_state.h"
@@ -68,6 +69,10 @@ uint8_t s64_launcher_transfer_capsule_clear(S64LauncherRecoveryRuntime* runtime)
 uint8_t s64_launcher_transfer_capsule_prepare(
     S64LauncherRecoveryRuntime* runtime,
     S64ModuleId destination
+);
+uint8_t s64_launcher_transfer_plan_load(
+    S64LauncherRecoveryRuntime* runtime,
+    S64ModuleTransferPlan* plan
 );
 uint8_t s64_launcher_module_manifest_load(
     S64LauncherRecoveryRuntime* runtime
