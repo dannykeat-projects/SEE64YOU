@@ -1479,6 +1479,79 @@ int s64_editor_replace_all(
     return 1;
 }
 
+int s64_editor_point(
+    S64Editor* editor,
+    unsigned char view_row,
+    unsigned char view_column,
+    unsigned char extend_selection
+)
+{
+    unsigned int position;
+    unsigned int end;
+    unsigned int length = s64_buffer_length(&editor->buffer);
+    unsigned char row;
+
+    if (view_row >= VIEW_ROWS || view_column >= VIEW_COLUMNS) {
+        return 0;
+    }
+
+    if (editor->word_wrap) {
+        position = editor->view_start;
+        for (row = 0u; row < view_row; ++row) {
+            unsigned int next;
+            if (!next_wrapped_row_start(&editor->buffer, position, &next)) {
+                break;
+            }
+            position = next;
+        }
+        end = wrapped_row_end(&editor->buffer, position);
+        if (position + view_column < end) {
+            position += view_column;
+        } else {
+            position = end;
+        }
+    } else {
+        position = editor->view_start;
+        for (row = 0u; row < view_row; ++row) {
+            end = line_end(&editor->buffer, position);
+            if (end >= length) {
+                break;
+            }
+            position = end + 1u;
+        }
+        end = line_end(&editor->buffer, position);
+        if (editor->view_column < end - position) {
+            position += editor->view_column;
+        } else {
+            position = end;
+        }
+        if (position + view_column < end) {
+            position += view_column;
+        } else {
+            position = end;
+        }
+    }
+
+    s64_history_break_coalesce(&editor->history);
+    if (!extend_selection) {
+        editor->selection_anchor = position;
+        editor->selection_valid = 0u;
+        editor->mark_mode = 0u;
+    }
+    if (!s64_buffer_move_cursor(&editor->buffer, position)) {
+        return 0;
+    }
+    if (extend_selection) {
+        editor->selection_valid = editor->selection_anchor != position;
+        editor->mark_mode = 0u;
+    }
+    s64_editor_internal_reset_preferred_column(editor);
+    editor->position_cursor = POSITION_INVALID;
+    s64_editor_recalculate_position(editor);
+    s64_editor_ensure_cursor_visible(editor);
+    return 1;
+}
+
 void s64_editor_toggle_insert(S64Editor* editor)
 {
     s64_history_break_coalesce(&editor->history);
