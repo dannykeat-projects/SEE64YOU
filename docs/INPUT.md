@@ -102,9 +102,11 @@ Current mouse behaviour targets the C64U's 1351-compatible USB mouse path:
 - clicking FILE / EDIT / SEARCH / FORMAT / PUB opens that menu;
 - clicking a visible menu item activates it;
 - clicking outside the active menu dismisses it;
+- clicking document text positions the editor cursor at the corresponding canonical source position;
+- dragging with the left button selects source text across visual rows, including wrapped text;
 - Help can be dismissed with a mouse click.
 
-Mouse click-to-position in document text, drag selection and scrolling are intentionally still pending. They need editor-position mapping and real-hardware validation rather than being approximated in the menu layer.
+The viewport-to-document mapping lives in the editor core and is host-tested for wrapped, horizontally scrolled and short-line cases. Mouse wheel scrolling is not assumed because the 1351 abstraction does not provide a standard wheel contract; edge/autoscroll remains a separate enhancement and hardware-tuning task.
 
 ## Modifier state
 
