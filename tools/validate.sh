@@ -387,12 +387,17 @@ if command -v cl65 >/dev/null 2>&1 \
     echo "== cc65 C64U REU editor build =="
     make -C client c64u
 
+    echo "== C64U managed editor runtime fit build =="
+    make -C client managed-editor-fit
+
     if command -v python3 >/dev/null 2>&1; then
         echo "== C64 memory headroom =="
         python3 tools/check_memory_headroom.py client/build/see64you.map \
             --label "Base C64" --min-headroom 256
         python3 tools/check_memory_headroom.py client/build/see64you-c64u.map \
             --label "C64U" --min-headroom 1024
+        python3 tools/check_memory_headroom.py client/build/managed-editor-fit.map \
+            --label "C64U managed editor fit" --min-headroom 1024
     else
         echo "SKIP memory headroom checks (python3 not found)"
     fi
