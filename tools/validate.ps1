@@ -160,6 +160,10 @@ if ($HostCc) {
             "client/src/publisher/wordpress.c",
             "client/src/publisher/wordpress_documents.c"
         )
+        Invoke-CTest "reu_runtime" @(
+            "client/tests/reu_runtime_test.c",
+            "client/src/platform/reu_runtime.c"
+        )
         Invoke-CTest "ultimate_dos" @(
             "client/tests/dos_test.c",
             "client/src/platform/dos.c"

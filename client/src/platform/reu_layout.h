@@ -30,4 +30,13 @@
 #define S64_REU_HANDOFF_CAPACITY 256u
 #define S64_REU_HISTORY_META_LIMIT S64_REU_SETTINGS_BASE
 
+/*
+ * Banks 0-1 remain reserved for the current migration-era editor layout.
+ * The new shared runtime starts at bank 2. The fixed control block occupies
+ * only the first 256 bytes; allocator-owned data begins immediately after it.
+ */
+#define S64_REU_RUNTIME_CONTROL_BANK 2u
+#define S64_REU_RUNTIME_CONTROL_BASE 0u
+#define S64_REU_RUNTIME_CONTROL_CAPACITY 256u
+
 #endif

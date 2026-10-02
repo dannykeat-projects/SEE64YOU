@@ -97,6 +97,12 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host 16 MiB REU runtime allocator tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src \
+    client/tests/reu_runtime_test.c client/src/platform/reu_runtime.c \
+    -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host C64U system-state manager tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/system_state_test.c client/src/platform/system_state.c \
@@ -266,6 +272,7 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/platform/http.c \
         client/src/platform/network.c \
         client/src/platform/reu.c \
+        client/src/platform/reu_runtime.c \
         client/src/platform/requirements.c \
         client/src/platform/preflight.c \
         client/src/platform/session_journal.c \

@@ -174,6 +174,8 @@ Reserve fixed addresses only for data that truly requires a stable ABI address:
 
 All other large data should come from a central allocator.
 
+The first allocator/control-block foundation now lives in client/src/platform/reu_runtime.*. During migration, banks 0-1 remain reserved for the existing document/history/clipboard/settings/handoff layout. A fixed 256-byte shared-control region begins at bank 2, with allocator-managed space starting at linear REU address 0x020100 and extending to the 16 MiB limit. The control block has an explicit versioned/checksummed 160-byte wire format, application/session metadata, remaining-space accounting and owner-tagged aligned bump allocations. This first slice intentionally has no free/reclamation API; reclamation policy and migration of existing fixed allocations come after the ABI is proven.
+
 Allocator clients include:
 
 - document pages/pieces;
