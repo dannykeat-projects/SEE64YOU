@@ -400,9 +400,9 @@ static void render_body(
 
 void s64_ui_init(void)
 {
-    bgcolor(COLOR_BLUE);
-    bordercolor(COLOR_BLUE);
-    textcolor(COLOR_LIGHTBLUE);
+    bgcolor(COLOR_BLACK);
+    bordercolor(COLOR_BLACK);
+    textcolor(COLOR_GREEN);
     clrscr();
     cursor(0);
 
@@ -554,6 +554,54 @@ void s64_ui_message(const char* message)
 {
     render_status_text(message);
 }
+
+void s64_ui_show_help(void)
+{
+    static const char* const lines[] = {
+        "SEE64YOU HELP                    F8",
+        "",
+        "TOP BAR = COMMAND GROUPS",
+        "FILE   Ctrl+N New   Ctrl+O Open",
+        "       Ctrl+S Save  Ctrl+Shift+S As",
+        "EDIT   F1 Mark F3 Copy F5 Cut F7 Paste",
+        "       Ctrl+A All Ctrl+Z Undo/Redo",
+        "SEARCH Ctrl+F Find F2 Next F4 Previous",
+        "       Ctrl+G Line Ctrl+H/F6 Replace",
+        "FORMAT Ctrl+B Bold Ctrl+I Italic",
+        "       Ctrl+L List Ctrl+W Word Wrap",
+        "PUB    Ctrl+P Publisher",
+        "",
+        "CBM+F1 New F3 Open F5 Save F7 Save As",
+        "Ctrl+Left/Right = word movement",
+        "Ctrl+Up/Down = page movement",
+        "Ctrl/CBM+Delete = forward delete",
+        "RUN/STOP = cancel or exit",
+        "",
+        "Top labels are not menus yet.",
+        "Use these shortcuts for their commands.",
+        "",
+        "PRESS ANY KEY TO RETURN"
+    };
+    unsigned char row;
+
+    hide_editor_cursor();
+    revers(0);
+    clrscr();
+    for (row = 0u; row < (unsigned char)(sizeof(lines) / sizeof(lines[0])); ++row) {
+        gotoxy(0u, row);
+        cputs(lines[row]);
+    }
+    (void)cgetc();
+
+    header_rendered = 0u;
+    body_rows = 0u;
+    partial_first_row = 0u;
+    partial_char_edit = 0u;
+    cursor_position_valid = 0u;
+    cursor_visible = 0u;
+    clrscr();
+}
+
 
 #ifdef S64_REU_BUFFER
 static void render_scrolling_prompt(
