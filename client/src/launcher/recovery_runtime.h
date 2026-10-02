@@ -53,6 +53,9 @@ uint8_t s64_launcher_runtime_control_create(
 uint8_t s64_launcher_module_cache_plan(
     S64LauncherRecoveryRuntime* runtime
 );
+uint8_t s64_launcher_module_manifest_load(
+    S64LauncherRecoveryRuntime* runtime
+);
 
 S64SystemResult s64_launcher_session_prepare_transition(
     S64LauncherRecoveryRuntime* runtime

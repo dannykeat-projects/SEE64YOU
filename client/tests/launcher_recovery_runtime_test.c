@@ -168,6 +168,8 @@ int main(void)
     );
     require(!s64_launcher_runtime_control_create(0),
         "null runtime control creation is rejected");
+    require(!s64_launcher_module_manifest_load(0),
+        "null module manifest runtime is rejected");
 
     require(
         s64_system_state_capture(&runtime.system_state) == S64_SYSTEM_OK,

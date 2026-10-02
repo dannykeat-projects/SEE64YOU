@@ -257,3 +257,82 @@ uint8_t s64_launcher_module_cache_plan(
     }
     return s64_reu_runtime_store_verified(&runtime->reu_control);
 }
+
+
+typedef struct {
+    char* data;
+    uint16_t capacity;
+    uint16_t length;
+} S64LauncherManifestSink;
+
+static uint8_t manifest_sink(
+    const uint8_t* data,
+    uint16_t length,
+    void* context
+)
+{
+    S64LauncherManifestSink* sink = (S64LauncherManifestSink*)context;
+    if (sink == 0 || data == 0
+        || (uint32_t)sink->length + length > sink->capacity) {
+        return 0u;
+    }
+    memcpy(sink->data + sink->length, data, length);
+    sink->length = (uint16_t)(sink->length + length);
+    return 1u;
+}
+
+uint8_t s64_launcher_module_manifest_load(
+    S64LauncherRecoveryRuntime* runtime
+)
+{
+    char text[S64_MODULE_MANIFEST_MAX_SIZE];
+    S64LauncherManifestSink sink;
+    uint32_t size = 0UL;
+    uint16_t bytes_read = 0u;
+    S64DosResult result;
+
+    if (runtime == 0
+        || runtime->reu_control.allocation_count != S64_MODULE_COUNT) {
+        return 0u;
+    }
+
+    if (s64_dos_change_dir(&runtime->dos, "/sd/") != S64_DOS_OK) {
+        return 0u;
+    }
+    result = s64_dos_open_read(
+        &runtime->dos,
+        S64_MODULE_MANIFEST_FILENAME
+    );
+    if (result != S64_DOS_OK) return 0u;
+
+    result = s64_dos_file_size(&runtime->dos, &size);
+    if (result != S64_DOS_OK
+        || size == 0UL
+        || size > S64_MODULE_MANIFEST_MAX_SIZE) {
+        (void)s64_dos_close(&runtime->dos);
+        return 0u;
+    }
+
+    sink.data = text;
+    sink.capacity = (uint16_t)size;
+    sink.length = 0u;
+    result = s64_dos_read(
+        &runtime->dos,
+        (uint16_t)size,
+        manifest_sink,
+        &sink,
+        &bytes_read
+    );
+    if (s64_dos_close(&runtime->dos) != S64_DOS_OK) return 0u;
+    if (result != S64_DOS_OK
+        || bytes_read != (uint16_t)size
+        || sink.length != (uint16_t)size) {
+        return 0u;
+    }
+
+    return s64_module_manifest_parse(
+        &runtime->module_manifest,
+        text,
+        (uint16_t)size
+    );
+}

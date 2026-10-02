@@ -6,6 +6,8 @@
 #define S64_MODULE_COUNT 3u
 #define S64_MODULE_FILENAME_CAPACITY 13u
 #define S64_MODULE_CACHE_CAPACITY 65536UL
+#define S64_MODULE_MANIFEST_FILENAME "S64MODULE.MNF"
+#define S64_MODULE_MANIFEST_MAX_SIZE 255u
 
 typedef enum {
     S64_MODULE_EDITOR = 1,
@@ -37,4 +39,10 @@ uint8_t s64_module_manifest_allocate(
     S64ModuleManifest* manifest,
     S64ReuRuntimeControl* control
 );
+uint8_t s64_module_manifest_parse(
+    S64ModuleManifest* manifest,
+    const char* text,
+    uint16_t length
+);
+uint8_t s64_module_manifest_loadable(const S64ModuleManifest* manifest);
 #endif

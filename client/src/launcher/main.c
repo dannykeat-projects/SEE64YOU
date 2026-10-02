@@ -203,6 +203,11 @@ int main(void)
         if (!retry_lifecycle("MODULE CACHE PLAN FAILED", 0u)) return 1;
     }
 
+    for (;;) {
+        if (s64_launcher_module_manifest_load(&recovery_runtime)) break;
+        if (!retry_lifecycle("MODULE MANIFEST FAILED", 1u)) return 1;
+    }
+
     show_title();
     cputs("PLATFORM READY\r\n");
     if (result == S64_LAUNCHER_RECOVERY_READY_RESTORED) {
@@ -212,7 +217,8 @@ int main(void)
     cputs("RECOVERY READY\r\n");
     cputs("SESSION ACTIVE\r\n");
     cputs("REU CONTROL READY\r\n");
-    cputs("MODULE CACHE RESERVED\r\n\r\n");
+    cputs("MODULE CACHE RESERVED\r\n");
+    cputs("MODULE MANIFEST READY\r\n\r\n");
     cputs("OPENING EDITOR...\r\n");
 
     system_result = s64_launcher_session_prepare_transition(&recovery_runtime);
