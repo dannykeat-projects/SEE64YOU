@@ -303,9 +303,28 @@ package/cache metadata and unexpected turbo state without claiming ownership.
 The existing hardware gate now simulates source/destination replacement with
 independent runtime instances, checks zero destination DOS calls during adoption,
 accelerates in the adopted owner and proves restore/verify -> CLEAN with captured
-byte 2. No executable code is overwritten in this gate. The verified transfer
-capsule and editor entry wiring remain unimplemented; cold-start editor must
-not adopt arbitrary leftover REU state.
+byte 2. No executable code is overwritten in this gate.
+
+The verified transfer capsule is now implemented as a separate allocator-owned,
+256-byte-aligned 64-byte RUNTIME allocation discovered by owner/flag rather than
+a hard-coded REU address. The launcher issues a capsule only while ACTIVE and in
+TRANSITION, only after the published shared-session record decodes for the same
+journal, package and destination descriptor. The capsule contains a fixed
+version/ABI header, destination module ID, the exact encoded ACTIVE journal and
+the exact READY destination descriptor, followed by reserved zero bytes and a
+nonzero checksum. Store is immediately read back and decoded.
+
+Capsule validation requires the destination descriptor to belong to exactly one
+MODULE allocation, retain the canonical module identity, fit its PRG payload
+(load header excluded) wholly in C64 RAM, and place the startup address inside
+that payload. CLEAN/stale sessions, invalid destinations, unverified modules,
+retargeted cache addresses, corrupt/reserved bytes and unsafe execution extents
+are rejected without modifying caller output. Session cleanup clears/readbacks
+the capsule before revoking the shared module-session record and before
+restore/verify -> CLEAN.
+
+Executable RAM overwrite/editor entry is still unimplemented. Cold-start editor
+must not adopt arbitrary leftover REU state.
 
 All launcher exits after durable ACTIVE, including partially failed session
 start, now converge on session end: restore, verify, then durable CLEAN. If
