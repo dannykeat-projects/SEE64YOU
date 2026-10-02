@@ -1520,13 +1520,8 @@ int s64_editor_point(
             position = end + 1u;
         }
         end = line_end(&editor->buffer, position);
-        if (editor->view_column < end - position) {
-            position += editor->view_column;
-        } else {
-            position = end;
-        }
-        if (position + view_column < end) {
-            position += view_column;
+        if ((unsigned int)editor->view_column + view_column < end - position) {
+            position += (unsigned int)editor->view_column + view_column;
         } else {
             position = end;
         }
