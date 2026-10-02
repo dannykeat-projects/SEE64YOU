@@ -18,7 +18,7 @@ users to memorise everything.
 Ln 12 Col 8  INS  MODIFIED       POST
 ~~~
 
-The exact menu presentation can evolve through hardware testing, but normal editing must stay readable and responsive at 40 columns. FILE / EDIT / SEARCH / FORMAT / PUB now open real dropdown menus. Commodore+M opens the menu bar from the keyboard; arrows navigate and Enter selects. Joystick Fire opens/selects and joystick directions navigate. A 1351-compatible mouse can click the top labels and menu items. F8 remains the integrated Help screen.
+The exact menu presentation can evolve through hardware testing, but normal editing must stay readable and responsive at 40 columns. FILE / EDIT / SEARCH / FORMAT / PUB now open real dropdown menus. Commodore+M opens the menu bar from the keyboard; arrows navigate and Enter selects. Joystick Fire opens/selects and joystick directions navigate. A 1351-compatible mouse can click the top labels and menu items, click into document text to reposition the cursor, and drag-select source text through the editor's canonical viewport mapping. F8 remains the integrated Help screen.
 
 ## Input model
 
@@ -203,7 +203,7 @@ Real C64U hardware remains the final gate for:
 - modern USB keyboard mapping;
 - native C64 keyboard mapping;
 - joystick port-2 navigation/menu control;
-- C64U USB-mouse/1351 menu pointing and click behaviour;
+- C64U USB-mouse/1351 menu pointing, text positioning and drag selection;
 - large-document navigation/edit latency;
 - deep undo/redo;
 - large clipboard;
