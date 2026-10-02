@@ -161,7 +161,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
 echo "== Host C64U launcher recovery runtime tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/launcher_recovery_runtime_test.c \
-    client/src/platform/module_session.c client/src/platform/transfer_capsule.c client/src/launcher/recovery_runtime.c client/src/launcher/recovery_flow.c \
+    client/src/platform/module_session.c client/src/platform/transfer_capsule.c client/src/platform/module_transfer.c client/src/launcher/recovery_runtime.c client/src/launcher/recovery_flow.c \
     client/src/platform/session_recovery.c client/src/platform/session_journal.c \
     client/src/platform/session_lifecycle.c client/src/platform/system_state.c \
     client/src/platform/module_manifest.c client/src/platform/reu_runtime.c client/src/platform/dos.c client/src/platform/turbo.c client/src/charset.c \
@@ -181,6 +181,12 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
     client/src/platform/module_session.c client/src/platform/module_manifest.c \
     client/src/platform/reu_runtime.c client/src/platform/session_journal.c \
     client/src/platform/dos.c -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host module transfer plan tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src \
+    client/tests/module_transfer_test.c client/src/platform/module_transfer.c \
+    -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host Ultimate DOS tests =="
