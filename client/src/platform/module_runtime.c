@@ -93,14 +93,15 @@ void s64_module_runtime_init_hardware(
 uint8_t s64_module_runtime_adopt(
     S64ModuleRuntime* runtime,
     S64ModuleId destination,
-    uint16_t package_version
+    uint16_t package_version,
+    uint8_t trusted_arrival
 )
 {
     S64TransferCapsule capsule;
     S64SystemSnapshot snapshot;
     const S64ModuleDescriptor* shared;
 
-    if (runtime == 0 || package_version == 0u
+    if (runtime == 0 || package_version == 0u || !trusted_arrival
         || destination < S64_MODULE_EDITOR
         || destination > S64_MODULE_SETTINGS
         || runtime->system_state.captured
