@@ -39,7 +39,8 @@ void s64_module_runtime_init_hardware(
 uint8_t s64_module_runtime_adopt(
     S64ModuleRuntime* runtime,
     S64ModuleId destination,
-    uint16_t package_version
+    uint16_t package_version,
+    uint8_t trusted_arrival
 );
 
 S64SystemResult s64_module_runtime_prepare_transition(
