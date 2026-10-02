@@ -121,6 +121,9 @@ void s64_menu_render(unsigned char group, unsigned char item)
 
     menu = &groups[group];
 
+    revers(1);
+    gotoxy(0u, 0u);
+    cputs(" SEE64YOU  FILE EDIT SEARCH FORMAT PUB ");
     revers(0);
     gotoxy(menu->header_col, 0u);
     cputs(menu->title);
