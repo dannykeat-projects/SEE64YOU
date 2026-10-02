@@ -234,7 +234,6 @@ void s64_input_init(void)
         box.miny = 0;
         box.maxx = 319;
         box.maxy = 199;
-        mouse_hide();
         mouse_setbox(&box);
         mouse_move(160, 100);
     }
