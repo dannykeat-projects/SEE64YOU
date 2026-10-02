@@ -19,6 +19,11 @@ Software IEC/device 8 is not a product requirement. It may still be present temp
 
 ## 2. Full repository validation
 
+Integration CI uses the private-projects `terra64-wsl` self-hosted runner with
+labels `[self-hosted, linux, x64, terra64]`. The workflow verifies the preinstalled
+toolchain and VICE version; it does not install packages or use sudo. Its triggers
+remain feature-branch pushes and explicit dispatch, without fork PR execution.
+
 Windows PowerShell:
 
 ~~~powershell

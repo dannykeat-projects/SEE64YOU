@@ -13,16 +13,16 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, terra64]
     timeout-minutes: 20
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install C64 validation toolchain
+      - name: Verify preinstalled C64 validation toolchain
         run: |
-          sudo apt-get update
-          sudo apt-get install -y cc65 vice xvfb
+          command -v cl65 cc php python3 curl make xvfb-run
+          x64sc -version
 
       - name: Build current C64 test PRG
         run: make -C client clean all
