@@ -189,6 +189,16 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host destination module runtime tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src \
+    client/tests/module_runtime_test.c client/src/platform/module_runtime.c \
+    client/src/platform/transfer_capsule.c client/src/platform/module_session.c \
+    client/src/platform/module_manifest.c client/src/platform/reu_runtime.c \
+    client/src/platform/session_lifecycle.c client/src/platform/session_journal.c \
+    client/src/platform/system_state.c client/src/platform/turbo.c \
+    client/src/platform/dos.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host Ultimate DOS tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/module_integrity_test.c client/src/platform/module_integrity.c \
