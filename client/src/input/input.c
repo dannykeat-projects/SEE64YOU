@@ -204,6 +204,8 @@ static unsigned char s64_mouse_event(S64InputEvent* event)
         if (event->column > 39u) event->column = 39u;
         if (event->row > 24u) event->row = 24u;
         mouse_previous_buttons = pressed;
+        mouse_previous_x = info.pos.x;
+        mouse_previous_y = info.pos.y;
         return 1u;
     }
 
@@ -220,6 +222,8 @@ static unsigned char s64_mouse_event(S64InputEvent* event)
     }
 
     mouse_previous_buttons = pressed;
+    mouse_previous_x = info.pos.x;
+    mouse_previous_y = info.pos.y;
     return 0u;
 }
 #endif
