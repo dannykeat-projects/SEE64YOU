@@ -3,11 +3,48 @@
 #include <string.h>
 
 #include "launcher/recovery_runtime.h"
+#include "platform/reu_layout.h"
 
 typedef struct {
     uint8_t value;
     uint8_t writable;
 } FakeRegister;
+
+static uint8_t fake_reu_control[S64_REU_RUNTIME_CONTROL_CAPACITY];
+
+uint8_t s64_reu_store(
+    uint8_t bank,
+    uint16_t address,
+    const void* source,
+    uint16_t length
+)
+{
+    if (bank != S64_REU_RUNTIME_CONTROL_BANK
+        || address != S64_REU_RUNTIME_CONTROL_BASE
+        || source == 0
+        || length > sizeof(fake_reu_control)) {
+        return 0u;
+    }
+    memcpy(fake_reu_control, source, length);
+    return 1u;
+}
+
+uint8_t s64_reu_load(
+    uint8_t bank,
+    uint16_t address,
+    void* destination,
+    uint16_t length
+)
+{
+    if (bank != S64_REU_RUNTIME_CONTROL_BANK
+        || address != S64_REU_RUNTIME_CONTROL_BASE
+        || destination == 0
+        || length > sizeof(fake_reu_control)) {
+        return 0u;
+    }
+    memcpy(destination, fake_reu_control, length);
+    return 1u;
+}
 
 static void require(int condition, const char* message)
 {
@@ -129,6 +166,8 @@ int main(void)
         s64_launcher_session_resume_interactive(0) == S64_SYSTEM_INVALID,
         "null resume runtime is rejected"
     );
+    require(!s64_launcher_runtime_control_create(0),
+        "null runtime control creation is rejected");
 
     require(
         s64_system_state_capture(&runtime.system_state) == S64_SYSTEM_OK,
@@ -136,6 +175,14 @@ int main(void)
     );
     runtime.lifecycle.active_record_written = 1u;
     runtime.lifecycle.clean_record_written = 0u;
+    runtime.lifecycle.journal.session_id = 0x11223344UL;
+    runtime.lifecycle.journal.package_version = 0x0201u;
+    memset(fake_reu_control, 0, sizeof(fake_reu_control));
+    require(s64_launcher_runtime_control_create(&runtime),
+        "launcher creates and verifies active-session REU control block");
+    require(runtime.reu_control.session_id == 0x11223344UL
+        && runtime.reu_control.app_version == 0x0201u,
+        "launcher control block inherits journal session metadata");
     require(
         s64_launcher_session_prepare_transition(&runtime) == S64_SYSTEM_OK,
         "active launcher session enters transition mode"

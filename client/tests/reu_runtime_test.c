@@ -4,6 +4,46 @@
 
 #include "platform/reu_runtime.h"
 
+static unsigned char fake_reu_control[S64_REU_RUNTIME_CONTROL_CAPACITY];
+static unsigned char fake_store_ok = 1u;
+static unsigned char fake_load_ok = 1u;
+
+uint8_t s64_reu_store(
+    uint8_t bank,
+    uint16_t address,
+    const void* source,
+    uint16_t length
+)
+{
+    if (!fake_store_ok
+        || bank != S64_REU_RUNTIME_CONTROL_BANK
+        || address != S64_REU_RUNTIME_CONTROL_BASE
+        || source == 0
+        || length > sizeof(fake_reu_control)) {
+        return 0u;
+    }
+    memcpy(fake_reu_control, source, length);
+    return 1u;
+}
+
+uint8_t s64_reu_load(
+    uint8_t bank,
+    uint16_t address,
+    void* destination,
+    uint16_t length
+)
+{
+    if (!fake_load_ok
+        || bank != S64_REU_RUNTIME_CONTROL_BANK
+        || address != S64_REU_RUNTIME_CONTROL_BASE
+        || destination == 0
+        || length > sizeof(fake_reu_control)) {
+        return 0u;
+    }
+    memcpy(destination, fake_reu_control, length);
+    return 1u;
+}
+
 static void require(int condition, const char* message)
 {
     if (!condition) {
@@ -67,6 +107,28 @@ int main(void)
     wire[30] ^= 0x80u;
     require(!s64_reu_runtime_decode(&decoded, wire),
         "checksum rejects corrupted control block");
+
+    memset(fake_reu_control, 0, sizeof(fake_reu_control));
+    require(s64_reu_runtime_store_verified(&control),
+        "control block stores and verifies through REU DMA boundary");
+    memset(&decoded, 0, sizeof(decoded));
+    require(s64_reu_runtime_load(&decoded),
+        "control block loads from reserved REU region");
+    require(decoded.session_id == control.session_id
+        && decoded.allocation_count == control.allocation_count,
+        "REU-loaded control block matches active metadata");
+    require(fake_reu_control[0] == S64_REU_RUNTIME_MAGIC_0
+        && fake_reu_control[3] == S64_REU_RUNTIME_MAGIC_3,
+        "reserved REU region contains wire-format magic");
+
+    fake_store_ok = 0u;
+    require(!s64_reu_runtime_store_verified(&control),
+        "REU write failure is surfaced");
+    fake_store_ok = 1u;
+    fake_load_ok = 0u;
+    require(!s64_reu_runtime_store_verified(&control),
+        "REU readback failure is surfaced");
+    fake_load_ok = 1u;
 
     s64_reu_runtime_init(&control, 1u, 1UL);
     require(!s64_reu_runtime_allocate(

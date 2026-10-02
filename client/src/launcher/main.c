@@ -4,6 +4,7 @@
 #include "launcher/recovery_flow.h"
 #include "launcher/recovery_runtime.h"
 #include "platform/preflight.h"
+#include "platform/reu_runtime.h"
 #include "platform/session_lifecycle.h"
 
 static void show_title(void)
@@ -187,6 +188,17 @@ int main(void)
         if (!retry_lifecycle("SESSION START FAILED", 1u)) return 1;
     }
 
+    if (!s64_launcher_runtime_control_create(&recovery_runtime)) {
+        for (;;) {
+            if (!retry_lifecycle("REU CONTROL VERIFY FAILED", 1u)) {
+                return 1;
+            }
+            if (s64_launcher_runtime_control_create(&recovery_runtime)) {
+                break;
+            }
+        }
+    }
+
     show_title();
     cputs("PLATFORM READY\r\n");
     if (result == S64_LAUNCHER_RECOVERY_READY_RESTORED) {
@@ -194,7 +206,8 @@ int main(void)
         cputs("\r\n");
     }
     cputs("RECOVERY READY\r\n");
-    cputs("SESSION ACTIVE\r\n\r\n");
+    cputs("SESSION ACTIVE\r\n");
+    cputs("REU CONTROL READY\r\n\r\n");
     cputs("OPENING EDITOR...\r\n");
 
     system_result = s64_launcher_session_prepare_transition(&recovery_runtime);

@@ -3,6 +3,7 @@
 
 #include "launcher/recovery_flow.h"
 #include "platform/dos.h"
+#include "platform/reu_runtime.h"
 #include "platform/session_lifecycle.h"
 #include "platform/system_state.h"
 #include "platform/turbo.h"
@@ -17,6 +18,7 @@ typedef struct {
     S64SessionRecoveryStore store;
     S64SessionRecoveryBackend recovery_backend;
     S64SessionRecovery recovery;
+    S64ReuRuntimeControl reu_control;
 } S64LauncherRecoveryRuntime;
 
 void s64_launcher_recovery_runtime_init(
@@ -41,6 +43,10 @@ S64SessionLifecycleResult s64_launcher_session_begin(
     uint16_t package_version,
     uint32_t recovery_ref,
     S64SystemMode initial_mode
+);
+
+uint8_t s64_launcher_runtime_control_create(
+    S64LauncherRecoveryRuntime* runtime
 );
 
 S64SystemResult s64_launcher_session_prepare_transition(

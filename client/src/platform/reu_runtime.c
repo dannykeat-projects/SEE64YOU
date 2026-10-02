@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "platform/reu.h"
+
 #define S64_REU_RUNTIME_HEADER_SIZE 24u
 #define S64_REU_RUNTIME_ENTRY_SIZE 10u
 #define S64_REU_RUNTIME_CHECKSUM_OFFSET (S64_REU_RUNTIME_WIRE_SIZE - 2u)
@@ -243,4 +245,57 @@ uint8_t s64_reu_runtime_decode(
     if (!s64_reu_runtime_valid(&decoded)) return 0u;
     *control = decoded;
     return 1u;
+}
+
+
+uint8_t s64_reu_runtime_store(const S64ReuRuntimeControl* control)
+{
+    uint8_t wire[S64_REU_RUNTIME_WIRE_SIZE];
+
+    if (!s64_reu_runtime_encode(control, wire)) return 0u;
+    return s64_reu_store(
+        S64_REU_RUNTIME_CONTROL_BANK,
+        S64_REU_RUNTIME_CONTROL_BASE,
+        wire,
+        S64_REU_RUNTIME_WIRE_SIZE
+    );
+}
+
+uint8_t s64_reu_runtime_load(S64ReuRuntimeControl* control)
+{
+    uint8_t wire[S64_REU_RUNTIME_WIRE_SIZE];
+
+    if (control == 0
+        || !s64_reu_load(
+            S64_REU_RUNTIME_CONTROL_BANK,
+            S64_REU_RUNTIME_CONTROL_BASE,
+            wire,
+            S64_REU_RUNTIME_WIRE_SIZE
+        )) {
+        return 0u;
+    }
+    return s64_reu_runtime_decode(control, wire);
+}
+
+uint8_t s64_reu_runtime_store_verified(const S64ReuRuntimeControl* control)
+{
+    S64ReuRuntimeControl readback;
+
+    if (!s64_reu_runtime_store(control)
+        || !s64_reu_runtime_load(&readback)) {
+        return 0u;
+    }
+
+    return readback.format_version == control->format_version
+        && readback.abi_version == control->abi_version
+        && readback.app_version == control->app_version
+        && readback.session_id == control->session_id
+        && readback.state_flags == control->state_flags
+        && readback.allocation_count == control->allocation_count
+        && readback.next_free == control->next_free
+        && memcmp(
+            readback.allocations,
+            control->allocations,
+            sizeof(control->allocations)
+        ) == 0;
 }

@@ -183,6 +183,7 @@ if ($HostCc) {
             "client/src/platform/session_journal.c",
             "client/src/platform/session_lifecycle.c",
             "client/src/platform/system_state.c",
+            "client/src/platform/reu_runtime.c",
             "client/src/platform/dos.c",
             "client/src/platform/turbo.c"
         )

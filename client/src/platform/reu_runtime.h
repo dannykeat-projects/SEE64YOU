@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "platform/reu_layout.h"
+
 #define S64_REU_RUNTIME_MAGIC_0 'S'
 #define S64_REU_RUNTIME_MAGIC_1 '6'
 #define S64_REU_RUNTIME_MAGIC_2 '4'
@@ -74,5 +76,9 @@ uint8_t s64_reu_runtime_decode(
     S64ReuRuntimeControl* control,
     const uint8_t wire[S64_REU_RUNTIME_WIRE_SIZE]
 );
+
+uint8_t s64_reu_runtime_store(const S64ReuRuntimeControl* control);
+uint8_t s64_reu_runtime_load(S64ReuRuntimeControl* control);
+uint8_t s64_reu_runtime_store_verified(const S64ReuRuntimeControl* control);
 
 #endif

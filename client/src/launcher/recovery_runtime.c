@@ -211,3 +211,23 @@ S64SystemResult s64_launcher_session_resume_interactive(
         S64_SYSTEM_MODE_INTERACTIVE
     );
 }
+
+
+uint8_t s64_launcher_runtime_control_create(
+    S64LauncherRecoveryRuntime* runtime
+)
+{
+    if (runtime == 0
+        || !runtime->lifecycle.active_record_written
+        || runtime->lifecycle.clean_record_written
+        || runtime->lifecycle.journal.session_id == 0UL) {
+        return 0u;
+    }
+
+    s64_reu_runtime_init(
+        &runtime->reu_control,
+        runtime->lifecycle.journal.package_version,
+        runtime->lifecycle.journal.session_id
+    );
+    return s64_reu_runtime_store_verified(&runtime->reu_control);
+}
