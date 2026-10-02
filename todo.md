@@ -87,7 +87,7 @@ Completed troubleshooting/evidence belongs in canonical docs and Git history, no
 
 ## P2 — C64U-native enhancements
 
-- [ ] Extend mouse editing beyond the now-implemented menu support: click-to-position in document text, drag selection and useful scrolling, without making keyboard use secondary.
+- [ ] Extend mouse editing with useful edge/autoscroll behavior and real-C64U tuning; menu pointing, click-to-position and drag selection are implemented without making keyboard use secondary.
 - [ ] Transactional in-app update staging/verification using C64U storage/network facilities while preserving manual SD installation.
 - [ ] Bounded rotating diagnostic log without keys/secrets.
 - [ ] Optional server-assisted spell-check workflow if a sensible bounded design emerges.
