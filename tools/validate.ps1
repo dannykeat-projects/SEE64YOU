@@ -164,6 +164,11 @@ if ($HostCc) {
             "client/tests/reu_runtime_test.c",
             "client/src/platform/reu_runtime.c"
         )
+        Invoke-CTest "module_manifest" @(
+            "client/tests/module_manifest_test.c",
+            "client/src/platform/module_manifest.c",
+            "client/src/platform/reu_runtime.c"
+        )
         Invoke-CTest "ultimate_dos" @(
             "client/tests/dos_test.c",
             "client/src/platform/dos.c"
@@ -183,6 +188,7 @@ if ($HostCc) {
             "client/src/platform/session_journal.c",
             "client/src/platform/session_lifecycle.c",
             "client/src/platform/system_state.c",
+            "client/src/platform/module_manifest.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/dos.c",
             "client/src/platform/turbo.c"

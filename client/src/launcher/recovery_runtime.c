@@ -231,3 +231,29 @@ uint8_t s64_launcher_runtime_control_create(
     );
     return s64_reu_runtime_store_verified(&runtime->reu_control);
 }
+
+
+uint8_t s64_launcher_module_cache_plan(
+    S64LauncherRecoveryRuntime* runtime
+)
+{
+    if (runtime == 0
+        || !runtime->lifecycle.active_record_written
+        || runtime->lifecycle.clean_record_written
+        || !s64_reu_runtime_valid(&runtime->reu_control)
+        || runtime->reu_control.allocation_count != 0u) {
+        return 0u;
+    }
+
+    s64_module_manifest_init(
+        &runtime->module_manifest,
+        runtime->lifecycle.journal.package_version
+    );
+    if (!s64_module_manifest_allocate(
+            &runtime->module_manifest,
+            &runtime->reu_control
+        )) {
+        return 0u;
+    }
+    return s64_reu_runtime_store_verified(&runtime->reu_control);
+}

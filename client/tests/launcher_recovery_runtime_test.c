@@ -183,6 +183,12 @@ int main(void)
     require(runtime.reu_control.session_id == 0x11223344UL
         && runtime.reu_control.app_version == 0x0201u,
         "launcher control block inherits journal session metadata");
+    require(s64_launcher_module_cache_plan(&runtime),
+        "launcher allocates and persists three module cache slots");
+    require(runtime.reu_control.allocation_count == S64_MODULE_COUNT,
+        "launcher control block records all module cache allocations");
+    require(!s64_module_descriptor_loadable(&runtime.module_manifest.modules[0]),
+        "cache planning does not pretend unmeasured module is loadable");
     require(
         s64_launcher_session_prepare_transition(&runtime) == S64_SYSTEM_OK,
         "active launcher session enters transition mode"

@@ -224,7 +224,7 @@ For each module:
 7. validate integrity;
 8. mark the cache entry ready.
 
-Module descriptors contain version, size, load address, startup address, cache location and integrity data.
+Module descriptors contain ID, filename, ABI/application version, size, load address, startup address, cache location/capacity and integrity data. The initial manifest implementation now defines Editor (S64EDIT.PRG), Publisher (S64PUB.PRG) and Settings (S64CFG.PRG). SEE64YOU.PRG reserves a 64 KiB aligned cache region for each module through the shared allocator and persists those allocations before transition preparation. Artifact-dependent fields remain deliberately unset until derived from the built PRGs; a descriptor is not considered loadable until load/start addresses, exact byte length and integrity are populated and validated.
 
 ## 11. Executable transition
 
