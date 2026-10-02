@@ -58,6 +58,11 @@ Current package files:
 
 The future launcher/manifest/module-cache package may rename/reorganize these internal files. The user-facing goal is one SEE64YOU.PRG entry point and an application folder.
 
+The launcher links to `build/see64you-launcher.prg`; `make launcher` always
+refreshes `build/SEE64YOU.PRG` from that image. This avoids the legacy
+`see64you.prg` validation build being mistaken for the launcher on Windows.
+Run `make launcher` after legacy validation builds before any hardware upload.
+
 A conventional client/build/see64you.prg may still be produced temporarily but is no longer a supported product artifact.
 
 ## 4. Hardware access from the development PC
@@ -138,11 +143,15 @@ Do not claim arbitrary machine-state restoration beyond values See64You explicit
 Build `make -C client launcher c64u publisher module-manifest` and keep
 `SEE64YOU.PRG`, `S64EDIT.PRG`, `S64PUB.PRG`, `S64CFG.PRG` and `S64MODULE.MNF`
 together in `/sd/`. Run the launcher with an exact 16 MiB REU. Expect
-`MODULES LOADED - CRC PENDING`, `EDITOR HANDOFF PENDING`, then `SESSION CLEAN`.
-This does not launch the editor or prove cache integrity. Test missing/mismatched
+`VERIFYING MODULES...`, `MODULE CACHE VERIFIED`, `EDITOR HANDOFF PENDING`, then `SESSION CLEAN`.
+This verifies cached-file CRC32 but does not launch the editor. Test missing/mismatched
 module files and choose X: machine settings must restore before CLEAN. If restore
 or journal cleanup fails, ACTIVE must remain recoverable. Use scratch package
-copies and preserve the user's existing configuration/journals.
+copies and preserve the user's existing configuration/journals. Also change one
+byte in a scratch module PRG while retaining its size and the original manifest:
+expect MODULE INTEGRITY FAILED, never MODULE CACHE VERIFIED. Choosing X must
+restore/clean the session; restore the matching package before retrying. Record
+verification time and check that unrelated REU allocations are preserved.
 
 Using the required 16 MiB configuration:
 

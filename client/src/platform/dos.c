@@ -13,7 +13,8 @@
 #define S64_DOS_CMD_CREATE_DIR 0x16u
 
 #define S64_DOS_ATTR_READ 0x01u
-#define S64_DOS_ATTR_OVERWRITE 0x0eu
+/* WRITE | CREATE_ALWAYS; CREATE_NEW makes existing files fail on firmware 1.1. */
+#define S64_DOS_ATTR_OVERWRITE 0x0au
 
 #define S64_DOS_STATUS_CAPACITY 64u
 

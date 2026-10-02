@@ -36,6 +36,8 @@ S64SystemResult s64_system_state_set_mode(S64SystemState* s, S64SystemMode m)
 { (void)s; (void)m; return stage == 5 ? S64_SYSTEM_INVALID : S64_SYSTEM_OK; }
 uint8_t s64_module_preload(S64Dos* d, S64ModuleManifest* m)
 { (void)d; (void)m; return stage != 6; }
+uint8_t s64_module_cache_verify(S64ModuleManifest* m)
+{ (void)m; return stage != 10; }
 S64SystemResult s64_launcher_session_prepare_transition(S64LauncherRecoveryRuntime* r)
 { (void)r; return stage == 8 ? S64_SYSTEM_INVALID : S64_SYSTEM_OK; }
 S64SystemResult s64_launcher_session_resume_interactive(S64LauncherRecoveryRuntime* r)
@@ -55,7 +57,7 @@ S64SessionLifecycleResult s64_launcher_session_end(S64LauncherRecoveryRuntime* r
 }
 int main(void)
 {
-    for (stage = 0; stage <= 9; ++stage) {
+    for (stage = 0; stage <= 10; ++stage) {
         ends = clean = resumes = 0;
         assert(launcher_main() == (stage != 0));
         assert(ends == 1 && clean == 1);

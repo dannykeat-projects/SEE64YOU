@@ -243,17 +243,33 @@ to native text before comparing the parser's PETSCII identities/delimiters.
 Caches contain **full PRG files**, including the two-byte load-address header.
 Manifest lengths and CRC32 therefore describe those exact cached bytes. A future
 execution transfer must skip those two header bytes when copying into C64 RAM.
-Cache states are EMPTY, LOADED_UNVERIFIED and READY. This slice only produces
-LOADED_UNVERIFIED; CRC verification and executable handoff remain unimplemented.
+Cache states are EMPTY, LOADED_UNVERIFIED and READY. After preload, the launcher
+verifies all three cached full-file CRC32 values against the manifest before
+marking the whole set READY. Executable handoff remains unimplemented.
 Any failed transfer/size/close leaves that entry EMPTY. A retry resets all states
-before loading the full set again. Cache state currently lives in the launcher's
+before loading the full set again. CRC32 uses the standard reflected polynomial 0xEDB88320, initial/final XOR
+0xFFFFFFFF, matching the build generator's zlib CRC32. A 64-byte nibble table
+and 256-byte static DMA scratch keep conventional RAM bounded. Reads split at
+bank boundaries and cover only each exact file extent. Reverification revokes
+prior READY state; any descriptor, DMA or checksum failure leaves no module
+READY. Retry reloads the files before hashing again. Verification remains in
+IO_SAFE mode; faster hashing/turbo and elapsed startup time need hardware evidence.
+Cache state currently lives in the launcher's
 descriptors; it is not yet a shared executable authorization record.
 
 All launcher exits after durable ACTIVE, including partially failed session
 start, now converge on session end: restore, verify, then durable CLEAN. If
 cleanup fails, the launcher offers retry/exit and leaves ACTIVE available for
 interrupted-session recovery. An error exit stays an error even after successful
-cleanup. Real firmware-1.1 `$21` transfer and preservation remain hardware gates.
+cleanup. Real firmware-1.1 `$21` preload and full-file CRC verification have
+passed with the matching package, followed by verified restoration and a durable
+CLEAN journal from captured turbo byte 0. Same-length PRG-header corruption
+has also been rejected on hardware, followed by X exit and a newer durable CLEAN.
+Journal slots can be reused with WRITE | CREATE_ALWAYS, excluding CREATE_NEW.
+Other starting modes, unrelated REU
+allocation preservation and startup performance remain hardware gates. The
+session-lived launcher runtime uses static storage to keep its large control
+structure off the cc65 software stack.
 
 The transition path should be as small as practical.
 

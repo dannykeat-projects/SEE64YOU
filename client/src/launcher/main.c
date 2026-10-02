@@ -146,7 +146,8 @@ static unsigned char retry_lifecycle(
 
 int main(void)
 {
-    S64LauncherRecoveryRuntime recovery_runtime;
+    /* Keep the large, session-lived control structure off cc65's stack. */
+    static S64LauncherRecoveryRuntime recovery_runtime;
     S64LauncherRecoveryResult result;
     S64SessionLifecycleResult lifecycle_result;
     S64SystemResult system_result;
@@ -217,9 +218,14 @@ int main(void)
     for (;;) {
         show_title();
         cputs("PRELOADING MODULES...\r\n");
-        if (s64_module_preload(&recovery_runtime.dos,
-                &recovery_runtime.module_manifest)) break;
-        if (!retry_lifecycle("MODULE PRELOAD FAILED", 1u)) goto cleanup;
+        if (!s64_module_preload(&recovery_runtime.dos,
+                &recovery_runtime.module_manifest)) {
+            if (!retry_lifecycle("MODULE PRELOAD FAILED", 1u)) goto cleanup;
+            continue;
+        }
+        cputs("VERIFYING MODULES...\r\n");
+        if (s64_module_cache_verify(&recovery_runtime.module_manifest)) break;
+        if (!retry_lifecycle("MODULE INTEGRITY FAILED", 1u)) goto cleanup;
     }
     if (s64_launcher_session_resume_interactive(&recovery_runtime)
             != S64_SYSTEM_OK) goto cleanup;
@@ -235,7 +241,7 @@ int main(void)
     cputs("REU CONTROL READY\r\n");
     cputs("MODULE CACHE RESERVED\r\n");
     cputs("MODULE MANIFEST READY\r\n\r\n");
-    cputs("MODULES LOADED - CRC PENDING\r\n");
+    cputs("MODULE CACHE VERIFIED\r\n");
     cputs("OPENING EDITOR...\r\n");
 
     system_result = s64_launcher_session_prepare_transition(&recovery_runtime);

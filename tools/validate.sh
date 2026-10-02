@@ -162,6 +162,10 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
 "$TMP_BIN"
 
 echo "== Host Ultimate DOS tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src \
+    client/tests/module_integrity_test.c client/src/platform/module_integrity.c \
+    client/src/platform/module_manifest.c -o "$TMP_BIN"
+"$TMP_BIN"
 cc -std=c99 -Wall -Wextra -Iclient/tests/launcher_stubs -Iclient/src \
     client/tests/launcher_exit_test.c -o "$TMP_BIN"
 "$TMP_BIN"
@@ -287,6 +291,7 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/platform/dos_file.c \
         client/src/platform/dos_reu.c \
         client/src/platform/module_preload.c \
+        client/src/platform/module_integrity.c \
         client/src/platform/companion_loader.c \
         client/src/platform/http.c \
         client/src/platform/network.c \

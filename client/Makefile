@@ -3,6 +3,7 @@ C64U_TARGET := build/see64you-c64u.prg
 C64U_CHAIN_TARGET := build/SEE64YOU-C64U.PRG
 C64U_SHORT_CHAIN_TARGET := build/S64EDIT.PRG
 LAUNCHER_TARGET := build/SEE64YOU.PRG
+LAUNCHER_IMAGE := build/see64you-launcher.prg
 EDITOR_PROBE_TARGET := build/editor-probe.prg
 UI_PROBE_TARGET := build/ui-probe.prg
 INPUT_REPEAT_PROBE_TARGET := build/input-repeat-probe.prg
@@ -61,7 +62,7 @@ PUBLISHER_DOCUMENT_SOURCES := src/publisher/standalone_documents.c
 PUBLISHER_COMPANION_FIT_SOURCES := diagnostics/publisher_companion_fit.c $(PUBLISHER_CORE_SOURCES) $(PUBLISHER_DOCUMENT_SOURCES)
 PUBLISHER_SOURCES := src/publisher/main.c src/platform/chain_editor.s $(filter-out src/platform/http.c src/publisher/relay.c src/publisher/standalone.c,$(PUBLISHER_CORE_SOURCES)) src/platform/network.c src/crypto/sha256.c src/publisher/direct_auth.c src/publisher/standalone_direct.c
 SETTINGS_SOURCES := src/publisher/settings_main.c src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/destination.c src/publisher/settings_exchange.c src/publisher/settings_store.c
-LAUNCHER_SOURCES := src/launcher/main.c src/platform/module_preload.c src/platform/dos_reu.c src/platform/dos_file.c src/launcher/recovery_runtime.c src/launcher/recovery_flow.c src/platform/preflight.c src/platform/requirements.c src/platform/module_manifest.c src/platform/reu_runtime.c src/platform/session_lifecycle.c src/platform/session_recovery.c src/platform/session_journal.c src/platform/system_state.c src/platform/dos.c src/platform/turbo.c src/platform/uci.c src/platform/reu.c src/platform/reu_dma.s src/charset.c
+LAUNCHER_SOURCES := src/launcher/main.c src/platform/module_integrity.c src/platform/module_preload.c src/platform/dos_reu.c src/platform/dos_file.c src/launcher/recovery_runtime.c src/launcher/recovery_flow.c src/platform/preflight.c src/platform/requirements.c src/platform/module_manifest.c src/platform/reu_runtime.c src/platform/session_lifecycle.c src/platform/session_recovery.c src/platform/session_journal.c src/platform/system_state.c src/platform/dos.c src/platform/turbo.c src/platform/uci.c src/platform/reu.c src/platform/reu_dma.s src/charset.c
 
 CL65 ?= cl65
 CA65 ?= ca65
@@ -87,9 +88,11 @@ $(MODULE_MANIFEST_TARGET): $(C64U_SHORT_CHAIN_TARGET) $(PUBLISHER_CHAIN_TARGET) 
 	python3 ../tools/generate_module_manifest.py build --output $@
 	python3 ../tools/generate_module_manifest.py build --validate $@
 
-launcher: $(LAUNCHER_TARGET)
+launcher: $(LAUNCHER_IMAGE)
+	# Refresh the public name even on case-insensitive Windows filesystems.
+	cp $(LAUNCHER_IMAGE) $(LAUNCHER_TARGET)
 
-$(LAUNCHER_TARGET): $(LAUNCHER_SOURCES)
+$(LAUNCHER_IMAGE): $(LAUNCHER_SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -m build/see64you-launcher.map -o $@ $(LAUNCHER_SOURCES)
 

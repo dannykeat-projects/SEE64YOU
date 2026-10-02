@@ -142,7 +142,7 @@ int main(void)
     mock_reset();
     result = s64_dos_open_write(&dos, "drafts/hello.s64");
     require(result == S64_DOS_OK, "open overwrite succeeds");
-    require(mock.bytes[0][2] == 0x0eu, "overwrite/create attribute");
+    require(mock.bytes[0][2] == 0x0au, "overwrite/create without CREATE_NEW");
 
     mock_reset();
     memcpy(mock.response, "hello world", 11u);

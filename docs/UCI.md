@@ -58,6 +58,11 @@ Document/configuration writes follow a transactional pattern:
 
 Real firmware-1.1 testing established relevant details including explicit filename termination and file-not-found status handling. Those behaviours remain regression-covered.
 
+Create-or-overwrite opens use `FA_WRITE | FA_CREATE_ALWAYS` (`$0A`). Do not
+combine CREATE_NEW with CREATE_ALWAYS: firmware 1.1 returns FILE EXISTS when
+reusing an existing journal slot with that combination. Settings transactions
+and dual-slot session journals retain their separate readback/verification rules.
+
 ### Direct file-to-REU loading
 
 Ultimate-DOS command DOS_CMD_LOAD_REU ($21) reads bytes from the currently opened file directly into REU at a supplied address/length.

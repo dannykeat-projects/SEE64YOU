@@ -107,7 +107,12 @@ static S64UciResult mock_execute(
             open_mode = 1u;
             open_slot = (uint8_t)slot;
             read_offset = 0u;
-        } else if (parts[0].data[2] == 0x0eu) {
+        } else if (parts[0].data[2] == 0x0au || parts[0].data[2] == 0x0eu) {
+            /* Firmware 1.1 gives CREATE_NEW precedence over CREATE_ALWAYS. */
+            if ((parts[0].data[2] & 0x04u) && slots[slot].exists) {
+                set_status(reply, "FILE EXISTS");
+                return S64_UCI_OK;
+            }
             open_mode = 2u;
             open_slot = (uint8_t)slot;
             slots[slot].exists = 1u;
@@ -303,6 +308,20 @@ int main(void)
             "uncaptured turbo is never invented as restorable");
     }
 
+    {
+        unsigned int cycle;
+        memset(slots, 0, sizeof(slots));
+        require(s64_session_journal_prepare(&journal, 9UL, 1u, 0UL, 0),
+            "prepare repeated-session fixture");
+        for (cycle = 0u; cycle < 6u; ++cycle) {
+            journal.state = cycle & 1u ? S64_SESSION_STATE_CLEAN : S64_SESSION_STATE_ACTIVE;
+            require(s64_session_journal_store_save(&dos, &journal) == S64_SESSION_JOURNAL_OK,
+                "repeated ACTIVE/CLEAN saves overwrite existing slots");
+        }
+        require(s64_session_journal_store_load(&dos, &loaded) == S64_SESSION_JOURNAL_OK
+            && loaded.sequence == 6UL && loaded.state == S64_SESSION_STATE_CLEAN,
+            "three sessions leave the newest durable CLEAN authoritative");
+    }
     puts("session journal tests passed");
     return 0;
 }

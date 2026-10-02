@@ -195,6 +195,11 @@ if ($HostCc) {
             "client/src/platform/turbo.c"
         )
         Invoke-CTest "launcher_exit" @("client/tests/launcher_exit_test.c")
+        Invoke-CTest "module_integrity" @(
+            "client/tests/module_integrity_test.c",
+            "client/src/platform/module_integrity.c",
+            "client/src/platform/module_manifest.c"
+        )
         Invoke-CTest "module_preload" @(
             "client/tests/module_preload_test.c",
             "client/src/platform/module_preload.c",
