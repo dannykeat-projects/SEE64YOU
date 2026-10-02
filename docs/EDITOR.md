@@ -18,7 +18,7 @@ users to memorise everything.
 Ln 12 Col 8  INS  MODIFIED       POST
 ~~~
 
-The exact menu presentation can evolve through hardware testing, but normal editing must stay readable and responsive at 40 columns.
+The exact menu presentation can evolve through hardware testing, but normal editing must stay readable and responsive at 40 columns. The current FILE / EDIT / SEARCH / FORMAT / PUB words are command-group labels rather than interactive menus. F8 opens an integrated Help screen explaining each group and its current shortcuts; interactive keyboard menu navigation remains a future UI enhancement.
 
 ## Input model
 
@@ -136,7 +136,7 @@ A recovered document remains dirty until explicitly saved. Successful Save/Save 
 
 ## Word wrap and viewport
 
-Word Wrap is enabled by default. F8 toggles it.
+Word Wrap is enabled by default. Ctrl+W toggles it.
 
 When Word Wrap is off, one logical document line occupies one screen row and the editor maintains horizontal viewport state.
 
