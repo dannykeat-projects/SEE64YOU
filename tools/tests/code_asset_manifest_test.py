@@ -63,6 +63,12 @@ def main() -> int:
         GEN.validate(manifest_path, directory, app_version=0x2345)
         must_fail(lambda: GEN.validate(manifest_path, directory), "does not match")
 
+        default_manifest = directory / "S64OVL.DEFAULT.MNF"
+        default_encoded = GEN.generate(directory, default_manifest)
+        assert GEN.package_version() == 0x0201
+        assert struct.unpack_from("<H", default_encoded, 8)[0] == 0x0201
+        GEN.validate(default_manifest, directory)
+
         # Canonical names are bound to group order, and every asset is checked.
         file_path = directory / "S64FILE.BIN"
         original_file = file_path.read_bytes()
@@ -77,6 +83,11 @@ def main() -> int:
         must_fail(lambda: GEN.validate(manifest_path, directory, app_version=0x2345), "asset length")
         must_fail(lambda: GEN.render(directory, app_version=0), "app version")
         must_fail(lambda: GEN.render(directory, app_version=0x10000), "app version")
+        bad_version = directory / "bad-package-version.h"
+        bad_version.write_text("#define S64_PACKAGE_VERSION OTHER_VERSION\n", encoding="ascii")
+        must_fail(lambda: GEN.package_version(bad_version), "simple integer constant")
+        bad_version.write_text("#define S64_PACKAGE_VERSION 0x10000u\n", encoding="ascii")
+        must_fail(lambda: GEN.package_version(bad_version), "1..65535")
 
         make_prg(directory / "bad-load.prg", 0x0800, 0x080D)
         must_fail(lambda: GEN.inspect_root(directory / "bad-load.prg"), "load address")

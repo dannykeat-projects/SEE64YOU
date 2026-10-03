@@ -216,6 +216,12 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host launcher code asset coordination tests =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/launcher_code_assets_test.c client/src/launcher/code_assets_runtime.c \
+    -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host managed editor adoption/exit tests =="
 cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
     client/tests/managed_editor_test.c client/src/platform/managed_editor.c \
@@ -238,6 +244,9 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
     client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/system_state.c client/src/platform/system_state_start.c -o "$TMP_BIN"
 "$TMP_BIN"
 cc -std=c99 -Wall -Wextra -Iclient/tests/launcher_stubs -Iclient/src \
+    client/tests/launcher_exit_test.c -o "$TMP_BIN"
+"$TMP_BIN"
+cc -std=c99 -Wall -Wextra -DS64_CODE_ASSET_LAUNCHER=1 -Iclient/tests/launcher_stubs -Iclient/src \
     client/tests/launcher_exit_test.c -o "$TMP_BIN"
 "$TMP_BIN"
 cc -std=c99 -Wall -Wextra -Iclient/src \

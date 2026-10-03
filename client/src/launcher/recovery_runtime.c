@@ -181,7 +181,7 @@ S64SessionLifecycleResult s64_launcher_session_end(
     if (runtime == 0) return S64_SESSION_LIFECYCLE_INVALID;
     /* Revoke cached readiness before restore/CLEAN, including failed publication.
      * A failed CLEAN save can retry after system state has already restored. */
-    if (runtime->reu_control.allocation_count == S64_MODULE_COUNT + 2u
+    if (runtime->reu_control.allocation_count >= S64_MODULE_COUNT + 2u
         && !runtime->module_session_invalidated) {
         if (s64_system_state_set_mode(&runtime->system_state,
                 S64_SYSTEM_MODE_IO_SAFE) != S64_SYSTEM_OK

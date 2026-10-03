@@ -415,8 +415,8 @@ the copier marker and configures the selector from exact linked lengths only
 on trusted arrival. It then adopts the original ACTIVE session, validates the
 asset record in IO_SAFE, and resumes INTERACTIVE before calling editor code.
 Cold or failed entry stops in resident code and leaves ACTIVE recoverable.
-Production integration must first integrity-check these exact assets and
-preload/publish allocator-owned caches before invoking the copier.
+The diagnostic asset launcher now integrity-checks these exact assets and
+preloads/publishes allocator-owned caches. It still stops before the copier.
 Neither executable launcher handoff nor real C64U overlay validation is enabled
 by this diagnostic fit result. Managed publisher transitions are blocked until
 their ownership path is ready. Clean editor exit revokes assets before the
@@ -667,3 +667,7 @@ The transient copier's one-shot arrival marker is consumed by resident `module_a
 Resident `code_overlay_bootstrap.c` validates the application version and three exact linked asset lengths against unique, aligned MODULE caches with flags ` $21-$23` before selecting RUNTIME. It requires a caller-consumed trusted copier arrival from the launcher, whose preload must already have verified and published READY assets. It does not independently authorize persistent REU state or adopt a session. The entry caller must subsequently validate the complete asset record and adopt the ACTIVE session before editor operation. Every bootstrap failure invalidates the selector. This helper is host-tested and linked in the diagnostic fit, but entry wiring remains pending.
 
 The diagnostic final link exports `s64_code_overlay_linked_lengths` as three resident 16-bit values in MODEL/FILE/RUNTIME order, derived from linker CODE/RODATA sizes. Bootstrap entry can therefore use its own linked lengths without reading an SD manifest or duplicating size constants.
+
+The `managed-package` diagnostic aligns launcher, managed editor and generated asset metadata through `platform/package_version.h` (currently `0x0201`). Binary manifest magic and the ca65 copier arrival marker use explicit ASCII byte values, avoiding cc65's PETSCII literal mapping. The asset coordinator reads exactly 52 binary bytes, checks close, parses/allocates, readback-persists the updated control, preloads/verifies all groups and finally publishes session-bound READY. Failure requires cleanup rather than a second allocation attempt. Cleanup clears asset readiness before capsule/module-session revocation and restore/verify/CLEAN; additional overlay allocations no longer bypass the launcher's shared-state cleanup.
+
+On 2026-10-04, the managed preload diagnostic ran on C64 Ultimate firmware 1.1.0, FPGA 122, core 1.49 at 192.168.1.112 with Drive A enabled. It passed native module and code-asset preload/CRC/readiness, destination capsule/plan preparation, readiness revocation and restoration, and stopped at EDITOR HANDOFF PENDING before returning to BASIC. Turbo read back as the original 0; independently checked journal slot 0 was CLEAN, sequence 34, package 513, with a valid checksum. Previous SD modules/manifest were restored with exact SHA256 parity, only newly uploaded asset files and the temporary PRG were removed, and drive settings remained unchanged. Executable managed editor entry and operation remain unverified on hardware.

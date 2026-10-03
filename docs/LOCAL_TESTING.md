@@ -46,6 +46,7 @@ Focused editor overlay gates (installed cc65, Python, VICE 3.9 and Xvfb):
 python3 tools/tests/editor_overlay_fit_test.py
 make -C client editor-overlay-fit
 make -C client code-assets-fit
+make -C client managed-package
 python3 tools/check_memory_headroom.py client/build/code-assets-fit.map --label code-assets-fit --min-headroom 1024
 python3 tools/test_code_overlay_vice.py --rom-dir /tmp/see64you-roms
 ~~~
@@ -57,13 +58,17 @@ preparing ROMs. Host cache-selector tests run in both validation scripts.
 The fit output is `client/build/editor-overlay-fit/`, including the PRG, map
 and three code binaries. The build also creates canonical code-asset copies
 and generates/revalidates `S64OVL.MNF` against that exact root and those copies.
-`code-assets-fit` only links the complete asset producer/consumer beside the
-existing launcher; it does not enable asset preload or cached editor execution.
+`code-assets-fit` enables the diagnostic launcher asset-preload/readiness path;
+it stops before executable transfer. `managed-package` assembles and validates
+the coherent preload package in `client/build/managed-package/`, including
+SEE64YOU.PRG, S64EDIT/PUB/CFG.PRG, both manifests and the three code assets.
+The ordinary launcher and public product targets remain unchanged.
 Require all groups to fit the 15 KiB execution slot,
 resident BSS below `$8C00`, and the reserved 1 KiB gap before the stack.
 The VICE fixture tests copied code and cc65 ABI with an injected reader; it
 does not validate production REU preload, DMA timing or C64U editor behavior.
-Do not upload/run the unconfigured fit PRG as a product package.
+Do not launch the managed editor directly or treat this diagnostic as a product
+release. Its entry requires a trusted copier arrival from verified caches.
 
 Both validation scripts include `code_assets_test.c` and
 `tools/tests/code_asset_manifest_test.py`. They cover manifest/root boundaries,
@@ -405,3 +410,5 @@ Firmware-1.1 REST quirks documented by the external harness still apply to autom
 The asset host suite also checks the resident bootstrap prerequisite: rejected cold arrival/version/length mismatch and DMA failure invalidate the selector; successful selection copies RUNTIME without SD access or turbo changes. Restore the pinned ROM fixture described by `tools/test_reu_vice.sh` when the temporary ROM directory is absent before rerunning the VICE command.
 
 The managed editor host suite checks adoption failure gates, asset revocation before restore/CLEAN, and retry after failed CLEAN persistence without reopening an already-restored I/O scope. The managed overlay-fit root rejects a direct cold launch with `Managed entry failed. Restart launcher.`; only a verified launcher copier arrival may start this diagnostic. Managed publisher transitions remain blocked pending ownership integration.
+
+For the managed preload hardware gate, back up existing SD S64EDIT/PUB/CFG.PRG and S64MODULE.MNF and both journals into ignored build output. Upload the package's modules, manifests and raw code assets to /sd/; run its launcher as a temporary PRG. Require PLATFORM READY, MODULE CACHE VERIFIED, SHARED SESSION READY, TRANSFER CAPSULE READY, TRANSFER PLAN READY, EDITOR HANDOFF PENDING and SESSION CLEAN. Verify turbo equals its captured prior value, both journal checksums and the newest CLEAN sequence, and unchanged drive settings. Restore the backed-up modules/manifest with exact readback parity and remove only files newly created by this test. Keep the resulting CLEAN journals. This gate passed on firmware 1.1.0 on 2026-10-04; it does not prove executable managed editor transfer.

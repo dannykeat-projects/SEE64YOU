@@ -350,6 +350,17 @@ int main(void)
     require(!destination_runtime.module_session_invalidated, "published metadata needs exit revocation");
     destination_runtime.lifecycle.store.save = save_clean_test;
     destination_runtime.lifecycle.store.context = &destination_runtime;
+    /* Overlay allocations extend the five original entries. Cleanup must
+     * still revoke capsule/shared readiness before restoring or saving CLEAN. */
+    {
+        uint8_t i;
+        for (i = 0u; i < 4u; ++i) {
+            require(s64_reu_runtime_allocate(&destination_runtime.reu_control,
+                S64_REU_OWNER_RUNTIME, 16UL, 256u, 0), "reserve later overlay entries");
+        }
+    }
+    require(destination_runtime.reu_control.allocation_count == 9u,
+        "extended allocator control reaches the cleanup regression path");
     fail_session_store = 1u;
     require(s64_launcher_session_end(&destination_runtime) == S64_SESSION_LIFECYCLE_RESTORE_FAILED,
         "failed shared revocation blocks cleanup");

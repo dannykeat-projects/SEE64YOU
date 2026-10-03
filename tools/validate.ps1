@@ -252,6 +252,7 @@ if ($HostCc) {
             "client/src/platform/turbo.c"
         )
         Invoke-CTest "launcher_exit" @("client/tests/launcher_exit_test.c")
+        Invoke-CTest "launcher_assets_exit" @("-DS64_CODE_ASSET_LAUNCHER=1", "client/tests/launcher_exit_test.c")
         Invoke-CTest "module_session" @(
             "client/tests/module_session_test.c",
             "client/src/platform/module_session_build.c",
@@ -287,6 +288,10 @@ if ($HostCc) {
         Invoke-CTest "module_transfer" @(
             "client/tests/module_transfer_test.c",
             "client/src/platform/module_transfer.c"
+        )
+        Invoke-CTest "launcher_code_assets" @(
+            "client/tests/launcher_code_assets_test.c",
+            "client/src/launcher/code_assets_runtime.c"
         )
         Invoke-CTest "managed_editor" @(
             "client/tests/managed_editor_test.c",

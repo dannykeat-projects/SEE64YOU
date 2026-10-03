@@ -76,16 +76,29 @@ S64SessionLifecycleResult s64_launcher_session_end(S64LauncherRecoveryRuntime* r
     r->lifecycle.active_record_written = 0;
     return S64_SESSION_LIFECYCLE_OK;
 }
+#ifdef S64_CODE_ASSET_LAUNCHER
+uint8_t s64_launcher_code_assets_prepare(S64LauncherRecoveryRuntime* r)
+{ (void)r; assert(verifications == 1); return stage != 15; }
+S64SessionLifecycleResult s64_launcher_code_assets_end(S64LauncherRecoveryRuntime* r)
+{ return s64_launcher_session_end(r); }
+#endif
 int main(void)
 {
+#ifdef S64_CODE_ASSET_LAUNCHER
+    for (stage = 0; stage <= 15; ++stage) {
+#else
     for (stage = 0; stage <= 14; ++stage) {
+#endif
         ends = clean = resumes = clears = verifications = 0;
         capsules = plans = 0;
         assert(launcher_main() == (stage != 0));
         assert(ends == 1 && clean == 1);
-        if (stage == 0 || stage == 9 || stage >= 13) assert(capsules == 1);
+        if (stage == 0 || stage == 9 || stage == 13 || stage == 14) assert(capsules == 1);
         if (stage == 0 || stage == 9 || stage == 14) assert(plans == 1);
         if (stage == 13) assert(plans == 0);
+#ifdef S64_CODE_ASSET_LAUNCHER
+        if (stage == 15) assert(capsules == 0 && plans == 0);
+#endif
     }
     stage = 2; cleanup_failure = 1; ends = clean = 0;
     assert(launcher_main() == 1);

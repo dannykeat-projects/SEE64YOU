@@ -42,7 +42,7 @@ C64U_SOURCES := $(filter-out src/buffer.c src/history.c,$(SOURCES)) src/buffer_r
 # Destinations validate existing state; allocation and manifest parsing stay in the launcher.
 MANAGED_EDITOR_RUNTIME_SOURCES := src/platform/code_overlay_bootstrap.c src/platform/module_arrival.c src/platform/module_runtime.c src/platform/transfer_capsule.c src/platform/module_session.c src/platform/module_manifest.c src/platform/reu_runtime.c src/platform/session_lifecycle.c src/platform/session_journal.c src/platform/system_state.c src/platform/turbo.c
 CODE_ASSET_RUNTIME_SOURCES := src/platform/code_assets_validate.c src/platform/code_assets_session.c
-CODE_ASSET_SOURCES := src/platform/code_overlay_bootstrap.c src/platform/code_assets.c $(CODE_ASSET_RUNTIME_SOURCES) src/platform/code_overlay.c
+CODE_ASSET_SOURCES := src/platform/code_assets.c $(CODE_ASSET_RUNTIME_SOURCES) src/platform/code_overlay.c
 EDITOR_PROBE_SOURCES := diagnostics/editor_probe.c src/buffer.c src/history.c src/clipboard.c src/editor.c src/editor_format.c
 UI_PROBE_SOURCES := diagnostics/ui_probe.c diagnostics/ui_conio_shim.c src/buffer.c src/history.c src/clipboard.c src/editor.c src/editor_format.c src/ui.c src/ui_status.s
 INPUT_REPEAT_PROBE_SOURCES := diagnostics/input_repeat_probe.c src/input/repeat.s
@@ -98,7 +98,7 @@ launcher: $(LAUNCHER_IMAGE)
 	# Refresh the public name even on case-insensitive Windows filesystems.
 	cp $(LAUNCHER_IMAGE) $(LAUNCHER_TARGET)
 
-$(LAUNCHER_IMAGE): $(LAUNCHER_SOURCES)
+$(LAUNCHER_IMAGE): $(LAUNCHER_SOURCES) src/platform/package_version.h
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -m build/see64you-launcher.map -o $@ $(LAUNCHER_SOURCES)
 
@@ -184,13 +184,26 @@ managed-editor-fit: $(MANAGED_EDITOR_FIT_TARGET)
 editor-overlay-fit:
 	python3 ../tools/build_editor_overlay_fit.py
 
+# Reviewable preload package only. Its launcher stops before executable DMA.
+.PHONY: managed-package
+managed-package: editor-overlay-fit code-assets-fit publisher settings
+	python3 ../tools/check_memory_headroom.py build/code-assets-fit.map --label managed-launcher --min-headroom 1024
+	@mkdir -p build/managed-package
+	cp build/code-assets-fit.prg build/managed-package/SEE64YOU.PRG
+	cp build/editor-overlay-fit/editor-overlay-fit.prg build/managed-package/S64EDIT.PRG
+	cp build/S64PUB.PRG build/S64CFG.PRG build/managed-package/
+	cp build/editor-overlay-fit/S64MODEL.BIN build/editor-overlay-fit/S64FILE.BIN build/editor-overlay-fit/S64RUN.BIN build/editor-overlay-fit/S64OVL.MNF build/managed-package/
+	python3 ../tools/generate_code_asset_manifest.py build/managed-package --root build/managed-package/S64EDIT.PRG --validate build/managed-package/S64OVL.MNF
+	python3 ../tools/generate_module_manifest.py build/managed-package --output build/managed-package/S64MODULE.MNF
+	python3 ../tools/generate_module_manifest.py build/managed-package --validate build/managed-package/S64MODULE.MNF
+
 .PHONY: code-assets-fit
-# Linkage/headroom gate only; the launcher does not call the asset pipeline yet.
+# Asset-preload diagnostic; executable handoff remains disabled.
 code-assets-fit: build/code-assets-fit.prg
 
-build/code-assets-fit.prg: $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES)
+build/code-assets-fit.prg: $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/package_version.h
 	@mkdir -p build
-	$(CL65) $(CFLAGS) -m build/code-assets-fit.map -o $@ $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES)
+	$(CL65) $(CFLAGS) -DS64_CODE_ASSET_LAUNCHER=1 -m build/code-assets-fit.map -o $@ $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c
 
 $(MANAGED_EDITOR_FIT_TARGET): $(C64U_SOURCES) $(MANAGED_EDITOR_RUNTIME_SOURCES)
 	@mkdir -p build

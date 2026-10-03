@@ -6,6 +6,8 @@
 static const char* const filenames[S64_CODE_OVERLAY_COUNT] = {
     "S64MODEL.BIN", "S64FILE.BIN", "S64RUN.BIN"
 };
+/* Generated binary wire bytes are ASCII even when cc65 literals are PETSCII. */
+static const uint8_t manifest_magic[4] = {0x53u, 0x36u, 0x34u, 0x4fu};
 static uint16_t get16(const uint8_t* in)
 { return (uint16_t)(in[0] | ((uint16_t)in[1] << 8)); }
 static uint32_t get32(const uint8_t* in)
@@ -17,7 +19,7 @@ uint8_t s64_code_assets_parse(S64CodeAssets* assets, const uint8_t* wire,
     S64CodeAssets parsed;
     uint8_t i;
     if (!assets || !wire || length != S64_CODE_ASSET_MANIFEST_SIZE
-        || !s64_code_assets_editor_valid(editor) || memcmp(wire, "S64O", 4) != 0
+        || !s64_code_assets_editor_valid(editor) || memcmp(wire, manifest_magic, 4) != 0
         || wire[4] != 1 || wire[5] != S64_CODE_OVERLAY_COUNT
         || get16(wire + 6) != S64_REU_RUNTIME_ABI_VERSION
         || get16(wire + 8) != editor->app_version

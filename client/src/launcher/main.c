@@ -7,6 +7,10 @@
 #include "platform/module_preload.h"
 #include "platform/reu_runtime.h"
 #include "platform/session_lifecycle.h"
+#include "platform/package_version.h"
+#ifdef S64_CODE_ASSET_LAUNCHER
+#include "launcher/code_assets_runtime.h"
+#endif
 
 static void show_title(void)
 {
@@ -184,7 +188,7 @@ int main(void)
         lifecycle_result = s64_launcher_session_begin(
             &recovery_runtime,
             session_id,
-            0x0201u,
+            S64_PACKAGE_VERSION,
             0UL,
             S64_SYSTEM_MODE_INTERACTIVE
         );
@@ -231,6 +235,10 @@ int main(void)
         if (!retry_lifecycle("MODULE INTEGRITY FAILED", 1u)) goto cleanup;
     }
     if (!s64_launcher_module_session_publish(&recovery_runtime)) goto cleanup;
+#ifdef S64_CODE_ASSET_LAUNCHER
+    cputs("VERIFYING EDITOR CODE...\r\n");
+    if (!s64_launcher_code_assets_prepare(&recovery_runtime)) goto cleanup;
+#endif
     if (s64_launcher_session_resume_interactive(&recovery_runtime)
             != S64_SYSTEM_OK) goto cleanup;
 
@@ -283,7 +291,11 @@ int main(void)
 cleanup:
     /* All exits that may own durable ACTIVE restore/verify before CLEAN. */
     for (;;) {
+#ifdef S64_CODE_ASSET_LAUNCHER
+        lifecycle_result = s64_launcher_code_assets_end(&recovery_runtime);
+#else
         lifecycle_result = s64_launcher_session_end(&recovery_runtime);
+#endif
         if (lifecycle_result == S64_SESSION_LIFECYCLE_OK) {
             cputs("SESSION CLEAN\r\n");
             return exit_status;

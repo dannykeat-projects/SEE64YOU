@@ -20,6 +20,7 @@
 #include "platform/module_arrival.h"
 #include "platform/code_overlay_bootstrap.h"
 #include "platform/managed_editor.h"
+#include "platform/package_version.h"
 static S64ModuleRuntime managed_runtime;
 static void managed_entry_failed(void)
 {
@@ -579,10 +580,10 @@ int main(void)
     if (!s64_module_transfer_consume_arrival(S64_MODULE_EDITOR)
         || !s64_reu_runtime_load(&managed_runtime.reu_control)
         || !s64_code_overlay_bootstrap(&managed_runtime.reu_control,
-            1u, 1u, s64_code_overlay_linked_lengths,
+            1u, S64_PACKAGE_VERSION, s64_code_overlay_linked_lengths,
             (void*)S64_CODE_OVERLAY_ADDRESS, s64_reu_load)) managed_entry_failed();
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
-    if (!s64_managed_editor_adopt(&managed_runtime, &dos, 1u)
+    if (!s64_managed_editor_adopt(&managed_runtime, &dos, S64_PACKAGE_VERSION)
         || s64_module_runtime_resume_interactive(&managed_runtime)
             != S64_SYSTEM_OK) managed_entry_failed();
 #endif

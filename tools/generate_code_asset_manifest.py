@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import re
 import struct
 import sys
 import zlib
@@ -12,6 +13,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_GENERATOR = ROOT / "tools" / "generate_module_manifest.py"
+PACKAGE_VERSION_HEADER = ROOT / "client" / "src" / "platform" / "package_version.h"
 MAGIC = b"S64O"
 FORMAT_VERSION = 1
 ABI_VERSION = 1
@@ -36,6 +38,32 @@ def _load_prg_inspector():
 
 
 inspect_prg = _load_prg_inspector()
+
+
+def package_version(header_path: Path = PACKAGE_VERSION_HEADER) -> int:
+    lines = header_path.read_text(encoding="ascii").splitlines()
+    definitions = []
+    for line in lines:
+        match = re.match(r"^\s*#\s*define\s+S64_PACKAGE_VERSION\b(.*)$", line)
+        if match:
+            definitions.append(match.group(1).strip())
+    if len(definitions) != 1:
+        raise ValueError(f"{header_path.name}: expected one S64_PACKAGE_VERSION definition")
+    match = re.fullmatch(r"(0[xX][0-9A-Fa-f]+|[0-9]+)[uU]?", definitions[0])
+    if not match:
+        raise ValueError(f"{header_path.name}: S64_PACKAGE_VERSION must be a simple integer constant")
+    literal = match.group(1)
+    value = int(literal, 16 if literal.lower().startswith("0x") else 10)
+    if not 1 <= value <= 0xFFFF:
+        raise ValueError(f"{header_path.name}: package version must be in 1..65535")
+    return value
+
+
+def resolve_version(app_version: int | None) -> int:
+    value = package_version() if app_version is None else app_version
+    if not 1 <= value <= 0xFFFF:
+        raise ValueError("app version must be in 1..65535")
+    return value
 
 
 def _crc(data: bytes, label: str) -> int:
@@ -67,9 +95,9 @@ def _asset_metadata(path: Path) -> tuple[int, int]:
     return len(data), _crc(data, path.name)
 
 
-def render(directory: Path, root: Path | None = None, app_version: int = 1) -> bytes:
-    if not 1 <= app_version <= 0xFFFF:
-        raise ValueError("app version must be in 1..65535")
+def render(directory: Path, root: Path | None = None,
+           app_version: int | None = None) -> bytes:
+    app_version = resolve_version(app_version)
     root_path = root if root is not None else directory / "editor-overlay-fit.prg"
     root_length, root_crc = inspect_root(root_path)
     result = bytearray(MANIFEST_SIZE)
@@ -85,10 +113,10 @@ def render(directory: Path, root: Path | None = None, app_version: int = 1) -> b
     return bytes(result)
 
 
-def generate(directory: Path, output: Path, root: Path | None = None, app_version: int = 1) -> bytes:
+def generate(directory: Path, output: Path, root: Path | None = None,
+             app_version: int | None = None) -> bytes:
     root_path = root if root is not None else directory / "editor-overlay-fit.prg"
-    if not 1 <= app_version <= 0xFFFF:
-        raise ValueError("app version must be in 1..65535")
+    app_version = resolve_version(app_version)
     inspect_root(root_path)
     assets: list[tuple[Path, Path, bytes]] = []
     for _group, source_name, canonical_name in GROUPS:
@@ -107,7 +135,7 @@ def generate(directory: Path, output: Path, root: Path | None = None, app_versio
 
 
 def validate(manifest_path: Path, directory: Path, root: Path | None = None,
-             app_version: int = 1) -> None:
+             app_version: int | None = None) -> None:
     expected = render(directory, root, app_version)
     actual = manifest_path.read_bytes()
     if actual != expected:
@@ -120,7 +148,7 @@ def main() -> int:
     parser.add_argument("--root", type=Path)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--validate", type=Path)
-    parser.add_argument("--app-version", type=int, default=1)
+    parser.add_argument("--app-version", type=int)
     args = parser.parse_args()
     output = args.output or args.directory / "S64OVL.MNF"
     try:

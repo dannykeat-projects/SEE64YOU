@@ -47,6 +47,7 @@ MAIN = """
 #include <stdint.h>
 #include <string.h>
 #include "platform/code_overlay.h"
+#include "platform/module_arrival.h"
 extern const uint8_t model_image[], model_image_end[];
 extern const uint8_t file_image[], file_image_end[];
 extern const uint8_t runtime_image[], runtime_image_end[];
@@ -85,6 +86,9 @@ int main(void)
     uint16_t before;
     uint32_t input;
     uint32_t expected;
+    uint8_t marker[3] = {0x53, 0x36, 1};
+    require(s64_module_arrival_consume(marker, S64_MODULE_EDITOR), 7);
+    require(!s64_module_arrival_consume(marker, S64_MODULE_EDITOR), 8);
     *(volatile uint8_t*)0xc061 = 0;
     images[0] = model_image; images[1] = file_image; images[2] = runtime_image;
     control.format_version = S64_REU_RUNTIME_FORMAT_VERSION;
@@ -139,7 +143,7 @@ def build() -> Path:
     blobs = OUT / "blobs.s"
     prg = OUT / "code-overlay-probe.prg"
     common_sources = [*sources, wrappers, CLIENT / "src/platform/code_overlay.c",
-                      CLIENT / "src/platform/reu_runtime.c"]
+                      CLIENT / "src/platform/reu_runtime.c", CLIENT / "src/platform/module_arrival.c"]
     objects = []
     for source in common_sources:
         obj = OUT / f"{source.stem}.o"
