@@ -359,6 +359,63 @@ is rejected without claiming ownership. A dedicated managed-editor fit target
 links this ownership stack beside the current C64U editor and requires at least
 1 KiB conventional-RAM headroom before production S64EDIT.PRG is switched to it.
 
+Destination builds retain the existing control/session/capsule decoders and
+validation, but omit startup-only construction and manifest parsing. These
+routines now live in reu_runtime_build.c, module_manifest_build.c,
+module_manifest_parse.c, module_session_build.c and transfer_capsule_build.c.
+The launcher and host tests link both sets; the destination fit target links
+only the consumer set. Wire formats, allocation ownership and checksums are
+unchanged. This separates startup responsibilities without duplicating codecs
+or weakening the destination checks.
+
+First-session creation now lives in session_lifecycle_start.c,
+session_journal_start.c and system_state_start.c. The turbo probe/capture
+backend lives in turbo_capture.c. Destinations bind the adoption-only turbo
+backend, retaining apply/restore/verify callbacks with no capture callback.
+They therefore cannot recapture the user's original snapshot before or after
+adoption. Startup rollback and adopted-session exit share the same CLEAN save
+helper. Launcher and capture-owning diagnostics still link full startup paths.
+
+With Ubuntu cc65 2.19 and the repository -Os flags, the 2026-10-03 gate passes
+18 affected host suites and the launcher build (8,887 bytes before the stack).
+Separating startup-only routines reduces managed-editor MAIN overflow from
+18,780 to 13,374 bytes. The current ordinary C64U editor still exceeds MAIN
+by 1,979 bytes. These are linker failures, so production adoption/execution
+remains disabled until the executing layout fits and clears its headroom gate.
+
+The separate `editor-overlay-fit` diagnostic now links a resident image and
+three internal code assets against the same final layout. MODEL holds editor
+and formatting code; FILE holds document, local storage, screen and menu code;
+RUNTIME holds destination session ownership. Their CODE/RODATA share the
+`$8C00-$C7FF` execution slot. DATA/BSS, low-level DMA, buffer/history, input,
+UCI/DOS and the cache selector stay resident. The slot ends 1 KiB below the
+software stack at `$CC00`; it is a RAM execution reservation, not a fixed REU
+bank. Each cache must be an exact MODULE allocation from the shared allocator.
+
+Resident veneers preserve A/X and both `sreg` bytes before loading a group and
+tail-calling its implementation. Same-group calls stay direct. FILE screen
+code's three MODEL selection queries use explicit resident return bridges:
+call MODEL, preserve its result, reload FILE, restore the result, return.
+The build rejects other cross-group imports. FILE's temporary string pointers
+are consumed immediately by resident status rendering; DOS document callbacks
+and session/backend callbacks run within the already loaded group. Overlay
+code is not called from interrupts.
+
+With the same cc65 toolchain, the diagnostic fit passes: MODEL 14,828 bytes,
+FILE 13,910 bytes, RUNTIME 11,649 bytes, each below the 15,360-byte slot limit;
+resident BSS ends at `$880C`. Host selector tests and a VICE 3.9 fixture passed.
+The fixture copies tiny linked code assets from resident arrays and exercises
+30 swap cycles, 32-bit arguments/results, caller restoration, persistent data
+and cache hits. It does not prove real REU DMA timing or production editor use.
+
+This is not the downloadable editor. Its cache selector is deliberately
+unconfigured and stops before jumping into missing code. Production integration
+must first integrity-check these exact assets, preload allocator-owned caches,
+bind them to the package/session and final resident layout, configure the
+selector from trusted arrival, and retain restore/verify/CLEAN exit behavior.
+Neither executable launcher handoff nor real C64U overlay validation is enabled
+by this diagnostic fit result.
+
 All launcher exits after durable ACTIVE, including partially failed session
 start, now converge on session end: restore, verify, then durable CLEAN. If
 cleanup fails, the launcher offers retry/exit and leaves ACTIVE available for

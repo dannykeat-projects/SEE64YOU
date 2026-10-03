@@ -38,6 +38,9 @@ if command -v python3 >/dev/null 2>&1; then
 
     echo "== PRG extent guard tests =="
     python3 tools/tests/prg_extent_test.py
+
+    echo "== Editor overlay fit helper tests =="
+    python3 tools/tests/editor_overlay_fit_test.py
 else
     echo "SKIP Python tests (python3 not found)"
 fi
@@ -102,84 +105,90 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
 
 echo "== Host 16 MiB REU runtime allocator tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
-    client/tests/reu_runtime_test.c client/src/platform/reu_runtime.c \
+    client/tests/reu_runtime_test.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c \
     -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host code overlay cache tests =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/code_overlay_test.c client/src/platform/code_overlay.c \
+    client/src/platform/reu_runtime.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host C64U module manifest tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
-    client/tests/module_manifest_test.c client/src/platform/module_manifest.c \
-    client/src/platform/reu_runtime.c -o "$TMP_BIN"
+    client/tests/module_manifest_test.c client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c \
+    client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host C64U system-state manager tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
-    client/tests/system_state_test.c client/src/platform/system_state.c \
+    client/tests/system_state_test.c client/src/platform/system_state.c client/src/platform/system_state_start.c \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host C64U turbo backend tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
-    client/tests/turbo_backend_test.c client/src/platform/system_state.c \
-    client/src/platform/turbo.c -o "$TMP_BIN"
+    client/tests/turbo_backend_test.c client/src/platform/system_state.c client/src/platform/system_state_start.c \
+    client/src/platform/turbo.c client/src/platform/turbo_capture.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host C64U session journal tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
-    client/tests/session_journal_test.c client/src/platform/session_journal.c \
+    client/tests/session_journal_test.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
     client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host C64U session lifecycle tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
-    client/tests/session_lifecycle_test.c client/src/platform/session_lifecycle.c \
-    client/src/platform/session_journal.c client/src/platform/system_state.c \
+    client/tests/session_lifecycle_test.c client/src/platform/session_lifecycle.c client/src/platform/session_lifecycle_start.c \
+    client/src/platform/session_journal.c client/src/platform/session_journal_start.c client/src/platform/system_state.c client/src/platform/system_state_start.c \
     client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host C64U session adoption tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
-    client/tests/session_adopt_test.c client/src/platform/system_state.c \
-    client/src/platform/turbo.c client/src/platform/session_lifecycle.c \
-    client/src/platform/session_journal.c client/src/platform/dos.c -o "$TMP_BIN"
+    client/tests/session_adopt_test.c client/src/platform/system_state.c client/src/platform/system_state_start.c \
+    client/src/platform/turbo.c client/src/platform/turbo_capture.c client/src/platform/session_lifecycle.c client/src/platform/session_lifecycle_start.c \
+    client/src/platform/session_journal.c client/src/platform/session_journal_start.c client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host C64U session recovery tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/session_recovery_test.c client/src/platform/session_recovery.c \
-    client/src/platform/session_journal.c client/src/platform/dos.c \
+    client/src/platform/session_journal.c client/src/platform/session_journal_start.c client/src/platform/dos.c \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host C64U launcher recovery flow tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/launcher_recovery_flow_test.c client/src/launcher/recovery_flow.c \
-    client/src/platform/session_recovery.c client/src/platform/session_journal.c \
+    client/src/platform/session_recovery.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
     client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host C64U launcher recovery runtime tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/launcher_recovery_runtime_test.c \
-    client/src/platform/module_session.c client/src/platform/transfer_capsule.c client/src/platform/module_transfer.c client/src/launcher/recovery_runtime.c client/src/launcher/recovery_flow.c \
-    client/src/platform/session_recovery.c client/src/platform/session_journal.c \
-    client/src/platform/session_lifecycle.c client/src/platform/system_state.c \
-    client/src/platform/module_manifest.c client/src/platform/reu_runtime.c client/src/platform/dos.c client/src/platform/turbo.c client/src/charset.c \
+    client/src/platform/module_session.c client/src/platform/module_session_build.c client/src/platform/transfer_capsule.c client/src/platform/transfer_capsule_build.c client/src/platform/module_transfer.c client/src/launcher/recovery_runtime.c client/src/launcher/recovery_flow.c \
+    client/src/platform/session_recovery.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
+    client/src/platform/session_lifecycle.c client/src/platform/session_lifecycle_start.c client/src/platform/system_state.c client/src/platform/system_state_start.c \
+    client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/dos.c client/src/platform/turbo.c client/src/platform/turbo_capture.c client/src/charset.c \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host shared module session tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
-    client/tests/module_session_test.c client/src/platform/module_session.c \
-    client/src/platform/module_manifest.c client/src/platform/reu_runtime.c \
-    client/src/platform/session_journal.c client/src/platform/dos.c -o "$TMP_BIN"
+    client/tests/module_session_test.c client/src/platform/module_session.c client/src/platform/module_session_build.c \
+    client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c \
+    client/src/platform/session_journal.c client/src/platform/session_journal_start.c client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host transfer capsule tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
-    client/tests/transfer_capsule_test.c client/src/platform/transfer_capsule.c \
-    client/src/platform/module_session.c client/src/platform/module_manifest.c \
-    client/src/platform/reu_runtime.c client/src/platform/session_journal.c \
+    client/tests/transfer_capsule_test.c client/src/platform/transfer_capsule.c client/src/platform/transfer_capsule_build.c \
+    client/src/platform/module_session.c client/src/platform/module_session_build.c client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c \
+    client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
     client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
 
@@ -192,24 +201,24 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
 echo "== Host destination module runtime tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/module_runtime_test.c client/src/platform/module_runtime.c \
-    client/src/platform/transfer_capsule.c client/src/platform/module_session.c \
-    client/src/platform/module_manifest.c client/src/platform/reu_runtime.c \
-    client/src/platform/session_lifecycle.c client/src/platform/session_journal.c \
-    client/src/platform/system_state.c client/src/platform/turbo.c \
+    client/src/platform/transfer_capsule.c client/src/platform/transfer_capsule_build.c client/src/platform/module_session.c client/src/platform/module_session_build.c \
+    client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c \
+    client/src/platform/session_lifecycle.c client/src/platform/session_lifecycle_start.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
+    client/src/platform/system_state.c client/src/platform/system_state_start.c client/src/platform/turbo.c client/src/platform/turbo_capture.c \
     client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host Ultimate DOS tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/module_integrity_test.c client/src/platform/module_integrity.c \
-    client/src/platform/module_manifest.c client/src/platform/system_state.c -o "$TMP_BIN"
+    client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/system_state.c client/src/platform/system_state_start.c -o "$TMP_BIN"
 "$TMP_BIN"
 cc -std=c99 -Wall -Wextra -Iclient/tests/launcher_stubs -Iclient/src \
     client/tests/launcher_exit_test.c -o "$TMP_BIN"
 "$TMP_BIN"
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/module_preload_test.c client/src/platform/module_preload.c \
-    client/src/platform/module_manifest.c client/src/platform/dos.c \
+    client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/dos.c \
     client/src/platform/dos_file.c client/src/platform/dos_reu.c -o "$TMP_BIN"
 "$TMP_BIN"
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/dos_test.c client/src/platform/dos.c client/src/platform/dos_file.c -o "$TMP_BIN"
@@ -334,17 +343,17 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/platform/http.c \
         client/src/platform/network.c \
         client/src/platform/reu.c \
-        client/src/platform/reu_runtime.c \
-        client/src/platform/module_manifest.c \
+        client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c \
+        client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c \
         client/src/platform/requirements.c \
         client/src/platform/preflight.c \
-        client/src/platform/session_journal.c \
-        client/src/platform/session_lifecycle.c \
+        client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
+        client/src/platform/session_lifecycle.c client/src/platform/session_lifecycle_start.c \
         client/src/platform/session_recovery.c \
         client/src/launcher/recovery_flow.c \
         client/src/launcher/recovery_runtime.c \
-        client/src/platform/system_state.c \
-        client/src/platform/turbo.c \
+        client/src/platform/system_state.c client/src/platform/system_state_start.c \
+        client/src/platform/turbo.c client/src/platform/turbo_capture.c \
         client/src/publisher/destination.c \
         client/src/publisher/state.c \
         client/src/publisher/workspace.c \

@@ -71,6 +71,8 @@ run_case() {
 
 prepare_roms
 
+python3 "$ROOT/tools/test_code_overlay_vice.py" --rom-dir "$ROM_DIR" --vice-bin "$VICE_BIN"
+
 base_editor_log="/tmp/see64you-editor.log"
 xvfb-run -a "$VICE_BIN" \
     -kernal "$ROM_DIR/kernal.rom" \

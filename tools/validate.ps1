@@ -40,6 +40,9 @@ if ($Python) {
     Invoke-Checked "Secure relay tests" {
         & $Python.Path -m unittest discover -s relay/tests -p "test_*.py"
     }
+    Invoke-Checked "Editor overlay fit helper tests" {
+        & $Python.Path tools/tests/editor_overlay_fit_test.py
+    }
 } else {
     Write-Host "SKIP secure relay tests (python not found)"
 }
@@ -162,11 +165,20 @@ if ($HostCc) {
         )
         Invoke-CTest "reu_runtime" @(
             "client/tests/reu_runtime_test.c",
+            "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime.c"
+        )
+        Invoke-CTest "code_overlay" @(
+            "client/tests/code_overlay_test.c",
+            "client/src/platform/code_overlay.c",
             "client/src/platform/reu_runtime.c"
         )
         Invoke-CTest "module_manifest" @(
             "client/tests/module_manifest_test.c",
+            "client/src/platform/module_manifest_build.c",
+            "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
+            "client/src/platform/reu_runtime_build.c",
             "client/src/platform/reu_runtime.c"
         )
         Invoke-CTest "ultimate_dos" @(
@@ -175,9 +187,13 @@ if ($HostCc) {
         )
         Invoke-CTest "session_adopt" @(
             "client/tests/session_adopt_test.c",
+            "client/src/platform/system_state_start.c",
             "client/src/platform/system_state.c",
+            "client/src/platform/turbo_capture.c",
             "client/src/platform/turbo.c",
+            "client/src/platform/session_lifecycle_start.c",
             "client/src/platform/session_lifecycle.c",
+            "client/src/platform/session_journal_start.c",
             "client/src/platform/session_journal.c",
             "client/src/platform/dos.c"
         )
@@ -185,6 +201,7 @@ if ($HostCc) {
             "client/tests/launcher_recovery_flow_test.c",
             "client/src/launcher/recovery_flow.c",
             "client/src/platform/session_recovery.c",
+            "client/src/platform/session_journal_start.c",
             "client/src/platform/session_journal.c",
             "client/src/platform/dos.c"
         )
@@ -192,34 +209,54 @@ if ($HostCc) {
             "client/src/charset.c",
             "client/tests/launcher_recovery_runtime_test.c",
             "client/src/launcher/recovery_runtime.c",
+            "client/src/platform/module_session_build.c",
             "client/src/platform/module_session.c",
+            "client/src/platform/transfer_capsule_build.c",
             "client/src/platform/transfer_capsule.c",
             "client/src/platform/module_transfer.c",
             "client/src/launcher/recovery_flow.c",
             "client/src/platform/session_recovery.c",
+            "client/src/platform/session_journal_start.c",
             "client/src/platform/session_journal.c",
+            "client/src/platform/session_lifecycle_start.c",
             "client/src/platform/session_lifecycle.c",
+            "client/src/platform/system_state_start.c",
             "client/src/platform/system_state.c",
+            "client/src/platform/module_manifest_build.c",
+            "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
+            "client/src/platform/reu_runtime_build.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/dos.c",
+            "client/src/platform/turbo_capture.c",
             "client/src/platform/turbo.c"
         )
         Invoke-CTest "launcher_exit" @("client/tests/launcher_exit_test.c")
         Invoke-CTest "module_session" @(
             "client/tests/module_session_test.c",
+            "client/src/platform/module_session_build.c",
             "client/src/platform/module_session.c",
+            "client/src/platform/module_manifest_build.c",
+            "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
+            "client/src/platform/reu_runtime_build.c",
             "client/src/platform/reu_runtime.c",
+            "client/src/platform/session_journal_start.c",
             "client/src/platform/session_journal.c",
             "client/src/platform/dos.c"
         )
         Invoke-CTest "transfer_capsule" @(
             "client/tests/transfer_capsule_test.c",
+            "client/src/platform/transfer_capsule_build.c",
             "client/src/platform/transfer_capsule.c",
+            "client/src/platform/module_session_build.c",
             "client/src/platform/module_session.c",
+            "client/src/platform/module_manifest_build.c",
+            "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
+            "client/src/platform/reu_runtime_build.c",
             "client/src/platform/reu_runtime.c",
+            "client/src/platform/session_journal_start.c",
             "client/src/platform/session_journal.c",
             "client/src/platform/dos.c"
         )
@@ -230,25 +267,39 @@ if ($HostCc) {
         Invoke-CTest "module_runtime" @(
             "client/tests/module_runtime_test.c",
             "client/src/platform/module_runtime.c",
+            "client/src/platform/transfer_capsule_build.c",
             "client/src/platform/transfer_capsule.c",
+            "client/src/platform/module_session_build.c",
             "client/src/platform/module_session.c",
+            "client/src/platform/module_manifest_build.c",
+            "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
+            "client/src/platform/reu_runtime_build.c",
             "client/src/platform/reu_runtime.c",
+            "client/src/platform/session_lifecycle_start.c",
             "client/src/platform/session_lifecycle.c",
+            "client/src/platform/session_journal_start.c",
             "client/src/platform/session_journal.c",
+            "client/src/platform/system_state_start.c",
             "client/src/platform/system_state.c",
+            "client/src/platform/turbo_capture.c",
             "client/src/platform/turbo.c",
             "client/src/platform/dos.c"
         )
         Invoke-CTest "module_integrity" @(
             "client/tests/module_integrity_test.c",
             "client/src/platform/module_integrity.c",
+            "client/src/platform/module_manifest_build.c",
+            "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
+            "client/src/platform/system_state_start.c",
             "client/src/platform/system_state.c"
         )
         Invoke-CTest "module_preload" @(
             "client/tests/module_preload_test.c",
             "client/src/platform/module_preload.c",
+            "client/src/platform/module_manifest_build.c",
+            "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
             "client/src/platform/dos.c",
             "client/src/platform/dos_file.c",

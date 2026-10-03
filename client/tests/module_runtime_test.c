@@ -155,6 +155,10 @@ int main(void)
         &reg
     );
 
+    assert(runtime.system_backend.capture == 0);
+    assert(s64_system_state_capture(&runtime.system_state) == S64_SYSTEM_INVALID);
+    assert(!runtime.system_state.captured && reg.reads == 0 && reg.writes == 0);
+
     assert(!s64_module_runtime_adopt(
         &runtime,
         S64_MODULE_EDITOR,
@@ -180,6 +184,9 @@ int main(void)
     assert(runtime.system_state.snapshot.turbo_control == 0x25u);
     assert(reg.reads == reads_before + 1u);
     assert(reg.writes == writes_before);
+    assert(s64_system_state_capture(&runtime.system_state) == S64_SYSTEM_INVALID);
+    assert(runtime.system_state.snapshot.turbo_control == journal.turbo_control);
+    assert(reg.reads == reads_before + 1u && reg.writes == writes_before);
 
     assert(s64_module_runtime_resume_interactive(&runtime) == S64_SYSTEM_OK);
     assert(runtime.system_state.mode == S64_SYSTEM_MODE_INTERACTIVE);

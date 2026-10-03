@@ -40,6 +40,25 @@ During migration some scripts still build conventional-C64 artifacts/headroom ch
 
 Do not suppress genuine warnings/errors.
 
+Focused editor overlay gates (installed cc65, Python, VICE 3.9 and Xvfb):
+
+~~~sh
+python3 tools/tests/editor_overlay_fit_test.py
+make -C client editor-overlay-fit
+python3 tools/test_code_overlay_vice.py --rom-dir /tmp/see64you-roms
+~~~
+
+Use the pinned Open ROMs and preparation procedure in `tools/test_reu_vice.sh`
+for that ROM directory, or supply an existing directory containing `kernal.rom`,
+`basic.rom` and `chargen.rom`. The full VICE script runs this ABI fixture after
+preparing ROMs. Host cache-selector tests run in both validation scripts.
+The fit output is `client/build/editor-overlay-fit/`, including the PRG, map
+and three code binaries. Require all groups to fit the 15 KiB execution slot,
+resident BSS below `$8C00`, and the reserved 1 KiB gap before the stack.
+The VICE fixture tests copied code and cc65 ABI with an injected reader; it
+does not validate production REU preload, DMA timing or C64U editor behavior.
+Do not upload/run the unconfigured fit PRG as a product package.
+
 ## 3. Current C64U package build
 
 During migration:
@@ -70,6 +89,11 @@ A conventional client/build/see64you.prg may still be produced temporarily but i
 Ultimate64 Manager is installed on the existing Windows development machine. Read the current host/profile from its local configuration rather than assuming an address remains unchanged, and never print/commit stored passwords.
 
 REST/FTP can be used for authorized upload/run/readback testing. Preserve unsaved work before remotely replacing the running PRG.
+
+Read `/v1/drives` before a hardware test and preserve the user's drive settings.
+The launcher preflight/cache path uses native Ultimate-DOS/REU and does not
+require Drive A/B or Software IEC to be disabled. Change a drive setting only
+for a verified test requirement, capture it first and restore it afterward.
 
 Downloaded SEE64YOU.CFG contains secrets. Keep test copies under ignored build output and never paste key material into logs or PR descriptions.
 

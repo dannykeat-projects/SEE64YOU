@@ -172,11 +172,11 @@ static unsigned char s64_joystick_event(S64InputEvent* event)
         joystick_repeating = 1u;
     }
 
-    if (JOY_BTN_FIRE(state)) event->type = S64_INPUT_ACTIVATE;
-    else if (JOY_BTN_UP(state)) event->type = S64_INPUT_UP;
-    else if (JOY_BTN_DOWN(state)) event->type = S64_INPUT_DOWN;
-    else if (JOY_BTN_LEFT(state)) event->type = S64_INPUT_LEFT;
-    else if (JOY_BTN_RIGHT(state)) event->type = S64_INPUT_RIGHT;
+    if (JOY_BTN_1(state)) event->type = S64_INPUT_ACTIVATE;
+    else if (JOY_UP(state)) event->type = S64_INPUT_UP;
+    else if (JOY_DOWN(state)) event->type = S64_INPUT_DOWN;
+    else if (JOY_LEFT(state)) event->type = S64_INPUT_LEFT;
+    else if (JOY_RIGHT(state)) event->type = S64_INPUT_RIGHT;
     else return 0u;
     return 1u;
 }

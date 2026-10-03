@@ -6,6 +6,7 @@
 #undef main
 
 static unsigned stage, ends, clean, cleanup_failure, resumes, clears, verifications;
+static unsigned capsules, plans;
 void clrscr(void) {}
 void cputs(const char* text) { (void)text; }
 char cgetc(void) { return 'X'; }
@@ -44,6 +45,22 @@ uint8_t s64_module_cache_verify(S64ModuleManifest* m, S64SystemState* s)
 { (void)m; (void)s; ++verifications; return stage != 10; }
 S64SystemResult s64_launcher_session_prepare_transition(S64LauncherRecoveryRuntime* r)
 { (void)r; return stage == 8 ? S64_SYSTEM_INVALID : S64_SYSTEM_OK; }
+uint8_t s64_launcher_transfer_capsule_prepare(S64LauncherRecoveryRuntime* r,
+    S64ModuleId destination)
+{
+    assert(r->lifecycle.active_record_written && verifications == 1);
+    assert(destination == S64_MODULE_EDITOR);
+    ++capsules;
+    return stage != 13;
+}
+uint8_t s64_launcher_transfer_plan_load(S64LauncherRecoveryRuntime* r,
+    S64ModuleTransferPlan* plan)
+{
+    (void)plan;
+    assert(r->lifecycle.active_record_written && capsules == 1 && stage != 13);
+    ++plans;
+    return stage != 14;
+}
 S64SystemResult s64_launcher_session_resume_interactive(S64LauncherRecoveryRuntime* r)
 {
     (void)r; ++resumes;
@@ -61,10 +78,14 @@ S64SessionLifecycleResult s64_launcher_session_end(S64LauncherRecoveryRuntime* r
 }
 int main(void)
 {
-    for (stage = 0; stage <= 12; ++stage) {
+    for (stage = 0; stage <= 14; ++stage) {
         ends = clean = resumes = clears = verifications = 0;
+        capsules = plans = 0;
         assert(launcher_main() == (stage != 0));
         assert(ends == 1 && clean == 1);
+        if (stage == 0 || stage == 9 || stage >= 13) assert(capsules == 1);
+        if (stage == 0 || stage == 9 || stage == 14) assert(plans == 1);
+        if (stage == 13) assert(plans == 0);
     }
     stage = 2; cleanup_failure = 1; ends = clean = 0;
     assert(launcher_main() == 1);

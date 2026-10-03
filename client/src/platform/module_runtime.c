@@ -50,7 +50,7 @@ void s64_module_runtime_init(
     memset(runtime, 0, sizeof(*runtime));
     runtime->dos = dos;
     s64_turbo_backend_init(&runtime->turbo, read, write, turbo_context);
-    s64_turbo_backend_bind(&runtime->system_backend);
+    s64_turbo_backend_bind_adopt(&runtime->system_backend);
     s64_system_state_init(
         &runtime->system_state,
         &runtime->system_backend,
@@ -75,7 +75,7 @@ void s64_module_runtime_init_hardware(
     memset(runtime, 0, sizeof(*runtime));
     runtime->dos = dos;
     s64_turbo_backend_init_hardware(&runtime->turbo);
-    s64_turbo_backend_bind(&runtime->system_backend);
+    s64_turbo_backend_bind_adopt(&runtime->system_backend);
     s64_system_state_init(
         &runtime->system_state,
         &runtime->system_backend,
