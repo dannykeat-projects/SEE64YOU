@@ -16,6 +16,18 @@
 #endif
 #include "storage/local.h"
 #include "ui.h"
+#ifdef S64_MANAGED_OVERLAY
+#include "platform/module_arrival.h"
+#include "platform/code_overlay_bootstrap.h"
+#include "platform/managed_editor.h"
+static S64ModuleRuntime managed_runtime;
+static void managed_entry_failed(void)
+{
+    clrscr();
+    cputs("Managed entry failed. Restart launcher.");
+    for (;;) { }
+}
+#endif
 
 #define SEARCH_TEXT_CAPACITY 33u
 #define LINE_TEXT_CAPACITY 6u
@@ -83,6 +95,9 @@ static unsigned char restore_publisher_handoff(void)
 
 static void launch_publisher(void)
 {
+#ifdef S64_MANAGED_OVERLAY
+    s64_ui_message("Publisher transition not ready");
+#else
     if (!s64_history_prepare_handoff(&editor.history)) {
         s64_ui_message("Publish handoff failed");
         return;
@@ -95,6 +110,7 @@ static void launch_publisher(void)
     }
 
     s64_chain_publisher();
+#endif
 }
 #endif
 
@@ -550,20 +566,37 @@ int main(void)
 #ifdef S64_REU_BUFFER
     unsigned char restored_handoff;
 
+#ifndef S64_MANAGED_OVERLAY
     if (!s64_reu_probe() || s64_reu_probe_banks() != 256u) {
         clrscr();
         cputs("SEE64YOU C64U\r\n16 MB REU REQUIRED\r\n");
         return 1;
     }
 #endif
+#endif
 
+#ifdef S64_MANAGED_OVERLAY
+    if (!s64_module_transfer_consume_arrival(S64_MODULE_EDITOR)
+        || !s64_reu_runtime_load(&managed_runtime.reu_control)
+        || !s64_code_overlay_bootstrap(&managed_runtime.reu_control,
+            1u, 1u, s64_code_overlay_linked_lengths,
+            (void*)S64_CODE_OVERLAY_ADDRESS, s64_reu_load)) managed_entry_failed();
+    s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
+    if (!s64_managed_editor_adopt(&managed_runtime, &dos, 1u)
+        || s64_module_runtime_resume_interactive(&managed_runtime)
+            != S64_SYSTEM_OK) managed_entry_failed();
+#endif
     s64_editor_init(&editor);
     s64_clipboard_init(&clipboard);
     s64_document_init(&document, &editor.buffer);
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
     s64_local_init(&local_document, &dos, &document);
 #ifdef S64_REU_BUFFER
+#ifdef S64_MANAGED_OVERLAY
+    restored_handoff = 0u;
+#else
     restored_handoff = restore_publisher_handoff();
+#endif
 #endif
     s64_ui_init();
     s64_input_init();
@@ -897,6 +930,10 @@ int main(void)
 
     s64_input_restore_repeat();
     s64_input_shutdown();
+#ifdef S64_MANAGED_OVERLAY
+    if (s64_managed_editor_end(&managed_runtime)
+            != S64_SESSION_LIFECYCLE_OK) managed_entry_failed();
+#endif
     clrscr();
     return 0;
 }

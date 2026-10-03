@@ -2,8 +2,8 @@
 """Build a diagnostic editor image with mutually exclusive REU code overlays.
 
 This target measures whether editor, file, and destination-runtime code can share
-one 15 KiB C64 RAM slot. It does not initialize the overlay loader or establish
-that an overlay is executable on hardware.
+one 15 KiB C64 RAM slot, including trusted-entry bootstrap and destination
+ownership. It does not establish that an overlay is executable on hardware.
 """
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ GROUPS: dict[str, tuple[str, ...]] = {
         "src/storage/local.c",
         "src/ui.c",
         "src/menu.c",
+        "src/publisher/editor_handoff.c",
     ),
     "RUNTIME": (
         "src/platform/module_runtime.c",
@@ -36,6 +37,9 @@ GROUPS: dict[str, tuple[str, ...]] = {
         "src/platform/session_journal.c",
         "src/platform/system_state.c",
         "src/platform/turbo.c",
+        "src/platform/code_assets_validate.c",
+        "src/platform/code_assets_session.c",
+        "src/platform/managed_editor.c",
     ),
 }
 GROUP_IDS = {"MODEL": 1, "FILE": 2, "RUNTIME": 3}
@@ -74,7 +78,7 @@ def make_variables(make_output: str) -> dict[str, str]:
     wanted = {"C64U_SOURCES", "MANAGED_EDITOR_RUNTIME_SOURCES", "CFLAGS", "CL65"}
     found: dict[str, str] = {}
     for line in make_output.splitlines():
-        match = re.match(r"^(C64U_SOURCES|MANAGED_EDITOR_RUNTIME_SOURCES|CFLAGS|CL65)\s*[:?+]?=\s*(.*)$", line)
+        match = re.match(r"^(C64U_SOURCES|MANAGED_EDITOR_RUNTIME_SOURCES|CODE_ASSET_RUNTIME_SOURCES|CFLAGS|CL65)\s*[:?+]?=\s*(.*)$", line)
         if match:
             found[match.group(1)] = match.group(2).strip()
     missing = wanted - found.keys()
@@ -301,7 +305,8 @@ def compile_editor_overlay_fit(
     values = make_variables(db.stdout)
     c64u = shlex.split(values["C64U_SOURCES"])
     runtime = shlex.split(values["MANAGED_EDITOR_RUNTIME_SOURCES"])
-    sources = list(dict.fromkeys(c64u + runtime + ["src/platform/code_overlay.c"]))
+    sources = list(dict.fromkeys(c64u + runtime + shlex.split(values.get("CODE_ASSET_RUNTIME_SOURCES", ""))
+                               + ["src/platform/code_overlay.c", "src/platform/managed_editor.c"]))
     group_for_source = {
         path: group for group, paths in GROUPS.items() for path in paths
     }
@@ -340,6 +345,7 @@ def compile_editor_overlay_fit(
     flags = shlex.split(values["CFLAGS"])
     if "-DS64_REU_BUFFER=1" not in flags:
         flags.append("-DS64_REU_BUFFER=1")
+    flags.append("-DS64_MANAGED_OVERLAY=1")
 
     for index, source in enumerate(sources):
         group = group_for_source.get(source)
@@ -364,6 +370,19 @@ def compile_editor_overlay_fit(
     wrapper_obj = object_dir / "code_overlay_wrappers.o"
     run([compiler, *flags, "-c", "-o", str(wrapper_obj), str(wrapper_path)], cwd=client)
     objects.append(wrapper_obj)
+    # Entry must use this exact link's sizes, never stale manifest assumptions.
+    layout_path = generated / "code_overlay_lengths.s"
+    layout_lines = ['.segment "RODATA"', '.export _s64_code_overlay_linked_lengths',
+                    '_s64_code_overlay_linked_lengths:']
+    for group in GROUPS:
+        layout_lines.extend([
+            f'.import __{group}_CODE_SIZE__, __{group}_RODATA_SIZE__',
+            f'.word __{group}_CODE_SIZE__ + __{group}_RODATA_SIZE__',
+        ])
+    layout_path.write_text("\n".join(layout_lines) + "\n", encoding="ascii")
+    layout_obj = object_dir / "code_overlay_lengths.o"
+    run([compiler, *flags, "-c", "-o", str(layout_obj), str(layout_path)], cwd=client)
+    objects.append(layout_obj)
     for group, group_objects in grouped_objects.items():
         reject_cross_group_imports(group, group_objects, definitions, od65)
 
@@ -413,6 +432,12 @@ def compile_editor_overlay_fit(
             f"Resident BSS reaches ${end:04X}; it must end below ${RESIDENT_BSS_LIMIT:04X}"
         )
     print("Diagnostic overlay fit passed. Loader activation and C64U hardware execution remain unverified.")
+    generator = ROOT / "tools" / "generate_code_asset_manifest.py"
+    manifest = output_dir / "S64OVL.MNF"
+    run([sys.executable, str(generator), str(output_dir), "--root", str(program)], cwd=client)
+    run([sys.executable, str(generator), str(output_dir), "--root", str(program),
+         "--validate", str(manifest)], cwd=client)
+    print("Exact editor/code-asset manifest generated and revalidated (diagnostic only).")
 
 
 def main() -> int:

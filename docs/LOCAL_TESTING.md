@@ -45,6 +45,8 @@ Focused editor overlay gates (installed cc65, Python, VICE 3.9 and Xvfb):
 ~~~sh
 python3 tools/tests/editor_overlay_fit_test.py
 make -C client editor-overlay-fit
+make -C client code-assets-fit
+python3 tools/check_memory_headroom.py client/build/code-assets-fit.map --label code-assets-fit --min-headroom 1024
 python3 tools/test_code_overlay_vice.py --rom-dir /tmp/see64you-roms
 ~~~
 
@@ -53,11 +55,23 @@ for that ROM directory, or supply an existing directory containing `kernal.rom`,
 `basic.rom` and `chargen.rom`. The full VICE script runs this ABI fixture after
 preparing ROMs. Host cache-selector tests run in both validation scripts.
 The fit output is `client/build/editor-overlay-fit/`, including the PRG, map
-and three code binaries. Require all groups to fit the 15 KiB execution slot,
+and three code binaries. The build also creates canonical code-asset copies
+and generates/revalidates `S64OVL.MNF` against that exact root and those copies.
+`code-assets-fit` only links the complete asset producer/consumer beside the
+existing launcher; it does not enable asset preload or cached editor execution.
+Require all groups to fit the 15 KiB execution slot,
 resident BSS below `$8C00`, and the reserved 1 KiB gap before the stack.
 The VICE fixture tests copied code and cc65 ABI with an injected reader; it
 does not validate production REU preload, DMA timing or C64U editor behavior.
 Do not upload/run the unconfigured fit PRG as a product package.
+
+Both validation scripts include `code_assets_test.c` and
+`tools/tests/code_asset_manifest_test.py`. They cover manifest/root boundaries,
+atomic reservation rollback, exact owners/flags, native preload/size/close/DMA
+failures, full-cache CRC mismatch, readback/publication failure, stale/CLEAN
+journal rejection, unchanged failed outputs and trusted-arrival-only binding.
+The module integrity regression suite also runs against the shared CRC updater.
+None of these host tests establishes real UCI/REU timing or production entry.
 
 ## 3. Current C64U package build
 
@@ -387,3 +401,7 @@ Converge on:
 - real C64U as final authority.
 
 Firmware-1.1 REST quirks documented by the external harness still apply to automation.
+
+The asset host suite also checks the resident bootstrap prerequisite: rejected cold arrival/version/length mismatch and DMA failure invalidate the selector; successful selection copies RUNTIME without SD access or turbo changes. Restore the pinned ROM fixture described by `tools/test_reu_vice.sh` when the temporary ROM directory is absent before rerunning the VICE command.
+
+The managed editor host suite checks adoption failure gates, asset revocation before restore/CLEAN, and retry after failed CLEAN persistence without reopening an already-restored I/O scope. The managed overlay-fit root rejects a direct cold launch with `Managed entry failed. Restart launcher.`; only a verified launcher copier arrival may start this diagnostic. Managed publisher transitions remain blocked pending ownership integration.

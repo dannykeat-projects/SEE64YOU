@@ -7,6 +7,7 @@
 #define S64_CODE_OVERLAY_ADDRESS 0x8c00u
 #define S64_CODE_OVERLAY_CAPACITY 0x3c00u
 
+/* Reader code must stay resident while it overwrites the execution slot. */
 typedef uint8_t (*S64CodeOverlayReader)(uint8_t, uint16_t, void*, uint16_t);
 
 /* Only supply caches whose exact linked asset bytes have been verified. */

@@ -1,22 +1,20 @@
 #include "platform/module_preload.h"
 #include "platform/reu.h"
+#include "platform/module_integrity.h"
+#include "platform/crc32.h"
 
-/* Small nibble table avoids a 1 KiB table and eight bit steps per byte. */
-static const uint32_t crc_table[16] = {
-    0x00000000UL, 0x1db71064UL, 0x3b6e20c8UL, 0x26d930acUL,
-    0x76dc4190UL, 0x6b6b51f4UL, 0x4db26158UL, 0x5005713cUL,
-    0xedb88320UL, 0xf00f9344UL, 0xd6d6a3e8UL, 0xcb61b38cUL,
-    0x9b64c2b0UL, 0x86d3d2d4UL, 0xa00ae278UL, 0xbdbdf21cUL
-};
 static uint8_t crc_scratch[256];
 
-static uint8_t verify_module(const S64ModuleDescriptor* module, S64SystemState* system)
+uint8_t s64_reu_crc32_matches(uint32_t address, uint32_t remaining,
+    uint32_t expected, S64SystemState* system)
 {
-    uint32_t address, remaining, bank_remaining, crc;
-    uint16_t length, i;
+    uint32_t bank_remaining, crc;
+    uint16_t length;
 
-    address = module->cache_address;
-    remaining = module->byte_length;
+    if (!system || !system->captured || system->restored
+        || system->mode != S64_SYSTEM_MODE_IO_SAFE || !remaining || !expected
+        || address >= S64_REU_RUNTIME_HEAP_END
+        || remaining > S64_REU_RUNTIME_HEAP_END - address) return 0u;
     crc = 0xffffffffUL;
     while (remaining != 0UL) {
         length = remaining > sizeof(crc_scratch)
@@ -27,17 +25,13 @@ static uint8_t verify_module(const S64ModuleDescriptor* module, S64SystemState* 
                 crc_scratch, length)) return 0u;
         if (s64_system_state_set_mode(system, S64_SYSTEM_MODE_CPU_INTENSIVE)
                 != S64_SYSTEM_OK) return 0u;
-        for (i = 0u; i < length; ++i) {
-            crc ^= crc_scratch[i];
-            crc = (crc >> 4) ^ crc_table[(uint8_t)(crc & 15UL)];
-            crc = (crc >> 4) ^ crc_table[(uint8_t)(crc & 15UL)];
-        }
+        crc = s64_crc32_update(crc, crc_scratch, length);
         if (s64_system_state_set_mode(system, S64_SYSTEM_MODE_IO_SAFE)
                 != S64_SYSTEM_OK) return 0u;
         address += length;
         remaining -= length;
     }
-    return (crc ^ 0xffffffffUL) == module->integrity;
+    return (crc ^ 0xffffffffUL) == expected;
 }
 
 uint8_t s64_module_cache_verify(S64ModuleManifest* manifest, S64SystemState* system)
@@ -59,7 +53,8 @@ uint8_t s64_module_cache_verify(S64ModuleManifest* manifest, S64SystemState* sys
         if (module->cache_state != S64_MODULE_CACHE_LOADED_UNVERIFIED
             || module->cache_address >= 0x01000000UL
             || module->cache_capacity > 0x01000000UL - module->cache_address
-            || !verify_module(module, system)) {
+            || !s64_reu_crc32_matches(module->cache_address, module->byte_length,
+                module->integrity, system)) {
             /* Best effort on failure; the session owner still performs verified
              * restoration before recording CLEAN. */
             s64_system_state_set_mode(system, S64_SYSTEM_MODE_IO_SAFE);

@@ -385,7 +385,8 @@ remains disabled until the executing layout fits and clears its headroom gate.
 
 The separate `editor-overlay-fit` diagnostic now links a resident image and
 three internal code assets against the same final layout. MODEL holds editor
-and formatting code; FILE holds document, local storage, screen and menu code;
+and formatting code; FILE holds document, local storage, screen, menu and
+editor publisher-handoff code;
 RUNTIME holds destination session ownership. Their CODE/RODATA share the
 `$8C00-$C7FF` execution slot. DATA/BSS, low-level DMA, buffer/history, input,
 UCI/DOS and the cache selector stay resident. The slot ends 1 KiB below the
@@ -402,19 +403,66 @@ and session/backend callbacks run within the already loaded group. Overlay
 code is not called from interrupts.
 
 With the same cc65 toolchain, the diagnostic fit passes: MODEL 14,828 bytes,
-FILE 13,910 bytes, RUNTIME 11,649 bytes, each below the 15,360-byte slot limit;
-resident BSS ends at `$880C`. Host selector tests and a VICE 3.9 fixture passed.
+FILE 13,910 bytes, RUNTIME 14,661 bytes including the asset-record consumer,
+each below the 15,360-byte slot limit; resident BSS ends at `$8A3D`.
+Host selector tests and a VICE 3.9 fixture passed.
 The fixture copies tiny linked code assets from resident arrays and exercises
 30 swap cycles, 32-bit arguments/results, caller restoration, persistent data
 and cache hits. It does not prove real REU DMA timing or production editor use.
 
-This is not the downloadable editor. Its cache selector is deliberately
-unconfigured and stops before jumping into missing code. Production integration
-must first integrity-check these exact assets, preload allocator-owned caches,
-bind them to the package/session and final resident layout, configure the
-selector from trusted arrival, and retain restore/verify/CLEAN exit behavior.
+This is not the downloadable editor. The diagnostic managed entry consumes
+the copier marker and configures the selector from exact linked lengths only
+on trusted arrival. It then adopts the original ACTIVE session, validates the
+asset record in IO_SAFE, and resumes INTERACTIVE before calling editor code.
+Cold or failed entry stops in resident code and leaves ACTIVE recoverable.
+Production integration must first integrity-check these exact assets and
+preload/publish allocator-owned caches before invoking the copier.
 Neither executable launcher handoff nor real C64U overlay validation is enabled
-by this diagnostic fit result.
+by this diagnostic fit result. Managed publisher transitions are blocked until
+their ownership path is ready. Clean editor exit revokes assets before the
+capsule/shared-session clear and restore/verify/CLEAN path; a CLEAN retry skips
+already completed revocation. Legacy publisher-return records are not imported
+into a managed initial entry.
+
+The code-asset foundation now supplies that package and session contract.
+`editor-overlay-fit` emits/revalidates `S64OVL.MNF` beside the exact resident
+PRG and canonical `S64MODEL.BIN`, `S64FILE.BIN`, `S64RUN.BIN` copies. The
+52-byte little-endian manifest contains `S64O`, format/count bytes 1/3,
+16-bit ABI/application version, slot address/capacity and zero reserved word,
+32-bit full-editor length/CRC32, three ordered length/CRC32 pairs, then CRC32
+of the preceding 48 bytes. Its root payload must end before `$8C00`, and its
+SYS address must lie inside that payload. The C parser checks the exact same
+root/version/layout binding and leaves output unchanged on failure.
+
+`code_assets.c` atomically plans three exact, 256-byte-aligned MODULE allocations
+with flags `$21/$22/$23` and a 96-byte RUNTIME record with flag 3. It first
+clears/readback-verifies prior asset readiness, then preloads the fixed raw
+filenames through native Ultimate-DOS, checks exact lengths and close results,
+and verifies every full cache CRC32 before marking any group READY. The module
+and asset paths share a bounded CRC32 updater and bank-safe REU chunk verifier;
+DMA uses IO_SAFE and hashing uses the existing temporary CPU_INTENSIVE scope.
+The owner still must restore/verify state after failures.
+
+`code_assets_session.c` publishes/readbacks the checksummed record only for a
+verified editor and completely READY asset set. Its `S64C` v1 record binds the
+exact 24-byte ACTIVE journal, root length/CRC32, three ordered READY group
+IDs/flags/cache addresses/lengths/CRCs and the execution slot. Load rejects
+CLEAN, stale/mismatched sessions, checksum/reserved-field corruption and
+non-exact cache ownership without changing output. Binding requires trusted
+arrival, never reads SD or recaptures original state, and invalidates any old
+selector configuration on failure. Failed publication blocks handoff until
+readiness can be cleared and verified; best-effort revocation alone is not
+proof of successful cleanup.
+
+The foundation passes 20 affected host suites and the same VICE ABI fixture.
+`code-assets-fit` links the complete producer beside the launcher with 2,134
+bytes before the stack; the ordinary launcher retains 8,695 bytes after the
+CRC extraction. These are layout gates. Production still does not read or
+preload the asset manifest. The resident entry must obtain launcher-validated
+cache handles before its first overlay call; the full record consumer is in
+RUNTIME and cannot bootstrap itself from an empty slot. Only after this entry
+boundary and launcher lifecycle/revocation integration are wired can the
+matching package run the real C64U handoff/exit acceptance gates.
 
 All launcher exits after durable ACTIVE, including partially failed session
 start, now converge on session end: restore, verify, then durable CLEAN. If
@@ -613,3 +661,9 @@ The following are no longer design requirements:
 - reserving $C800-$CBFF for the final loader architecture.
 
 Git history retains the earlier work.
+
+The transient copier's one-shot arrival marker is consumed by resident `module_arrival.c`, independent of the launcher transfer planner. Every attempt clears the marker, including invalid and wrong-destination attempts. A valid marker authorizes only the entry boundary; full ACTIVE session and verified asset validation are still required before managed editor operation.
+
+Resident `code_overlay_bootstrap.c` validates the application version and three exact linked asset lengths against unique, aligned MODULE caches with flags ` $21-$23` before selecting RUNTIME. It requires a caller-consumed trusted copier arrival from the launcher, whose preload must already have verified and published READY assets. It does not independently authorize persistent REU state or adopt a session. The entry caller must subsequently validate the complete asset record and adopt the ACTIVE session before editor operation. Every bootstrap failure invalidates the selector. This helper is host-tested and linked in the diagnostic fit, but entry wiring remains pending.
+
+The diagnostic final link exports `s64_code_overlay_linked_lengths` as three resident 16-bit values in MODEL/FILE/RUNTIME order, derived from linker CODE/RODATA sizes. Bootstrap entry can therefore use its own linked lengths without reading an SD manifest or duplicating size constants.

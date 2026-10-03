@@ -43,6 +43,9 @@ if ($Python) {
     Invoke-Checked "Editor overlay fit helper tests" {
         & $Python.Path tools/tests/editor_overlay_fit_test.py
     }
+    Invoke-Checked "Code asset manifest tests" {
+        & $Python.Path tools/tests/code_asset_manifest_test.py
+    }
 } else {
     Write-Host "SKIP secure relay tests (python not found)"
 }
@@ -181,6 +184,23 @@ if ($HostCc) {
             "client/src/platform/reu_runtime_build.c",
             "client/src/platform/reu_runtime.c"
         )
+        Invoke-CTest "code_assets" @(
+            "client/tests/code_assets_test.c",
+            "client/src/platform/code_overlay_bootstrap.c",
+            "client/src/platform/code_assets.c",
+            "client/src/platform/code_assets_validate.c",
+            "client/src/platform/code_assets_session.c",
+            "client/src/platform/code_overlay.c",
+            "client/src/platform/crc32.c",
+            "client/src/platform/module_integrity.c",
+            "client/src/platform/module_manifest.c",
+            "client/src/platform/reu_runtime.c",
+            "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/session_journal.c",
+            "client/src/platform/session_journal_start.c",
+            "client/src/platform/system_state.c",
+            "client/src/platform/system_state_start.c"
+        )
         Invoke-CTest "ultimate_dos" @(
             "client/tests/dos_test.c",
             "client/src/platform/dos.c"
@@ -260,9 +280,17 @@ if ($HostCc) {
             "client/src/platform/session_journal.c",
             "client/src/platform/dos.c"
         )
+        Invoke-CTest "module_arrival" @(
+            "client/tests/module_arrival_test.c",
+            "client/src/platform/module_arrival.c"
+        )
         Invoke-CTest "module_transfer" @(
             "client/tests/module_transfer_test.c",
             "client/src/platform/module_transfer.c"
+        )
+        Invoke-CTest "managed_editor" @(
+            "client/tests/managed_editor_test.c",
+            "client/src/platform/managed_editor.c"
         )
         Invoke-CTest "module_runtime" @(
             "client/tests/module_runtime_test.c",
@@ -289,6 +317,7 @@ if ($HostCc) {
         Invoke-CTest "module_integrity" @(
             "client/tests/module_integrity_test.c",
             "client/src/platform/module_integrity.c",
+            "client/src/platform/crc32.c",
             "client/src/platform/module_manifest_build.c",
             "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",

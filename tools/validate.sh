@@ -41,6 +41,7 @@ if command -v python3 >/dev/null 2>&1; then
 
     echo "== Editor overlay fit helper tests =="
     python3 tools/tests/editor_overlay_fit_test.py
+    python3 tools/tests/code_asset_manifest_test.py
 else
     echo "SKIP Python tests (python3 not found)"
 fi
@@ -113,6 +114,17 @@ echo "== Host code overlay cache tests =="
 cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
     client/tests/code_overlay_test.c client/src/platform/code_overlay.c \
     client/src/platform/reu_runtime.c -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host code asset preload/session tests =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/code_assets_test.c client/src/platform/code_overlay_bootstrap.c client/src/platform/code_assets.c \
+    client/src/platform/code_assets_validate.c client/src/platform/code_assets_session.c \
+    client/src/platform/code_overlay.c client/src/platform/crc32.c \
+    client/src/platform/module_integrity.c client/src/platform/module_manifest.c \
+    client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c \
+    client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
+    client/src/platform/system_state.c client/src/platform/system_state_start.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host C64U module manifest tests =="
@@ -192,9 +204,21 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
     client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host one-shot module arrival tests =="
+cc -std=c99 -Wall -Wextra -Iclient/src \
+    client/tests/module_arrival_test.c client/src/platform/module_arrival.c \
+    -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host module transfer plan tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/module_transfer_test.c client/src/platform/module_transfer.c \
+    -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host managed editor adoption/exit tests =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/managed_editor_test.c client/src/platform/managed_editor.c \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
@@ -210,7 +234,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
 
 echo "== Host Ultimate DOS tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
-    client/tests/module_integrity_test.c client/src/platform/module_integrity.c \
+    client/tests/module_integrity_test.c client/src/platform/module_integrity.c client/src/platform/crc32.c \
     client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/system_state.c client/src/platform/system_state_start.c -o "$TMP_BIN"
 "$TMP_BIN"
 cc -std=c99 -Wall -Wextra -Iclient/tests/launcher_stubs -Iclient/src \
@@ -338,7 +362,7 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/platform/dos_file.c \
         client/src/platform/dos_reu.c \
         client/src/platform/module_preload.c \
-        client/src/platform/module_integrity.c \
+        client/src/platform/module_integrity.c client/src/platform/crc32.c \
         client/src/platform/companion_loader.c \
         client/src/platform/http.c \
         client/src/platform/network.c \

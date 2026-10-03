@@ -6,7 +6,6 @@
 #define S64_TRANSFER_STUB_BASE 0x0700u
 #define S64_TRANSFER_PARAM_BASE 0x07d0u
 #define S64_TRANSFER_STUB_CAPACITY (S64_TRANSFER_PARAM_BASE - S64_TRANSFER_STUB_BASE)
-#define S64_TRANSFER_ARRIVAL_BASE 0x02a7u
 
 extern const uint8_t s64_module_transfer_stub_image[];
 extern const uint8_t s64_module_transfer_stub_end[];
@@ -103,16 +102,4 @@ uint8_t s64_module_transfer_execute(const S64ModuleTransferPlan* plan)
     return 0u;
 }
 
-uint8_t s64_module_transfer_consume_arrival(S64ModuleId destination)
-{
-    volatile uint8_t* marker = (volatile uint8_t*)S64_TRANSFER_ARRIVAL_BASE;
-    uint8_t valid = marker[0] == 'S'
-        && marker[1] == '6'
-        && marker[2] == (uint8_t)destination;
-
-    marker[0] = 0u;
-    marker[1] = 0u;
-    marker[2] = 0u;
-    return valid;
-}
 #endif
