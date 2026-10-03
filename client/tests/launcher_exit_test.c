@@ -6,7 +6,7 @@
 #undef main
 
 static unsigned stage, ends, clean, cleanup_failure, resumes, clears, verifications;
-static unsigned capsules, plans;
+static unsigned capsules, plans, executions;
 void clrscr(void) {}
 void cputs(const char* text) { (void)text; }
 char cgetc(void) { return 'X'; }
@@ -82,6 +82,14 @@ uint8_t s64_launcher_code_assets_prepare(S64LauncherRecoveryRuntime* r)
 S64SessionLifecycleResult s64_launcher_code_assets_end(S64LauncherRecoveryRuntime* r)
 { return s64_launcher_session_end(r); }
 #endif
+#ifdef S64_EXECUTABLE_HANDOFF
+uint8_t s64_module_transfer_execute(const S64ModuleTransferPlan* plan)
+{
+    assert(plan && plans == 1 && stage != 14);
+    ++executions;
+    return 0u;
+}
+#endif
 int main(void)
 {
 #ifdef S64_CODE_ASSET_LAUNCHER
@@ -90,8 +98,14 @@ int main(void)
     for (stage = 0; stage <= 14; ++stage) {
 #endif
         ends = clean = resumes = clears = verifications = 0;
-        capsules = plans = 0;
+        capsules = plans = executions = 0;
+#ifdef S64_EXECUTABLE_HANDOFF
+        /* A copier that returns failed to start: always revoke/restore/CLEAN. */
+        assert(launcher_main() == 1);
+        assert(executions == (stage == 0 || stage == 9));
+#else
         assert(launcher_main() == (stage != 0));
+#endif
         assert(ends == 1 && clean == 1);
         if (stage == 0 || stage == 9 || stage == 13 || stage == 14) assert(capsules == 1);
         if (stage == 0 || stage == 9 || stage == 14) assert(plans == 1);

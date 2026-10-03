@@ -22,10 +22,11 @@
 #include "platform/managed_editor.h"
 #include "platform/package_version.h"
 static S64ModuleRuntime managed_runtime;
-static void managed_entry_failed(void)
+static void managed_entry_failed(uint8_t stage)
 {
     clrscr();
     cputs("Managed entry failed. Restart launcher.");
+    cputc((char)('0' + stage));
     for (;;) { }
 }
 #endif
@@ -577,15 +578,15 @@ int main(void)
 #endif
 
 #ifdef S64_MANAGED_OVERLAY
-    if (!s64_module_transfer_consume_arrival(S64_MODULE_EDITOR)
-        || !s64_reu_runtime_load(&managed_runtime.reu_control)
-        || !s64_code_overlay_bootstrap(&managed_runtime.reu_control,
+    if (!s64_module_transfer_consume_arrival(S64_MODULE_EDITOR)) managed_entry_failed(1u);
+    if (!s64_reu_runtime_load(&managed_runtime.reu_control)) managed_entry_failed(2u);
+    if (!s64_code_overlay_bootstrap(&managed_runtime.reu_control,
             1u, S64_PACKAGE_VERSION, s64_code_overlay_linked_lengths,
-            (void*)S64_CODE_OVERLAY_ADDRESS, s64_reu_load)) managed_entry_failed();
+            (void*)S64_CODE_OVERLAY_ADDRESS, s64_reu_load)) managed_entry_failed(3u);
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
-    if (!s64_managed_editor_adopt(&managed_runtime, &dos, S64_PACKAGE_VERSION)
-        || s64_module_runtime_resume_interactive(&managed_runtime)
-            != S64_SYSTEM_OK) managed_entry_failed();
+    if (!s64_managed_editor_adopt(&managed_runtime, &dos, S64_PACKAGE_VERSION)) managed_entry_failed(4u);
+    if (s64_module_runtime_resume_interactive(&managed_runtime)
+            != S64_SYSTEM_OK) managed_entry_failed(5u);
 #endif
     s64_editor_init(&editor);
     s64_clipboard_init(&clipboard);
@@ -933,7 +934,7 @@ int main(void)
     s64_input_shutdown();
 #ifdef S64_MANAGED_OVERLAY
     if (s64_managed_editor_end(&managed_runtime)
-            != S64_SESSION_LIFECYCLE_OK) managed_entry_failed();
+            != S64_SESSION_LIFECYCLE_OK) managed_entry_failed(6u);
 #endif
     clrscr();
     return 0;

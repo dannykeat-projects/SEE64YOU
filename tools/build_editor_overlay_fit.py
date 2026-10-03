@@ -155,6 +155,8 @@ def assembler_wrappers(groups: dict[str, list[str]]) -> str:
         '.import _s64_code_overlay_enter',
         '.importzp sreg',
         '.import __HIMEM__, __STACKSIZE__',
+        '.import __MAIN_START__, __MAIN_SIZE__',
+        '.assert __MAIN_START__ + __MAIN_SIZE__ = __HIMEM__, lderror, "crt0 software stack must start at HIMEM"',
         '.assert __HIMEM__ - __STACKSIZE__ - $C800 >= $0400, lderror, "Overlay requires 1 KiB before stack"',
     ]
     for group, names in groups.items():

@@ -67,9 +67,11 @@ _s64_module_transfer_stub_image:
     lda PARAM_SAVED_MEM
     sta $01
 
-    lda #'S'
+    ; cl65's C64 target maps assembler character literals to PETSCII too.
+    ; Keep this one-shot wire marker ASCII, matching the resident consumer.
+    lda #$53
     sta ARRIVAL_0
-    lda #'6'
+    lda #$36
     sta ARRIVAL_1
     lda PARAM_DESTINATION
     sta ARRIVAL_DEST

@@ -253,6 +253,7 @@ if ($HostCc) {
         )
         Invoke-CTest "launcher_exit" @("client/tests/launcher_exit_test.c")
         Invoke-CTest "launcher_assets_exit" @("-DS64_CODE_ASSET_LAUNCHER=1", "client/tests/launcher_exit_test.c")
+        Invoke-CTest "launcher_handoff_exit" @("-DS64_CODE_ASSET_LAUNCHER=1", "-DS64_EXECUTABLE_HANDOFF=1", "client/tests/launcher_exit_test.c")
         Invoke-CTest "module_session" @(
             "client/tests/module_session_test.c",
             "client/src/platform/module_session_build.c",

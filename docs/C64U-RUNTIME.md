@@ -245,7 +245,7 @@ Manifest lengths and CRC32 therefore describe those exact cached bytes. A future
 execution transfer must skip those two header bytes when copying into C64 RAM.
 Cache states are EMPTY, LOADED_UNVERIFIED and READY. After preload, the launcher
 verifies all three cached full-file CRC32 values against the manifest before
-marking the whole set READY. Executable handoff remains unimplemented.
+marking the whole set READY. Executable handoff is enabled only in the managed diagnostic package.
 Any failed transfer/size/close leaves that entry EMPTY. A retry resets all states
 before loading the full set again. CRC32 uses the standard reflected polynomial 0xEDB88320, initial/final XOR
 0xFFFFFFFF, matching the build generator's zlib CRC32. A 64-byte nibble table
@@ -403,8 +403,12 @@ and session/backend callbacks run within the already loaded group. Overlay
 code is not called from interrupts.
 
 With the same cc65 toolchain, the diagnostic fit passes: MODEL 14,828 bytes,
-FILE 13,910 bytes, RUNTIME 14,661 bytes including the asset-record consumer,
-each below the 15,360-byte slot limit; resident BSS ends at `$8A3D`.
+FILE 14,773 bytes, RUNTIME 14,929 bytes including the asset-record consumer,
+each below the 15,360-byte slot limit; resident BSS ends at `$8BA2`.
+cc65 crt0 starts its software stack at MAIN start + size, so MAIN extends to
+`$D000` while the separate resident-fit check keeps BSS below `$8C00`.
+The linker asserts that actual crt0 stack origin equals HIMEM; the 1 KiB
+stack occupies `$CC00-$CFFF`, above the overlay slot and its 1 KiB gap.
 Host selector tests and a VICE 3.9 fixture passed.
 The fixture copies tiny linked code assets from resident arrays and exercises
 30 swap cycles, 32-bit arguments/results, caller restoration, persistent data
@@ -416,9 +420,11 @@ on trusted arrival. It then adopts the original ACTIVE session, validates the
 asset record in IO_SAFE, and resumes INTERACTIVE before calling editor code.
 Cold or failed entry stops in resident code and leaves ACTIVE recoverable.
 The diagnostic asset launcher now integrity-checks these exact assets and
-preloads/publishes allocator-owned caches. It still stops before the copier.
-Neither executable launcher handoff nor real C64U overlay validation is enabled
-by this diagnostic fit result. Managed publisher transitions are blocked until
+preloads/publishes allocator-owned caches. `managed-package` stops before the
+copier; `managed-handoff-package` explicitly enables the diagnostic executable
+transfer and requires the same exact manifests and launcher headroom gate.
+Normal/public package targets still stop before executable transfer.
+Managed publisher transitions are blocked until
 their ownership path is ready. Clean editor exit revokes assets before the
 capsule/shared-session clear and restore/verify/CLEAN path; a CLEAN retry skips
 already completed revocation. Legacy publisher-return records are not imported
@@ -647,7 +653,21 @@ and verified turbo restoration with durable CLEAN from captured bytes 0 and 2.
 The shared session record also round trips through the consumer decoder on
 hardware, and the diagnostic rejects it against the newest durable CLEAN and
 a simulated leftover ACTIVE capsule after exit revocation.
-Executable cached-module handoff remains unimplemented.
+On 2026-10-04, `managed-handoff-package` ran the real cached Launcher -> Editor
+transfer, trusted arrival, original ACTIVE snapshot adoption, asset binding and
+INTERACTIVE resume. The editor declined a preserved recovery snapshot, displayed
+injected `TEST` text, then accepted RUN/STOP and discard confirmation. Clean exit
+returned to BASIC; independent journal checksum readback confirmed newest CLEAN
+sequence 52/package 513. This exercises the software manager's restore/verify;
+REST RAM DMA reads of `$D031` do not independently prove live I/O-register state.
+Original SD companions, manifest and recovery file were restored with exact
+SHA256 readback parity; only newly created diagnostic files were removed. Drive
+configuration remained unchanged, including enabled Drive A. Physical keyboard,
+long editing sessions and managed Publisher/Settings transitions remain untested.
+The destination crt0 currently captures the nested source call stack whose
+return addresses refer to overwritten launcher code. Observed BASIC return is not proof that the original
+SYS/zero-page/memory-map exit context is safe; an explicit transferable return
+context remains a prerequisite for product activation.
 
 ## 22. Retired production constraints
 
@@ -664,10 +684,10 @@ Git history retains the earlier work.
 
 The transient copier's one-shot arrival marker is consumed by resident `module_arrival.c`, independent of the launcher transfer planner. Every attempt clears the marker, including invalid and wrong-destination attempts. A valid marker authorizes only the entry boundary; full ACTIVE session and verified asset validation are still required before managed editor operation.
 
-Resident `code_overlay_bootstrap.c` validates the application version and three exact linked asset lengths against unique, aligned MODULE caches with flags ` $21-$23` before selecting RUNTIME. It requires a caller-consumed trusted copier arrival from the launcher, whose preload must already have verified and published READY assets. It does not independently authorize persistent REU state or adopt a session. The entry caller must subsequently validate the complete asset record and adopt the ACTIVE session before editor operation. Every bootstrap failure invalidates the selector. This helper is host-tested and linked in the diagnostic fit, but entry wiring remains pending.
+Resident `code_overlay_bootstrap.c` validates the application version and three exact linked asset lengths against unique, aligned MODULE caches with flags ` $21-$23` before selecting RUNTIME. It requires a caller-consumed trusted copier arrival from the launcher, whose preload must already have verified and published READY assets. It does not independently authorize persistent REU state or adopt a session. The entry caller must subsequently validate the complete asset record and adopt the ACTIVE session before editor operation. Every bootstrap failure invalidates the selector. This helper is host-tested and wired into the diagnostic managed entry.
 
 The diagnostic final link exports `s64_code_overlay_linked_lengths` as three resident 16-bit values in MODEL/FILE/RUNTIME order, derived from linker CODE/RODATA sizes. Bootstrap entry can therefore use its own linked lengths without reading an SD manifest or duplicating size constants.
 
 The `managed-package` diagnostic aligns launcher, managed editor and generated asset metadata through `platform/package_version.h` (currently `0x0201`). Binary manifest magic and the ca65 copier arrival marker use explicit ASCII byte values, avoiding cc65's PETSCII literal mapping. The asset coordinator reads exactly 52 binary bytes, checks close, parses/allocates, readback-persists the updated control, preloads/verifies all groups and finally publishes session-bound READY. Failure requires cleanup rather than a second allocation attempt. Cleanup clears asset readiness before capsule/module-session revocation and restore/verify/CLEAN; additional overlay allocations no longer bypass the launcher's shared-state cleanup.
 
-On 2026-10-04, the managed preload diagnostic ran on C64 Ultimate firmware 1.1.0, FPGA 122, core 1.49 at 192.168.1.112 with Drive A enabled. It passed native module and code-asset preload/CRC/readiness, destination capsule/plan preparation, readiness revocation and restoration, and stopped at EDITOR HANDOFF PENDING before returning to BASIC. Turbo read back as the original 0; independently checked journal slot 0 was CLEAN, sequence 34, package 513, with a valid checksum. Previous SD modules/manifest were restored with exact SHA256 parity, only newly uploaded asset files and the temporary PRG were removed, and drive settings remained unchanged. Executable managed editor entry and operation remain unverified on hardware.
+On 2026-10-04, the managed preload diagnostic ran on C64 Ultimate firmware 1.1.0, FPGA 122, core 1.49 at 192.168.1.112 with Drive A enabled. It passed native module and code-asset preload/CRC/readiness, destination capsule/plan preparation, readiness revocation and restoration, and stopped at EDITOR HANDOFF PENDING before returning to BASIC. The common system-state manager restored/verified captured turbo 0; independently checked journal slot 0 was CLEAN, sequence 34, package 513, with a valid checksum. REST RAM-shadow readback was not independent live-register verification. Previous SD modules/manifest were restored with exact SHA256 parity, only newly uploaded asset files and the temporary PRG were removed, and drive settings remained unchanged. The subsequent executable entry/short edit/exit gate is recorded in section 21.

@@ -205,6 +205,15 @@ build/code-assets-fit.prg: $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launche
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -DS64_CODE_ASSET_LAUNCHER=1 -m build/code-assets-fit.map -o $@ $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c
 
+.PHONY: managed-handoff-package
+managed-handoff-package: managed-package build/managed-handoff-launcher.prg
+	python3 ../tools/check_memory_headroom.py build/managed-handoff-launcher.map --label managed-handoff-launcher --min-headroom 1024
+	cp build/managed-handoff-launcher.prg build/managed-package/SEE64YOU.PRG
+
+build/managed-handoff-launcher.prg: $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/package_version.h
+	@mkdir -p build
+	$(CL65) $(CFLAGS) -DS64_CODE_ASSET_LAUNCHER=1 -DS64_EXECUTABLE_HANDOFF=1 -m build/managed-handoff-launcher.map -o $@ $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c
+
 $(MANAGED_EDITOR_FIT_TARGET): $(C64U_SOURCES) $(MANAGED_EDITOR_RUNTIME_SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -m build/managed-editor-fit.map -o $@ $(C64U_SOURCES) $(MANAGED_EDITOR_RUNTIME_SOURCES)

@@ -17,9 +17,9 @@ uint8_t s64_module_transfer_plan(
     const S64TransferCapsule* capsule,
     S64ModuleTransferPlan* plan
 );
-#ifdef __CC65__
 /* Success does not return: execution continues at plan->startup_address. */
 uint8_t s64_module_transfer_execute(const S64ModuleTransferPlan* plan);
+#ifdef __CC65__
 /* One-shot proof that startup arrived through the transient transfer stub. */
 uint8_t s64_module_transfer_consume_arrival(S64ModuleId destination);
 #endif

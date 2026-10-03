@@ -411,4 +411,17 @@ The asset host suite also checks the resident bootstrap prerequisite: rejected c
 
 The managed editor host suite checks adoption failure gates, asset revocation before restore/CLEAN, and retry after failed CLEAN persistence without reopening an already-restored I/O scope. The managed overlay-fit root rejects a direct cold launch with `Managed entry failed. Restart launcher.`; only a verified launcher copier arrival may start this diagnostic. Managed publisher transitions remain blocked pending ownership integration.
 
+For the executable diagnostic, build `make -C client managed-handoff-package`.
+This replaces only the diagnostic package's launcher with an executable-transfer
+variant; normal/public targets remain gated. Preserve existing SD companions,
+manifest and `SEE64YOU.REC`, then upload matching package companions, manifests
+and raw assets. Run its launcher from a disposable PRG path. Wait for managed
+editor entry before injecting input. Decline recovery, type a short string and
+verify it appears in the document, then RUN/STOP and confirm discard. Verify
+return to BASIC and the newest checksummed journal is CLEAN. Restore preserved
+files with exact readback parity, remove only newly created diagnostic files,
+and compare drive settings. Keep the new CLEAN journals. This gate passed on
+firmware 1.1.0 on 2026-10-04 (CLEAN sequence 52/package 513). REST memory DMA
+readback of I/O addresses is RAM-shadow evidence, not a live turbo-register check.
+
 For the managed preload hardware gate, back up existing SD S64EDIT/PUB/CFG.PRG and S64MODULE.MNF and both journals into ignored build output. Upload the package's modules, manifests and raw code assets to /sd/; run its launcher as a temporary PRG. Require PLATFORM READY, MODULE CACHE VERIFIED, SHARED SESSION READY, TRANSFER CAPSULE READY, TRANSFER PLAN READY, EDITOR HANDOFF PENDING and SESSION CLEAN. Verify turbo equals its captured prior value, both journal checksums and the newest CLEAN sequence, and unchanged drive settings. Restore the backed-up modules/manifest with exact readback parity and remove only files newly created by this test. Keep the resulting CLEAN journals. This gate passed on firmware 1.1.0 on 2026-10-04; it does not prove executable managed editor transfer.

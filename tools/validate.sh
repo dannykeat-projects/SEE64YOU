@@ -249,6 +249,9 @@ cc -std=c99 -Wall -Wextra -Iclient/tests/launcher_stubs -Iclient/src \
 cc -std=c99 -Wall -Wextra -DS64_CODE_ASSET_LAUNCHER=1 -Iclient/tests/launcher_stubs -Iclient/src \
     client/tests/launcher_exit_test.c -o "$TMP_BIN"
 "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -DS64_CODE_ASSET_LAUNCHER=1 -DS64_EXECUTABLE_HANDOFF=1 -Iclient/tests/launcher_stubs -Iclient/src \
+    client/tests/launcher_exit_test.c -o "$TMP_BIN"
+"$TMP_BIN"
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/module_preload_test.c client/src/platform/module_preload.c \
     client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/dos.c \

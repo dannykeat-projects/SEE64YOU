@@ -553,6 +553,10 @@ void s64_ui_render_cursor(const S64Editor* editor)
 void s64_ui_message(const char* message)
 {
     render_status_text(message);
+    /* Append rendering prints at the conio cursor, so retain its body position. */
+    if (cursor_position_valid) {
+        gotoxy(cursor_col, cursor_row);
+    }
 }
 
 void s64_ui_show_help(void)

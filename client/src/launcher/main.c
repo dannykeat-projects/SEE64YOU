@@ -8,6 +8,9 @@
 #include "platform/reu_runtime.h"
 #include "platform/session_lifecycle.h"
 #include "platform/package_version.h"
+#if defined(S64_EXECUTABLE_HANDOFF) && !defined(S64_CODE_ASSET_LAUNCHER)
+#error Executable handoff requires verified code asset preload
+#endif
 #ifdef S64_CODE_ASSET_LAUNCHER
 #include "launcher/code_assets_runtime.h"
 #endif
@@ -281,6 +284,12 @@ int main(void)
      */
     cputs("TRANSFER CAPSULE READY\r\n");
     cputs("TRANSFER PLAN READY\r\n");
+#ifdef S64_EXECUTABLE_HANDOFF
+    /* Successful execution replaces this image and never returns. */
+    (void)s64_module_transfer_execute(&transfer_plan);
+    cputs("TRANSFER DID NOT START\r\n");
+    goto cleanup;
+#else
     cputs("EDITOR HANDOFF PENDING\r\n");
     system_result = s64_launcher_session_resume_interactive(&recovery_runtime);
     if (system_result != S64_SYSTEM_OK) {
@@ -288,6 +297,7 @@ int main(void)
     }
 
     exit_status = 0u;
+#endif
 cleanup:
     /* All exits that may own durable ACTIVE restore/verify before CLEAN. */
     for (;;) {
