@@ -45,6 +45,7 @@ uint8_t s64_reu_runtime_valid(const S64ReuRuntimeControl* control)
         || control->format_version != S64_REU_RUNTIME_FORMAT_VERSION
         || control->abi_version != S64_REU_RUNTIME_ABI_VERSION
         || control->session_id == 0UL
+        || (control->state_flags & (uint8_t)~S64_REU_RUNTIME_STATE_FLAGS_MASK) != 0u
         || control->allocation_count > S64_REU_RUNTIME_MAX_ALLOCATIONS
         || control->next_free < S64_REU_RUNTIME_HEAP_START
         || control->next_free > S64_REU_RUNTIME_HEAP_END) {

@@ -108,9 +108,30 @@ int main(void)
         && decoded.allocations[1].address == second.address,
         "allocation table round trips");
 
+    control.state_flags = S64_REU_RUNTIME_STATE_APPLICATION_VALID;
+    require(s64_reu_runtime_valid(&control),
+        "known application-state validity flag is accepted");
+    require(s64_reu_runtime_encode(&control, wire)
+        && s64_reu_runtime_decode(&decoded, wire)
+        && decoded.state_flags == S64_REU_RUNTIME_STATE_APPLICATION_VALID,
+        "application-state validity flag round trips");
+    control.state_flags = 0u;
+
     wire[30] ^= 0x80u;
     require(!s64_reu_runtime_decode(&decoded, wire),
         "checksum rejects corrupted control block");
+
+    require(s64_reu_runtime_encode(&control, wire),
+        "control block re-encodes before state-flag rejection test");
+    wire[12] = 0x80u;
+    checksum = s64_reu_runtime_wire_checksum(wire);
+    wire[S64_REU_RUNTIME_CHECKSUM_OFFSET] = (uint8_t)checksum;
+    wire[S64_REU_RUNTIME_CHECKSUM_OFFSET + 1u] = (uint8_t)(checksum >> 8);
+    before = decoded;
+    require(!s64_reu_runtime_decode(&decoded, wire),
+        "unknown runtime state flags are rejected");
+    require(memcmp(&before, &decoded, sizeof(decoded)) == 0,
+        "rejected state flags preserve destination control");
 
     memset(fake_reu_control, 0, sizeof(fake_reu_control));
     require(s64_reu_runtime_store_verified(&control),
