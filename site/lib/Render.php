@@ -173,15 +173,15 @@ function s64_render_layout(array $config, array $pages, string $title, string $c
             if ($page['slug'] === 'home') {
                 continue;
             }
-            echo ' | <a href="page.php?slug='
+            echo '<span class="s64-menu-separator"> | </span><a href="page.php?slug='
                 . rawurlencode((string)$page['slug']) . '">'
                 . htmlspecialchars((string)$page['title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
                 . '</a>';
         }
 
-        echo ' | <a href="posts.php">Posts</a>';
+        echo '<span class="s64-menu-separator"> | </span><a href="posts.php">Posts</a>';
         if (s64_theme_admin_visible($config)) {
-            echo ' | <a href="themes.php">Themes</a>';
+            echo '<span class="s64-menu-separator"> | </span><a href="themes.php">Themes</a>';
         }
         echo '</div></nav>';
     }
