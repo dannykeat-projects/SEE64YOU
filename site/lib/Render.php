@@ -101,8 +101,9 @@ function s64_theme_css(array $config): string
 
     if ($theme === 'c64') {
         return '@font-face{font-family:"See64You C64";src:url("assets/fonts/c64.ttf") format("truetype");font-weight:normal;font-style:normal;}'
-            . 'body{max-width:40em;margin:2em auto;padding:1em;font-family:"See64You C64","Courier New",Courier,monospace;'
-            . "color:$text;background:$background;line-height:1.5}"
+            . 'body{max-width:42em;margin:1em auto;padding:1em;font-family:"See64You C64","Courier New",Courier,monospace;'
+            . "color:$text;background:$text;line-height:1.5}"
+            . ".s64-screen{max-width:40em;min-height:25em;margin:0 auto;padding:1em;background:$background;color:$text}"
             . "a{color:$link;text-decoration:underline}a:visited{color:$visited}"
             . "a:focus-visible{outline:2px solid currentColor;outline-offset:2px}"
             . "nav{margin:1em 0}hr{border:0;border-top:1px solid $text}";
@@ -142,7 +143,7 @@ function s64_render_layout(array $config, array $pages, string $title, string $c
     if ($css !== '') {
         echo '<style>' . $css . '</style>';
     }
-    echo "</head><body>\n";
+    echo "</head><body>\n<div class=\"s64-screen\">";
     echo '<header><h1>' . $siteTitle . '</h1><nav><div class="s64-menu">';
     echo '<a href="index.php">Home</a>';
 
@@ -162,5 +163,5 @@ function s64_render_layout(array $config, array $pages, string $title, string $c
     }
     echo "</div></nav><hr></header>\n<main><div class=\"s64-panel\">";
     echo $content;
-    echo "</div></main>\n</body></html>";
+    echo "</div></main></div>\n</body></html>";
 }
