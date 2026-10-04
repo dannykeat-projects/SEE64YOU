@@ -41,6 +41,24 @@ try {
     theme_check($config['theme'] === $id, 'custom selected');
     $css = s64_theme_css($config);
     theme_check(str_contains($css, 'Courier,monospace') && !str_contains($css, 'var('), 'legacy font/CSS fallback');
+    $layoutInput = $config['custom_themes'][$id]['values'];
+    $layoutInput['font'] = 'verdana';
+    $layoutInput['header_title'] = 'My Retro Pages';
+    $layoutInput['show_title'] = 'no';
+    $layoutInput['show_menu'] = 'no';
+    $layoutInput['show_separator'] = 'no';
+    $layoutInput['content_style'] = 'open';
+    $config = (new S64Settings($path, $config))->themeAction('save', $id, ['name' => 'Layout'] + $layoutInput);
+    $layoutCss = s64_theme_css($config);
+    theme_check(str_contains($layoutCss, 'font-family:Verdana,Geneva,sans-serif'), 'additional safe font');
+    theme_check(str_contains($layoutCss, '.s64-panel{background:transparent;padding:0;border:0'), 'open content layout');
+    ob_start();
+    s64_render_layout($config, [['slug' => 'home', 'title' => 'Home'], ['slug' => 'about', 'title' => 'About']], 'Example', '<p>Body</p>');
+    $layoutHtml = (string)ob_get_clean();
+    theme_check(str_contains($layoutHtml, '<title>Example - My Retro Pages</title>'), 'custom website title');
+    theme_check(!str_contains($layoutHtml, '<header><h1>'), 'hidden website title');
+    theme_check(!str_contains($layoutHtml, '<nav>'), 'hidden menu');
+    theme_check(!str_contains($layoutHtml, '<hr>'), 'hidden header separator');
     foreach ([['font' => 'evil;url(x)'], ['padding' => 'expression(x)'], ['padding' => '-1'], ['padding' => '999'], ['text_color' => '#fff'], ['text_color' => '#ffffff;}</style>'], ['font' => []], ['text_color' => '#3e31a2']] as $bad) {
         $before = file_get_contents($path);
         try {
