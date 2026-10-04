@@ -1,8 +1,9 @@
 .setcpu "6502"
 .export _s64_basic_return_stub_image, _s64_basic_return_stub_end
 .export _s64_basic_return_stub_enter
+.import donelib
 
-; Diagnostic foundation, not yet called by the product.
+; Managed diagnostic exit; normal/public product transfer remains gated.
 ; Caller must first complete shutdown/restore/verify/CLEAN and validate a
 ; session-bound original SYS context before staging these 285 bytes at $0400:
 ; original $01, incoming SP, processor flags, $02-$1B, full $0100-$01FF.
@@ -41,4 +42,7 @@ _s64_basic_return_stub_end:
 
 .segment "CODE"
 _s64_basic_return_stub_enter:
+    ; Preserve stock crt0's destructor phase, including original IRQ vector.
+    ; Current C zero page/stack remain live until these calls finish.
+    jsr donelib
     jmp $0700

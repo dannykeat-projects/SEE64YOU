@@ -26,6 +26,7 @@ typedef struct {
     S64ModuleManifest module_manifest;
     uint8_t module_session_invalidated;
     uint8_t current_module;
+    uint8_t basic_return_reserved;
 } S64LauncherRecoveryRuntime;
 
 void s64_launcher_recovery_runtime_init(

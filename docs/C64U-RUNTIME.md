@@ -403,8 +403,8 @@ and session/backend callbacks run within the already loaded group. Overlay
 code is not called from interrupts.
 
 With the same cc65 toolchain, the diagnostic fit passes: MODEL 14,828 bytes,
-FILE 14,773 bytes, RUNTIME 14,929 bytes including the asset-record consumer,
-each below the 15,360-byte slot limit; resident BSS ends at `$8BC3`.
+FILE 14,773 bytes, RUNTIME 14,928 bytes including asset/session/return consumers,
+each below the 15,360-byte slot limit; resident BSS ends at `$86E1`.
 cc65 crt0 starts its software stack at MAIN start + size, so MAIN extends to
 `$D000` while the separate resident-fit check keeps BSS below `$8C00`.
 The linker asserts that actual crt0 stack origin equals HIMEM; the 1 KiB
@@ -664,25 +664,44 @@ Original SD companions, manifest and recovery file were restored with exact
 SHA256 readback parity; only newly created diagnostic files were removed. Drive
 configuration remained unchanged, including enabled Drive A. Physical keyboard,
 long editing sessions and managed Publisher/Settings transitions remain untested.
-The destination crt0 currently captures the nested source call stack whose
-return addresses refer to overwritten launcher code. Observed BASIC return is not proof that the original
-SYS/zero-page/memory-map exit context is safe; an explicit transferable return
-context remains a prerequisite for product activation.
-Until that context exists, managed diagnostic exit completes input shutdown and
-asset/session revocation, restore/verify and durable CLEAN, then parks in resident
-code displaying `Session clean. Reset to BASIC.` It does not return through crt0.
-This guard is build-validated; its screen/reset flow has not yet run on hardware.
+The diagnostic now captures the actual original SYS context before stock launcher
+crt0 runs. An ordered STARTUP object, guarded by a link assertion, records
+original $01, incoming CPU SP/flags, the 26 cc65 zero-page bytes and all 256 CPU
+stack bytes. Stock crt0 then runs unchanged. The existing overlay/stack gap holds
+642 temporary bytes at $C800-$CA81; producer link guards exclude resident BSS and
+software-stack overlap. This is scratch, not a resident-loader reservation.
 
-`basic_return_stub.s` is an unwired diagnostic return-capsule foundation. After
-validated original-context staging at `$0400` and code staging at `$0700`, it
-restores all 256 CPU stack bytes, the 26 cc65 zero-page bytes, original `$01`, SP
-and processor flags, then RTS through the original SYS frame. The staging data
-is 285 bytes: map/SP/flags, zero page, then stack. It uses no C runtime after
-restoring that runtime's zero page. A VICE fixture verifies the original landing
-frame, restored registers, full zero page and full stack (accounting for balanced
-flag pushes). This does not capture the actual launcher-entry context or validate
-an ACTIVE-session binding. Those must exist before any product call to the stub;
-all shutdown/restore/verify/CLEAN work must finish before invoking it.
+The shared REU allocator reserves a 321-byte RUNTIME record (flag 4), containing
+explicit S64B bytes, format/length, the exact ACTIVE journal, the 285-byte raw
+context and CRC32. Publication requires verified control persistence and full
+record readback. The managed editor loads and validates ownership, journal and
+every integrity byte while ACTIVE in IO_SAFE mode. It readback-revokes the record
+using separate scratch, preserving the validated RAM snapshot through asset,
+capsule and shared-session teardown and restore/verify -> durable CLEAN. Failed
+revocation or CLEAN blocks return. A missing/corrupt context still permits clean
+shutdown, then retains the resident Session clean. Reset to BASIC. park.
+
+After CLEAN, the transient $0700 return stub runs stock cc65 destructors (including
+IRQ-vector restoration), restores CPU stack/zero page/$01/SP/flags, clears BASIC
+status and RTS through the original SYS frame. No C runtime is used after its
+zero page is restored. The VICE synthetic-frame probe verifies these restoration
+mechanics. Host suites cover exact session/allocator binding, corruption of every
+record byte, publication/readback/revocation failures and cleanup ordering.
+
+On 2026-10-04, firmware 1.1.0 hardware ran this integrated diagnostic from the
+real pre-crt0 capture through managed editor adoption, an injected TEST edit,
+RUN/STOP/discard and restored BASIC. The original IRQ vector $EA31 matched;
+the KERNAL clock advanced; BASIC executed PRINT 6*7, displayed 42 and returned
+READY. Both journal checksums passed; newest CLEAN was sequence 56/package 513.
+Original SD modules/manifest/recovery were restored with exact SHA256 readback,
+temporary diagnostic files were removed, and drive configuration was unchanged.
+This proves the bounded diagnostic exit, not physical keyboard, long-edit or
+Publisher/Settings ownership cycles. Normal/public product entry remains gated.
+
+To retain fit while adding this exit path, module/asset session producer and
+consumer code now link separately. Wire contracts and shared non-reentrant scratch
+are unchanged. The generated overlay entry veneers include only imported entry
+names and explicit return bridges; unused internal entry stubs are omitted.
 
 ## 22. Retired production constraints
 

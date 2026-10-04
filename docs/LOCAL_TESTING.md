@@ -429,19 +429,23 @@ manifest and `SEE64YOU.REC`, then upload matching package companions, manifests
 and raw assets. Run its launcher from a disposable PRG path. Wait for managed
 editor entry before injecting input. Decline recovery, type a short string and
 verify it appears in the document, then RUN/STOP and confirm discard. Verify
-the resident `Session clean. Reset to BASIC.` message and the newest checksummed
-journal is CLEAN, then reset to BASIC. Restore preserved
-files with exact readback parity, remove only newly created diagnostic files,
-and compare drive settings. Keep the new CLEAN journals. The earlier unguarded
-run reached BASIC on firmware 1.1.0 on 2026-10-04 (CLEAN sequence 52/package 513),
-but did not prove safe crt0 return context. The resident exit guard is currently
-build-validated only; verify its message/reset flow on the next hardware run. REST memory DMA
-readback of I/O addresses is RAM-shadow evidence, not a live turbo-register check.
+the newest checksummed journal is CLEAN and BASIC returns without a reset. Compare
+the IRQ vector with its pre-launch value, verify the KERNAL clock advances, and
+inject a short BASIC command such as PRINT 6*7; require 42 followed by READY.
+Screen-RAM staging may leave binary characters above BASIC's prompt. Restore
+preserved files with exact readback parity, remove only newly created diagnostic
+files and compare drive settings. Keep the new CLEAN journals. This integrated
+capture/edit/return gate passed on firmware 1.1.0 on 2026-10-04, CLEAN sequence
+56/package 513, original IRQ $EA31. REST memory DMA readback of I/O addresses is
+RAM-shadow evidence, not a live turbo-register check. Missing/corrupt return
+context intentionally retains the CLEAN resident reset message.
 
-Run `python3 tools/test_basic_return_vice.py` in the configured Linux/WSL cc65,
-VICE/Xvfb environment with the pinned Open ROM fixture at `/tmp/see64you-roms`.
-It tests the unwired return capsule with a synthetic original SYS frame and
-checks full stack/zero-page restoration, SP, memory map and flags. It does not
-prove original launcher capture, session ownership or real C64U exit restoration.
+Run python3 tools/test_basic_return_vice.py in the configured Linux/WSL cc65,
+VICE/Xvfb environment with the pinned Open ROM fixture at /tmp/see64you-roms.
+It uses a synthetic SYS frame to check full stack/zero-page restoration, SP,
+memory map and flags; actual launcher capture is covered by the hardware gate.
+The host validation scripts also run basic_return_test.c,
+launcher_basic_return_test.c and managed_editor_exit_test.c for allocator,
+session/integrity, publication/revocation and shutdown-order failure coverage.
 
 For the managed preload hardware gate, back up existing SD S64EDIT/PUB/CFG.PRG and S64MODULE.MNF and both journals into ignored build output. Upload the package's modules, manifests and raw code assets to /sd/; run its launcher as a temporary PRG. Require PLATFORM READY, MODULE CACHE VERIFIED, SHARED SESSION READY, TRANSFER CAPSULE READY, TRANSFER PLAN READY, EDITOR HANDOFF PENDING and SESSION CLEAN. Verify turbo equals its captured prior value, both journal checksums and the newest CLEAN sequence, and unchanged drive settings. Restore the backed-up modules/manifest with exact readback parity and remove only files newly created by this test. Keep the resulting CLEAN journals. This gate passed on firmware 1.1.0 on 2026-10-04; it does not prove executable managed editor transfer.

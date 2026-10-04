@@ -119,7 +119,7 @@ cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
 echo "== Host code asset preload/session tests =="
 cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
     client/tests/code_assets_test.c client/src/platform/code_overlay_bootstrap.c client/src/platform/code_assets.c \
-    client/src/platform/code_assets_validate.c client/src/platform/code_assets_session.c \
+    client/src/platform/code_assets_validate.c client/src/platform/code_assets_session.c client/src/platform/code_assets_session_build.c client/src/platform/code_assets_session_read.c \
     client/src/platform/code_overlay.c client/src/platform/crc32.c \
     client/src/platform/module_integrity.c client/src/platform/module_manifest.c \
     client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c \
@@ -182,7 +182,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
 echo "== Host C64U launcher recovery runtime tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/launcher_recovery_runtime_test.c \
-    client/src/platform/module_session.c client/src/platform/module_session_build.c client/src/platform/transfer_capsule.c client/src/platform/transfer_capsule_build.c client/src/platform/module_transfer.c client/src/launcher/recovery_runtime.c client/src/launcher/recovery_flow.c \
+    client/src/platform/module_session.c client/src/platform/module_session_read.c client/src/platform/module_session_build.c client/src/platform/transfer_capsule.c client/src/platform/transfer_capsule_build.c client/src/platform/module_transfer.c client/src/launcher/recovery_runtime.c client/src/launcher/recovery_flow.c \
     client/src/platform/session_recovery.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
     client/src/platform/session_lifecycle.c client/src/platform/session_lifecycle_start.c client/src/platform/system_state.c client/src/platform/system_state_start.c \
     client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/dos.c client/src/platform/turbo.c client/src/platform/turbo_capture.c client/src/charset.c \
@@ -191,7 +191,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
 
 echo "== Host shared module session tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
-    client/tests/module_session_test.c client/src/platform/module_session.c client/src/platform/module_session_build.c \
+    client/tests/module_session_test.c client/src/platform/module_session.c client/src/platform/module_session_read.c client/src/platform/module_session_build.c \
     client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c \
     client/src/platform/session_journal.c client/src/platform/session_journal_start.c client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
@@ -199,7 +199,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
 echo "== Host transfer capsule tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/transfer_capsule_test.c client/src/platform/transfer_capsule.c client/src/platform/transfer_capsule_build.c \
-    client/src/platform/module_session.c client/src/platform/module_session_build.c client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c \
+    client/src/platform/module_session.c client/src/platform/module_session_read.c client/src/platform/module_session_build.c client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c \
     client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
     client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
@@ -228,10 +228,22 @@ cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host original SYS return record tests =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src client/tests/basic_return_test.c client/src/platform/basic_return.c client/src/platform/basic_return_read.c client/src/platform/basic_return_build.c client/src/platform/crc32.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c client/src/platform/system_state.c client/src/platform/system_state_start.c client/src/platform/dos.c client/src/platform/dos_file.c -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host launcher original SYS return coordination tests =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src client/tests/launcher_basic_return_test.c client/src/launcher/basic_return_runtime.c -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host managed editor original SYS exit tests =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src client/tests/managed_editor_exit_test.c client/src/platform/managed_editor_exit.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host destination module runtime tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/module_runtime_test.c client/src/platform/module_runtime.c \
-    client/src/platform/transfer_capsule.c client/src/platform/transfer_capsule_build.c client/src/platform/module_session.c client/src/platform/module_session_build.c \
+    client/src/platform/transfer_capsule.c client/src/platform/transfer_capsule_build.c client/src/platform/module_session.c client/src/platform/module_session_read.c client/src/platform/module_session_build.c \
     client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c \
     client/src/platform/session_lifecycle.c client/src/platform/session_lifecycle_start.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
     client/src/platform/system_state.c client/src/platform/system_state_start.c client/src/platform/turbo.c client/src/platform/turbo_capture.c \

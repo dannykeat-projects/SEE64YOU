@@ -117,6 +117,12 @@ s64_message(
         "_s64_other",
         "_s64_plain",
     }
+    assert FIT.required_veneer_names({
+        "MODEL": ["s64_editor_has_selection", "s64_unused"],
+        "RUNTIME": ["s64_from_resident", "s64_internal"],
+    }, {"_s64_from_resident", "_s64_overlay_runtime_s64_internal"}) == {
+        "MODEL": ["s64_editor_has_selection"], "RUNTIME": ["s64_from_resident"],
+    }
 
     with tempfile.TemporaryDirectory() as directory:
         map_path = Path(directory) / "test.map"

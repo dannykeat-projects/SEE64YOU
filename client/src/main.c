@@ -933,9 +933,8 @@ int main(void)
     s64_input_restore_repeat();
     s64_input_shutdown();
 #ifdef S64_MANAGED_OVERLAY
-    if (s64_managed_editor_end(&managed_runtime)
-            != S64_SESSION_LIFECYCLE_OK) managed_entry_failed(6u);
-    /* crt0's inherited return stack still points into the replaced launcher. */
+    if (!s64_managed_editor_exit(&managed_runtime)) managed_entry_failed(6u);
+    /* Missing/invalid original SYS context: retain a safe CLEAN resident park. */
     clrscr();
     cputs("Session clean. Reset to BASIC.");
     for (;;) { }

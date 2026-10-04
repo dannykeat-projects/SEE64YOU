@@ -143,6 +143,14 @@ No normal module transition should depend on IEC device 8, KERNAL LOAD or the cu
 
 The earlier $C800-$CBFF resident-loader experiment is retired as the production design. Its real-hardware pass proves useful lower-level behaviour but does not impose a permanent 1 KiB reservation on the new architecture.
 
+The executable diagnostic captures the original BASIC SYS context before launcher
+crt0 and publishes it as a checksummed allocator-owned ACTIVE-session record.
+Managed editor exit validates it before revocation, restores/verifies system state,
+persists CLEAN, runs cc65 destructors and restores the original stack/zero page/
+memory map through a transient stub. Invalid context retains a safe CLEAN park.
+Normal/public executable entry and other module ownership cycles remain gated.
+See docs/C64U-RUNTIME.md for the wire, scratch and hardware evidence contracts.
+
 ## Package manifest and integrity
 
 The package manifest should record for each executable module:

@@ -6,4 +6,12 @@ uint8_t s64_code_assets_valid(const S64CodeAssets* assets,
     const S64ReuRuntimeControl* control, const S64ModuleDescriptor* editor,
     uint8_t require_ready);
 const S64ReuAllocation* s64_code_assets_session_allocation(const S64ReuRuntimeControl* control);
+
+/* Shared non-reentrant session-record scratch/helpers for producer and consumer. */
+extern uint8_t s64_code_assets_session_wire[S64_CODE_ASSET_SESSION_SIZE];
+extern uint8_t s64_code_assets_session_readback[S64_CODE_ASSET_SESSION_SIZE];
+extern uint8_t s64_code_assets_session_journal_wire[S64_SESSION_JOURNAL_WIRE_SIZE];
+uint8_t s64_code_assets_active_session(const S64ReuRuntimeControl* control,
+    const S64SessionJournal* journal);
+uint16_t s64_code_assets_session_checksum(const uint8_t* bytes);
 #endif

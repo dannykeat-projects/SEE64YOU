@@ -1,0 +1,6 @@
+#ifndef SEE64YOU_LAUNCHER_BASIC_RETURN_RUNTIME_H
+#define SEE64YOU_LAUNCHER_BASIC_RETURN_RUNTIME_H
+#include "launcher/recovery_runtime.h"
+uint8_t s64_launcher_basic_return_prepare(S64LauncherRecoveryRuntime* runtime);
+S64SessionLifecycleResult s64_launcher_basic_return_end(S64LauncherRecoveryRuntime* runtime);
+#endif

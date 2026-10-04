@@ -33,13 +33,18 @@ GROUPS: dict[str, tuple[str, ...]] = {
         "src/platform/module_runtime.c",
         "src/platform/transfer_capsule.c",
         "src/platform/module_session.c",
+        "src/platform/module_session_read.c",
         "src/platform/session_lifecycle.c",
         "src/platform/session_journal.c",
         "src/platform/system_state.c",
         "src/platform/turbo.c",
         "src/platform/code_assets_validate.c",
         "src/platform/code_assets_session.c",
+        "src/platform/code_assets_session_read.c",
         "src/platform/managed_editor.c",
+        "src/platform/managed_editor_exit.c",
+        "src/platform/basic_return.c",
+        "src/platform/basic_return_read.c",
     ),
 }
 GROUP_IDS = {"MODEL": 1, "FILE": 2, "RUNTIME": 3}
@@ -223,6 +228,14 @@ def imported_symbols(output: str) -> set[str]:
     return names
 
 
+def required_veneer_names(groups: dict[str, list[str]], imports: set[str]) -> dict[str, list[str]]:
+    # Same-group calls already use renamed symbols. Only resident callers and
+    # the explicit return bridges need original-name overlay entry veneers.
+    required = {symbol[1:] for symbol in imports if symbol.startswith("_")}
+    required.update(name for names in BRIDGES.values() for name in names)
+    return {group: [name for name in names if name in required] for group, names in groups.items()}
+
+
 def cross_group_import_errors(
     group: str, symbols: Iterable[str], definitions: dict[str, str]
 ) -> list[str]:
@@ -308,7 +321,10 @@ def compile_editor_overlay_fit(
     c64u = shlex.split(values["C64U_SOURCES"])
     runtime = shlex.split(values["MANAGED_EDITOR_RUNTIME_SOURCES"])
     sources = list(dict.fromkeys(c64u + runtime + shlex.split(values.get("CODE_ASSET_RUNTIME_SOURCES", ""))
-                               + ["src/platform/code_overlay.c", "src/platform/managed_editor.c"]))
+                               + ["src/platform/code_overlay.c", "src/platform/managed_editor.c",
+                                  "src/platform/managed_editor_exit.c", "src/platform/basic_return.c",
+                                  "src/platform/basic_return_read.c",
+                                  "src/platform/basic_return_stub.s", "src/platform/crc32.c"]))
     group_for_source = {
         path: group for group, paths in GROUPS.items() for path in paths
     }
@@ -341,7 +357,6 @@ def compile_editor_overlay_fit(
     object_dir.mkdir(parents=True, exist_ok=True)
 
     wrapper_path = generated / "code_overlay_wrappers.s"
-    wrapper_path.write_text(assembler_wrappers(grouped_names), encoding="ascii", newline="\n")
     objects: list[Path] = []
     grouped_objects: dict[str, list[Path]] = {group: [] for group in GROUPS}
     flags = shlex.split(values["CFLAGS"])
@@ -369,6 +384,11 @@ def compile_editor_overlay_fit(
         if group:
             grouped_objects[group].append(obj)
 
+    imports: set[str] = set()
+    for obj in objects:
+        imports.update(imported_symbols(run([od65, "--dump-imports", str(obj)], cwd=client).stdout))
+    wrapper_path.write_text(assembler_wrappers(required_veneer_names(grouped_names, imports)),
+                           encoding="ascii", newline="\n")
     wrapper_obj = object_dir / "code_overlay_wrappers.o"
     run([compiler, *flags, "-c", "-o", str(wrapper_obj), str(wrapper_path)], cwd=client)
     objects.append(wrapper_obj)

@@ -83,6 +83,10 @@ S64SessionLifecycleResult s64_launcher_code_assets_end(S64LauncherRecoveryRuntim
 { return s64_launcher_session_end(r); }
 #endif
 #ifdef S64_EXECUTABLE_HANDOFF
+uint8_t s64_launcher_basic_return_prepare(S64LauncherRecoveryRuntime* r)
+{ (void)r; assert(verifications == 1); return stage != 16; }
+S64SessionLifecycleResult s64_launcher_basic_return_end(S64LauncherRecoveryRuntime* r)
+{ return s64_launcher_session_end(r); }
 uint8_t s64_module_transfer_execute(const S64ModuleTransferPlan* plan)
 {
     assert(plan && plans == 1 && stage != 14);
@@ -92,7 +96,9 @@ uint8_t s64_module_transfer_execute(const S64ModuleTransferPlan* plan)
 #endif
 int main(void)
 {
-#ifdef S64_CODE_ASSET_LAUNCHER
+#ifdef S64_EXECUTABLE_HANDOFF
+    for (stage = 0; stage <= 16; ++stage) {
+#elif defined(S64_CODE_ASSET_LAUNCHER)
     for (stage = 0; stage <= 15; ++stage) {
 #else
     for (stage = 0; stage <= 14; ++stage) {

@@ -11,6 +11,9 @@
 #if defined(S64_EXECUTABLE_HANDOFF) && !defined(S64_CODE_ASSET_LAUNCHER)
 #error Executable handoff requires verified code asset preload
 #endif
+#ifdef S64_EXECUTABLE_HANDOFF
+#include "launcher/basic_return_runtime.h"
+#endif
 #ifdef S64_CODE_ASSET_LAUNCHER
 #include "launcher/code_assets_runtime.h"
 #endif
@@ -238,6 +241,9 @@ int main(void)
         if (!retry_lifecycle("MODULE INTEGRITY FAILED", 1u)) goto cleanup;
     }
     if (!s64_launcher_module_session_publish(&recovery_runtime)) goto cleanup;
+#ifdef S64_EXECUTABLE_HANDOFF
+    if (!s64_launcher_basic_return_prepare(&recovery_runtime)) goto cleanup;
+#endif
 #ifdef S64_CODE_ASSET_LAUNCHER
     cputs("VERIFYING EDITOR CODE...\r\n");
     if (!s64_launcher_code_assets_prepare(&recovery_runtime)) goto cleanup;
@@ -301,7 +307,9 @@ int main(void)
 cleanup:
     /* All exits that may own durable ACTIVE restore/verify before CLEAN. */
     for (;;) {
-#ifdef S64_CODE_ASSET_LAUNCHER
+#ifdef S64_EXECUTABLE_HANDOFF
+        lifecycle_result = s64_launcher_basic_return_end(&recovery_runtime);
+#elif defined(S64_CODE_ASSET_LAUNCHER)
         lifecycle_result = s64_launcher_code_assets_end(&recovery_runtime);
 #else
         lifecycle_result = s64_launcher_session_end(&recovery_runtime);
