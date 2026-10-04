@@ -6,13 +6,12 @@
 #include "storage/local.h"
 #include "platform/module_manifest.h"
 #include "platform/session_journal.h"
+#include "platform/application_state_reserve.h"
 
 #ifndef S64_REU_BUFFER
 #error "Shared application state requires the REU editor layout"
 #endif
 
-#define S64_APPLICATION_STATE_SIZE 512u
-#define S64_APPLICATION_STATE_FLAG 6u
 #define S64_APPLICATION_SEARCH_CAPACITY 33u
 
 /* Control state only. Payloads remain in the migration-era banks 0-1. */
@@ -28,7 +27,6 @@ typedef struct {
     uint32_t generation;
 } S64ApplicationState;
 
-uint8_t s64_application_state_reserve(S64ReuRuntimeControl* control);
 const S64ReuAllocation* s64_application_state_allocation(const S64ReuRuntimeControl* control);
 uint8_t s64_application_state_encode(const S64ReuRuntimeControl* control,
     const S64SessionJournal* journal, const S64ApplicationState* state, uint8_t* wire);

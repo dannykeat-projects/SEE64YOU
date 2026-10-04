@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "platform/session_journal.h"
-#include "platform/application_state.h"
+#include "platform/application_state_reserve.h"
 #include "platform/uci.h"
 
 static S64SessionJournalResult load_journal(

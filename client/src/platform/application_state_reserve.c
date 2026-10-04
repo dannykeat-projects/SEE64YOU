@@ -1,4 +1,4 @@
-#include "platform/application_state.h"
+#include "platform/application_state_reserve.h"
 
 uint8_t s64_application_state_reserve(S64ReuRuntimeControl* control)
 {
