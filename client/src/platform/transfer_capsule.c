@@ -82,7 +82,6 @@ static const char* canonical_filename(S64ModuleId destination)
 static uint8_t transfer_module_valid(
     const S64ReuRuntimeControl* control,
     const S64ModuleDescriptor* module,
-    S64ModuleId source,
     S64ModuleId destination
 )
 {
@@ -153,6 +152,7 @@ uint8_t s64_transfer_capsule_store(
     const S64ReuRuntimeControl* control,
     const S64SessionJournal* journal,
     const S64ModuleManifest* manifest,
+    S64ModuleId source,
     S64ModuleId destination
 )
 {
