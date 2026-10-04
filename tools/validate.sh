@@ -200,7 +200,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
 echo "== Host C64U launcher recovery runtime tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/launcher_recovery_runtime_test.c \
-    client/src/platform/module_session.c client/src/platform/module_session_read.c client/src/platform/module_session_build.c client/src/platform/transfer_capsule.c client/src/platform/transfer_capsule_build.c client/src/platform/application_state_reserve.c client/src/platform/module_transfer.c client/src/launcher/recovery_runtime.c client/src/launcher/recovery_flow.c \
+    client/src/platform/module_session.c client/src/platform/module_session_read.c client/src/platform/module_session_build.c client/src/platform/transfer_capsule.c client/src/platform/transfer_capsule_build.c client/src/platform/module_transfer.c client/src/launcher/recovery_runtime.c client/src/launcher/recovery_flow.c \
     client/src/platform/session_recovery.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
     client/src/platform/session_lifecycle.c client/src/platform/session_lifecycle_start.c client/src/platform/system_state.c client/src/platform/system_state_start.c \
     client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/dos.c client/src/platform/turbo.c client/src/platform/turbo_capture.c client/src/charset.c \

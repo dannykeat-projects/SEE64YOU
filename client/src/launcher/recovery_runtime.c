@@ -249,6 +249,8 @@ uint8_t s64_launcher_module_cache_plan(
     S64LauncherRecoveryRuntime* runtime
 )
 {
+    S64ReuAllocation application_state;
+
     if (runtime == 0
         || !runtime->lifecycle.active_record_written
         || runtime->lifecycle.clean_record_written
@@ -269,7 +271,12 @@ uint8_t s64_launcher_module_cache_plan(
     }
     if (!s64_module_session_reserve(&runtime->reu_control)
         || !s64_transfer_capsule_reserve(&runtime->reu_control)
-        || !s64_application_state_reserve(&runtime->reu_control)) return 0u;
+        || !s64_reu_runtime_allocate(&runtime->reu_control,
+            S64_REU_OWNER_RUNTIME, S64_APPLICATION_STATE_SIZE, 256u,
+            &application_state)) return 0u;
+    runtime->reu_control.allocations[
+        runtime->reu_control.allocation_count - 1u
+    ].flags = S64_APPLICATION_STATE_FLAG;
     return s64_reu_runtime_store_verified(&runtime->reu_control);
 }
 
