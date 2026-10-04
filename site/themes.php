@@ -88,16 +88,36 @@ ob_start();
 </select></label> <button type="submit">Open</button></p></form>
 <form method="post" action="themes.php"><?= $csrf ?><input type="hidden" name="id" value="<?= theme_h($id) ?>"><input type="hidden" name="action" value="select"><p><button type="submit">Select this theme for the site</button></p></form>
 <form method="post" action="themes.php"><?= $csrf ?><input type="hidden" name="id" value="<?= theme_h($id) ?>">
-<p><label>Theme name<br><input name="name" type="text" size="20" maxlength="80" value="<?= theme_h($name) ?>"></label></p>
-<p>Colours use #rrggbb. Numeric fields show their units and limits. No CSS or JavaScript is accepted. Font loading is optional; C64 falls back to Courier/monospace.</p>
-<?php foreach (s64_theme_fields() as $key => $field): ?>
+<fieldset><legend><strong>Theme</strong></legend>
+<p><label>Theme name<br><input name="name" type="text" size="24" maxlength="80" value="<?= theme_h($name) ?>"></label></p>
+<p>Start with the page layout and typography. Colours and detailed spacing are below. All controls work without JavaScript.</p>
+</fieldset>
+<?php
+    $fields = s64_theme_fields();
+    $choiceLabels = [
+        'monospace' => 'Monospace', 'c64' => 'Commodore 64', 'sans' => 'Sans serif', 'serif' => 'Serif',
+        'arial' => 'Arial', 'verdana' => 'Verdana', 'trebuchet' => 'Trebuchet MS', 'tahoma' => 'Tahoma',
+        'georgia' => 'Georgia', 'times' => 'Times New Roman', 'courier' => 'Courier New',
+        'yes' => 'Yes', 'no' => 'No', 'panel' => 'Boxed panel', 'open' => 'Open page',
+        'inline' => 'Across the page', 'stacked' => 'One link per line',
+    ];
+?>
+<?php foreach (s64_theme_field_groups() as $group => $keys): ?>
+<fieldset><legend><strong><?= theme_h($group) ?></strong></legend>
+<?php if ($group === 'Colours'): ?><p>Use six-digit colours such as #ffffff. Readability is checked before saving.</p><?php endif; ?>
+<?php foreach ($keys as $key): $field = $fields[$key]; ?>
 <p><label><?= theme_h($field[1]) ?><br>
 <?php if ($field[0] === 'choice'): ?><select name="<?= theme_h($key) ?>">
-<?php foreach ($field[2] as $choice): ?><option value="<?= theme_h($choice) ?>"<?= $values[$key] === $choice ? ' selected' : '' ?>><?= theme_h($choice) ?></option><?php endforeach; ?></select>
-<?php else: ?><input type="text" size="12" name="<?= theme_h($key) ?>" value="<?= theme_h((string)$values[$key]) ?>"> <?= $field[0] === 'number' ? '(' . $field[2] . '–' . $field[3] . ')' : '' ?><?php endif; ?>
+<?php foreach ($field[2] as $choice): ?><option value="<?= theme_h($choice) ?>"<?= $values[$key] === $choice ? ' selected' : '' ?>><?= theme_h($choiceLabels[$choice] ?? ucfirst($choice)) ?></option><?php endforeach; ?></select>
+<?php else: ?><input type="text" size="<?= $field[0] === 'text' ? '28' : '12' ?>" name="<?= theme_h($key) ?>" value="<?= theme_h((string)$values[$key]) ?>"<?= $field[0] === 'text' ? ' maxlength="' . (int)$field[2] . '"' : '' ?>> <?= $field[0] === 'number' ? '(' . $field[2] . '–' . $field[3] . ')' : '' ?><?php endif; ?>
 </label></p>
 <?php endforeach; ?>
-<p><label>Action <select name="action"><option value="preview">Preview without saving</option><option value="<?= $custom ? 'save' : 'create' ?>"><?= $custom ? 'Save / rename' : 'Create custom theme' ?></option><option value="duplicate">Duplicate saved theme</option></select></label> <input type="submit" value="Apply"></p></form>
+</fieldset>
+<?php endforeach; ?>
+<fieldset><legend><strong>Preview and save</strong></legend>
+<p><label>Action <select name="action"><option value="preview">Preview without saving</option><option value="<?= $custom ? 'save' : 'create' ?>"><?= $custom ? 'Save changes' : 'Create custom theme' ?></option><option value="duplicate">Duplicate as a new theme</option></select></label> <input type="submit" value="Apply"></p>
+<p>Preview does not change the live site. Built-in themes cannot be overwritten; editing one creates a custom theme.</p>
+</fieldset></form>
 <?php if ($custom): ?>
 <form method="post" action="themes.php"><?= $csrf ?><input type="hidden" name="id" value="<?= theme_h($id) ?>"><input type="hidden" name="action" value="delete"><p><label><input type="checkbox" name="confirm_delete" value="yes"> Delete this custom theme permanently (active theme returns to Plain)</label> <button type="submit">Delete</button></p></form>
 <?php endif; ?>
@@ -107,7 +127,7 @@ ob_start();
 $content = (string)ob_get_clean();
 if ($preview !== null) {
     $sample = "**** COMMODORE 64 BASIC V2 ****\n64K RAM SYSTEM  38911 BASIC BYTES FREE\nREADY.\nABCDEFGHIJKLMNOPQRSTUVWXYZ\n0123456789 !? +-*/";
-    $content = '<p><strong>Preview only — nothing saved.</strong></p><h2>C64 screen sample</h2><pre>' . theme_h($sample)
-        . '</pre><p><a href="index.php">Sample link</a> <input aria-label="Sample input" value="Sample input" size="12"> <button type="button">Sample button</button></p>' . $content;
+    $content = '<p><strong>Preview only — nothing saved.</strong></p><h2>Page heading</h2><p>This is ordinary page text with a <a href="index.php">sample link</a>.</p><h3>Screen sample</h3><pre>' . theme_h($sample)
+        . '</pre><p><input aria-label="Sample input" value="Sample input" size="12"> <button type="button">Sample button</button></p>' . $content;
 }
 s64_render_layout($preview ?? $config, $documents->list('page', true), 'Themes', $content);
