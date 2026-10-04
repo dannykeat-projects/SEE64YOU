@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "platform/reu_runtime.h"
+#include "platform/reu_runtime_internal.h"
 
 static unsigned char fake_reu_control[S64_REU_RUNTIME_CONTROL_CAPACITY];
 static unsigned char fake_store_ok = 1u;
@@ -60,6 +61,9 @@ int main(void)
     S64ReuAllocation second;
     uint8_t wire[S64_REU_RUNTIME_WIRE_SIZE];
     uint32_t initial_remaining;
+    uint8_t i;
+    uint16_t checksum;
+    S64ReuRuntimeControl before;
 
     s64_reu_runtime_init(&control, 0x0201u, 0x11223344UL);
     require(s64_reu_runtime_valid(&control), "new control block is valid");
@@ -140,6 +144,37 @@ int main(void)
     require(!s64_reu_runtime_allocate(
         &control, S64_REU_OWNER_MODULE, 1UL, 3u, 0
     ), "non-power-of-two alignment is rejected");
+
+    s64_reu_runtime_init(&control, 0x0202u, 2UL);
+    for (i = 0u; i < S64_REU_RUNTIME_MAX_ALLOCATIONS; ++i) {
+        require(s64_reu_runtime_allocate(&control, S64_REU_OWNER_MODULE,
+            15360UL, 256u, &first), "every ownership slot can be allocated");
+        control.allocations[i].flags = (uint8_t)(i + 1u);
+    }
+    require(control.allocation_count >= 13u,
+        "table accommodates existing ownership and Publisher overlays");
+    before = control;
+    require(!s64_reu_runtime_allocate(&control, S64_REU_OWNER_MODULE,
+        1UL, 1u, &first), "full table rejects another allocation");
+    require(memcmp(&before, &control, sizeof(control)) == 0,
+        "table exhaustion preserves all ownership metadata");
+    memset(fake_reu_control, 0xa5, sizeof(fake_reu_control));
+    require(s64_reu_runtime_store_verified(&control), "full table verifies through DMA");
+    require(s64_reu_runtime_load(&decoded)
+        && memcmp(control.allocations, decoded.allocations, sizeof(control.allocations)) == 0,
+        "all ownership entries round trip");
+    require(fake_reu_control[S64_REU_RUNTIME_WIRE_SIZE] == 0xa5u,
+        "DMA preserves reserved bytes after the control record");
+    require(s64_reu_runtime_encode(&control, wire), "full table encodes");
+    wire[4] = 1u;
+    checksum = s64_reu_runtime_wire_checksum(wire);
+    wire[S64_REU_RUNTIME_CHECKSUM_OFFSET] = (uint8_t)checksum;
+    wire[S64_REU_RUNTIME_CHECKSUM_OFFSET + 1u] = (uint8_t)(checksum >> 8);
+    before = decoded;
+    require(!s64_reu_runtime_decode(&decoded, wire), "old control format rejects even valid checksum");
+    require(memcmp(&before, &decoded, sizeof(decoded)) == 0,
+        "rejected old format preserves destination state");
+    s64_reu_runtime_init(&control, 1u, 1UL);
 
     control.next_free = S64_REU_RUNTIME_HEAP_END - 16UL;
     require(!s64_reu_runtime_allocate(

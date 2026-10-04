@@ -257,8 +257,8 @@ Using the required 16 MiB configuration:
 Run make -C client publisher-overlay-fit for the managed destination layout.
 It compiles the actual Publisher with CONTENT/NETWORK/RUNTIME overlays, reserves
 the owner state and links transition/return support. Expected measured sizes are
-11,553 / 11,765 / 12,990 bytes, each within the 15,360-byte execution slot, with
-resident BSS ending $87FE and 1,025 bytes before the slot (minimum 1,024).
+11,553 / 11,765 / 13,295 bytes, each within the 15,360-byte execution slot, with
+resident BSS ending $86F5 and 1,290 bytes before the slot (minimum 1,024).
 Full validation runs this fit and both overlay-builder helper suites.
 
 This output has no trusted entry/cache/asset bindings and must not be executed

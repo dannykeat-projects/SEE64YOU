@@ -174,7 +174,7 @@ Reserve fixed addresses only for data that truly requires a stable ABI address:
 
 All other large data should come from a central allocator.
 
-The allocator/control-block foundation lives in client/src/platform/reu_runtime.*. During migration, banks 0-1 remain reserved for the existing document/history/clipboard/settings/handoff layout. A fixed 256-byte shared-control region begins at bank 2, with allocator-managed space starting at linear REU address 0x020100 and extending to the 16 MiB limit. The control block has an explicit versioned/checksummed 160-byte wire format, application/session metadata, remaining-space accounting and owner-tagged aligned bump allocations. It now has REU-backed store/load/readback verification using the reserved bank-2 region. After the launcher has durably entered ACTIVE state, SEE64YOU.PRG initializes this block from the journal package version/session ID and refuses to proceed to transition preparation until exact REU readback validates. There is still intentionally no free/reclamation API; reclamation policy and migration of existing fixed allocations come after the ABI and module cache are proven.
+The allocator/control-block foundation lives in client/src/platform/reu_runtime.*. During migration, banks 0-1 remain reserved for the existing document/history/clipboard/settings/handoff layout. A fixed 256-byte shared-control region begins at bank 2, with allocator-managed space starting at linear REU address 0x020100 and extending to the 16 MiB limit. The control block has an explicit versioned/checksummed 192-byte format-2/ABI-2 wire format with 16 ownership entries, application/session metadata, remaining-space accounting and owner-tagged aligned bump allocations. It now has REU-backed store/load/readback verification using the reserved bank-2 region. After the launcher has durably entered ACTIVE state, SEE64YOU.PRG initializes this block from the journal package version/session ID and refuses to proceed to transition preparation until exact REU readback validates. There is still intentionally no free/reclamation API; reclamation policy and migration of existing fixed allocations come after the ABI and module cache are proven.
 
 Allocator clients include:
 
@@ -732,8 +732,8 @@ recapturing settings. These are ownership tests, not real UI/hardware cycles.
 The actual Publisher has not yet been wired to this API. The lean flat
 managed-publisher-fit baseline overflows MAIN by 4,805 bytes. The replacement
 publisher-overlay-fit diagnostic fits three mutually exclusive $8C00-$C7FF
-groups: CONTENT 11,553 bytes, NETWORK 11,765 bytes and RUNTIME 12,990 bytes.
-Resident BSS ends at $87FE, leaving 1,025 bytes before the slot; a 1,024-byte
+groups: CONTENT 11,553 bytes, NETWORK 11,765 bytes and RUNTIME 13,295 bytes.
+Resident BSS ends at $86F5, leaving 1,290 bytes before the slot; a 1,024-byte
 minimum is enforced. The cc65 owner structure is reserved in BSS, and transition
 planning, transfer and original SYS-return support are linked. This proves
 capacity for those components, not completed entry/UI bindings.
@@ -746,13 +746,25 @@ RUNTIME contains destination ownership and session/state operations. The shared
 veneer generator rejects cross-group imports; Publisher permits no return bridges.
 The editor keeps its existing explicit bridges and exact package bytes.
 
+SYS-context validation now shares RUNTIME; its CRC and low-level REU helpers
+remain resident. Expanding the allocator from 12 to 16 entries would otherwise
+reduce Publisher resident headroom below the enforced 1 KiB minimum.
+
 This is a link/fit diagnostic without trusted entry, Publisher cache setup or a
 Publisher asset manifest. Do not execute/deploy it. The existing allocator and
 editor-only asset/session contract must be extended intentionally before these
 three Publisher assets can be owned and selected; do not reuse editor cache
 handles or silently reload SD. Source/history/clipboard/settings persistence and
-executable UI bindings remain required. Current c64u-package is unaffected and
+executable UI bindings remain required. The Publisher fit is separate from the product package and
 Publisher transitions remain guarded.
+
+The allocator capacity change bumps package identity to 0x0202. Format/ABI 1
+control blocks are rejected rather than adopted; interrupted-state recovery
+continues to use the unchanged durable journal. The 192-byte control DMA remains
+inside the same 256-byte reservation and heap addresses are unchanged. Host
+tests cover all 16 entries, atomic exhaustion, round-trip/readback, old-format
+rejection and a sentinel after the record. The earlier package-513 hardware
+evidence does not validate these rebuilt package-514 bytes.
 
 ## 22. Retired production constraints
 
@@ -773,6 +785,6 @@ Resident `code_overlay_bootstrap.c` validates the application version and three 
 
 The diagnostic final link exports `s64_code_overlay_linked_lengths` as three resident 16-bit values in MODEL/FILE/RUNTIME order, derived from linker CODE/RODATA sizes. Bootstrap entry can therefore use its own linked lengths without reading an SD manifest or duplicating size constants.
 
-The `managed-package` diagnostic aligns launcher, managed editor and generated asset metadata through `platform/package_version.h` (currently `0x0201`). Binary manifest magic and the ca65 copier arrival marker use explicit ASCII byte values, avoiding cc65's PETSCII literal mapping. The asset coordinator reads exactly 52 binary bytes, checks close, parses/allocates, readback-persists the updated control, preloads/verifies all groups and finally publishes session-bound READY. Failure requires cleanup rather than a second allocation attempt. Cleanup clears asset readiness before capsule/module-session revocation and restore/verify/CLEAN; additional overlay allocations no longer bypass the launcher's shared-state cleanup.
+The `managed-package` diagnostic aligns launcher, managed editor and generated asset metadata through `platform/package_version.h` (currently `0x0202`). Binary manifest magic and the ca65 copier arrival marker use explicit ASCII byte values, avoiding cc65's PETSCII literal mapping. The asset coordinator reads exactly 52 binary bytes, checks close, parses/allocates, readback-persists the updated control, preloads/verifies all groups and finally publishes session-bound READY. Failure requires cleanup rather than a second allocation attempt. Cleanup clears asset readiness before capsule/module-session revocation and restore/verify/CLEAN; additional overlay allocations no longer bypass the launcher's shared-state cleanup.
 
 On 2026-10-04, the managed preload diagnostic ran on C64 Ultimate firmware 1.1.0, FPGA 122, core 1.49 at 192.168.1.112 with Drive A enabled. It passed native module and code-asset preload/CRC/readiness, destination capsule/plan preparation, readiness revocation and restoration, and stopped at EDITOR HANDOFF PENDING before returning to BASIC. The common system-state manager restored/verified captured turbo 0; independently checked journal slot 0 was CLEAN, sequence 34, package 513, with a valid checksum. REST RAM-shadow readback was not independent live-register verification. Previous SD modules/manifest were restored with exact SHA256 parity, only newly uploaded asset files and the temporary PRG were removed, and drive settings remained unchanged. The subsequent executable entry/short edit/exit gate is recorded in section 21.

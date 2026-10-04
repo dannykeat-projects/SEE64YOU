@@ -51,7 +51,7 @@ def compile_publisher_overlay_fit(client: Path, *, make: str = "make",
     ]
     program = fit.compile_overlay_layout(
         client, client / "build" / "publisher-overlay-fit", sources,
-        {"CONTENT": CONTENT, "NETWORK": NETWORK, "RUNTIME": runtime},
+        {"CONTENT": CONTENT, "NETWORK": NETWORK, "RUNTIME": runtime + ("src/platform/basic_return_read.c",)},
         {"CONTENT": 1, "NETWORK": 2, "RUNTIME": 3}, {},
         client / "cfg" / "publisher-overlay-fit.cfg", flags,
         compiler=cl65 or os.environ.get("CL65") or values["CL65"],
