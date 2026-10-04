@@ -363,8 +363,8 @@ int main(void)
                 S64_REU_OWNER_RUNTIME, 16UL, 256u, 0), "reserve later overlay entries");
         }
     }
-    require(destination_runtime.reu_control.allocation_count == 9u,
-        "extended allocator control reaches the cleanup regression path");
+    require(destination_runtime.reu_control.allocation_count == 10u,
+        "extended allocator control includes shared application state on the cleanup regression path");
     fail_session_store = 1u;
     require(s64_launcher_session_end(&destination_runtime) == S64_SESSION_LIFECYCLE_RESTORE_FAILED,
         "failed shared revocation blocks cleanup");
