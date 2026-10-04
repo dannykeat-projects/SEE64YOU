@@ -41,6 +41,8 @@ if ($Python) {
         & $Python.Path -m unittest discover -s relay/tests -p "test_*.py"
     }
     Invoke-Checked "Editor overlay fit helper tests" {
+        & $Python.Path tools/tests/publisher_overlay_fit_test.py
+        if ($LASTEXITCODE -ne 0) { throw "Publisher overlay helper tests failed" }
         & $Python.Path tools/tests/editor_overlay_fit_test.py
     }
     Invoke-Checked "Code asset manifest tests" {
@@ -437,6 +439,8 @@ if ($Cl65) {
     $Make = Get-Command make -ErrorAction SilentlyContinue
     if ($Make) {
         Invoke-Checked "Current C64U package build" {
+            & $Make.Path -C client publisher-overlay-fit
+            if ($LASTEXITCODE -ne 0) { throw "Publisher overlay fit failed" }
             & $Make.Path -C client c64u-package
         }
     } else {

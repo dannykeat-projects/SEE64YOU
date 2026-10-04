@@ -228,6 +228,10 @@ build/managed-handoff-launcher.prg: $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) sr
 
 # Deliberate fit gate for the next managed destination; not a product artifact.
 MANAGED_PUBLISHER_RUNTIME_SOURCES := $(filter-out src/platform/code_overlay_bootstrap.c src/platform/module_arrival.c,$(MANAGED_EDITOR_RUNTIME_SOURCES))
+.PHONY: publisher-overlay-fit
+publisher-overlay-fit:
+	python3 ../tools/build_publisher_overlay_fit.py
+
 .PHONY: managed-publisher-fit
 managed-publisher-fit: $(PUBLISHER_SOURCES) $(MANAGED_PUBLISHER_RUNTIME_SOURCES)
 	@mkdir -p build

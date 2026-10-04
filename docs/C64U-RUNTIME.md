@@ -729,13 +729,30 @@ The real REU record/adoption host fixture repeats Editor -> Publisher -> Setting
 -> Publisher -> Editor three times without changing ACTIVE, allocating again or
 recapturing settings. These are ownership tests, not real UI/hardware cycles.
 
-The actual Publisher has not yet been wired to this API. The reproducible lean
-managed-publisher-fit target links its existing Publisher and shared destination
-runtime without extra entry state or planner. With the current cc65 toolchain,
-CODE overflows MAIN by 4,805 bytes. This is a failed, deliberately non-product
-fit gate; current c64u-package is unaffected. Publisher needs a measured managed
-code layout before source state persistence and executable UI bindings can be
-enabled. Do not remove the Publisher transition guard to bypass this failure.
+The actual Publisher has not yet been wired to this API. The lean flat
+managed-publisher-fit baseline overflows MAIN by 4,805 bytes. The replacement
+publisher-overlay-fit diagnostic fits three mutually exclusive $8C00-$C7FF
+groups: CONTENT 11,553 bytes, NETWORK 11,765 bytes and RUNTIME 12,990 bytes.
+Resident BSS ends at $87FE, leaving 1,025 bytes before the slot; a 1,024-byte
+minimum is enforced. The cc65 owner structure is reserved in BSS, and transition
+planning, transfer and original SYS-return support are linked. This proves
+capacity for those components, not completed entry/UI bindings.
+
+Document streaming, Ultimate-DOS and low-level REU operations stay resident so
+synchronous callbacks return to the same loaded overlay. CONTENT contains
+publishing destination/state/handoff/plaintext/preview/settings bridging;
+NETWORK contains Network $03, SHA256 and direct authentication/publishing;
+RUNTIME contains destination ownership and session/state operations. The shared
+veneer generator rejects cross-group imports; Publisher permits no return bridges.
+The editor keeps its existing explicit bridges and exact package bytes.
+
+This is a link/fit diagnostic without trusted entry, Publisher cache setup or a
+Publisher asset manifest. Do not execute/deploy it. The existing allocator and
+editor-only asset/session contract must be extended intentionally before these
+three Publisher assets can be owned and selected; do not reuse editor cache
+handles or silently reload SD. Source/history/clipboard/settings persistence and
+executable UI bindings remain required. Current c64u-package is unaffected and
+Publisher transitions remain guarded.
 
 ## 22. Retired production constraints
 

@@ -41,6 +41,7 @@ if command -v python3 >/dev/null 2>&1; then
 
     echo "== Editor overlay fit helper tests =="
     python3 tools/tests/editor_overlay_fit_test.py
+    python3 tools/tests/publisher_overlay_fit_test.py
     python3 tools/tests/code_asset_manifest_test.py
 else
     echo "SKIP Python tests (python3 not found)"
@@ -446,6 +447,7 @@ if command -v cl65 >/dev/null 2>&1 \
     done
 
     echo "== Current C64U package build and manifest/memory checks =="
+    make -C client publisher-overlay-fit
     make -C client c64u-package
 
     echo "== Base editor diagnostic build =="

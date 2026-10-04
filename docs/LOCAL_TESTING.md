@@ -254,11 +254,17 @@ Using the required 16 MiB configuration:
 
 ### Managed Publisher fit and ownership preparation
 
-Run make -C client managed-publisher-fit for the lean destination-runtime fit.
-The current measured result is failed: CODE exceeds MAIN by 4,805 bytes, before
-extra Publisher session state and transition bindings. This is not a CI/product
-build; do not deploy its failed/stale output. The current c64u-package remains
-the working Launcher -> Editor -> BASIC package.
+Run make -C client publisher-overlay-fit for the managed destination layout.
+It compiles the actual Publisher with CONTENT/NETWORK/RUNTIME overlays, reserves
+the owner state and links transition/return support. Expected measured sizes are
+11,553 / 11,765 / 12,990 bytes, each within the 15,360-byte execution slot, with
+resident BSS ending $87FE and 1,025 bytes before the slot (minimum 1,024).
+Full validation runs this fit and both overlay-builder helper suites.
+
+This output has no trusted entry/cache/asset bindings and must not be executed
+or deployed. The optional managed-publisher-fit target preserves the lean flat
+baseline, which fails with a 4,805-byte MAIN overflow; it is not a CI gate.
+The current c64u-package remains the working Launcher -> Editor -> BASIC package.
 
 Full host validation includes module_transition_test.c for ordering, cancellation,
 invalid ownership, failed mode/write/readback/load/plan and recovery-required
