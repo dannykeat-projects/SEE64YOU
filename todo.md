@@ -41,7 +41,7 @@ New handoff components are:
 - `client/src/platform/module_runtime.[ch]`: lightweight destination owner that, only with trusted arrival, loads control/capsule/shared-session state, adopts the original system snapshot/lifecycle without a fresh ACTIVE save, and can resume INTERACTIVE / later restore-verify-CLEAN;
 - tests: `transfer_capsule_test.c`, `module_transfer_test.c`, `module_runtime_test.c`, plus launcher-runtime coverage.
 
-The diagnostic executable Launcher -> managed Editor handoff now passes the bounded real C64U gate documented in docs/C64U-RUNTIME.md. Normal/public targets remain gated; `managed-handoff-package` is diagnostic only.
+The diagnostic executable Launcher -> managed Editor entry/short edit/CLEAN gate ran on real C64U as documented in docs/C64U-RUNTIME.md. Its unguarded BASIC return did not prove a safe exit context. The diagnostic now parks after CLEAN instead of returning through overwritten launcher frames; verify this guard's message/reset flow on hardware. Normal/public targets remain gated; `managed-handoff-package` is diagnostic only.
 
 Next work:
 1. Make the destination cc65 exit context explicit before enabling product transfer: the copier jumps to startup from nested launcher calls, so destination crt0 currently saves a return stack containing overwritten launcher addresses. The observed BASIC return does not prove a safe original SYS return. Preserve/restore the original CPU stack, zero-page and memory-map exit context or provide a defined safe return path, then validate it independently.

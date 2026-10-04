@@ -429,10 +429,13 @@ manifest and `SEE64YOU.REC`, then upload matching package companions, manifests
 and raw assets. Run its launcher from a disposable PRG path. Wait for managed
 editor entry before injecting input. Decline recovery, type a short string and
 verify it appears in the document, then RUN/STOP and confirm discard. Verify
-return to BASIC and the newest checksummed journal is CLEAN. Restore preserved
+the resident `Session clean. Reset to BASIC.` message and the newest checksummed
+journal is CLEAN, then reset to BASIC. Restore preserved
 files with exact readback parity, remove only newly created diagnostic files,
-and compare drive settings. Keep the new CLEAN journals. This gate passed on
-firmware 1.1.0 on 2026-10-04 (CLEAN sequence 52/package 513). REST memory DMA
+and compare drive settings. Keep the new CLEAN journals. The earlier unguarded
+run reached BASIC on firmware 1.1.0 on 2026-10-04 (CLEAN sequence 52/package 513),
+but did not prove safe crt0 return context. The resident exit guard is currently
+build-validated only; verify its message/reset flow on the next hardware run. REST memory DMA
 readback of I/O addresses is RAM-shadow evidence, not a live turbo-register check.
 
 For the managed preload hardware gate, back up existing SD S64EDIT/PUB/CFG.PRG and S64MODULE.MNF and both journals into ignored build output. Upload the package's modules, manifests and raw code assets to /sd/; run its launcher as a temporary PRG. Require PLATFORM READY, MODULE CACHE VERIFIED, SHARED SESSION READY, TRANSFER CAPSULE READY, TRANSFER PLAN READY, EDITOR HANDOFF PENDING and SESSION CLEAN. Verify turbo equals its captured prior value, both journal checksums and the newest CLEAN sequence, and unchanged drive settings. Restore the backed-up modules/manifest with exact readback parity and remove only files newly created by this test. Keep the resulting CLEAN journals. This gate passed on firmware 1.1.0 on 2026-10-04; it does not prove executable managed editor transfer.

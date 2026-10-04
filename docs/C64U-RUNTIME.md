@@ -404,7 +404,7 @@ code is not called from interrupts.
 
 With the same cc65 toolchain, the diagnostic fit passes: MODEL 14,828 bytes,
 FILE 14,773 bytes, RUNTIME 14,929 bytes including the asset-record consumer,
-each below the 15,360-byte slot limit; resident BSS ends at `$8BA2`.
+each below the 15,360-byte slot limit; resident BSS ends at `$8BC3`.
 cc65 crt0 starts its software stack at MAIN start + size, so MAIN extends to
 `$D000` while the separate resident-fit check keeps BSS below `$8C00`.
 The linker asserts that actual crt0 stack origin equals HIMEM; the 1 KiB
@@ -668,6 +668,10 @@ The destination crt0 currently captures the nested source call stack whose
 return addresses refer to overwritten launcher code. Observed BASIC return is not proof that the original
 SYS/zero-page/memory-map exit context is safe; an explicit transferable return
 context remains a prerequisite for product activation.
+Until that context exists, managed diagnostic exit completes input shutdown and
+asset/session revocation, restore/verify and durable CLEAN, then parks in resident
+code displaying `Session clean. Reset to BASIC.` It does not return through crt0.
+This guard is build-validated; its screen/reset flow has not yet run on hardware.
 
 ## 22. Retired production constraints
 
