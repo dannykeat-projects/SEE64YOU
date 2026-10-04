@@ -673,6 +673,17 @@ asset/session revocation, restore/verify and durable CLEAN, then parks in reside
 code displaying `Session clean. Reset to BASIC.` It does not return through crt0.
 This guard is build-validated; its screen/reset flow has not yet run on hardware.
 
+`basic_return_stub.s` is an unwired diagnostic return-capsule foundation. After
+validated original-context staging at `$0400` and code staging at `$0700`, it
+restores all 256 CPU stack bytes, the 26 cc65 zero-page bytes, original `$01`, SP
+and processor flags, then RTS through the original SYS frame. The staging data
+is 285 bytes: map/SP/flags, zero page, then stack. It uses no C runtime after
+restoring that runtime's zero page. A VICE fixture verifies the original landing
+frame, restored registers, full zero page and full stack (accounting for balanced
+flag pushes). This does not capture the actual launcher-entry context or validate
+an ACTIVE-session binding. Those must exist before any product call to the stub;
+all shutdown/restore/verify/CLEAN work must finish before invoking it.
+
 ## 22. Retired production constraints
 
 The following are no longer design requirements:

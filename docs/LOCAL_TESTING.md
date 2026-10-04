@@ -438,4 +438,10 @@ but did not prove safe crt0 return context. The resident exit guard is currently
 build-validated only; verify its message/reset flow on the next hardware run. REST memory DMA
 readback of I/O addresses is RAM-shadow evidence, not a live turbo-register check.
 
+Run `python3 tools/test_basic_return_vice.py` in the configured Linux/WSL cc65,
+VICE/Xvfb environment with the pinned Open ROM fixture at `/tmp/see64you-roms`.
+It tests the unwired return capsule with a synthetic original SYS frame and
+checks full stack/zero-page restoration, SP, memory map and flags. It does not
+prove original launcher capture, session ownership or real C64U exit restoration.
+
 For the managed preload hardware gate, back up existing SD S64EDIT/PUB/CFG.PRG and S64MODULE.MNF and both journals into ignored build output. Upload the package's modules, manifests and raw code assets to /sd/; run its launcher as a temporary PRG. Require PLATFORM READY, MODULE CACHE VERIFIED, SHARED SESSION READY, TRANSFER CAPSULE READY, TRANSFER PLAN READY, EDITOR HANDOFF PENDING and SESSION CLEAN. Verify turbo equals its captured prior value, both journal checksums and the newest CLEAN sequence, and unchanged drive settings. Restore the backed-up modules/manifest with exact readback parity and remove only files newly created by this test. Keep the resulting CLEAN journals. This gate passed on firmware 1.1.0 on 2026-10-04; it does not prove executable managed editor transfer.
