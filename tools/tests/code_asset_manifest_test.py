@@ -65,8 +65,8 @@ def main() -> int:
 
         default_manifest = directory / "S64OVL.DEFAULT.MNF"
         default_encoded = GEN.generate(directory, default_manifest)
-        assert GEN.package_version() == 0x0201
-        assert struct.unpack_from("<H", default_encoded, 8)[0] == 0x0201
+        assert GEN.package_version() == 0x0202
+        assert struct.unpack_from("<H", default_encoded, 8)[0] == 0x0202
         GEN.validate(default_manifest, directory)
 
         # Canonical names are bound to group order, and every asset is checked.

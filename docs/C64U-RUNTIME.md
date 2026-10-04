@@ -174,7 +174,7 @@ Reserve fixed addresses only for data that truly requires a stable ABI address:
 
 All other large data should come from a central allocator.
 
-The allocator/control-block foundation lives in client/src/platform/reu_runtime.*. During migration, banks 0-1 remain reserved for the existing document/history/clipboard/settings/handoff layout. A fixed 256-byte shared-control region begins at bank 2, with allocator-managed space starting at linear REU address 0x020100 and extending to the 16 MiB limit. The control block has an explicit versioned/checksummed 192-byte format-2/ABI-2 wire format with 16 ownership entries, application/session metadata, remaining-space accounting and owner-tagged aligned bump allocations. It now has REU-backed store/load/readback verification using the reserved bank-2 region. After the launcher has durably entered ACTIVE state, SEE64YOU.PRG initializes this block from the journal package version/session ID and refuses to proceed to transition preparation until exact REU readback validates. There is still intentionally no free/reclamation API; reclamation policy and migration of existing fixed allocations come after the ABI and module cache are proven.
+The allocator/control-block foundation lives in client/src/platform/reu_runtime.*. During migration, banks 0-1 remain reserved for the existing document/history/clipboard/settings/handoff layout. A fixed 256-byte shared-control region begins at bank 2, with allocator-managed space starting at linear REU address 0x020100 and extending to the 16 MiB limit. The control block has an explicit versioned/checksummed 192-byte format-2/ABI-1 wire format with 16 ownership entries, application/session metadata, remaining-space accounting and owner-tagged aligned bump allocations. It now has REU-backed store/load/readback verification using the reserved bank-2 region. After the launcher has durably entered ACTIVE state, SEE64YOU.PRG initializes this block from the journal package version/session ID and refuses to proceed to transition preparation until exact REU readback validates. There is still intentionally no free/reclamation API; reclamation policy and migration of existing fixed allocations come after the ABI and module cache are proven.
 
 Allocator clients include:
 
@@ -744,7 +744,8 @@ publishing destination/state/handoff/plaintext/preview/settings bridging;
 NETWORK contains Network $03, SHA256 and direct authentication/publishing;
 RUNTIME contains destination ownership and session/state operations. The shared
 veneer generator rejects cross-group imports; Publisher permits no return bridges.
-The editor keeps its existing explicit bridges and exact package bytes.
+The editor keeps its existing explicit bridges; package 0x0202 rebuilds its
+allocator/version-dependent bytes.
 
 SYS-context validation now shares RUNTIME; its CRC and low-level REU helpers
 remain resident. Expanding the allocator from 12 to 16 entries would otherwise
@@ -758,7 +759,7 @@ handles or silently reload SD. Source/history/clipboard/settings persistence and
 executable UI bindings remain required. The Publisher fit is separate from the product package and
 Publisher transitions remain guarded.
 
-The allocator capacity change bumps package identity to 0x0202. Format/ABI 1
+The allocator capacity change bumps package identity to 0x0202. Format-1
 control blocks are rejected rather than adopted; interrupted-state recovery
 continues to use the unchanged durable journal. The 192-byte control DMA remains
 inside the same 256-byte reservation and heap addresses are unchanged. Host
