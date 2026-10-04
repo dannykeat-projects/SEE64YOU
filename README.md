@@ -110,21 +110,22 @@ Requires cc65.
 The current C64U package is built with:
 
 ~~~sh
-make -C client c64u publisher
+make -C client c64u-package
 ~~~
 
-Current migration artifacts include:
+Copy all nine files from client/build/c64u-package/ to /sd/ and run SEE64YOU.PRG.
+The launcher validates and caches matching modules/code assets, enters the
+managed editor and restores machine state before returning to BASIC on exit.
+A 16 MiB REU and UCI/Ultimate-DOS are required. Current storage remains /sd/;
+the final application-folder layout is still queued.
 
-~~~text
-client/build/SEE64YOU-C64U.PRG
-client/build/S64EDIT.PRG
-client/build/S64PUB.PRG
-client/build/S64CFG.PRG
-~~~
+Publisher and Settings are cached companions; their managed transitions remain
+blocked. The package supports offline editing while those ownership cycles are
+completed. Physical USB/native keyboard and full file/menu acceptance remain
+hardware gates. Do not cold-launch S64EDIT.PRG: it requires trusted launcher entry.
 
-The final package/launcher/module names may change as the REU module-cache architecture lands.
-
-The repository may temporarily continue to build client/build/see64you.prg for regression purposes. It is no longer a product deliverable or compatibility gate and should be removed when no longer useful to migration.
+Conventional-C64 and old standalone editor targets remain optional migration
+diagnostics. They are excluded from current product artifacts and CI fit gates.
 
 ## Running the standalone site locally
 

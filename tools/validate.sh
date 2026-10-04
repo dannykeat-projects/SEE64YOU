@@ -438,26 +438,8 @@ if command -v cl65 >/dev/null 2>&1 \
         ca65 -t c64 -o "$TMP_MODULE_DIR/$base.o" "$TMP_MODULE_DIR/$base.s"
     done
 
-    echo "== cc65 C64 build =="
-    make -C client clean all
-
-    echo "== cc65 C64U REU editor build =="
-    make -C client c64u
-
-    echo "== C64U managed editor runtime fit build =="
-    make -C client managed-editor-fit
-
-    if command -v python3 >/dev/null 2>&1; then
-        echo "== C64 memory headroom =="
-        python3 tools/check_memory_headroom.py client/build/see64you.map \
-            --label "Base C64" --min-headroom 256
-        python3 tools/check_memory_headroom.py client/build/see64you-c64u.map \
-            --label "C64U" --min-headroom 1024
-        python3 tools/check_memory_headroom.py client/build/managed-editor-fit.map \
-            --label "C64U managed editor fit" --min-headroom 1024
-    else
-        echo "SKIP memory headroom checks (python3 not found)"
-    fi
+    echo "== Current C64U package build and manifest/memory checks =="
+    make -C client c64u-package
 
     echo "== Base editor diagnostic build =="
     make -C client editor-probe
@@ -532,8 +514,10 @@ if command -v cl65 >/dev/null 2>&1 \
         && command -v xvfb-run >/dev/null 2>&1 \
         && command -v python3 >/dev/null 2>&1 \
         && command -v curl >/dev/null 2>&1; then
-        echo "== VICE REU hardware validation =="
+        echo "== VICE REU and overlay ABI validation =="
         sh ./tools/test_reu_vice.sh
+        echo "== VICE original SYS return validation =="
+        python3 tools/test_basic_return_vice.py
     else
         echo "SKIP REU VICE validation (x64sc/xvfb-run/python3/curl required)"
     fi

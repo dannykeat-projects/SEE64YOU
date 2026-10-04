@@ -414,7 +414,7 @@ The fixture copies tiny linked code assets from resident arrays and exercises
 30 swap cycles, 32-bit arguments/results, caller restoration, persistent data
 and cache hits. It does not prove real REU DMA timing or production editor use.
 
-This is not the downloadable editor. The diagnostic managed entry consumes
+The current c64u-package uses this managed editor root. Managed entry consumes
 the copier marker and configures the selector from exact linked lengths only
 on trusted arrival. It then adopts the original ACTIVE session, validates the
 asset record in IO_SAFE, and resumes INTERACTIVE before calling editor code.
@@ -423,7 +423,9 @@ The diagnostic asset launcher now integrity-checks these exact assets and
 preloads/publishes allocator-owned caches. `managed-package` stops before the
 copier; `managed-handoff-package` explicitly enables the diagnostic executable
 transfer and requires the same exact manifests and launcher headroom gate.
-Normal/public package targets still stop before executable transfer.
+The c64u-package target assembles the executable variant into a separate product
+directory and revalidates both manifests against the copied files. Standalone
+launcher and managed-package targets remain gated preload diagnostics.
 Managed publisher transitions are blocked until
 their ownership path is ready. Clean editor exit revokes assets before the
 capsule/shared-session clear and restore/verify/CLEAN path; a CLEAN retry skips
@@ -696,7 +698,8 @@ READY. Both journal checksums passed; newest CLEAN was sequence 56/package 513.
 Original SD modules/manifest/recovery were restored with exact SHA256 readback,
 temporary diagnostic files were removed, and drive configuration was unchanged.
 This proves the bounded diagnostic exit, not physical keyboard, long-edit or
-Publisher/Settings ownership cycles. Normal/public product entry remains gated.
+Publisher/Settings ownership cycles. The current c64u-package enables the proven
+Editor entry/exit; other module ownership cycles remain gated.
 
 To retain fit while adding this exit path, module/asset session producer and
 consumer code now link separately. Wire contracts and shared non-reentrant scratch

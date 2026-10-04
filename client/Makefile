@@ -210,6 +210,18 @@ managed-handoff-package: managed-package build/managed-handoff-launcher.prg
 	python3 ../tools/check_memory_headroom.py build/managed-handoff-launcher.map --label managed-handoff-launcher --min-headroom 1024
 	cp build/managed-handoff-launcher.prg build/managed-package/SEE64YOU.PRG
 
+# Current supported package: verified executable launcher plus managed editor.
+# Publisher/Settings remain cached companions; their ownership cycles are gated.
+C64U_PACKAGE_FILES := SEE64YOU.PRG S64EDIT.PRG S64PUB.PRG S64CFG.PRG S64MODULE.MNF S64OVL.MNF S64MODEL.BIN S64FILE.BIN S64RUN.BIN
+.PHONY: c64u-package
+c64u-package: managed-handoff-package
+	@mkdir -p build/c64u-package
+	cp $(addprefix build/managed-package/,$(C64U_PACKAGE_FILES)) build/c64u-package/
+	python3 ../tools/generate_module_manifest.py build/c64u-package --validate build/c64u-package/S64MODULE.MNF
+	python3 ../tools/generate_code_asset_manifest.py build/c64u-package --root build/c64u-package/S64EDIT.PRG --validate build/c64u-package/S64OVL.MNF
+	python3 ../tools/check_memory_headroom.py build/see64you-publisher.map --label publisher --min-headroom 1024
+	python3 ../tools/check_memory_headroom.py build/see64you-settings.map --label settings --min-headroom 1024
+
 build/managed-handoff-launcher.prg: $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/package_version.h src/platform/basic_return_capture.s src/platform/basic_return.c src/platform/basic_return_build.c src/launcher/basic_return_runtime.c
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -DS64_CODE_ASSET_LAUNCHER=1 -DS64_EXECUTABLE_HANDOFF=1 -m build/managed-handoff-launcher.map -o $@ src/platform/basic_return_capture.s $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/basic_return.c src/platform/basic_return_build.c src/launcher/basic_return_runtime.c

@@ -23,6 +23,9 @@ Integration CI uses the private-projects `terra64-wsl` self-hosted runner with
 labels `[self-hosted, linux, x64, terra64]`. The workflow verifies the preinstalled
 toolchain and VICE version; it does not install packages or use sudo. Its triggers
 remain feature-branch pushes and explicit dispatch, without fork PR execution.
+CI builds and publishes the managed c64u-package directory, validates both
+manifests/memory gates, and keeps reusable host/VICE diagnostic coverage. Retired
+conventional-C64 and old standalone-editor fit gates are excluded.
 
 Windows PowerShell:
 
@@ -80,28 +83,35 @@ None of these host tests establishes real UCI/REU timing or production entry.
 
 ## 3. Current C64U package build
 
-During migration:
-
 ~~~sh
-make -C client launcher c64u publisher
+make -C client c64u-package
 ~~~
 
-Current package files:
+Current upload files are the nine files in client/build/c64u-package/:
 
-- SEE64YOU.PRG — new C64U launcher shell; recovery loop is live, editor handoff intentionally pending;
-- SEE64YOU-C64U.PRG
-- S64EDIT.PRG
-- S64PUB.PRG
-- S64CFG.PRG
+- SEE64YOU.PRG: verified executable launcher with original SYS-context capture;
+- S64EDIT.PRG: managed editor root requiring trusted arrival;
+- S64PUB.PRG and S64CFG.PRG: cached companions, managed transitions still blocked;
+- S64MODULE.MNF: exact PRG lengths/entry points/CRC32;
+- S64OVL.MNF: exact editor-root and raw-asset binding;
+- S64MODEL.BIN, S64FILE.BIN and S64RUN.BIN: REU-cached editor code assets.
 
-The future launcher/manifest/module-cache package may rename/reorganize these internal files. The user-facing goal is one SEE64YOU.PRG entry point and an application folder.
+The target assembles the hardware-proven managed-handoff package into a separate
+product directory, then revalidates both manifests against the copied bytes.
+Launcher, resident editor/overlay slot, Publisher and Settings retain their
+existing memory gates. Do not mix these files with standalone editor builds.
 
-The launcher links to `build/see64you-launcher.prg`; `make launcher` always
-refreshes `build/SEE64YOU.PRG` from that image. This avoids the legacy
-`see64you.prg` validation build being mistaken for the launcher on Windows.
-Run `make launcher` after legacy validation builds before any hardware upload.
+Copy all nine files to /sd/ and run SEE64YOU.PRG. Current storage still uses /sd/;
+application-folder migration is queued. The standalone make launcher target and
+managed-package target remain gated preload diagnostics. The current product
+target executes the verified cached handoff and clean original SYS return.
 
-A conventional client/build/see64you.prg may still be produced temporarily but is no longer a supported product artifact.
+Physical keyboard acceptance remains required on both USB and native keyboards:
+New, type punctuation and multiple lines, Save As a unique scratch filename,
+New, reopen that file and compare exact text, navigate File/Edit/Search menus,
+then Exit with dirty/discard handling. Confirm responsive BASIC and newest CLEAN.
+Use disposable source files; publishing transitions remain blocked.
+
 
 ## 4. Hardware access from the development PC
 
@@ -424,7 +434,7 @@ The managed editor host suite checks adoption failure gates, asset revocation be
 
 For the executable diagnostic, build `make -C client managed-handoff-package`.
 This replaces only the diagnostic package's launcher with an executable-transfer
-variant; normal/public targets remain gated. Preserve existing SD companions,
+variant; c64u-package uses the same verified executable bytes. Preserve existing SD companions,
 manifest and `SEE64YOU.REC`, then upload matching package companions, manifests
 and raw assets. Run its launcher from a disposable PRG path. Wait for managed
 editor entry before injecting input. Decline recovery, type a short string and

@@ -27,15 +27,8 @@ jobs:
       - name: Run standalone site tests
         run: php site/tests/run.php
 
-      - name: Build current C64 test PRG
-        run: make -C client clean all
-
-      - name: Build C64U REU editor PRG
-        run: |
-          make -C client c64u
-          cat client/build/see64you-c64u.map
-          python3 tools/check_memory_headroom.py client/build/see64you-c64u.map \
-            --label "C64U editor" --min-headroom 1024
+      - name: Build current managed C64U package
+        run: make -C client clean c64u-package
 
       - name: Build C64U platform preflight probe
         run: make -C client platform-preflight-probe
@@ -115,41 +108,13 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Report current C64 memory map
-        run: cat client/build/see64you.map
-
-      - name: Report C64U REU memory map
-        run: cat client/build/see64you-c64u.map
-
-      - name: Publish current C64 test PRG
+      - name: Publish managed C64U memory maps
         uses: actions/upload-artifact@v4
         with:
-          name: see64you-prg
-          path: client/build/see64you.prg
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Publish current C64 memory map
-        uses: actions/upload-artifact@v4
-        with:
-          name: see64you-map
-          path: client/build/see64you.map
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Publish C64U REU editor PRG
-        uses: actions/upload-artifact@v4
-        with:
-          name: see64you-c64u-prg
-          path: client/build/see64you-c64u.prg
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Publish C64U REU memory map
-        uses: actions/upload-artifact@v4
-        with:
-          name: see64you-c64u-map
-          path: client/build/see64you-c64u.map
+          name: see64you-c64u-maps
+          path: |
+            client/build/managed-handoff-launcher.map
+            client/build/editor-overlay-fit/editor-overlay-fit.map
           if-no-files-found: error
           retention-days: 30
 
@@ -244,17 +209,6 @@ jobs:
           python3 tools/check_memory_headroom.py client/build/see64you-settings.map \
             --label "C64U settings helper" --min-headroom 1024
 
-      - name: Generate exact module manifest
-        run: |
-          make -C client module-manifest
-          cat client/build/S64MODULE.MNF
-
-      - name: Build SEE64YOU launcher
-        run: |
-          make -C client launcher
-          python3 tools/check_memory_headroom.py client/build/see64you-launcher.map \
-            --label "C64U launcher" --min-headroom 1024
-
       - name: Publish C64U publisher PRG
         uses: actions/upload-artifact@v4
         with:
@@ -271,26 +225,11 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish chained C64U application package
+      - name: Publish current C64U application package
         uses: actions/upload-artifact@v4
         with:
           name: see64you-c64u-package
-          path: |
-            client/build/SEE64YOU.PRG
-            client/build/SEE64YOU-C64U.PRG
-            client/build/S64EDIT.PRG
-            client/build/S64PUB.PRG
-            client/build/S64CFG.PRG
-            client/build/S64MODULE.MNF
-            client/build/platform-preflight-probe.prg
-            client/build/direct-auth-probe.prg
-            client/build/settings-io-probe.prg
-            client/build/settings-exchange-probe.prg
-            client/build/settings-save-probe.prg
-            client/build/settings-load-probe.prg
-            client/build/companion-stream-probe.prg
-            client/build/companion-launch-probe.prg
-            client/build/S64LDTST.PRG
+          path: client/build/c64u-package/
           if-no-files-found: error
           retention-days: 30
 

@@ -148,7 +148,8 @@ crt0 and publishes it as a checksummed allocator-owned ACTIVE-session record.
 Managed editor exit validates it before revocation, restores/verifies system state,
 persists CLEAN, runs cc65 destructors and restores the original stack/zero page/
 memory map through a transient stub. Invalid context retains a safe CLEAN park.
-Normal/public executable entry and other module ownership cycles remain gated.
+The current c64u-package target enables this verified Editor entry and exit.
+Publisher/Settings ownership cycles remain gated.
 See docs/C64U-RUNTIME.md for the wire, scratch and hardware evidence contracts.
 
 ## Package manifest and integrity

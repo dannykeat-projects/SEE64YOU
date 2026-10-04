@@ -388,7 +388,7 @@ if ($HostCc) {
 
 $Cl65 = Get-Command cl65 -ErrorAction SilentlyContinue
 if ($Cl65) {
-    Write-Host "== cc65 C64 build =="
+    Write-Host "== cc65 module checks =="
     New-Item -ItemType Directory -Force client/build | Out-Null
     $ModuleDir = Join-Path ([System.IO.Path]::GetTempPath()) ("see64you-cc65-" + [guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Force $ModuleDir | Out-Null
@@ -421,33 +421,16 @@ if ($Cl65) {
             & $Ca65Path -t c64 -o $ObjectPath $AssemblyPath
             if ($LASTEXITCODE -ne 0) { throw "ca65 module assembly failed: $Source" }
         }
-    $C64Sources = @(
-        "client/src/main.c",
-        "client/src/charset.c",
-        "client/src/buffer.c",
-        "client/src/history.c",
-        "client/src/clipboard.c",
-        "client/src/document.c",
-        "client/src/editor.c",
-        "client/src/ui.c",
-        "client/src/menu.c",
-        "client/src/input/input.c",
-        "client/src/platform/uci.c",
-        "client/src/platform/dos.c",
-        "client/src/storage/local.c"
-    )
-    & $Cl65.Path -t c64 -Oirs -DS64_NATIVE_PETSCII=1 -I client/src -o client/build/see64you.prg @C64Sources
-    if ($LASTEXITCODE -ne 0) { throw "C64 build failed" }
     } finally {
         Remove-Item -Recurse -Force $ModuleDir -ErrorAction SilentlyContinue
     }
     $Make = Get-Command make -ErrorAction SilentlyContinue
     if ($Make) {
-        Invoke-Checked "C64U managed editor runtime fit build" {
-            & $Make.Path -C client managed-editor-fit
+        Invoke-Checked "Current C64U package build" {
+            & $Make.Path -C client c64u-package
         }
     } else {
-        Write-Host "SKIP managed editor fit build (make not found)"
+        throw "Current C64U package validation requires make"
     }
 } else {
     Write-Host "SKIP cc65 build (cl65 not found)"
