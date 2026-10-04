@@ -132,9 +132,26 @@ function s64_theme_admin_visible(array $config): bool
     return (new S64Auth($config))->valid((string)($_SESSION['theme_token'] ?? ''));
 }
 
+function s64_active_theme_values(array $config): ?array
+{
+    $theme = (string)($config['theme'] ?? 'plain');
+    if (!isset($config['custom_themes'][$theme]['values']) || !is_array($config['custom_themes'][$theme]['values'])) {
+        return null;
+    }
+    try {
+        return s64_validate_theme($config['custom_themes'][$theme]['values']);
+    } catch (InvalidArgumentException) {
+        return null;
+    }
+}
+
 function s64_render_layout(array $config, array $pages, string $title, string $content): void
 {
-    $siteTitle = htmlspecialchars((string)$config['site_title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $themeValues = s64_active_theme_values($config);
+    $rawSiteTitle = $themeValues !== null && $themeValues['header_title'] !== ''
+        ? $themeValues['header_title']
+        : (string)$config['site_title'];
+    $siteTitle = htmlspecialchars($rawSiteTitle, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $pageTitle = htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $css = s64_theme_css($config);
 
@@ -144,24 +161,34 @@ function s64_render_layout(array $config, array $pages, string $title, string $c
         echo '<style>' . $css . '</style>';
     }
     echo "</head><body>\n<div class=\"s64-screen\">";
-    echo '<header><h1>' . $siteTitle . '</h1><nav><div class="s64-menu">';
-    echo '<a href="index.php">Home</a>';
+    echo '<header>';
+    if ($themeValues === null || $themeValues['show_title'] === 'yes') {
+        echo '<h1>' . $siteTitle . '</h1>';
+    }
+    if ($themeValues === null || $themeValues['show_menu'] === 'yes') {
+        echo '<nav><div class="s64-menu">';
+        echo '<a href="index.php">Home</a>';
 
-    foreach ($pages as $page) {
-        if ($page['slug'] === 'home') {
-            continue;
+        foreach ($pages as $page) {
+            if ($page['slug'] === 'home') {
+                continue;
+            }
+            echo ' | <a href="page.php?slug='
+                . rawurlencode((string)$page['slug']) . '">'
+                . htmlspecialchars((string)$page['title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+                . '</a>';
         }
-        echo ' | <a href="page.php?slug='
-            . rawurlencode((string)$page['slug']) . '">'
-            . htmlspecialchars((string)$page['title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-            . '</a>';
-    }
 
-    echo ' | <a href="posts.php">Posts</a>';
-    if (s64_theme_admin_visible($config)) {
-        echo ' | <a href="themes.php">Themes</a>';
+        echo ' | <a href="posts.php">Posts</a>';
+        if (s64_theme_admin_visible($config)) {
+            echo ' | <a href="themes.php">Themes</a>';
+        }
+        echo '</div></nav>';
     }
-    echo "</div></nav><hr></header>\n<main><div class=\"s64-panel\">";
+    if ($themeValues === null || $themeValues['show_separator'] === 'yes') {
+        echo '<hr>';
+    }
+    echo "</header>\n<main><div class=\"s64-panel\">";
     echo $content;
     echo "</div></main></div>\n</body></html>";
 }
