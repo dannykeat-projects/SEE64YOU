@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/Themes.php';
+
 function s64_inline_markup(string $text): string
 {
     $safe = htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -87,6 +89,9 @@ function s64_theme_css(array $config): string
     if ($theme === 'plain') {
         return '';
     }
+    if (isset($config['custom_themes'][$theme]['values']) && is_array($config['custom_themes'][$theme]['values'])) {
+        return s64_custom_theme_css($config['custom_themes'][$theme]['values']);
+    }
 
     $text = s64_safe_color($config['text_color'] ?? '', '#222222');
     $background = s64_safe_color($config['background_color'] ?? '', '#ffffff');
@@ -120,7 +125,7 @@ function s64_render_layout(array $config, array $pages, string $title, string $c
         echo '<style>' . $css . '</style>';
     }
     echo "</head><body>\n";
-    echo '<header><h1>' . $siteTitle . '</h1><nav>';
+    echo '<header><h1>' . $siteTitle . '</h1><nav><div class="s64-menu">';
     echo '<a href="index.php">Home</a>';
 
     foreach ($pages as $page) {
@@ -133,8 +138,8 @@ function s64_render_layout(array $config, array $pages, string $title, string $c
             . '</a>';
     }
 
-    echo ' | <a href="posts.php">Posts</a>';
-    echo "</nav><hr></header>\n<main>";
+    echo ' | <a href="posts.php">Posts</a> | <a href="themes.php">Themes</a>';
+    echo "</div></nav><hr></header>\n<main><div class=\"s64-panel\">";
     echo $content;
-    echo "</main>\n</body></html>";
+    echo "</div></main>\n</body></html>";
 }

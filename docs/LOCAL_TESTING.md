@@ -377,6 +377,17 @@ On a fresh configuration:
 
 ## 13. Standalone site browser acceptance
 
+Run `php site/tests/themes.php` for custom-theme lifecycle, validation/injection rejection, preview non-persistence, secret preservation and built-in protection; this is also included by `site/tests/run.php`.
+
+Theme UI checklist (use a disposable configured site):
+
+1. Open Themes, test wrong/correct site password, then create a C64 copy. Change name, colours, spacing, border and menu layout; preview must not change the public site until saved/selected.
+2. Save/reopen, rename and duplicate; select the copy and check Home/Page/Posts. Delete an inactive copy, then the active copy: only active deletion returns to Plain. Built-ins remain selectable.
+3. Preview C64 text, punctuation, numbers, menu/input/button colours and keyboard focus. Block `assets/fonts/c64.ttf`: readable Courier/monospace must remain. Compare glyph appearance with a C64 screen; exact glyph/metrics acceptance remains manual.
+4. Disable JavaScript before login and repeat create/preview/save/select/delete. Test rejected CSS-like values/low contrast; saved theme remains intact and entered form values remain available.
+5. At 390px wide check labels, fields, menu, sample text and public content. Use keyboard-only navigation and verify readable focus.
+6. On an available legacy browser, check GET/POST forms with CSS/font enhancements ignored. Alternatively document a fallback run with CSS and webfont loading disabled: Plain, login and all actions remain usable. This fallback does not certify a specific historic browser/TLS implementation.
+
 When site-facing code changes, manually confirm:
 
 - one-time setup;

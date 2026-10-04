@@ -116,6 +116,13 @@ Do not merge/deploy merely because diagnostic validation passes.
 - [ ] Optional server-assisted spell-check workflow if a sensible bounded design emerges.
 - [ ] Evaluate future firmware capabilities individually and adopt them only when they simplify or improve the product.
 
+## Website theme acceptance
+
+- [ ] Investigate and fix reported C64 font loading: loading the theme does not display the C64 font, but selecting C64 in the theme options changes the font. User reports the editor is otherwise mostly working; this issue is deferred and not fixed in the initial theme-editor commit.
+- [ ] Show the Themes navigation item only while the website user is logged in. Currently it is also visible to logged-out visitors; this issue is deferred and not fixed in the initial theme-editor commit.
+
+- [ ] Complete manual browser acceptance for the implemented website theme editor: C64 glyph appearance, no-JS lifecycle, 390px viewport and a legacy browser or documented CSS/font fallback path (docs/LOCAL_TESTING.md section 13). Automated validation is separate from historic-browser certification.
+
 ## Documentation rule
 
 Stable architecture belongs in README.md and docs/. docs/C64U-RUNTIME.md owns hardware/resource/system-state decisions. External evidence/licensing belongs in docs/ENGINEERING-REFERENCES.md. Current reproducible test procedures belong in docs/LOCAL_TESTING.md.

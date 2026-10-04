@@ -1,0 +1,94 @@
+<?php
+declare(strict_types=1);
+
+// One schema drives validation and the ordinary HTML editor.
+function s64_theme_fields(): array
+{
+    $fields = [];
+    foreach (['text', 'background', 'link', 'visited', 'heading', 'border', 'panel', 'menu', 'menu_text', 'input', 'input_text', 'button', 'button_text'] as $name) {
+        $fields[$name . '_color'] = ['color', ucwords(str_replace('_', ' ', $name)) . ' colour'];
+    }
+    foreach (['font_size' => [10, 32], 'content_width' => [20, 100], 'page_margin' => [0, 48], 'padding' => [0, 32], 'panel_padding' => [0, 32], 'paragraph_spacing' => [0, 32], 'letter_spacing' => [0, 4], 'border_width' => [0, 8], 'corner_radius' => [0, 24], 'menu_padding' => [0, 24], 'control_padding' => [0, 16]] as $name => $bounds) {
+        $fields[$name] = ['number', ucwords(str_replace('_', ' ', $name)) . ($name === 'content_width' ? ' (em)' : ' (px)'), ...$bounds];
+    }
+    $fields['font'] = ['choice', 'Font', ['monospace', 'c64', 'sans', 'serif']];
+    $fields['line_height'] = ['choice', 'Line height', ['1', '1.25', '1.5', '1.75', '2']];
+    $fields['border_style'] = ['choice', 'Border style', ['none', 'solid', 'double', 'inset', 'outset']];
+    $fields['alignment'] = ['choice', 'Text alignment', ['left', 'center', 'right']];
+    $fields['menu_layout'] = ['choice', 'Menu layout', ['inline', 'stacked']];
+    $fields['font_weight'] = ['choice', 'Text weight', ['normal', 'bold']];
+    return $fields;
+}
+
+function s64_theme_defaults(array $config = []): array
+{
+    $values = [
+        'text_color' => '#b0b0ff', 'background_color' => '#3e31a2', 'link_color' => '#ffffff', 'visited_color' => '#e49aff',
+        'heading_color' => '#ffffff', 'border_color' => '#b0b0ff', 'panel_color' => '#3e31a2',
+        'menu_color' => '#3e31a2', 'menu_text_color' => '#ffffff', 'input_color' => '#ffffff', 'input_text_color' => '#000000',
+        'button_color' => '#b0b0ff', 'button_text_color' => '#000000', 'font' => 'monospace', 'font_size' => '16',
+        'content_width' => '40', 'page_margin' => '16', 'padding' => '16', 'panel_padding' => '16',
+        'paragraph_spacing' => '16', 'letter_spacing' => '0', 'border_width' => '1', 'corner_radius' => '0',
+        'menu_padding' => '8', 'control_padding' => '4', 'line_height' => '1.5', 'border_style' => 'solid',
+        'alignment' => 'left', 'menu_layout' => 'inline', 'font_weight' => 'normal',
+    ];
+    foreach (['text_color', 'background_color', 'link_color', 'visited_color'] as $key) {
+        if (isset($config[$key]) && is_string($config[$key]) && preg_match('/^#[0-9a-f]{6}$/i', $config[$key])) {
+            $values[$key] = strtolower($config[$key]);
+        }
+    }
+    $values['panel_color'] = $values['menu_color'] = $values['background_color'];
+    $values['menu_text_color'] = $values['link_color'];
+    $values['heading_color'] = $values['border_color'] = $values['text_color'];
+    return $values;
+}
+
+function s64_validate_theme(array $input, array $defaults = []): array
+{
+    $base = array_replace(s64_theme_defaults(), $defaults);
+    $result = [];
+    foreach (s64_theme_fields() as $key => $field) {
+        $raw = array_key_exists($key, $input) ? $input[$key] : $base[$key];
+        if (!is_scalar($raw)) throw new InvalidArgumentException('invalid_' . $key);
+        $value = trim((string)$raw);
+        $valid = match ($field[0]) {
+            'color' => preg_match('/^#[0-9a-f]{6}$/i', $value) === 1,
+            'number' => preg_match('/^[0-9]{1,3}$/', $value) === 1 && (int)$value >= $field[2] && (int)$value <= $field[3],
+            'choice' => in_array($value, $field[2], true),
+        };
+        if (!$valid) throw new InvalidArgumentException('invalid_' . $key);
+        $result[$key] = $field[0] === 'number' ? (string)(int)$value : strtolower($value);
+    }
+    foreach ([['text_color', 'background_color'], ['link_color', 'background_color'], ['visited_color', 'background_color'], ['text_color', 'panel_color'], ['link_color', 'panel_color'], ['visited_color', 'panel_color'], ['heading_color', 'panel_color'], ['heading_color', 'background_color'], ['menu_text_color', 'menu_color'], ['visited_color', 'menu_color'], ['input_text_color', 'input_color'], ['button_text_color', 'button_color']] as [$fg, $bg]) {
+        if (s64_contrast_ratio($result[$fg], $result[$bg]) < 4.5) throw new InvalidArgumentException('insufficient_contrast');
+    }
+    return $result;
+}
+
+function s64_contrast_ratio(string $first, string $second): float
+{
+    $luminance = static function (string $color): float {
+        $channels = [];
+        foreach ([1, 3, 5] as $offset) {
+            $v = hexdec(substr($color, $offset, 2)) / 255;
+            $channels[] = $v <= 0.04045 ? $v / 12.92 : (($v + 0.055) / 1.055) ** 2.4;
+        }
+        return $channels[0] * 0.2126 + $channels[1] * 0.7152 + $channels[2] * 0.0722;
+    };
+    $a = $luminance($first); $b = $luminance($second);
+    return (max($a, $b) + 0.05) / (min($a, $b) + 0.05);
+}
+
+function s64_custom_theme_css(array $input): string
+{
+    // Revalidate at rendering too: never interpolate raw configuration into CSS.
+    try { $v = s64_validate_theme($input); } catch (InvalidArgumentException) { $v = s64_theme_defaults(); }
+    $fonts = ['c64' => '"See64You C64","Courier New",Courier,monospace', 'monospace' => '"Courier New",Courier,monospace', 'sans' => 'Arial,Helvetica,sans-serif', 'serif' => 'Georgia,"Times New Roman",serif'];
+    $css = $v['font'] === 'c64' ? '@font-face{font-family:"See64You C64";src:url("assets/fonts/c64.ttf") format("truetype");font-weight:normal;font-style:normal;}' : '';
+    $css .= 'body{margin:' . $v['page_margin'] . 'px auto;padding:' . $v['padding'] . 'px;max-width:' . $v['content_width'] . 'em;font-family:' . $fonts[$v['font']] . ';font-size:' . $v['font_size'] . 'px;line-height:' . $v['line_height'] . ';letter-spacing:' . $v['letter_spacing'] . 'px;font-weight:' . $v['font_weight'] . ';text-align:' . $v['alignment'] . ';color:' . $v['text_color'] . ';background:' . $v['background_color'] . ';}';
+    $css .= 'a{color:' . $v['link_color'] . ';text-decoration:underline}a:visited{color:' . $v['visited_color'] . '}a:focus,input:focus,select:focus,button:focus{outline:2px solid ' . $v['heading_color'] . '}';
+    $css .= '.s64-panel{background:' . $v['panel_color'] . ';padding:' . $v['panel_padding'] . 'px;border:' . $v['border_width'] . 'px ' . $v['border_style'] . ' ' . $v['border_color'] . ';border-radius:' . $v['corner_radius'] . 'px;}';
+    $css .= 'h1,h2,h3{color:' . $v['heading_color'] . '}p{margin:0 0 ' . $v['paragraph_spacing'] . 'px}.s64-menu{background:' . $v['menu_color'] . ';padding:' . $v['menu_padding'] . 'px}.s64-menu a{color:' . $v['menu_text_color'] . ';display:' . ($v['menu_layout'] === 'stacked' ? 'block' : 'inline') . '}.s64-menu a:visited{color:' . $v['visited_color'] . '}';
+    $css .= 'input,select,textarea,button{font-family:' . $fonts[$v['font']] . ';font-size:' . $v['font_size'] . 'px;padding:' . $v['control_padding'] . 'px;max-width:100%;}input,select,textarea{color:' . $v['input_text_color'] . ';background:' . $v['input_color'] . '}button,input[type=submit]{color:' . $v['button_text_color'] . ';background:' . $v['button_color'] . '}pre{overflow:auto}';
+    return $css;
+}

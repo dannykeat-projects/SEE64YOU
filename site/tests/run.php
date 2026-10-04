@@ -457,3 +457,5 @@ try {
     }
     @rmdir($root);
 }
+
+require __DIR__ . '/themes.php';

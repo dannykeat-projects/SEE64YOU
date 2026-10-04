@@ -56,6 +56,18 @@ JavaScript is not required.
 
 Styled themes enforce readable foreground/background contrast.
 
+### Browser theme editor
+
+Open `themes.php` (also linked from navigation) and log in with the existing site publishing password. This is a single-owner site, not a multi-account service: named custom themes belong to the installation and selection changes the public site. Credentials require HTTPS, except loopback development. Sessions use HttpOnly cookies, expire with the existing bearer lifetime, and every form POST requires a session CSRF token. Logout removes the browser's login.
+
+The editor creates themes from built-in presets, duplicates saved values, edits/renames, previews without writing, selects and deletes custom themes. Deleting the active custom theme selects Plain. Built-in Plain/Simple/C64 remain unchanged and cannot be edited/deleted; copy them to customize. Up to 32 named themes are stored under `custom_themes` in the existing atomically replaced `config.php`, preserving authentication settings. Existing API settings keys/response remain intact; custom theme IDs can also be selected through settings.
+
+Controls cover text/background/link/visited/heading colours, panel/menu/input/button colours, fixed font families, font size/weight, line/letter spacing, content width, alignment, margins/padding, paragraph spacing, panel borders/radius, menu layout and control padding. Colours must be six-digit hex and relevant foreground/background pairs must reach 4.5:1 contrast. Dimensions are bounded integers with fixed units; choices are enumerated. Unknown fields never become CSS. Rendering revalidates custom values and falls back safely on invalid configuration.
+
+The editor uses ordinary GET/POST forms and text fields, with no JavaScript or native colour-picker requirement. Layout uses block flow with ordinary div wrappers, pixel/em values and literal CSS declarations; no flex/grid, CSS variables or media-query dependency. Unsupported max-width/radius/font rules may be ignored. C64 font failure falls back to Courier New/Courier/monospace. Plain remains usable with CSS disabled. No named ancient browser version is guaranteed until manually tested; old TLS support may also limit authenticated access independently of HTML/CSS.
+
+Custom C64 copies use the locally bundled CC0 `assets/fonts/c64.ttf`; the original built-in keeps its existing monospace presentation. TrueType loading is an enhancement, not required for access. IE versions needing EOT use the fallback; no EOT/WOFF conversion is claimed. The font contains C64-style Latin/PETSCII glyphs but Unicode mappings, browser rasterization, heading boldness and fallback glyphs mean this is not a cycle/pixel-exact C64 screen emulator. See ENGINEERING-REFERENCES.md for provenance and licence.
+
 ## Setup/security
 
 Browser setup is enabled only while an ENABLE_SETUP marker exists. Successful setup writes local configuration and removes the marker.

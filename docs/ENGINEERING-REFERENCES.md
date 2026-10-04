@@ -182,3 +182,10 @@ An external project is not adopted until:
 - https://github.com/drericflores/AdveditC64
 - https://github.com/nschneir/Project64
 - https://github.com/xahmol/UltimateDemo2026
+# Website C64 font
+
+The custom-theme C64 font is `zeiche/c64font`'s unmodified `c64.ttf`, retrieved 2026-10-04 from https://github.com/zeiche/c64font (CC0 1.0 Universal; upstream LICENSE.md is bundled beside it). SHA256: `60f16bd2384ee6f8fd1dc1d1ea642de41143bb0fbb50710a5404934b4f66da2c`. Upstream documents Basic Latin, PETSCII legacy-computing/box/block mappings and private-use reverse characters. The UI uses normal Unicode text; glyph shape/metrics still require browser visual acceptance.
+
+Style64 C64 Pro Mono was also evaluated: https://style64.org/c64-truetype/license permits unchanged webfont embedding but software redistribution is restricted to freely provided software. CC0 avoids that distribution condition. No Style64 asset is bundled.
+
+Format support: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@font-face documents local font sources and browser compatibility. We ship TrueType only, use `format('truetype')`, and provide Courier/monospace fallbacks. Older IE's EOT path is deliberately a fallback, not a supported custom-font path. Neither custom font loading nor rounded corners is a functional prerequisite.

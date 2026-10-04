@@ -291,4 +291,33 @@ curl -fsS -X POST -H "$AUTH" \
 CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/post.php?slug=api-test")
 [ "$CODE" = "404" ]
 
-echo "HTTP API tests passed"
+# Browser themes use cookies and CSRF-protected, JavaScript-free forms.
+JAR="$TMP/theme-cookies"
+FORM=$(curl -fsS -c "$JAR" "$BASE/themes.php")
+CSRF=$(printf '%s' "$FORM" | sed -n 's/.*name="csrf" value="\([a-f0-9]*\)".*/\1/p' | head -n 1)
+[ "${#CSRF}" = "64" ]
+CODE=$(curl -sS -b "$JAR" -o /dev/null -w '%{http_code}' -d 'action=create&id=c64&name=Unauthorised' "$BASE/themes.php")
+[ "$CODE" = "403" ]
+FORM=$(curl -fsS -b "$JAR" -c "$JAR" --data-urlencode "csrf=$CSRF" --data-urlencode "action=login" --data-urlencode "password=$PASSWORD" "$BASE/themes.php")
+printf '%s' "$FORM" | grep -q 'Create custom theme'
+BEFORE=$(php -r 'echo hash_file("sha256",$argv[1]);' "$SITE/config.php")
+FORM=$(curl -fsS -b "$JAR" -d "csrf=$CSRF&action=preview&id=c64&name=Preview" "$BASE/themes.php")
+printf '%s' "$FORM" | grep -q 'nothing saved'
+[ "$BEFORE" = "$(php -r 'echo hash_file("sha256",$argv[1]);' "$SITE/config.php")" ]
+curl -fsS -b "$JAR" -d "csrf=$CSRF&action=create&id=c64&name=Browser" "$BASE/themes.php" | grep -q 'Save / rename'
+THEME_ID=$(php -r '$c=require $argv[1]; echo array_key_first($c["custom_themes"]);' "$SITE/config.php")
+curl -fsS -b "$JAR" -d "csrf=$CSRF&action=select&id=$THEME_ID" "$BASE/themes.php" >/dev/null
+curl -fsS "$BASE/index.php" | grep -q 'assets/fonts/c64.ttf'
+curl -fsS -b "$JAR" -d "csrf=$CSRF&action=save&id=$THEME_ID&name=Renamed&padding=8" "$BASE/themes.php" | grep -q 'Renamed'
+curl -fsS -b "$JAR" -d "csrf=$CSRF&action=duplicate&id=$THEME_ID&name=Copy" "$BASE/themes.php" >/dev/null
+php -r '$c=require $argv[1]; if(count($c["custom_themes"])!==2)exit(1);' "$SITE/config.php"
+BEFORE=$(php -r 'echo hash_file("sha256",$argv[1]);' "$SITE/config.php")
+curl -fsS -b "$JAR" -d "csrf=$CSRF&action=delete&id=$THEME_ID" "$BASE/themes.php" | grep -q 'confirm delete'
+[ "$BEFORE" = "$(php -r 'echo hash_file("sha256",$argv[1]);' "$SITE/config.php")" ]
+curl -fsS -b "$JAR" -d "csrf=$CSRF&action=delete&id=$THEME_ID&confirm_delete=yes" "$BASE/themes.php" >/dev/null
+php -r '$c=require $argv[1]; if($c["theme"]!=="plain" || count($c["custom_themes"])!==1)exit(1);' "$SITE/config.php"
+curl -fsS -b "$JAR" -d "csrf=$CSRF&action=logout" "$BASE/themes.php" | grep -q 'Site publishing password'
+CODE=$(curl -sS -b "$JAR" -o /dev/null -w '%{http_code}' -d "csrf=$CSRF&action=select&id=c64" "$BASE/themes.php")
+[ "$CODE" = "403" ]
+
+echo "HTTP API and browser theme tests passed"
