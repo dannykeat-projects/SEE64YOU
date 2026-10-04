@@ -479,6 +479,19 @@ capture/edit/return gate passed on firmware 1.1.0 on 2026-10-04, CLEAN sequence
 RAM-shadow evidence, not a live turbo-register check. Missing/corrupt return
 context intentionally retains the CLEAN resident reset message.
 
+
+On 2026-10-04, the exact CI-passing cb4ebfe package (0x0202) ran on the C64U
+at 192.168.1.112. Managed Editor entry, declined autosave recovery, visible TEST
+edit and RUN/STOP/discard returned to BASIC. Both journal checksums passed;
+newest was CLEAN sequence 58/package 514, older ACTIVE 57/package 514. The IRQ
+vector matched the pre-launch bytes, the KERNAL clock advanced and PRINT 6*7
+produced 42 followed by READY. Existing SD companions, module manifest and
+SEE64YOU.REC were restored with exact SHA256 readback parity; only new raw
+assets/asset manifest and /Temp/S64R514.PRG were removed. Drive settings were
+unchanged. Evidence is in ignored client/build/hardware-package514-backup/.
+This revalidates the expanded allocator package's short automated hardware gate;
+physical keyboard/file/menu acceptance and Publisher cycles remain unverified.
+
 Run python3 tools/test_basic_return_vice.py in the configured Linux/WSL cc65,
 VICE/Xvfb environment with the pinned Open ROM fixture at /tmp/see64you-roms.
 It uses a synthetic SYS frame to check full stack/zero-page restoration, SP,

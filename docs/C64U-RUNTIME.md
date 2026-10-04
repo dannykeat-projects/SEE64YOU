@@ -764,8 +764,11 @@ control blocks are rejected rather than adopted; interrupted-state recovery
 continues to use the unchanged durable journal. The 192-byte control DMA remains
 inside the same 256-byte reservation and heap addresses are unchanged. Host
 tests cover all 16 entries, atomic exhaustion, round-trip/readback, old-format
-rejection and a sentinel after the record. The earlier package-513 hardware
-evidence does not validate these rebuilt package-514 bytes.
+rejection and a sentinel after the record. The rebuilt package-514 bytes passed the short real-C64U entry/edit/CLEAN/BASIC
+return gate on 2026-10-04: newest CLEAN 58, IRQ parity, advancing clock and
+PRINT 6*7 -> 42 -> READY. SD backups were restored with exact SHA256 parity
+and drive settings were unchanged. Physical input/full file/menu acceptance
+and Publisher cycles remain unverified.
 
 ## 22. Retired production constraints
 
