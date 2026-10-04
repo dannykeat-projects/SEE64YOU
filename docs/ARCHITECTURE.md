@@ -124,6 +124,15 @@ Every executable module exchanges state through a versioned REU control structur
 
 A module must reject an incompatible or corrupt control block rather than guessing.
 
+Application-state authority is the runtime-control validity bit. The Editor
+publication service captures controls after a history flush, verifies persisted
+revocation before replacing the record, verifies the complete replacement, then
+publishes and verifies the bit. Only successful publication advances generation.
+Managed Editor clean exit verifies the bit clear before teardown/CLEAN while
+preserving the already loaded BASIC-return context. The publication API remains
+uncalled while Publish is gated; its later executable integration and authenticated
+resumed-entry hardware gate are outstanding. See C64U-RUNTIME.md for the transaction.
+
 ## Executable overlay model
 
 Editor, Publisher and Settings remain separate PRGs/overlays because each can use the conventional address space cleanly while sharing large state through REU.

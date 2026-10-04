@@ -8,7 +8,8 @@ S64ApplicationState* s64_managed_editor_state_decode(S64ModuleRuntime* runtime, 
 {
     S64ApplicationState* application;
     uint8_t authorized = runtime != 0 && s64_managed_editor_state_owner == runtime
-        && wire != 0 && wire == s64_managed_editor_state_wire;
+        && wire != 0 && wire == s64_managed_editor_state_wire
+        && (runtime->reu_control.state_flags & S64_REU_RUNTIME_STATE_APPLICATION_VALID);
     s64_managed_editor_state_owner = 0;
     s64_managed_editor_state_wire = 0;
     if (!authorized) return 0;

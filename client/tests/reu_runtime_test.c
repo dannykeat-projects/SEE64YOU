@@ -8,6 +8,7 @@
 static unsigned char fake_reu_control[S64_REU_RUNTIME_CONTROL_CAPACITY];
 static unsigned char fake_store_ok = 1u;
 static unsigned char fake_load_ok = 1u;
+static int corrupt_readback = -1;
 
 uint8_t s64_reu_store(
     uint8_t bank,
@@ -42,6 +43,8 @@ uint8_t s64_reu_load(
         return 0u;
     }
     memcpy(destination, fake_reu_control, length);
+    if (corrupt_readback >= address && corrupt_readback < address + length)
+        ((uint8_t*)destination)[corrupt_readback - address] ^= 1;
     return 1u;
 }
 
@@ -62,6 +65,7 @@ int main(void)
     uint8_t wire[S64_REU_RUNTIME_WIRE_SIZE];
     uint32_t initial_remaining;
     uint8_t i;
+    unsigned corrupt;
     uint16_t checksum;
     S64ReuRuntimeControl before;
 
@@ -136,6 +140,11 @@ int main(void)
     memset(fake_reu_control, 0, sizeof(fake_reu_control));
     require(s64_reu_runtime_store_verified(&control),
         "control block stores and verifies through REU DMA boundary");
+    for (corrupt = 0; corrupt < S64_REU_RUNTIME_WIRE_SIZE; ++corrupt) {
+        corrupt_readback = (int)corrupt;
+        require(!s64_reu_runtime_store_verified(&control), "every control readback byte is verified");
+    }
+    corrupt_readback = -1;
     memset(&decoded, 0, sizeof(decoded));
     require(s64_reu_runtime_load(&decoded),
         "control block loads from reserved REU region");

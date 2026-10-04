@@ -838,12 +838,37 @@ in RUNTIME; payload decoding uses FILE and MODEL with explicit return bridges,
 including nested MODEL -> FILE -> MODEL calls. Scalar readers/range tables and
 startup binding remain resident so every overlay can safely reach them.
 The managed Editor build excludes its unused legacy software-IEC handoff objects.
-All three slots fit; resident BSS ends at `$8BFD`, leaving only two bytes before
-`$8C00`. Any further resident change must pass the memory gates again.
+All three slots fit: MODEL 15,216 / FILE 15,341 / RUNTIME 15,225 bytes, within
+15,360 per slot. Resident BSS ends at `$8BE5`, leaving 26 bytes before `$8C00`.
+Separating unused capsule production and injected-backend initialization keeps
+the required control writer/revocation in RUNTIME. Shared capsule checks remain
+single implementations. Any further resident change must pass the gates again.
 
-Editor capture/publication and transactional validity-bit store/revocation remain
-outstanding. Executable Publisher/Settings transitions remain blocked; this
-consumer integration introduces no Publisher execution. Its changed package
+The Editor producer service `s64_managed_editor_state_publish` requires the
+current managed Editor, an owned ACTIVE lifecycle, matching control/journal and
+the caller's IO_SAFE scope. It flushes pending history through the existing
+capture path into the second half of the synchronous 1 KiB scratch, preserving
+replacement metadata. It persists and verifies cleared application authority
+before overwriting the record, stores and verifies all 512 record bytes, then
+sets the bit and persists/verifies the complete 192-byte runtime control. Fresh
+generation begins at 1; each successful publication advances it exactly once and
+sets the writer to Editor. Overflow rejects; any failure leaves caller generation
+unchanged and the live Editor in charge. A failed final set/readback attempts a
+verified clear; an uncertain result never permits transition. A failed initial
+revocation never touches the existing state record.
+
+Explicit revocation changes only runtime control, never stale record bytes or
+the synchronous scratch. It persists/verifies clear even when the local bit is
+already clear, so a failed prior write/readback cannot make retry assume success.
+Managed clean exit performs this revocation after loading the BASIC snapshot,
+before BASIC-record revocation and shared teardown/restore/CLEAN. Failure blocks
+CLEAN and BASIC return; successful revocation preserves the loaded snapshot.
+Revoking authority also prevents a previously prepared decoder from consuming it.
+
+The producer API is host-tested and separately cc65-compiled, but intentionally
+has no caller in the gated Publish command and is not linked into the current
+Editor root. Only exit revocation is integrated in the package. Executable
+Publisher/Settings transitions remain blocked. The preceding consumer package
 passed the bounded first-entry/edit/CLEAN/BASIC-return hardware gate on
 2026-10-05 (CLEAN 60/package 514); actual resumed-entry hardware acceptance
 remains outstanding. See docs/LOCAL_TESTING.md for exact artifact evidence.

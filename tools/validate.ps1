@@ -166,11 +166,15 @@ if ($HostCc) {
             "client/src/platform/http.c",
             "client/src/publisher/relay.c",
             "client/src/publisher/wordpress.c",
-            "client/src/publisher/wordpress_documents.c"
+            "client/src/publisher/wordpress_documents.c",
+        "client/src/platform/managed_editor_publish.c",
+        "client/src/platform/application_state_build.c",
+        "client/src/platform/application_state_editor.c"
         )
         Invoke-CTest "reu_runtime" @(
             "client/tests/reu_runtime_test.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_write.c",
             "client/src/platform/reu_runtime.c"
         )
         Invoke-CTest "code_overlay" @(
@@ -184,6 +188,7 @@ if ($HostCc) {
             "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_write.c",
             "client/src/platform/reu_runtime.c"
         )
         $CodeAssetSources = @(
@@ -198,6 +203,7 @@ if ($HostCc) {
             "client/src/platform/module_manifest.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_write.c",
             "client/src/platform/session_journal.c",
             "client/src/platform/session_journal_start.c",
             "client/src/platform/system_state.c",
@@ -236,6 +242,7 @@ if ($HostCc) {
             "client/src/platform/module_session_build.c",
             "client/src/platform/module_session.c", "client/src/platform/module_session_read.c",
             "client/src/platform/transfer_capsule_build.c",
+            "client/src/platform/transfer_capsule_write.c",
             "client/src/platform/transfer_capsule.c",
             "client/src/platform/module_transfer.c",
             "client/src/launcher/recovery_flow.c",
@@ -250,6 +257,7 @@ if ($HostCc) {
             "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_write.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/dos.c",
             "client/src/platform/turbo_capture.c",
@@ -266,6 +274,7 @@ if ($HostCc) {
             "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_write.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/session_journal_start.c",
             "client/src/platform/session_journal.c",
@@ -274,6 +283,7 @@ if ($HostCc) {
         Invoke-CTest "transfer_capsule" @(
             "client/tests/transfer_capsule_test.c",
             "client/src/platform/transfer_capsule_build.c",
+            "client/src/platform/transfer_capsule_write.c",
             "client/src/platform/transfer_capsule.c",
             "client/src/platform/module_session_build.c",
             "client/src/platform/module_session.c", "client/src/platform/module_session_read.c",
@@ -281,6 +291,7 @@ if ($HostCc) {
             "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_write.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/session_journal_start.c",
             "client/src/platform/session_journal.c",
@@ -311,6 +322,7 @@ if ($HostCc) {
             "client/src/platform/application_state_editor.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_write.c",
             "client/src/platform/session_journal.c",
             "client/src/platform/crc32.c",
             "client/src/buffer_reu.c", "client/src/history_reu.c", "client/src/editor.c",
@@ -325,11 +337,14 @@ if ($HostCc) {
             "client/src/platform/application_state_editor_decode.c",
             "client/src/platform/managed_editor_state.c",
             "client/src/platform/managed_editor_restore.c",
+            "client/src/platform/managed_editor_publish.c",
+            "client/src/platform/managed_editor_revoke.c",
             "client/src/platform/application_state_build.c",
             "client/src/platform/application_state_reserve.c",
             "client/src/platform/application_state_editor.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_write.c",
             "client/src/platform/session_journal.c",
             "client/src/platform/crc32.c",
             "client/src/buffer_reu.c", "client/src/history_reu.c", "client/src/editor.c",
@@ -354,6 +369,7 @@ if ($HostCc) {
             "client/src/platform/crc32.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_write.c",
             "client/src/platform/session_journal.c",
             "client/src/platform/session_journal_start.c",
             "client/src/platform/system_state.c",
@@ -368,8 +384,11 @@ if ($HostCc) {
         )
         Invoke-CTest "managed_editor_exit_test" @(
             "-Werror",
+            "-DS64_REU_BUFFER=1",
+            "-include", "client/tests/managed_editor_exit_workspace.h",
             "client/tests/managed_editor_exit_test.c",
-            "client/src/platform/managed_editor_exit.c"
+            "client/src/platform/managed_editor_exit.c",
+            "client/src/platform/managed_editor_revoke.c"
         )
         Invoke-CTest "module_transition" @(
             "-Werror",
@@ -384,7 +403,9 @@ if ($HostCc) {
             "client/src/platform/module_transition.c",
             "client/src/platform/module_transfer.c",
             "client/src/platform/module_runtime.c",
+            "client/src/platform/module_runtime_init.c",
             "client/src/platform/transfer_capsule_build.c",
+            "client/src/platform/transfer_capsule_write.c",
             "client/src/platform/transfer_capsule.c",
             "client/src/platform/module_session_build.c",
             "client/src/platform/module_session.c", "client/src/platform/module_session_read.c",
@@ -392,6 +413,7 @@ if ($HostCc) {
             "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_write.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/session_lifecycle_start.c",
             "client/src/platform/session_lifecycle.c",
@@ -465,7 +487,10 @@ if ($Cl65) {
         "client/src/publisher/standalone.c",
         "client/src/publisher/standalone_documents.c",
         "client/src/publisher/wordpress.c",
-        "client/src/publisher/wordpress_documents.c"
+        "client/src/publisher/wordpress_documents.c",
+        "client/src/platform/managed_editor_publish.c",
+        "client/src/platform/application_state_build.c",
+        "client/src/platform/application_state_editor.c"
     )
     try {
         foreach ($Source in $C64ModuleSources) {
@@ -473,7 +498,11 @@ if ($Cl65) {
             $AssemblyPath = Join-Path $ModuleDir ($BaseName + ".s")
             $ObjectName = $BaseName + ".o"
             $ObjectPath = Join-Path $ModuleDir $ObjectName
-            & $Cc65Path -t c64 -Oirs -DS64_NATIVE_PETSCII=1 -I client/src -o $AssemblyPath $Source
+            $ModuleDefines = @()
+            if ($Source -match "platform/(managed_editor_publish|application_state_build|application_state_editor)\.c$") {
+                $ModuleDefines = @("-DS64_REU_BUFFER=1")
+            }
+            & $Cc65Path -t c64 -Oirs -DS64_NATIVE_PETSCII=1 @ModuleDefines -I client/src -o $AssemblyPath $Source
             if ($LASTEXITCODE -ne 0) { throw "cc65 module compile failed: $Source" }
             & $Ca65Path -t c64 -o $ObjectPath $AssemblyPath
             if ($LASTEXITCODE -ne 0) { throw "ca65 module assembly failed: $Source" }

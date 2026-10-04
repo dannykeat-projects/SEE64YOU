@@ -257,7 +257,7 @@ Using the required 16 MiB configuration:
 Run make -C client publisher-overlay-fit for the managed destination layout.
 It compiles actual trusted Publisher entry, ACTIVE adoption, S64Q assets and shared
 application-state consumption with transition/return support. Require CONTENT
-13,697 / NETWORK 11,765 / RUNTIME 14,135 bytes within the 15,360-byte slot, resident
+13,697 / NETWORK 11,765 / RUNTIME 13,921 bytes within the 15,360-byte slot, resident
 BSS $866D and 1,426-byte headroom (minimum 1,024). It generates/revalidates the exact
 S64POVL.MNF and Publisher assets. Initial control load/validation must be resident;
 only the explicit tested return-bridge allowlist may cross overlay groups.
@@ -272,7 +272,7 @@ checks adoption/binding/state failure ordering, unchanged failed document output
 and one-shot decode authority. These are host contracts, not hardware execution.
 
 This Publisher diagnostic must not be executed or deployed. The launcher reserves
-the application-state allocation, but publication, Publisher asset preload and
+the application-state allocation, but the publication caller, Publisher asset preload and
 validated session settings remain unintegrated. Publisher/Settings transitions
 stay gated. The current nine-file c64u-package retains Launcher -> Editor -> BASIC.
 
@@ -282,11 +282,23 @@ ACTIVE authentication and one-shot decode. Missing allocation/read failure,
 every-byte corruption and journal/session/package/snapshot mismatches reject
 resumption. The suite checks all decoded controls, filename/search/clipboard,
 generation/source/replacement, usable undo/redo and unchanged REU payload bytes.
+It also exercises fresh/replacement publication, verified authority revocation
+before overwrite, complete state/control readback, final-bit publication and
+authenticated resume round trips. Faults cover pending/failed history flush,
+capture, initial clear write/readback, state encode/write/last-chunk readback or
+corruption, and final control write/readback/corruption including failed cleanup.
+Failures retain caller generation, leave the current Editor usable and disallow
+transition. Runtime-control tests corrupt every one of the 192 readback bytes.
+Both validators separately cc65/ca65-compile the gated producer service and
+capture/encoder; they are not linked into the current Editor root. Exit tests
+bind the real revocation service and exit implementation to one host return
+workspace, check both clear/set flags and block CLEAN on failed revocation.
 Decoded scratch lives in the second half of the asserted 1 KiB `$C800` gap.
 `test_code_overlay_vice.py` covers the nested MODEL -> FILE -> MODEL return path
 with 16/32-bit arguments/results and cache-read counts. Current Editor resident
-BSS ends at `$8BFD` (two bytes before `$8C00`); the original workspace/stack and
-slot limits remain mandatory. The changed package passed the bounded real-C64U
+BSS ends at `$8BE5` (26 bytes before `$8C00`); MODEL 15,216 / FILE 15,341 /
+RUNTIME 15,225 bytes fit the 15,360-byte slot. The original workspace/stack and
+slot limits remain mandatory. The preceding consumer package passed the bounded real-C64U
 first-entry/edit/CLEAN/BASIC-return gate on 2026-10-05 (details below). Physical
 keyboard/file/menu and actual resumed-entry hardware acceptance remain outstanding.
 

@@ -7,6 +7,9 @@
 
 static uint8_t reu[0x40000], payload[0x20000], wire[1024], saved_wire[512];
 static unsigned reads, writes, copies, fail_read;
+static unsigned transaction, fail_stage, control_writes, control_reads, state_writes, state_reads;
+static uint32_t state_address;
+static uint8_t fail_history;
 static S64ModuleRuntime runtime;
 static S64Dos dos;
 static S64Editor editor;
@@ -21,14 +24,148 @@ uint8_t s64_reu_load(uint8_t bank, uint16_t offset, void* out, uint16_t length)
 {
     uint32_t address = ((uint32_t)bank << 16) | offset;
     assert(address + length <= sizeof(reu)); ++reads;
+    if (transaction && bank == S64_REU_RUNTIME_CONTROL_BANK && offset < S64_REU_RUNTIME_WIRE_SIZE) {
+        ++control_reads;
+        if ((fail_stage == 2 && control_writes == 1)
+            || (fail_stage == 7 && control_writes == 2)
+            || (fail_stage == 9 && control_writes >= 2)) return 0;
+    }
+    if (transaction && address >= state_address && address < state_address + 512) {
+        ++state_reads;
+        if (fail_stage == 4 && state_reads == 16) return 0;
+    }
     if (fail_read) return 0;
-    memcpy(out, reu + address, length); return 1;
+    memcpy(out, reu + address, length);
+    if (transaction && ((fail_stage == 5 && state_reads == 16 && address >= state_address && address < state_address + 512)
+        || (fail_stage == 8 && bank == 2 && control_writes == 2))) ((uint8_t*)out)[length - 1] ^= 1;
+    return 1;
 }
 uint8_t s64_reu_store(uint8_t bank, uint16_t offset, const void* in, uint16_t length)
 {
     uint32_t address = ((uint32_t)bank << 16) | offset;
     assert(address + length <= sizeof(reu)); ++writes;
+    if (fail_history && bank < 2) return 0;
+    if (transaction && bank == S64_REU_RUNTIME_CONTROL_BANK && offset == 0) {
+        ++control_writes;
+        if ((fail_stage == 1 && control_writes == 1)
+            || (fail_stage == 6 && control_writes == 2)) return 0;
+        if (((const uint8_t*)in)[12] & S64_REU_RUNTIME_STATE_APPLICATION_VALID)
+            assert(state_writes == 1 && state_reads == 16);
+    }
+    if (transaction && address == state_address) {
+        assert(control_writes == 1 && control_reads == 1);
+        assert(!(reu[0x20000 + 12] & S64_REU_RUNTIME_STATE_APPLICATION_VALID));
+        ++state_writes;
+        if (fail_stage == 3) return 0;
+    }
     memcpy(reu + address, in, length); return 1;
+}
+static uint8_t publish(S64ManagedEditorState* authority)
+{
+    return s64_managed_editor_state_publish(&runtime, authority, &editor,
+        &document, &local, &clipboard, search, 1, wire);
+}
+static void publication_tests(void)
+{
+    S64ManagedEditorState authority, before;
+    S64ReuRuntimeControl persisted;
+    S64Editor preserved_editor;
+    unsigned failure;
+    uint8_t old[512];
+    runtime.lifecycle.active_record_written = 1;
+    runtime.system_state.captured = 1;
+    runtime.system_state.mode = S64_SYSTEM_MODE_IO_SAFE;
+    state_address = s64_application_state_allocation(&runtime.reu_control)->address;
+    memset(&authority, 0, sizeof(authority));
+    runtime.reu_control.state_flags = 0;
+    assert(s64_reu_runtime_store_verified(&runtime.reu_control));
+    memcpy(payload, reu, sizeof(payload));
+    transaction = 1;
+    assert(publish(&authority));
+    transaction = 0;
+    assert(authority.generation == 1 && authority.source_module == S64_MODULE_EDITOR);
+    assert(control_writes == 2 && control_reads == 2 && state_writes == 1 && state_reads == 16);
+    assert(!memcmp(wire, reu + state_address, S64_APPLICATION_STATE_SIZE));
+    assert(!memcmp(payload, reu, sizeof(payload)));
+    assert(s64_reu_runtime_load(&persisted) && (persisted.state_flags & S64_REU_RUNTIME_STATE_APPLICATION_VALID));
+    assert(s64_managed_editor_state_prepare(&runtime, wire) == 2);
+    decoded = s64_managed_editor_state_decode(&runtime, wire);
+    assert(decoded && decoded->generation == 1 && decoded->source_module == S64_MODULE_EDITOR);
+    assert(!strcmp(decoded->search, search) && !strcmp(decoded->filename, local.filename));
+    assert(!strcmp(decoded->document.title, document.title) && decoded->clipboard_length == clipboard.length);
+    assert(decoded->editor.buffer.cursor == editor.buffer.cursor && !decoded->editor.history.pending_valid);
+    memcpy(old, reu + state_address, sizeof(old));
+    authority.document_replaced = 1;
+    control_writes = control_reads = state_writes = state_reads = 0;
+    transaction = 1; assert(publish(&authority)); transaction = 0;
+    assert(authority.generation == 2 && authority.document_replaced == 1);
+    assert(memcmp(old, reu + state_address, sizeof(old)));
+    assert(s64_managed_editor_state_prepare(&runtime, wire) == 2);
+    decoded = s64_managed_editor_state_decode(&runtime, wire);
+    assert(decoded && decoded->generation == 2 && decoded->document_replaced);
+    assert(s64_managed_editor_state_prepare(&runtime, wire) == 2);
+    assert(s64_managed_editor_state_revoke(&runtime));
+    assert(!s64_managed_editor_state_decode(&runtime, wire));
+
+    /* No producer output before ownership, capture and IO_SAFE prerequisites. */
+    before = authority;
+    writes = 0; runtime.current_module = S64_MODULE_PUBLISHER;
+    assert(!publish(&authority) && !writes); runtime.current_module = S64_MODULE_EDITOR;
+    runtime.lifecycle.active_record_written = 0;
+    assert(!publish(&authority) && !writes); runtime.lifecycle.active_record_written = 1;
+    runtime.lifecycle.clean_record_written = 1;
+    assert(!publish(&authority) && !writes); runtime.lifecycle.clean_record_written = 0;
+    runtime.system_state.mode = S64_SYSTEM_MODE_INTERACTIVE;
+    assert(!publish(&authority) && !writes); runtime.system_state.mode = S64_SYSTEM_MODE_IO_SAFE;
+    authority.generation = 0xffffffffUL;
+    assert(!publish(&authority) && !writes); authority = before;
+    editor.history.pending_valid = 1;
+    assert(!publish(&authority) && !writes); editor.history.pending_valid = 0;
+    memset(search, 'x', sizeof(search));
+    assert(!publish(&authority) && !writes); strcpy(search, "needle");
+    /* Actual dirty-history flush failure must remain retryable. */
+    assert(s64_editor_insert(&editor, 'd'));
+    fail_history = 1; assert(!publish(&authority)); fail_history = 0;
+    assert(authority.generation == before.generation);
+    assert(s64_history_prepare_handoff(&editor.history));
+    memcpy(payload, reu, sizeof(payload));
+
+    preserved_editor = editor;
+    authority.source_module = S64_MODULE_PUBLISHER; before = authority;
+    for (failure = 1; failure <= 9; ++failure) {
+        runtime.reu_control.state_flags = S64_REU_RUNTIME_STATE_APPLICATION_VALID;
+        assert(s64_reu_runtime_store_verified(&runtime.reu_control));
+        memcpy(old, reu + state_address, sizeof(old));
+        control_writes = control_reads = state_writes = state_reads = 0;
+        fail_stage = failure; transaction = 1;
+        assert(!publish(&authority));
+        transaction = 0; fail_stage = 0;
+        assert(authority.generation == before.generation && authority.source_module == before.source_module);
+        assert(!(runtime.reu_control.state_flags & S64_REU_RUNTIME_STATE_APPLICATION_VALID));
+        if (failure <= 2) assert(!state_writes && !memcmp(old, reu + state_address, sizeof(old)));
+        /* Failed initial revocation can retain the original authority; failed
+         * final readback + failed cleanup is explicitly uncertain. Neither
+         * grants a transition. Retrying revoke must persist a verified clear. */
+        if (failure != 1 && failure != 9) {
+            assert(s64_reu_runtime_load(&persisted));
+            assert(!(persisted.state_flags & S64_REU_RUNTIME_STATE_APPLICATION_VALID));
+        }
+        assert(!memcmp(payload, reu, sizeof(payload)) && s64_buffer_length(&editor.buffer) == 4);
+        assert(!memcmp(&preserved_editor, &editor, sizeof(editor)));
+        assert(s64_managed_editor_state_revoke(&runtime));
+        assert(s64_reu_runtime_load(&persisted) && !persisted.state_flags);
+    }
+    /* Invalid encode must leave the revoked authority clear. */
+    document.status = (S64DocumentStatus)0;
+    assert(!publish(&authority)); document.status = S64_DOCUMENT_PUBLISHED;
+    assert(authority.generation == before.generation);
+    assert(s64_reu_runtime_load(&persisted) && !persisted.state_flags);
+    /* Revocation must not touch an already loaded exit snapshot/workspace. */
+    memset(wire, 0x66, sizeof(wire));
+    assert(s64_managed_editor_state_revoke(&runtime));
+    for (failure = 0; failure < sizeof(wire); ++failure) assert(wire[failure] == 0x66);
+    assert(s64_editor_undo(&editor) && s64_editor_redo(&editor));
+    puts("managed editor publication/revocation tests passed");
 }
 uint8_t s64_reu_copy(uint8_t from_bank, uint16_t from, uint8_t to_bank,
     uint16_t to, uint16_t length)
@@ -156,5 +293,7 @@ int main(void)
     assert(s64_clipboard_read(&clipboard, 0, clip, sizeof(clip)) == 4 && !memcmp(clip, "clip", 4));
     assert(s64_editor_undo(&decoded->editor)); assert(!s64_buffer_length(&decoded->editor.buffer));
     assert(s64_editor_redo(&decoded->editor)); assert(s64_buffer_length(&decoded->editor.buffer) == 3);
+    editor = decoded->editor;
+    publication_tests();
     puts("managed editor state tests passed"); return 0;
 }

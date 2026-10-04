@@ -7,7 +7,9 @@
 #define S64_BASIC_RETURN_RAW_SIZE 285u
 #define S64_BASIC_RETURN_RECORD_SIZE 321u
 #define S64_BASIC_RETURN_WORKSPACE_SIZE (2u * S64_BASIC_RETURN_RECORD_SIZE)
+#ifndef S64_BASIC_RETURN_WORKSPACE
 #define S64_BASIC_RETURN_WORKSPACE ((uint8_t*)0xc800u)
+#endif
 
 /* Temporary workspace occupies only the existing overlay/stack gap. Producer
  * must enter through basic_return_capture.s before stock cc65 startup. */

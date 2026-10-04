@@ -304,7 +304,7 @@ BEFORE=$(php -r 'echo hash_file("sha256",$argv[1]);' "$SITE/config.php")
 FORM=$(curl -fsS -b "$JAR" -d "csrf=$CSRF&action=preview&id=c64&name=Preview" "$BASE/themes.php")
 printf '%s' "$FORM" | grep -q 'nothing saved'
 [ "$BEFORE" = "$(php -r 'echo hash_file("sha256",$argv[1]);' "$SITE/config.php")" ]
-curl -fsS -b "$JAR" -d "csrf=$CSRF&action=create&id=c64&name=Browser" "$BASE/themes.php" | grep -q 'Save / rename'
+curl -fsS -b "$JAR" -d "csrf=$CSRF&action=create&id=c64&name=Browser" "$BASE/themes.php" | grep -q 'value="save">Save changes'
 THEME_ID=$(php -r '$c=require $argv[1]; echo array_key_first($c["custom_themes"]);' "$SITE/config.php")
 curl -fsS -b "$JAR" -d "csrf=$CSRF&action=select&id=$THEME_ID" "$BASE/themes.php" >/dev/null
 curl -fsS "$BASE/index.php" | grep -q 'assets/fonts/c64.ttf'
