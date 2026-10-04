@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "platform/module_runtime.h"
+#include "platform/module_transition.h"
 #include "platform/module_session.h"
 #include "platform/transfer_capsule.h"
 
@@ -197,6 +198,29 @@ int main(void)
         0x0201u,
         1u
     ));
+
+    /* Repeated destination adoption uses the original ACTIVE/restore snapshot.
+     * Each init models the next overwritten module's fresh conventional RAM. */
+    {
+        static const unsigned char cycle[] = {2u, 3u, 2u, 1u};
+        S64ModuleTransferPlan plan;
+        unsigned i;
+        for (i = 0u; i < 12u; ++i) {
+            assert(s64_module_transition_prepare(&runtime,
+                (S64ModuleId)cycle[i % 4u], &plan) == S64_MODULE_TRANSITION_OK);
+            assert(plan.destination == cycle[i % 4u]);
+            assert(plan.reu_source == manifest.modules[plan.destination - 1u].cache_address + 2UL);
+            assert(plan.payload_length == 0x3000u);
+            reads_before = reg.reads; writes_before = reg.writes;
+            s64_module_runtime_init(&runtime, &dos, fake_read, fake_write, &reg);
+            assert(s64_module_runtime_adopt(&runtime, (S64ModuleId)plan.destination, 0x0201u, 1u));
+            assert(reg.reads == reads_before + 1u && reg.writes == writes_before);
+            assert(memcmp(&runtime.lifecycle.journal, &journal, sizeof(journal)) == 0);
+            assert(runtime.system_state.snapshot.turbo_control == 0x25u);
+            assert(runtime.reu_control.allocation_count == control.allocation_count);
+            assert(s64_module_runtime_resume_interactive(&runtime) == S64_SYSTEM_OK);
+        }
+    }
 
     puts("module runtime tests passed");
     return 0;

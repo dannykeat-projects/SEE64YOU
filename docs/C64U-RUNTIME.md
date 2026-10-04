@@ -706,6 +706,37 @@ consumer code now link separately. Wire contracts and shared non-reentrant scrat
 are unchanged. The generated overlay entry veneers include only imported entry
 names and explicit return bridges; unused internal entry stubs are omitted.
 
+## Managed destination transition preparation
+
+The platform module_transition API prepares a new destination from an already
+adopted ACTIVE owner. It rejects a cold/restored/CLEAN owner, invalid destination,
+same-module target or non-INTERACTIVE start. It zeroes the caller's output plan
+before work, enters IO_SAFE, readback-revokes the previous transfer capsule,
+publishes/readbacks and reloads the destination capsule, checks the exact ACTIVE
+journal and derives a bounded payload plan. Only then does it enter TRANSITION
+and expose the plan. It performs no SD access, allocation, state capture or
+journal save; the original SYS return record and restore snapshot stay owned.
+
+Cancellation clears the output plan, readback-revokes the candidate in IO_SAFE
+and resumes INTERACTIVE. A failed preparation reports FAILED only after that
+cancellation succeeds. Failed I/O mode, revocation or resume reports
+RECOVERY_REQUIRED, leaves the session ACTIVE, and must not execute a transfer.
+The caller owns document/history/clipboard persistence and input/resource
+shutdown before successful overwrite; this planner does not execute DMA.
+
+Host tests cover every operation/failure boundary and stale-plan rejection.
+The real REU record/adoption host fixture repeats Editor -> Publisher -> Settings
+-> Publisher -> Editor three times without changing ACTIVE, allocating again or
+recapturing settings. These are ownership tests, not real UI/hardware cycles.
+
+The actual Publisher has not yet been wired to this API. The reproducible lean
+managed-publisher-fit target links its existing Publisher and shared destination
+runtime without extra entry state or planner. With the current cc65 toolchain,
+CODE overflows MAIN by 4,805 bytes. This is a failed, deliberately non-product
+fit gate; current c64u-package is unaffected. Publisher needs a measured managed
+code layout before source state persistence and executable UI bindings can be
+enabled. Do not remove the Publisher transition guard to bypass this failure.
+
 ## 22. Retired production constraints
 
 The following are no longer design requirements:

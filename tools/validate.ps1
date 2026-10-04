@@ -324,8 +324,18 @@ if ($HostCc) {
             "client/tests/managed_editor_exit_test.c",
             "client/src/platform/managed_editor_exit.c"
         )
+        Invoke-CTest "module_transition" @(
+            "-Werror",
+            "client/tests/module_transition_test.c",
+            "client/src/platform/module_transition.c",
+            "client/src/platform/module_transfer.c",
+            "client/src/platform/session_journal.c",
+            "client/src/platform/dos.c"
+        )
         Invoke-CTest "module_runtime" @(
             "client/tests/module_runtime_test.c",
+            "client/src/platform/module_transition.c",
+            "client/src/platform/module_transfer.c",
             "client/src/platform/module_runtime.c",
             "client/src/platform/transfer_capsule_build.c",
             "client/src/platform/transfer_capsule.c",

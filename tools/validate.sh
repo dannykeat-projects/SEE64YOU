@@ -240,9 +240,15 @@ echo "== Host managed editor original SYS exit tests =="
 cc -std=c99 -Wall -Wextra -Werror -Iclient/src client/tests/managed_editor_exit_test.c client/src/platform/managed_editor_exit.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host managed module transition failure tests =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/module_transition_test.c client/src/platform/module_transition.c \
+    client/src/platform/module_transfer.c client/src/platform/session_journal.c client/src/platform/dos.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host destination module runtime tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
-    client/tests/module_runtime_test.c client/src/platform/module_runtime.c \
+    client/tests/module_runtime_test.c client/src/platform/module_runtime.c client/src/platform/module_transition.c client/src/platform/module_transfer.c \
     client/src/platform/transfer_capsule.c client/src/platform/transfer_capsule_build.c client/src/platform/module_session.c client/src/platform/module_session_read.c client/src/platform/module_session_build.c \
     client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c \
     client/src/platform/session_lifecycle.c client/src/platform/session_lifecycle_start.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
@@ -386,6 +392,7 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/platform/dos_file.c \
         client/src/platform/dos_reu.c \
         client/src/platform/module_preload.c \
+        client/src/platform/module_transition.c \
         client/src/platform/module_integrity.c client/src/platform/crc32.c \
         client/src/platform/companion_loader.c \
         client/src/platform/http.c \

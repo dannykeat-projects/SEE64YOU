@@ -252,6 +252,21 @@ Using the required 16 MiB configuration:
 - verify integrity against the source;
 - verify other REU allocations remain unchanged.
 
+### Managed Publisher fit and ownership preparation
+
+Run make -C client managed-publisher-fit for the lean destination-runtime fit.
+The current measured result is failed: CODE exceeds MAIN by 4,805 bytes, before
+extra Publisher session state and transition bindings. This is not a CI/product
+build; do not deploy its failed/stale output. The current c64u-package remains
+the working Launcher -> Editor -> BASIC package.
+
+Full host validation includes module_transition_test.c for ordering, cancellation,
+invalid ownership, failed mode/write/readback/load/plan and recovery-required
+paths. module_runtime_test.c also repeats three complete four-way ownership
+cycles using real capsule/shared-session REU record code. These prove session
+continuity without recapture/ACTIVE rewrites; they do not execute modules or prove
+hardware editor/publishing state preservation.
+
 ### 6.5 Cached module transition
 
 Current software gate:

@@ -226,6 +226,14 @@ build/managed-handoff-launcher.prg: $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) sr
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -DS64_CODE_ASSET_LAUNCHER=1 -DS64_EXECUTABLE_HANDOFF=1 -m build/managed-handoff-launcher.map -o $@ src/platform/basic_return_capture.s $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/basic_return.c src/platform/basic_return_build.c src/launcher/basic_return_runtime.c
 
+# Deliberate fit gate for the next managed destination; not a product artifact.
+MANAGED_PUBLISHER_RUNTIME_SOURCES := $(filter-out src/platform/code_overlay_bootstrap.c src/platform/module_arrival.c,$(MANAGED_EDITOR_RUNTIME_SOURCES))
+.PHONY: managed-publisher-fit
+managed-publisher-fit: $(PUBLISHER_SOURCES) $(MANAGED_PUBLISHER_RUNTIME_SOURCES)
+	@mkdir -p build
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_STANDALONE_ONLY=1 -DS64_DIRECT_PUBLISHER=1 -m build/managed-publisher-fit.map -o build/managed-publisher-fit.prg $(PUBLISHER_SOURCES) $(MANAGED_PUBLISHER_RUNTIME_SOURCES)
+	python3 ../tools/check_memory_headroom.py build/managed-publisher-fit.map --label managed-publisher-fit --min-headroom 1024
+
 $(MANAGED_EDITOR_FIT_TARGET): $(C64U_SOURCES) $(MANAGED_EDITOR_RUNTIME_SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -m build/managed-editor-fit.map -o $@ $(C64U_SOURCES) $(MANAGED_EDITOR_RUNTIME_SOURCES)

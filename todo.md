@@ -45,7 +45,7 @@ The diagnostic executable Launcher -> managed Editor entry/short edit/CLEAN gate
 
 Next work:
 1. Finish physical USB/native keyboard and ordinary editing/file/menu acceptance of the current c64u-package. Preserve original-context/ACTIVE binding, exact manifests and stack/headroom gates; missing/corrupt context keeps a safe CLEAN park.
-2. Generalize ownership/asset transfer to Editor -> Publisher, Publisher -> Editor, Publisher -> Settings and Settings -> Publisher; managed publisher transitions currently remain blocked.
+2. Resolve the measured managed Publisher fit before enabling module cycles: make managed-publisher-fit currently overflows CODE/MAIN by 4,805 bytes even before extra entry state/planner bindings. The shared ACTIVE-preserving transition planner and repeated REU-record ownership tests now exist; next establish a fitting managed Publisher code layout, persist editor/document/history/clipboard/settings state under allocator ownership, and bind executable Editor -> Publisher -> Editor and Publisher -> Settings -> Publisher cycles. Current UI transitions remain blocked.
 
 Do not merge/deploy merely because diagnostic validation passes.
 
