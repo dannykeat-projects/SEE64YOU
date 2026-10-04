@@ -59,6 +59,17 @@ try {
     theme_check(!str_contains($layoutHtml, '<header><h1>'), 'hidden website title');
     theme_check(!str_contains($layoutHtml, '<nav>'), 'hidden menu');
     theme_check(!str_contains($layoutHtml, '<hr>'), 'hidden header separator');
+    theme_check(s64_theme_css(['theme' => 'plain']) === '', 'plain remains CSS-free fallback');
+    $stackedInput = $config['custom_themes'][$id]['values'];
+    $stackedInput['show_menu'] = 'yes';
+    $stackedInput['menu_layout'] = 'stacked';
+    $config = (new S64Settings($path, $config))->themeAction('save', $id, ['name' => 'Stacked'] + $stackedInput);
+    $stackedCss = s64_theme_css($config);
+    theme_check(str_contains($stackedCss, '.s64-menu-separator{display:none}'), 'stacked menu hides visual separators');
+    ob_start();
+    s64_render_layout($config, [['slug' => 'home', 'title' => 'Home'], ['slug' => 'about', 'title' => 'About']], 'Example', '<p>Body</p>');
+    $stackedHtml = (string)ob_get_clean();
+    theme_check(substr_count($stackedHtml, 'class="s64-menu-separator"') >= 2, 'navigation separators are styleable');
     foreach ([['font' => 'evil;url(x)'], ['padding' => 'expression(x)'], ['padding' => '-1'], ['padding' => '999'], ['text_color' => '#fff'], ['text_color' => '#ffffff;}</style>'], ['font' => []], ['text_color' => '#3e31a2']] as $bad) {
         $before = file_get_contents($path);
         try {
