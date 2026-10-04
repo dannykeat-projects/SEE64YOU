@@ -24,6 +24,9 @@ jobs:
           command -v cl65 cc php python3 curl make xvfb-run
           x64sc -version
 
+      - name: Run standalone site tests
+        run: php site/tests/run.php
+
       - name: Build current C64 test PRG
         run: make -C client clean all
 
