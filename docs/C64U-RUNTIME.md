@@ -736,8 +736,8 @@ and cache bootstrap, adopts through s64_module_runtime_adopt without recapture,
 SD reads or another ACTIVE save, binds S64Q assets and validates the application
 record before INTERACTIVE. Cold/direct entry parks with a restart-launcher message.
 
-publisher-overlay-fit measures CONTENT 14,390, NETWORK 11,765 and RUNTIME 14,135
-bytes in the 15,360-byte $8C00-$C7FF slot. Resident BSS ends at $85AC with 1,619
+publisher-overlay-fit measures CONTENT 13,697, NETWORK 11,765 and RUNTIME 14,135
+bytes in the 15,360-byte $8C00-$C7FF slot. Resident BSS ends at $866D with 1,426
 bytes of headroom (minimum 1,024). These sizes include transition planning,
 transfer/copier and original SYS-return support as well as the actual consumer.
 
@@ -817,10 +817,36 @@ CONTENT decodes it using the existing Publisher workspace as scratch. One-shot
 in-process authority connects the stages and is consumed on success or failure.
 The workspace must not be reused between adoption and document decoding.
 
-This is a prepared consumer/codec foundation. Launcher reservation/publication,
-Editor capture integration and managed Editor resumption are not enabled. Managed
-Editor still initializes a fresh document/clipboard, so Publisher return must stay
-blocked until first Launcher entry and Publisher resumption are distinguished.
+The Launcher reserves this record during cache planning. Managed Editor entry
+now checks `S64_REU_RUNTIME_STATE_APPLICATION_VALID` after trusted arrival,
+exact ACTIVE adoption and asset binding. Clear means fresh entry and runs the
+existing Editor/document/clipboard/local initialization. Set requires the complete
+record to authenticate against runtime ownership and the exact ACTIVE journal;
+missing, corrupt or invalid payload state halts entry with ACTIVE recoverable.
+It never falls back to a blank document. Successful resumption binds the decoded
+Editor, document metadata, local filename, clipboard length, search/validity and
+generation/source/replacement controls, leaving all REU payload bytes in place.
+It defers recovery autosave instead of offering recovery over the resumed source.
+
+Entry uses the existing asserted `$C800` gap synchronously: wire at `$C800-$C9FF`,
+decoded controls at `$CA00` (currently 305 bytes), bounded below `$CC00`.
+No permanent 512-byte wire or decoded-state BSS object is added. This temporarily
+shares the BASIC-return workspace; entry never holds the return snapshot there,
+and exit reloads it from its allocator-owned REU record before cleanup. The
+1 KiB workspace/stack assertion remains unchanged. Wire authentication executes
+in RUNTIME; payload decoding uses FILE and MODEL with explicit return bridges,
+including nested MODEL -> FILE -> MODEL calls. Scalar readers/range tables and
+startup binding remain resident so every overlay can safely reach them.
+The managed Editor build excludes its unused legacy software-IEC handoff objects.
+All three slots fit; resident BSS ends at `$8BFD`, leaving only two bytes before
+`$8C00`. Any further resident change must pass the memory gates again.
+
+Editor capture/publication and transactional validity-bit store/revocation remain
+outstanding. Executable Publisher/Settings transitions remain blocked; this
+consumer integration introduces no Publisher execution. Its changed package
+passed the bounded first-entry/edit/CLEAN/BASIC-return hardware gate on
+2026-10-05 (CLEAN 60/package 514); actual resumed-entry hardware acceptance
+remains outstanding. See docs/LOCAL_TESTING.md for exact artifact evidence.
 
 The allocator capacity change bumps package identity to 0x0202. Format-1
 control blocks are rejected rather than adopted; interrupted-state recovery

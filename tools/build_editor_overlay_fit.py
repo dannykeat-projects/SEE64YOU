@@ -21,13 +21,15 @@ from typing import Iterable
 ROOT = Path(__file__).resolve().parents[1]
 CLIENT = ROOT / "client"
 GROUPS: dict[str, tuple[str, ...]] = {
-    "MODEL": ("src/editor.c", "src/editor_format.c"),
+    "MODEL": ("src/editor.c", "src/editor_format.c",
+              "src/platform/managed_editor_restore.c",
+              "src/platform/application_state_editor_decode.c"),
     "FILE": (
         "src/document.c",
         "src/storage/local.c",
         "src/ui.c",
         "src/menu.c",
-        "src/publisher/editor_handoff.c",
+        "src/platform/application_state_payload.c",
     ),
     "RUNTIME": (
         "src/platform/module_runtime.c",
@@ -42,6 +44,7 @@ GROUPS: dict[str, tuple[str, ...]] = {
         "src/platform/code_assets_session.c",
         "src/platform/code_assets_session_read.c",
         "src/platform/managed_editor.c",
+        "src/platform/application_state_wire.c",
         "src/platform/managed_editor_exit.c",
         "src/platform/basic_return.c",
         "src/platform/basic_return_read.c",
@@ -49,10 +52,12 @@ GROUPS: dict[str, tuple[str, ...]] = {
 }
 GROUP_IDS = {"MODEL": 1, "FILE": 2, "RUNTIME": 3}
 BRIDGES: dict[str, tuple[str, ...]] = {
+    "MODEL": ("s64_application_state_decode_payload",),
     "FILE": (
         "s64_editor_has_selection",
         "s64_editor_selection_start",
         "s64_editor_selection_end",
+        "s64_application_state_decode_editor",
     ),
 }
 OVERLAY_LIMIT = 0x3C00
@@ -96,6 +101,11 @@ def source_lists(make_output: str) -> tuple[list[str], list[str]]:
     values = make_variables(make_output)
     c64u = shlex.split(values["C64U_SOURCES"])
     runtime = shlex.split(values["MANAGED_EDITOR_RUNTIME_SOURCES"])
+    # Managed startup uses authenticated shared state, never the legacy chain.
+    c64u = [source for source in c64u if source not in {
+        "src/platform/chain.s", "src/publisher/editor_handoff.c",
+        "src/publisher/editor_handoff_record.s",
+    }]
     return c64u, runtime
 
 
@@ -462,12 +472,17 @@ def compile_editor_overlay_fit(
         )
     db = run([make, "-pn", "managed-editor-fit"], cwd=client)
     values = make_variables(db.stdout)
-    c64u = shlex.split(values["C64U_SOURCES"])
-    runtime = shlex.split(values["MANAGED_EDITOR_RUNTIME_SOURCES"])
+    c64u, runtime = source_lists(db.stdout)
     sources = list(dict.fromkeys(c64u + runtime + shlex.split(values.get("CODE_ASSET_RUNTIME_SOURCES", ""))
                                + ["src/platform/code_overlay.c", "src/platform/managed_editor.c",
                                   "src/platform/managed_editor_exit.c", "src/platform/basic_return.c",
                                   "src/platform/basic_return_read.c",
+                                  "src/platform/managed_editor_state.c",
+                                  "src/platform/managed_editor_restore.c",
+                                  "src/platform/application_state.c",
+                                  "src/platform/application_state_payload.c",
+                                  "src/platform/application_state_editor_decode.c",
+                                  "src/platform/application_state_wire.c",
                                   "src/platform/basic_return_stub.s", "src/platform/crc32.c"]))
     flags = shlex.split(values["CFLAGS"])
     if "-DS64_REU_BUFFER=1" not in flags:

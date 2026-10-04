@@ -21,6 +21,8 @@ CONTENT = (
     "src/publisher/plaintext.c", "src/publisher/preview.c",
     "src/platform/managed_publisher_document.c",
     "src/platform/application_state_payload.c",
+    "src/platform/application_state_editor_decode.c",
+    "src/platform/application_state_wire.c",
     "src/platform/application_state.c", "src/platform/module_transition.c",
     "src/platform/basic_return.c", "src/platform/basic_return_read.c",
 )

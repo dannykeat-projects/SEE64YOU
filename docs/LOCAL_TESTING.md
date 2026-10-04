@@ -257,8 +257,8 @@ Using the required 16 MiB configuration:
 Run make -C client publisher-overlay-fit for the managed destination layout.
 It compiles actual trusted Publisher entry, ACTIVE adoption, S64Q assets and shared
 application-state consumption with transition/return support. Require CONTENT
-14,390 / NETWORK 11,765 / RUNTIME 14,135 bytes within the 15,360-byte slot, resident
-BSS $85AC and 1,619-byte headroom (minimum 1,024). It generates/revalidates the exact
+13,697 / NETWORK 11,765 / RUNTIME 14,135 bytes within the 15,360-byte slot, resident
+BSS $866D and 1,426-byte headroom (minimum 1,024). It generates/revalidates the exact
 S64POVL.MNF and Publisher assets. Initial control load/validation must be resident;
 only the explicit tested return-bridge allowlist may cross overlay groups.
 
@@ -271,10 +271,24 @@ flush/undo/redo, no-op round trips and replacement preserving clipboard. Publish
 checks adoption/binding/state failure ordering, unchanged failed document outputs
 and one-shot decode authority. These are host contracts, not hardware execution.
 
-This diagnostic must not be executed or deployed. The launcher does not yet reserve
-or publish application state or preload Publisher assets. Managed Editor resumption
-and validated session settings remain unintegrated; Editor/Settings transitions stay
-gated. The current nine-file c64u-package retains Launcher -> Editor -> BASIC.
+This Publisher diagnostic must not be executed or deployed. The launcher reserves
+the application-state allocation, but publication, Publisher asset preload and
+validated session settings remain unintegrated. Publisher/Settings transitions
+stay gated. The current nine-file c64u-package retains Launcher -> Editor -> BASIC.
+
+Both validation scripts also run `managed_editor_state_test.c`: clear validity
+requires fresh entry without reading the state record; set validity requires exact
+ACTIVE authentication and one-shot decode. Missing allocation/read failure,
+every-byte corruption and journal/session/package/snapshot mismatches reject
+resumption. The suite checks all decoded controls, filename/search/clipboard,
+generation/source/replacement, usable undo/redo and unchanged REU payload bytes.
+Decoded scratch lives in the second half of the asserted 1 KiB `$C800` gap.
+`test_code_overlay_vice.py` covers the nested MODEL -> FILE -> MODEL return path
+with 16/32-bit arguments/results and cache-read counts. Current Editor resident
+BSS ends at `$8BFD` (two bytes before `$8C00`); the original workspace/stack and
+slot limits remain mandatory. The changed package passed the bounded real-C64U
+first-entry/edit/CLEAN/BASIC-return gate on 2026-10-05 (details below). Physical
+keyboard/file/menu and actual resumed-entry hardware acceptance remain outstanding.
 
 Full host validation includes module_transition_test.c for ordering, cancellation,
 invalid ownership, failed mode/write/readback/load/plan and recovery-required
@@ -511,3 +525,20 @@ launcher_basic_return_test.c and managed_editor_exit_test.c for allocator,
 session/integrity, publication/revocation and shutdown-order failure coverage.
 
 For the managed preload hardware gate, back up existing SD S64EDIT/PUB/CFG.PRG and S64MODULE.MNF and both journals into ignored build output. Upload the package's modules, manifests and raw code assets to /sd/; run its launcher as a temporary PRG. Require PLATFORM READY, MODULE CACHE VERIFIED, SHARED SESSION READY, TRANSFER CAPSULE READY, TRANSFER PLAN READY, EDITOR HANDOFF PENDING and SESSION CLEAN. Verify turbo equals its captured prior value, both journal checksums and the newest CLEAN sequence, and unchanged drive settings. Restore the backed-up modules/manifest with exact readback parity and remove only files newly created by this test. Keep the resulting CLEAN journals. This gate passed on firmware 1.1.0 on 2026-10-04; it does not prove executable managed editor transfer.
+
+On 2026-10-05, the locally validated, uncommitted Editor-resumption implementation
+based on `bc2f935` ran on firmware 1.1.0 at 192.168.1.112. Exact module/code-asset
+manifests passed before upload; every uploaded companion and temporary launcher
+passed FTP readback parity. Managed fresh entry, declined backed-up recovery,
+visible TEST edit and RUN/STOP/discard returned to BASIC. PRINT 6*7 produced 42
+and READY. IRQ remained $EA31, the KERNAL clock advanced, drive settings were
+unchanged, and both journal checksums passed: newest CLEAN 60/package 514,
+older ACTIVE 59/package 514, captured turbo byte 0. CLEAN follows the managed
+restore/verify path; REST RAM-shadow reads are not independent live turbo proof.
+Original companions/manifest/SEE64YOU.REC were restored with exact readback
+parity; the four newly created raw assets/asset manifest and temporary S64R500.PRG
+were removed. The new CLEAN journal was retained. This exercises Launcher first
+entry only; Publisher execution and actual resumed-entry hardware remain gated.
+Editor SHA256: c17a1ab0958078bf38dcb00cb098e41d10c7b1c6d9656fd517681150541953a4.
+Launcher SHA256: e71649f248c6112eafcc0499b939d9ef1b418adbf22308fcb4e3dae860e69a22.
+Evidence/backups: ignored client/build/hardware-editor-resume-20261005/.

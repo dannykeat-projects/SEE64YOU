@@ -169,6 +169,14 @@ The launcher validates modules before caching them. A later Editor → Publisher
 
 Mismatched module versions must fail clearly before state is overwritten.
 
+Managed Editor startup uses the validated runtime application-state bit to choose
+fresh initialization or exact ACTIVE-bound state resumption. A resumed record
+must authenticate and pass payload range checks before live controls are bound;
+failure halts entry. Document/history/clipboard payloads remain in REU. Entry
+uses synchronous scratch in the asserted `$C800` workspace/stack gap, and exit
+reloads its original SYS-return record independently. Publisher execution remains
+gated pending state publication and complete module-cycle acceptance.
+
 ## Canonical document
 
 The editable source remains metadata plus body text:

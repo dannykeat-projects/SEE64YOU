@@ -24,6 +24,11 @@ uint32_t __fastcall__ s64_overlay_model_s64_editor_selection_start(uint16_t firs
 { return (last ^ mask) + first; }
 uint16_t s64_overlay_model_s64_editor_selection_end(void) { return 0; }
 uint8_t s64_overlay_model_s64_editor_has_selection(void) { return 0; }
+extern uint32_t __fastcall__ s64_overlay_bridge_model_s64_application_state_decode_payload(uint16_t, uint32_t);
+uint32_t __fastcall__ s64_overlay_model_s64_application_state_decode_editor(uint16_t first, uint32_t last)
+{ return (last ^ 0x33557799UL) + first; }
+uint32_t __fastcall__ s64_overlay_model_s64_probe_resume(uint16_t first, uint32_t last)
+{ return (s64_overlay_bridge_model_s64_application_state_decode_payload(first, last) ^ mask) + first; }
 """
 FILE = """
 #include <stdint.h>
@@ -34,6 +39,9 @@ static const uint32_t mask = 0x87654321UL;
 static uint16_t calls;
 uint32_t __fastcall__ s64_overlay_file_s64_probe_file(uint16_t first, uint32_t last)
 { ++calls; return s64_overlay_bridge_file_s64_editor_selection_start(first, last) ^ mask ^ calls; }
+extern uint32_t __fastcall__ s64_overlay_bridge_file_s64_application_state_decode_editor(uint16_t, uint32_t);
+uint32_t __fastcall__ s64_overlay_file_s64_application_state_decode_payload(uint16_t first, uint32_t last)
+{ return s64_overlay_bridge_file_s64_application_state_decode_editor(first, last) ^ 0x11225588UL; }
 """
 RUNTIME = """
 #include <stdint.h>
@@ -54,6 +62,7 @@ extern const uint8_t runtime_image[], runtime_image_end[];
 extern uint32_t __fastcall__ s64_editor_selection_start(uint16_t, uint32_t);
 extern uint32_t __fastcall__ s64_probe_file(uint16_t, uint32_t);
 extern uint32_t __fastcall__ s64_probe_runtime(uint32_t);
+extern uint32_t __fastcall__ s64_probe_resume(uint16_t, uint32_t);
 static const uint8_t* images[3];
 static S64ReuRuntimeControl control;
 static S64ReuAllocation caches[3];
@@ -116,6 +125,13 @@ int main(void)
         require(s64_probe_file(0x3456u + i, input) == (expected ^ 0x87654321UL ^ i), 4);
         require(reads == before + 3u, 5);
         require(s64_probe_runtime(input) == (input ^ 0x11223344UL), 6);
+        /* Resume decoding nests MODEL -> FILE -> MODEL and unwinds both
+         * return bridges. Check argument/result registers and caller code. */
+        before = reads;
+        expected = (((input ^ 0x33557799UL) + (0x3456u + i))
+            ^ 0x11225588UL ^ 0x12345678UL) + (0x3456u + i);
+        require(s64_probe_resume(0x3456u + i, input) == expected, 9);
+        require(reads == before + 5u, 10);
     }
     *(volatile uint8_t*)0xc060 = 0x80;
     *(volatile uint8_t*)0xc061 = 0xa5;
@@ -131,8 +147,8 @@ def build() -> Path:
         "build/editor-overlay-fit/", "build/code-overlay-probe/"))
     wrappers = OUT / "wrappers.s"
     wrappers.write_text(fit.assembler_wrappers({
-        "MODEL": list(fit.BRIDGES["FILE"]),
-        "FILE": ["s64_probe_file"], "RUNTIME": ["s64_probe_runtime"],
+        "MODEL": [*fit.BRIDGES["FILE"], "s64_probe_resume"],
+        "FILE": ["s64_probe_file", *fit.BRIDGES["MODEL"]], "RUNTIME": ["s64_probe_runtime"],
     }))
     sources = []
     for name, content in (("model", MODEL), ("file", FILE), ("runtime", RUNTIME), ("main", MAIN)):

@@ -78,13 +78,28 @@ cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
 echo "== Host shared application-state tests =="
 cc -std=c99 -Wall -Wextra -Werror -ffunction-sections -Wl,--gc-sections \
     -DS64_REU_BUFFER=1 -Iclient/src client/tests/application_state_test.c \
-    client/src/platform/application_state.c client/src/platform/application_state_payload.c \
+    client/src/platform/application_state.c client/src/platform/application_state_wire.c \
+    client/src/platform/application_state_payload.c client/src/platform/application_state_editor_decode.c \
     client/src/platform/application_state_read.c client/src/platform/application_state_build.c \
     client/src/platform/application_state_reserve.c \
     client/src/platform/application_state_editor.c client/src/platform/reu_runtime.c \
     client/src/platform/reu_runtime_build.c client/src/platform/session_journal.c \
     client/src/platform/crc32.c client/src/buffer_reu.c client/src/history_reu.c \
     client/src/editor.c client/src/clipboard.c client/src/document.c client/src/charset.c \
+    -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host managed Editor state tests =="
+cc -std=c99 -Wall -Wextra -Werror -ffunction-sections -Wl,--gc-sections \
+    -DS64_REU_BUFFER=1 -Iclient/src client/tests/managed_editor_state_test.c \
+    client/src/platform/application_state.c client/src/platform/application_state_wire.c \
+    client/src/platform/application_state_payload.c client/src/platform/application_state_editor_decode.c \
+    client/src/platform/managed_editor_state.c client/src/platform/managed_editor_restore.c client/src/platform/application_state_build.c \
+    client/src/platform/application_state_reserve.c \
+    client/src/platform/application_state_editor.c client/src/platform/reu_runtime.c \
+    client/src/platform/reu_runtime_build.c client/src/platform/session_journal.c \
+    client/src/platform/crc32.c client/src/buffer_reu.c client/src/history_reu.c \
+    client/src/editor.c client/src/storage/local.c client/src/clipboard.c client/src/document.c client/src/charset.c \
     -o "$TMP_BIN"
 "$TMP_BIN"
 

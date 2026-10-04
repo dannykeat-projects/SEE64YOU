@@ -20,8 +20,11 @@
 #include "platform/module_arrival.h"
 #include "platform/code_overlay_bootstrap.h"
 #include "platform/managed_editor.h"
+#include "platform/managed_editor_state.h"
+#include "platform/basic_return.h"
 #include "platform/package_version.h"
 static S64ModuleRuntime managed_runtime;
+static S64ManagedEditorState managed_application;
 static void managed_entry_failed(uint8_t stage)
 {
     clrscr();
@@ -46,6 +49,34 @@ static char find_query[SEARCH_TEXT_CAPACITY];
 static unsigned char find_query_valid;
 static clock_t last_recovery_write;
 static unsigned char recovery_error_shown;
+#ifdef S64_MANAGED_OVERLAY
+static unsigned char restore_managed_application(void)
+{
+    /* This synchronous scratch is outside the overlay slot and below the
+     * asserted software-stack boundary. Exit reloads its own REU snapshot. */
+#define application ((S64ApplicationState*)(S64_BASIC_RETURN_WORKSPACE + S64_APPLICATION_STATE_SIZE))
+    if (!s64_managed_editor_state_decode(&managed_runtime, S64_BASIC_RETURN_WORKSPACE)) return 0;
+    editor = application->editor;
+    document.body = &editor.buffer;
+    document.type = application->document.type;
+    document.status = application->document.status;
+    document.order = application->document.order;
+    memcpy(document.slug, application->document.slug, sizeof(document.slug));
+    memcpy(document.title, application->document.title, sizeof(document.title));
+    memcpy(document.date, application->document.date, sizeof(document.date));
+    s64_local_init(&local_document, &dos, &document);
+    memcpy(local_document.filename, application->filename, sizeof(local_document.filename));
+    local_document.document_replaced = application->document_replaced;
+    clipboard.length = application->clipboard_length;
+    memcpy(find_query, application->search, sizeof(find_query));
+    find_query_valid = application->search_valid;
+    managed_application.generation = application->generation;
+    managed_application.source_module = application->source_module;
+    managed_application.document_replaced = application->document_replaced;
+#undef application
+    return 1;
+}
+#endif
 static char* append_unsigned(char* output, unsigned int value)
 {
     char digits[5];
@@ -84,6 +115,7 @@ static void show_local_result(S64LocalResult result)
 }
 
 #ifdef S64_REU_BUFFER
+#ifndef S64_MANAGED_OVERLAY
 static unsigned char restore_publisher_handoff(void)
 {
     if (!s64_editor_handoff_restore(&editor, &document, &local_document)) {
@@ -94,6 +126,7 @@ static unsigned char restore_publisher_handoff(void)
     s64_editor_ensure_cursor_visible(&editor);
     return 1u;
 }
+#endif
 
 static void launch_publisher(void)
 {
@@ -567,6 +600,9 @@ int main(void)
     unsigned char mouse_selecting = 0u;
 #ifdef S64_REU_BUFFER
     unsigned char restored_handoff;
+#ifdef S64_MANAGED_OVERLAY
+    unsigned char managed_entry;
+#endif
 
 #ifndef S64_MANAGED_OVERLAY
     if (!s64_reu_probe() || s64_reu_probe_banks() != 256u) {
@@ -585,18 +621,24 @@ int main(void)
             (void*)S64_CODE_OVERLAY_ADDRESS, s64_reu_load)) managed_entry_failed(3u);
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
     if (!s64_managed_editor_adopt(&managed_runtime, &dos, S64_PACKAGE_VERSION)) managed_entry_failed(4u);
+    managed_entry = s64_managed_editor_state_prepare(&managed_runtime, S64_BASIC_RETURN_WORKSPACE);
+    if (!managed_entry) managed_entry_failed(7u);
+    restored_handoff = managed_entry == 2u;
+    if (restored_handoff && !restore_managed_application()) managed_entry_failed(8u);
     if (s64_module_runtime_resume_interactive(&managed_runtime)
             != S64_SYSTEM_OK) managed_entry_failed(5u);
+    if (!restored_handoff) {
 #endif
     s64_editor_init(&editor);
     s64_clipboard_init(&clipboard);
     s64_document_init(&document, &editor.buffer);
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
     s64_local_init(&local_document, &dos, &document);
-#ifdef S64_REU_BUFFER
 #ifdef S64_MANAGED_OVERLAY
-    restored_handoff = 0u;
-#else
+    }
+#endif
+#ifdef S64_REU_BUFFER
+#ifndef S64_MANAGED_OVERLAY
     restored_handoff = restore_publisher_handoff();
 #endif
 #endif
