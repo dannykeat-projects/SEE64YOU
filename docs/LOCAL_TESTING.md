@@ -27,6 +27,13 @@ CI builds and publishes the managed c64u-package directory, validates both
 manifests/memory gates, and keeps reusable host/VICE diagnostic coverage. Retired
 conventional-C64 and old standalone-editor fit gates are excluded.
 
+The full integration run passed for implementation commit d5ed796:
+https://github.com/dannykeat-projects/SEE64YOU/actions/runs/37176770706
+The downloaded see64you-c64u-package artifact contains exactly nine files, each
+matching the locally validated managed package by SHA256. This CI result covers
+software/build/VICE gates; physical keyboard and broader hardware acceptance
+remain separate.
+
 Windows PowerShell:
 
 ~~~powershell
@@ -193,8 +200,8 @@ Do not claim arbitrary machine-state restoration beyond values See64You explicit
 
 ### 6.4 DOS-to-REU module load
 
-Build `make -C client launcher c64u publisher module-manifest` and keep
-`SEE64YOU.PRG`, `S64EDIT.PRG`, `S64PUB.PRG`, `S64CFG.PRG` and `S64MODULE.MNF`
+Build the preload-only diagnostic with make -C client managed-package and keep
+all nine matching files from client/build/managed-package/
 together in `/sd/`. Run the launcher with an exact 16 MiB REU. Expect
 `VERIFYING MODULES...`, `MODULE CACHE VERIFIED`, `SHARED SESSION READY`,
 `EDITOR HANDOFF PENDING`, then `SESSION CLEAN`.
@@ -247,13 +254,13 @@ Using the required 16 MiB configuration:
 
 ### 6.5 Cached module transition
 
-Current software-only gate before enabling execution:
+Current software gate:
 
-1. run the normal validation suite and require the transfer-capsule, module-transfer and module-runtime host tests to pass;
-2. build `make -C client launcher managed-editor-fit c64u publisher module-manifest`;
-3. require `build/managed-editor-fit.map` to retain at least 1 KiB conventional-RAM headroom;
-4. confirm SEE64YOU.PRG still reaches `TRANSFER CAPSULE READY`, `TRANSFER PLAN READY`, `EDITOR HANDOFF PENDING` and CLEAN without calling the execution stub;
-5. do not enable production transfer if any cc65/link/headroom check fails.
+1. run the full validation suite and require session/capsule/transfer/return tests;
+2. build make -C client c64u-package;
+3. require the launcher, resident-editor, overlay-slot and companion memory gates;
+4. require both manifests to validate the exact copied package bytes;
+5. do not run a mixed or failed package.
 
 The staged execution path uses a transient stub copied to screen RAM at $0700
 with parameters at $07D0. It DMA-copies the cached PRG **body** (cache address +
@@ -262,8 +269,9 @@ a one-shot arrival marker at $02A7-$02A9 and jumps to the validated startup
 address. The destination must consume/clear that marker before adopting the
 ACTIVE session. REU state alone must never authorize a cold/direct module launch.
 
-Once production Editor adoption is wired and the software gates pass, perform
-the first real firmware-1.1 test with a matching disposable package:
+For repeatable real firmware-1.1 acceptance, use a matching disposable package.
+The bounded entry/edit/clean original SYS return has passed; physical keyboard
+and broader file/menu acceptance remain outstanding:
 
 1. start SEE64YOU.PRG and observe normal preload/verification;
 2. require direct cached Editor entry rather than `EDITOR HANDOFF PENDING`;
@@ -273,7 +281,7 @@ the first real firmware-1.1 test with a matching disposable package:
 6. exit through the managed owner and verify capsule + shared readiness are revoked, the original machine state is restored/verified, and a newer durable CLEAN journal is written;
 7. reset/interfere at bounded points and confirm failures leave ACTIVE recoverable rather than silently claiming CLEAN.
 
-Only after Launcher → Editor passes should the same cached transition be expanded and tested through:
+The proven Launcher → Editor path can now be extended in bounded stages through:
 
 - Editor → Publisher;
 - Publisher → Editor;

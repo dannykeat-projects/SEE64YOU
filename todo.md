@@ -46,7 +46,6 @@ The diagnostic executable Launcher -> managed Editor entry/short edit/CLEAN gate
 Next work:
 1. Finish physical USB/native keyboard and ordinary editing/file/menu acceptance of the current c64u-package. Preserve original-context/ACTIVE binding, exact manifests and stack/headroom gates; missing/corrupt context keeps a safe CLEAN park.
 2. Generalize ownership/asset transfer to Editor -> Publisher, Publisher -> Editor, Publisher -> Settings and Settings -> Publisher; managed publisher transitions currently remain blocked.
-3. Verify the updated exact-head CI run: the workflow now builds/publishes c64u-package and full validation uses current package gates. Retired conventional-C64/standalone fit gates are removed; reusable diagnostic probes and host/VICE checks remain. Latest inspected previous-head run 37168115114 on b3e38c9 failed on the retired build; updated-head CI is pending.
 
 Do not merge/deploy merely because diagnostic validation passes.
 
