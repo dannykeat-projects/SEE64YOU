@@ -14,6 +14,16 @@ try {
     $preview = $settings->themeAction('preview', 'c64', ['name' => 'Preview']);
     theme_check(!file_exists($path), 'preview must not write');
     theme_check(str_contains(s64_theme_css($preview), 'assets/fonts/c64.ttf'), 'local C64 font');
+    theme_check(
+        str_contains(s64_theme_css([
+            'theme' => 'c64',
+            'text_color' => '#b0b0ff',
+            'background_color' => '#3e31a2',
+            'link_color' => '#ffffff',
+            'visited_color' => '#e49aff',
+        ]), 'font-family:"See64You C64"'),
+        'built-in C64 theme loads bundled font'
+    );
     $config = $settings->themeAction('create', 'c64', ['name' => '<C64>']);
     $id = array_key_first($config['custom_themes']);
     theme_check((require $path)['direct_secret'] === 'preserve', 'secret preserved');
