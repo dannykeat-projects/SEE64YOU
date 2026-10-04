@@ -255,21 +255,26 @@ Using the required 16 MiB configuration:
 ### Managed Publisher fit and ownership preparation
 
 Run make -C client publisher-overlay-fit for the managed destination layout.
-It compiles the actual Publisher with CONTENT/NETWORK/RUNTIME overlays, reserves
-the owner state and links transition/return support. Expected measured sizes are
-11,553 / 11,765 / 13,295 bytes, each within the 15,360-byte execution slot, with
-resident BSS ending $86F5 and 1,290 bytes before the slot (minimum 1,024).
-Full validation runs this fit and both overlay-builder helper suites.
+It compiles actual trusted Publisher entry, ACTIVE adoption, S64Q assets and shared
+application-state consumption with transition/return support. Require CONTENT
+14,390 / NETWORK 11,765 / RUNTIME 14,135 bytes within the 15,360-byte slot, resident
+BSS $85AC and 1,619-byte headroom (minimum 1,024). It generates/revalidates the exact
+S64POVL.MNF and Publisher assets. Initial control load/validation must be resident;
+only the explicit tested return-bridge allowlist may cross overlay groups.
 
-The builder also emits/revalidates S64POVL.MNF and its three canonical Publisher
-assets, then separately cc65-compiles the specialized asset codecs. Host validation
-runs both Editor and Publisher preload/session suites and tests namespace isolation.
-The fit sizes exclude those codecs until destination-root integration is proven.
+Full tools/validate.sh or tools/validate.ps1 runs application_state_test.c and
+managed_publisher_test.c plus both asset namespace suites and overlay-builder tests.
+The state suite checks every-byte corruption, reserved/range rejection, exact
+ACTIVE binding, CLEAN/stale/wrong-session/package rejection, owner/flag/alignment,
+unchanged failed outputs, verified store/readback, allocator pressure, real history
+flush/undo/redo, no-op round trips and replacement preserving clipboard. Publisher
+checks adoption/binding/state failure ordering, unchanged failed document outputs
+and one-shot decode authority. These are host contracts, not hardware execution.
 
-This output has no trusted entry/cache bindings and must not be executed
-or deployed. The optional managed-publisher-fit target preserves the lean flat
-baseline, which fails with a 4,805-byte MAIN overflow; it is not a CI gate.
-The current c64u-package remains the working Launcher -> Editor -> BASIC package.
+This diagnostic must not be executed or deployed. The launcher does not yet reserve
+or publish application state or preload Publisher assets. Managed Editor resumption
+and validated session settings remain unintegrated; Editor/Settings transitions stay
+gated. The current nine-file c64u-package retains Launcher -> Editor -> BASIC.
 
 Full host validation includes module_transition_test.c for ordering, cancellation,
 invalid ownership, failed mode/write/readback/load/plan and recovery-required

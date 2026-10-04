@@ -298,9 +298,30 @@ if ($HostCc) {
             "client/tests/launcher_code_assets_test.c",
             "client/src/launcher/code_assets_runtime.c"
         )
+        Invoke-CTest "application_state" @(
+            "-Werror", "-ffunction-sections", "-Wl,--gc-sections", "-DS64_REU_BUFFER=1",
+            "client/tests/application_state_test.c",
+            "client/src/platform/application_state.c",
+            "client/src/platform/application_state_payload.c",
+            "client/src/platform/application_state_read.c",
+            "client/src/platform/application_state_build.c",
+            "client/src/platform/application_state_editor.c",
+            "client/src/platform/reu_runtime.c",
+            "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/session_journal.c",
+            "client/src/platform/crc32.c",
+            "client/src/buffer_reu.c", "client/src/history_reu.c", "client/src/editor.c",
+            "client/src/clipboard.c", "client/src/document.c", "client/src/charset.c"
+        )
         Invoke-CTest "managed_editor" @(
             "client/tests/managed_editor_test.c",
             "client/src/platform/managed_editor.c"
+        )
+        Invoke-CTest "managed_publisher" @(
+            "-Werror", "-DS64_REU_BUFFER=1", "-DS64_CODE_ASSET_PUBLISHER=1",
+            "client/tests/managed_publisher_test.c",
+            "client/src/platform/managed_publisher.c",
+            "client/src/platform/managed_publisher_document.c"
         )
         Invoke-CTest "basic_return_test" @(
             "-Werror",

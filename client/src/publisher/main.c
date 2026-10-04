@@ -5,7 +5,9 @@
 #include "charset.h"
 #include "document.h"
 #include "platform/http.h"
+#ifndef S64_MANAGED_OVERLAY
 #include "platform/chain.h"
+#endif
 #include "platform/dos.h"
 #include "platform/reu.h"
 #include "platform/uci.h"
@@ -25,6 +27,21 @@
 #include "publisher/workspace.h"
 #ifdef S64_DIRECT_PUBLISHER
 #include "publisher/standalone_direct.h"
+#endif
+
+#ifdef S64_MANAGED_OVERLAY
+#include "platform/module_arrival.h"
+#include "platform/code_overlay_bootstrap.h"
+#include "platform/managed_publisher.h"
+#include "platform/package_version.h"
+static S64ModuleRuntime managed_runtime;
+static void managed_entry_failed(uint8_t stage)
+{
+    clrscr();
+    cputs("Managed entry failed. Restart launcher.");
+    cputc((char)('0' + stage));
+    for (;;) { }
+}
 #endif
 
 #define SCREEN_COLUMNS 40u
@@ -305,6 +322,7 @@ static void clear_session(void)
     s64_publish_state_set_connected(&publish_state, 0u);
 }
 
+#ifndef S64_MANAGED_OVERLAY
 static void sync_handoff_document(S64PublisherHandoff* target)
 {
     target->buffer = body;
@@ -315,12 +333,14 @@ static void sync_handoff_document(S64PublisherHandoff* target)
     memcpy(target->title, document.title, sizeof(target->title));
     memcpy(target->date, document.date, sizeof(target->date));
 }
+#endif
 
 static void mark_document_changed(void)
 {
     document_changed = 1u;
 }
 
+#ifndef S64_MANAGED_OVERLAY
 static unsigned char preserve_document_handoff(unsigned char returning)
 {
     S64PublisherHandoff* target = WORK_HANDOFF;
@@ -348,16 +368,24 @@ static unsigned char preserve_document_handoff(unsigned char returning)
     return 1u;
 }
 
+#endif
 static void return_to_editor(void)
 {
+#ifdef S64_MANAGED_OVERLAY
+    set_status("Editor transition not ready");
+#else
     if (!preserve_document_handoff(1u)) return;
     clrscr();
     cputs("RETURNING TO SEE64YOU EDITOR...\r\n");
     s64_chain_editor();
+#endif
 }
 
 static void open_settings(void)
 {
+#ifdef S64_MANAGED_OVERLAY
+    set_status("Settings transition not ready");
+#else
     if (!preserve_document_handoff(0u)) return;
     if (!s64_settings_bridge_request_edit()) {
         set_status("Cannot open publishing settings");
@@ -367,8 +395,10 @@ static void open_settings(void)
     clrscr();
     cputs("OPENING PUBLISHING SETTINGS...\r\n");
     s64_chain_settings();
+#endif
 }
 
+#ifndef S64_MANAGED_OVERLAY
 static const char* settings_status(uint8_t result)
 {
     if (result == S64_SETTINGS_RESULT_OK) return "Settings loaded";
@@ -414,6 +444,7 @@ static unsigned char restore_settings(void)
     set_status(settings_status(result));
     return 1u;
 }
+#endif
 
 static unsigned char publishing_ready(void)
 {
@@ -1106,6 +1137,19 @@ int main(void)
     clrscr();
     cursor(0);
 
+#ifdef S64_MANAGED_OVERLAY
+    if (!s64_module_transfer_consume_arrival(S64_MODULE_PUBLISHER)) managed_entry_failed(1u);
+    if (!s64_reu_runtime_load(&managed_runtime.reu_control)) managed_entry_failed(2u);
+    if (!s64_code_overlay_bootstrap(&managed_runtime.reu_control,
+            1u, S64_PACKAGE_VERSION, s64_code_overlay_linked_lengths,
+            (void*)S64_CODE_OVERLAY_ADDRESS, s64_reu_load)) managed_entry_failed(3u);
+    s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
+    if (!s64_managed_publisher_adopt(&managed_runtime, &dos, S64_PACKAGE_VERSION)) managed_entry_failed(4u);
+    if (!s64_managed_publisher_document(&managed_runtime, &body, &document,
+            &document_changed, &document_replaced)) managed_entry_failed(5u);
+    if (s64_module_runtime_resume_interactive(&managed_runtime)
+            != S64_SYSTEM_OK) managed_entry_failed(6u);
+#else
     if (!s64_reu_probe() || s64_reu_probe_banks() < 2u) {
         cputs("SEE64YOU PUBLISHER\r\n128K REU REQUIRED\r\n");
         return 1;
@@ -1119,6 +1163,7 @@ int main(void)
         return 1;
     }
 
+#endif
 #ifdef S64_DIRECT_PUBLISHER
     http.execute = s64_uci_execute;
     network_available = s64_uci_probe_target(0x03u);
@@ -1132,9 +1177,15 @@ int main(void)
 #ifndef S64_DIRECT_PUBLISHER
     memset(&session, 0, sizeof(session));
 #endif
+#ifndef S64_MANAGED_OVERLAY
     document_changed = 0u;
     document_replaced = 0u;
+#endif
+#ifdef S64_MANAGED_OVERLAY
+    set_status("Settings transition not ready");
+#else
     (void)restore_settings();
+#endif
 
     for (;;) {
         render();

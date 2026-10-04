@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Measure Publisher overlays with destination ownership and transition code.
 
-This is a link/fit diagnostic, without trusted-entry or cache bindings.
+Includes the trusted-entry bootstrap and destination cache/session consumers.
+Executable Publisher transitions remain gated.
 """
 from __future__ import annotations
 
@@ -17,20 +18,35 @@ import build_editor_overlay_fit as fit
 
 CONTENT = (
     "src/publisher/destination.c", "src/publisher/state.c",
-    "src/publisher/handoff.c", "src/publisher/plaintext.c",
-    "src/publisher/preview.c", "src/publisher/settings_bridge.c",
+    "src/publisher/plaintext.c", "src/publisher/preview.c",
+    "src/platform/managed_publisher_document.c",
+    "src/platform/application_state_payload.c",
+    "src/platform/application_state.c", "src/platform/module_transition.c",
+    "src/platform/basic_return.c", "src/platform/basic_return_read.c",
 )
 NETWORK = (
     "src/platform/network.c", "src/crypto/sha256.c",
     "src/publisher/direct_auth.c", "src/publisher/standalone_direct.c",
 )
 RESIDENT_SUPPORT = (
-    "src/platform/code_overlay.c", "src/platform/module_transition.c",
+    "src/platform/code_overlay.c", "src/platform/reu_runtime.c",
     "src/platform/module_transfer.c", "src/platform/module_transfer_stub.s",
-    "src/platform/module_arrival.c", "src/platform/basic_return.c",
-    "src/platform/basic_return_read.c", "src/platform/basic_return_stub.s",
-    "src/platform/crc32.c", "diagnostics/managed_publisher_state_fit.c",
+    "src/platform/module_arrival.c", "src/platform/basic_return_stub.s",
+    "src/platform/crc32.c", "src/platform/code_overlay_bootstrap.c",
 )
+RUNTIME_SUPPORT = (
+    "src/platform/code_assets_validate.c", "src/platform/code_assets_session.c",
+    "src/platform/code_assets_session_read.c", "src/platform/managed_publisher.c",
+)
+BRIDGES = {
+    "CONTENT": (
+        "s64_session_journal_encode", "s64_system_state_set_mode",
+        "s64_transfer_capsule_clear", "s64_transfer_capsule_store",
+        "s64_transfer_capsule_load", "s64_module_runtime_prepare_transition",
+        "s64_module_runtime_resume_interactive",
+    ),
+    "RUNTIME": ("s64_application_state_load_wire",),
+}
 
 
 def compile_publisher_overlay_fit(client: Path, *, make: str = "make",
@@ -43,16 +59,20 @@ def compile_publisher_overlay_fit(client: Path, *, make: str = "make",
     for key in ("PUBLISHER_SOURCES", "MANAGED_PUBLISHER_RUNTIME_SOURCES", "CFLAGS", "CL65"):
         if key not in values:
             raise fit.FitError(f"Missing make variable: {key}")
-    runtime = tuple(shlex.split(values["MANAGED_PUBLISHER_RUNTIME_SOURCES"]))
-    sources = list(dict.fromkeys(shlex.split(values["PUBLISHER_SOURCES"])
-                                + list(runtime) + list(RESIDENT_SUPPORT)))
+    runtime = tuple(source for source in shlex.split(values["MANAGED_PUBLISHER_RUNTIME_SOURCES"])
+                    if source != "src/platform/reu_runtime.c") + RUNTIME_SUPPORT
+    legacy = {"src/platform/chain_editor.s", "src/publisher/handoff.c",
+              "src/publisher/settings_bridge.c"}
+    sources = list(dict.fromkeys([source for source in shlex.split(values["PUBLISHER_SOURCES"])
+                                 if source not in legacy]
+                                + list(runtime) + list(CONTENT) + list(RESIDENT_SUPPORT)))
     flags = shlex.split(values["CFLAGS"]) + [
-        "-DS64_CODE_ASSET_PUBLISHER=1", "-DS64_REU_BUFFER=1", "-DS64_STANDALONE_ONLY=1", "-DS64_DIRECT_PUBLISHER=1",
+        "-DS64_CODE_ASSET_PUBLISHER=1", "-DS64_MANAGED_OVERLAY=1", "-DS64_REU_BUFFER=1", "-DS64_STANDALONE_ONLY=1", "-DS64_DIRECT_PUBLISHER=1",
     ]
     program = fit.compile_overlay_layout(
         client, client / "build" / "publisher-overlay-fit", sources,
-        {"CONTENT": CONTENT, "NETWORK": NETWORK, "RUNTIME": runtime + ("src/platform/basic_return_read.c",)},
-        {"CONTENT": 1, "NETWORK": 2, "RUNTIME": 3}, {},
+        {"CONTENT": CONTENT, "NETWORK": NETWORK, "RUNTIME": runtime},
+        {"CONTENT": 1, "NETWORK": 2, "RUNTIME": 3}, BRIDGES,
         client / "cfg" / "publisher-overlay-fit.cfg", flags,
         compiler=cl65 or os.environ.get("CL65") or values["CL65"],
         od65=od65, image_name="publisher-overlay-fit",
@@ -67,17 +87,7 @@ def compile_publisher_overlay_fit(client: Path, *, make: str = "make",
         fit.run([sys.executable, str(generator), str(program.parent),
                  "--module", "publisher", "--root", str(program), *extra], cwd=client)
     print("Exact Publisher asset manifest generated and revalidated (diagnostic only).")
-    # Compile the producer/consumer specialization without claiming root fit.
-    # Trusted bootstrap and runtime-overlay placement are still separate gates.
-    codec_dir = program.parent / "asset-codecs"
-    codec_dir.mkdir(exist_ok=True)
-    for source in ("code_assets", "code_assets_validate", "code_assets_session",
-                   "code_assets_session_build", "code_assets_session_read",
-                   "code_overlay_bootstrap"):
-        fit.run([cl65 or os.environ.get("CL65") or values["CL65"], *flags,
-                 "-c", "-o", str(codec_dir / (source + ".o")),
-                 str(client / "src" / "platform" / (source + ".c"))], cwd=client)
-    print("Publisher asset codecs compile; destination-root integration remains gated.")
+    print("Publisher bootstrap and S64Q consumers included in measured root/RUNTIME.")
 
 
 def main() -> int:

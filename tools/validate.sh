@@ -75,6 +75,18 @@ cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/src/clipboard.c client/src/history_reu.c client/src/editor.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host shared application-state tests =="
+cc -std=c99 -Wall -Wextra -Werror -ffunction-sections -Wl,--gc-sections \
+    -DS64_REU_BUFFER=1 -Iclient/src client/tests/application_state_test.c \
+    client/src/platform/application_state.c client/src/platform/application_state_payload.c \
+    client/src/platform/application_state_read.c client/src/platform/application_state_build.c \
+    client/src/platform/application_state_editor.c client/src/platform/reu_runtime.c \
+    client/src/platform/reu_runtime_build.c client/src/platform/session_journal.c \
+    client/src/platform/crc32.c client/src/buffer_reu.c client/src/history_reu.c \
+    client/src/editor.c client/src/clipboard.c client/src/document.c client/src/charset.c \
+    -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host editor tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/editor_test.c client/src/buffer.c client/src/history.c client/src/clipboard.c client/src/editor.c client/src/editor_format.c client/src/editor_format_link.c -o "$TMP_BIN"
 "$TMP_BIN"
@@ -231,6 +243,12 @@ echo "== Host managed editor adoption/exit tests =="
 cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
     client/tests/managed_editor_test.c client/src/platform/managed_editor.c \
     -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host managed Publisher adoption/document tests =="
+cc -std=c99 -Wall -Wextra -Werror -DS64_REU_BUFFER=1 -DS64_CODE_ASSET_PUBLISHER=1 -Iclient/src \
+    client/tests/managed_publisher_test.c client/src/platform/managed_publisher.c \
+    client/src/platform/managed_publisher_document.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host original SYS return record tests =="

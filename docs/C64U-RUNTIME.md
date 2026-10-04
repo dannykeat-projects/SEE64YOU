@@ -729,28 +729,34 @@ The real REU record/adoption host fixture repeats Editor -> Publisher -> Setting
 -> Publisher -> Editor three times without changing ACTIVE, allocating again or
 recapturing settings. These are ownership tests, not real UI/hardware cycles.
 
-The actual Publisher has not yet been wired to this API. The lean flat
-managed-publisher-fit baseline overflows MAIN by 4,805 bytes. The replacement
-publisher-overlay-fit diagnostic fits three mutually exclusive $8C00-$C7FF
-groups: CONTENT 11,553 bytes, NETWORK 11,765 bytes and RUNTIME 13,295 bytes.
-Resident BSS ends at $86F5, leaving 1,290 bytes before the slot; a 1,024-byte
-minimum is enforced. The cc65 owner structure is reserved in BSS, and transition
-planning, transfer and original SYS-return support are linked. This proves
-capacity for those components, not completed entry/UI bindings.
+The managed Publisher fit diagnostic now links its actual trusted-arrival bootstrap,
+ACTIVE-session adoption, specialized asset consumer and application-state decoder.
+It consumes the one-shot Publisher arrival proof before resident control loading
+and cache bootstrap, adopts through s64_module_runtime_adopt without recapture,
+SD reads or another ACTIVE save, binds S64Q assets and validates the application
+record before INTERACTIVE. Cold/direct entry parks with a restart-launcher message.
 
-Document streaming, Ultimate-DOS and low-level REU operations stay resident so
-synchronous callbacks return to the same loaded overlay. CONTENT contains
-publishing destination/state/handoff/plaintext/preview/settings bridging;
-NETWORK contains Network $03, SHA256 and direct authentication/publishing;
-RUNTIME contains destination ownership and session/state operations. The shared
-veneer generator rejects cross-group imports; Publisher permits no return bridges.
-The editor keeps its existing explicit bridges; package 0x0202 rebuilds its
-allocator/version-dependent bytes.
+publisher-overlay-fit measures CONTENT 14,390, NETWORK 11,765 and RUNTIME 14,135
+bytes in the 15,360-byte $8C00-$C7FF slot. Resident BSS ends at $85AC with 1,619
+bytes of headroom (minimum 1,024). These sizes include transition planning,
+transfer/copier and original SYS-return support as well as the actual consumer.
 
-SYS-context validation now shares RUNTIME; its CRC and low-level REU helpers
-remain resident. Expanding the allocator from 12 to 16 entries would otherwise
-reduce Publisher resident headroom below the enforced 1 KiB minimum.
+Control decoding/validation, streaming document/DOS/REU operations and bootstrap
+remain resident: selecting an overlay must not be a prerequisite for initial
+control loading. RUNTIME owns adoption and asset binding; its initialization and
+adoption execute in the same group because initialization temporarily clears the
+control referenced by the selector. CONTENT owns application-state decoding,
+transition planning, publishing state/preview and SYS-context validation. NETWORK
+owns direct authentication/publishing. Explicit return bridges use the established
+Editor veneer mechanism and restore the calling overlay, including nested calls.
+The allowlist is limited to CONTENT's journal encode, system mode, capsule
+clear/store/load and runtime prepare/resume calls, plus RUNTIME's application-wire
+load. All other cross-group imports remain rejected.
 
+The managed Publisher uses no legacy handoff or Settings helper exchange.
+Editor return and Settings UI remain gated. Persistent settings format and
+transactional /sd/SEE64YOU.CFG save/readback are unchanged; shared validated
+session settings and managed Settings ownership remain future integration work.
 
 Publisher asset foundation uses the same codecs compiled with
 S64_CODE_ASSET_PUBLISHER=1. Its exact-root/CRC manifest is S64POVL.MNF (S64P,
@@ -764,12 +770,57 @@ trusted-arrival-only binding and no-SD consumer behavior.
 
 Host suites run both specializations, including opposite-module allocation
 sentinels through preload/store/load/clear and wrong-root/magic rejection.
-The Publisher fit builder generates/revalidates its manifest and separately
-cc65-compiles all specialized codecs. These codecs are not linked into the fit
-root yet: the reported fit sizes exclude consumer/bootstrap integration. The
-launcher still preloads only Editor code assets, and no new files belong in the
-current nine-file product package. Next prove integrated destination memory fit
-and bind launcher preload/revocation of both namespaces before enabling UI cycles.
+The Publisher fit builder generates/revalidates its exact manifest and links the
+specialized consumer codecs into the measured destination. Producer/preload codecs
+remain covered by both host namespace suites. The launcher still preloads only
+Editor assets; no Publisher files are added to the current nine-file package.
+
+### Shared application-state record (prepared, transitions gated)
+
+One 512-byte, 256-byte-aligned RUNTIME allocation uses flag 6. Its fixed little-endian
+S64A/version-1 encoding binds the complete 24-byte exact ACTIVE journal, including
+sequence, session/package and restore snapshot. CRC32 covers bytes 0-507; bytes
+508-511 carry the CRC. Reserved bytes, enums, booleans, string termination, buffer,
+history and UI ranges are validated before modifying decoded output. Failed decode
+or load leaves output unchanged; publication verifies all bytes in 32-byte readback
+chunks. No raw C structs or document/history/clipboard payloads are serialized.
+
+| Wire bytes | Meaning |
+| --- | --- |
+| 0-7 | ASCII S64A, format 1, runtime ABI, size 512 |
+| 8-31 | Exact encoded ACTIVE journal |
+| 32-39 | Nonzero generation, last writer/module, document-replaced flag, reserved |
+| 40-45 | Gap start/end and logical cursor |
+| 46-51 | All six REU history control fields; pending must be zero |
+| 52-65 | View start/column, line/column, position cache, selection anchor, preferred column |
+| 66-73 | Screen cursor, selection/preferred validity, mark, dirty, insert, wrap |
+| 74-81 | Clipboard length, document type/status and signed order |
+| 82-268 | Slug (65), title (81), date (41) |
+| 269-336 | Local filename (34), repeat search (33), search validity |
+| 337-507 | Reserved zero |
+| 508-511 | CRC32 |
+
+Editor capture calls s64_history_prepare_handoff before committing control state.
+A pending operation, metadata read or dirty-cache flush failure blocks capture
+without resetting history. Ordinary Publisher round trips preserve all Editor
+fields, history, filename, clipboard and repeat search. Deliberate remote-open/import
+uses the replacement helper: new metadata/body are authoritative, generation
+advances, writer becomes Publisher and replacement is explicit; local filename and
+undo/redo are cleared, cursor/view/selection reset to the beginning, dirty set.
+Insert/wrap preferences, clipboard payload/length and repeat search remain intact.
+
+Banks 0-1 retain their migration-era document/history/clipboard/settings layout.
+Three module caches, module session, capsule, SYS return, both three-asset/session
+namespaces and this single record total 15/16 allocator entries. No ABI expansion
+or additional state allocations are introduced. RUNTIME authenticates the wire;
+CONTENT decodes it using the existing Publisher workspace as scratch. One-shot
+in-process authority connects the stages and is consumed on success or failure.
+The workspace must not be reused between adoption and document decoding.
+
+This is a prepared consumer/codec foundation. Launcher reservation/publication,
+Editor capture integration and managed Editor resumption are not enabled. Managed
+Editor still initializes a fresh document/clipboard, so Publisher return must stay
+blocked until first Launcher entry and Publisher resumption are distinguished.
 
 The allocator capacity change bumps package identity to 0x0202. Format-1
 control blocks are rejected rather than adopted; interrupted-state recovery

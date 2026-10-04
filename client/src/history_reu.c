@@ -615,11 +615,20 @@ void s64_history_mark_saved(S64History* history)
 
 int s64_history_prepare_handoff(S64History* history)
 {
+    S64HistoryEntry* entry;
+
     if (history == 0 || history->pending_valid) {
         return 0;
     }
 
-    s64_history_break_coalesce(history);
+    /* Unlike ordinary edit recovery, a failed transition flush must preserve
+     * history and stop the handoff rather than resetting it and claiming success. */
+    if (history->cursor != 0u) {
+        entry = load_entry(history, (unsigned char)(history->cursor - 1u));
+        if (entry == 0) return 0;
+        entry->coalesce_insert = 0u;
+        mark_entry_dirty();
+    }
     return flush_entry() ? 1 : 0;
 }
 
