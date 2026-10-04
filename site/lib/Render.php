@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/Themes.php';
+require_once __DIR__ . '/Auth.php';
 
 function s64_inline_markup(string $text): string
 {
@@ -99,7 +100,8 @@ function s64_theme_css(array $config): string
     $visited = s64_safe_color($config['visited_color'] ?? '', '#551a8b');
 
     if ($theme === 'c64') {
-        return 'body{max-width:40em;margin:2em auto;padding:1em;font-family:monospace;'
+        return '@font-face{font-family:"See64You C64";src:url("assets/fonts/c64.ttf") format("truetype");font-weight:normal;font-style:normal;}'
+            . 'body{max-width:40em;margin:2em auto;padding:1em;font-family:"See64You C64","Courier New",Courier,monospace;'
             . "color:$text;background:$background;line-height:1.5}"
             . "a{color:$link;text-decoration:underline}a:visited{color:$visited}"
             . "a:focus-visible{outline:2px solid currentColor;outline-offset:2px}"
@@ -111,6 +113,22 @@ function s64_theme_css(array $config): string
         . "a{color:$link;text-decoration:underline}a:visited{color:$visited}"
         . "a:focus-visible{outline:2px solid currentColor;outline-offset:2px}"
         . "nav{margin:1em 0}";
+}
+
+function s64_theme_admin_visible(array $config): bool
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        if (!isset($_COOKIE['s64_theme_session'])) {
+            return false;
+        }
+        session_name('s64_theme_session');
+        session_cache_limiter('');
+        if (!session_start(['read_and_close' => true])) {
+            return false;
+        }
+    }
+
+    return (new S64Auth($config))->valid((string)($_SESSION['theme_token'] ?? ''));
 }
 
 function s64_render_layout(array $config, array $pages, string $title, string $content): void
@@ -138,7 +156,10 @@ function s64_render_layout(array $config, array $pages, string $title, string $c
             . '</a>';
     }
 
-    echo ' | <a href="posts.php">Posts</a> | <a href="themes.php">Themes</a>';
+    echo ' | <a href="posts.php">Posts</a>';
+    if (s64_theme_admin_visible($config)) {
+        echo ' | <a href="themes.php">Themes</a>';
+    }
     echo "</div></nav><hr></header>\n<main><div class=\"s64-panel\">";
     echo $content;
     echo "</div></main>\n</body></html>";
