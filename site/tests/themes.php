@@ -24,6 +24,16 @@ try {
         ]), 'font-family:"See64You C64"'),
         'built-in C64 theme loads bundled font'
     );
+    $builtInC64Css = s64_theme_css([
+        'theme' => 'c64',
+        'text_color' => '#b0b0ff',
+        'background_color' => '#3e31a2',
+        'link_color' => '#ffffff',
+        'visited_color' => '#e49aff',
+    ]);
+    theme_check(str_contains($builtInC64Css, 'background:#b0b0ff'), 'C64 border uses text/light-blue colour');
+    theme_check(str_contains($builtInC64Css, '.s64-screen{max-width:40em;min-height:25em'), 'C64 screen keeps 40x25 geometry cue');
+    theme_check(str_contains($builtInC64Css, 'background:#3e31a2;color:#b0b0ff'), 'C64 screen uses dark blue with light-blue text');
     $config = $settings->themeAction('create', 'c64', ['name' => '<C64>']);
     $id = array_key_first($config['custom_themes']);
     theme_check((require $path)['direct_secret'] === 'preserve', 'secret preserved');
