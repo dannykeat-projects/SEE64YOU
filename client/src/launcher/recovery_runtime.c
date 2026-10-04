@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "platform/session_journal.h"
+#include "platform/application_state.h"
 #include "platform/uci.h"
 
 static S64SessionJournalResult load_journal(
@@ -267,7 +268,8 @@ uint8_t s64_launcher_module_cache_plan(
         return 0u;
     }
     if (!s64_module_session_reserve(&runtime->reu_control)
-        || !s64_transfer_capsule_reserve(&runtime->reu_control)) return 0u;
+        || !s64_transfer_capsule_reserve(&runtime->reu_control)
+        || !s64_application_state_reserve(&runtime->reu_control)) return 0u;
     return s64_reu_runtime_store_verified(&runtime->reu_control);
 }
 
@@ -356,9 +358,11 @@ uint8_t s64_launcher_transfer_capsule_prepare(
             &runtime->reu_control,
             &runtime->lifecycle.journal,
             &runtime->module_manifest,
+            (S64ModuleId)0,
             destination
         )
         || !s64_transfer_capsule_load(&runtime->reu_control, &capsule)
+        || capsule.source != (S64ModuleId)0
         || capsule.destination != destination
         || capsule.journal.state != runtime->lifecycle.journal.state
         || capsule.journal.sequence != runtime->lifecycle.journal.sequence
@@ -443,7 +447,7 @@ uint8_t s64_launcher_module_manifest_load(
     S64DosResult result;
 
     if (runtime == 0
-        || runtime->reu_control.allocation_count != S64_MODULE_COUNT + 2u) {
+        || runtime->reu_control.allocation_count != S64_MODULE_COUNT + 3u) {
         return 0u;
     }
 

@@ -246,8 +246,11 @@ int main(void)
         "launcher control block inherits journal session metadata");
     require(s64_launcher_module_cache_plan(&runtime),
         "launcher allocates and persists three module cache slots");
-    require(runtime.reu_control.allocation_count == S64_MODULE_COUNT + 2u,
-        "launcher control block records module caches, shared session and transfer capsule");
+    require(runtime.reu_control.allocation_count == S64_MODULE_COUNT + 3u,
+        "launcher control block records module caches, shared session, transfer capsule and application state");
+    require(runtime.reu_control.allocations[S64_MODULE_COUNT + 2u].flags
+            == S64_APPLICATION_STATE_FLAG,
+        "launcher reserves the single shared application-state record");
     require(!s64_module_descriptor_loadable(&runtime.module_manifest.modules[0]),
         "cache planning does not pretend unmeasured module is loadable");
     require(s64_launcher_module_manifest_load(&runtime),
@@ -284,7 +287,7 @@ int main(void)
     require(s64_launcher_transfer_capsule_prepare(&runtime, S64_MODULE_EDITOR),
         "transition prepares and verifies editor capsule");
     require(fake_capsule[0] == 'S' && fake_capsule[3] == 'T'
-        && fake_capsule[6] == S64_MODULE_EDITOR,
+        && fake_capsule[6] == S64_MODULE_EDITOR && fake_capsule[7] == 0u,
         "editor capsule is published to allocator-owned REU");
     {
         S64ModuleTransferPlan plan;

@@ -82,6 +82,7 @@ static const char* canonical_filename(S64ModuleId destination)
 static uint8_t transfer_module_valid(
     const S64ReuRuntimeControl* control,
     const S64ModuleDescriptor* module,
+    S64ModuleId source,
     S64ModuleId destination
 )
 {
@@ -160,6 +161,10 @@ uint8_t s64_transfer_capsule_store(
         destination_module(control, manifest, destination);
 
     if (allocation == 0 || journal == 0 || module == 0
+        || (source != (S64ModuleId)0
+            && (source < S64_MODULE_EDITOR || source > S64_MODULE_SETTINGS))
+        || source == destination
+        || (source == (S64ModuleId)0 && destination != S64_MODULE_EDITOR)
         || journal->state != S64_SESSION_STATE_ACTIVE
         || journal->sequence == 0UL
         || journal->session_id != control->session_id
@@ -176,7 +181,7 @@ uint8_t s64_transfer_capsule_store(
     wire[4] = S64_TRANSFER_CAPSULE_FORMAT_VERSION;
     wire[5] = S64_REU_RUNTIME_ABI_VERSION;
     wire[6] = (uint8_t)destination;
-    wire[7] = 0u;
+    wire[7] = (uint8_t)source;
     memcpy(wire + CAPSULE_JOURNAL_OFFSET, journal_wire,
         sizeof(journal_wire));
 
@@ -219,7 +224,9 @@ uint8_t s64_transfer_capsule_load(
         || wire[4] != S64_TRANSFER_CAPSULE_FORMAT_VERSION
         || wire[5] != S64_REU_RUNTIME_ABI_VERSION
         || wire[6] < S64_MODULE_EDITOR || wire[6] > S64_MODULE_SETTINGS
-        || wire[7] != 0u
+        || wire[7] > S64_MODULE_SETTINGS
+        || wire[7] == wire[6]
+        || (wire[7] == 0u && wire[6] != S64_MODULE_EDITOR)
         || get16(wire + CAPSULE_CHECKSUM_OFFSET) != checksum(wire)) {
         return 0u;
     }
@@ -241,6 +248,7 @@ uint8_t s64_transfer_capsule_load(
         return 0u;
     }
 
+    decoded.source = (S64ModuleId)wire[7];
     decoded.destination = (S64ModuleId)wire[6];
     decoded.module.id = wire[CAPSULE_MODULE_OFFSET];
     decoded.module.cache_state = wire[CAPSULE_MODULE_OFFSET + 1u];
