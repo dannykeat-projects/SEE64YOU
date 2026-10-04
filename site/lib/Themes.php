@@ -72,7 +72,7 @@ function s64_validate_theme(array $input, array $defaults = []): array
             'color' => preg_match('/^#[0-9a-f]{6}$/i', $value) === 1,
             'number' => preg_match('/^[0-9]{1,3}$/', $value) === 1 && (int)$value >= $field[2] && (int)$value <= $field[3],
             'choice' => in_array($value, $field[2], true),
-            'text' => mb_strlen($value, 'UTF-8') <= $field[2],
+            'text' => strlen($value) <= $field[2],
         };
         if (!$valid) throw new InvalidArgumentException('invalid_' . $key);
         $result[$key] = $field[0] === 'number' ? (string)(int)$value : ($field[0] === 'color' || $field[0] === 'choice' ? strtolower($value) : $value);
