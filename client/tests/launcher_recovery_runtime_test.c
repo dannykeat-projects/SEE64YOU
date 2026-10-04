@@ -4,6 +4,7 @@
 
 #include "launcher/recovery_runtime.h"
 #include "platform/reu_layout.h"
+#include "platform/application_state.h"
 
 typedef struct {
     uint8_t value;

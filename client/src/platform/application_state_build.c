@@ -4,19 +4,6 @@
 #include <limits.h>
 #include <string.h>
 
-uint8_t s64_application_state_reserve(S64ReuRuntimeControl* control)
-{
-    S64ReuAllocation item;
-    uint8_t i;
-    if (!s64_reu_runtime_valid(control)) return 0;
-    for (i = 0; i < control->allocation_count; ++i)
-        if (control->allocations[i].flags == S64_APPLICATION_STATE_FLAG) return 0;
-    if (!s64_reu_runtime_allocate(control, S64_REU_OWNER_RUNTIME,
-            S64_APPLICATION_STATE_SIZE, 256u, &item)) return 0;
-    control->allocations[control->allocation_count - 1].flags = S64_APPLICATION_STATE_FLAG;
-    return 1;
-}
-
 uint8_t s64_application_state_store(const S64ReuRuntimeControl* control,
     const S64SessionJournal* journal, const S64ApplicationState* state, uint8_t* wire)
 {

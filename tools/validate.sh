@@ -80,6 +80,7 @@ cc -std=c99 -Wall -Wextra -Werror -ffunction-sections -Wl,--gc-sections \
     -DS64_REU_BUFFER=1 -Iclient/src client/tests/application_state_test.c \
     client/src/platform/application_state.c client/src/platform/application_state_payload.c \
     client/src/platform/application_state_read.c client/src/platform/application_state_build.c \
+    client/src/platform/application_state_reserve.c \
     client/src/platform/application_state_editor.c client/src/platform/reu_runtime.c \
     client/src/platform/reu_runtime_build.c client/src/platform/session_journal.c \
     client/src/platform/crc32.c client/src/buffer_reu.c client/src/history_reu.c \

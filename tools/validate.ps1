@@ -305,6 +305,7 @@ if ($HostCc) {
             "client/src/platform/application_state_payload.c",
             "client/src/platform/application_state_read.c",
             "client/src/platform/application_state_build.c",
+            "client/src/platform/application_state_reserve.c",
             "client/src/platform/application_state_editor.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/reu_runtime_build.c",
