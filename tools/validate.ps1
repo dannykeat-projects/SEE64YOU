@@ -237,6 +237,7 @@ if ($HostCc) {
             "client/src/platform/module_session.c", "client/src/platform/module_session_read.c",
             "client/src/platform/transfer_capsule_build.c",
             "client/src/platform/transfer_capsule.c",
+            "client/src/platform/application_state_reserve.c",
             "client/src/platform/module_transfer.c",
             "client/src/launcher/recovery_flow.c",
             "client/src/platform/session_recovery.c",
