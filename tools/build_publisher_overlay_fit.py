@@ -47,7 +47,7 @@ def compile_publisher_overlay_fit(client: Path, *, make: str = "make",
     sources = list(dict.fromkeys(shlex.split(values["PUBLISHER_SOURCES"])
                                 + list(runtime) + list(RESIDENT_SUPPORT)))
     flags = shlex.split(values["CFLAGS"]) + [
-        "-DS64_REU_BUFFER=1", "-DS64_STANDALONE_ONLY=1", "-DS64_DIRECT_PUBLISHER=1",
+        "-DS64_CODE_ASSET_PUBLISHER=1", "-DS64_REU_BUFFER=1", "-DS64_STANDALONE_ONLY=1", "-DS64_DIRECT_PUBLISHER=1",
     ]
     program = fit.compile_overlay_layout(
         client, client / "build" / "publisher-overlay-fit", sources,
@@ -61,6 +61,23 @@ def compile_publisher_overlay_fit(client: Path, *, make: str = "make",
     if headroom < 1024:
         raise fit.FitError(f"Publisher resident headroom is {headroom}; requires 1024 bytes")
     print(f"Publisher resident headroom: {headroom} bytes (minimum 1024)")
+    generator = fit.ROOT / "tools" / "generate_code_asset_manifest.py"
+    manifest = program.parent / "S64POVL.MNF"
+    for extra in ([], ["--validate", str(manifest)]):
+        fit.run([sys.executable, str(generator), str(program.parent),
+                 "--module", "publisher", "--root", str(program), *extra], cwd=client)
+    print("Exact Publisher asset manifest generated and revalidated (diagnostic only).")
+    # Compile the producer/consumer specialization without claiming root fit.
+    # Trusted bootstrap and runtime-overlay placement are still separate gates.
+    codec_dir = program.parent / "asset-codecs"
+    codec_dir.mkdir(exist_ok=True)
+    for source in ("code_assets", "code_assets_validate", "code_assets_session",
+                   "code_assets_session_build", "code_assets_session_read",
+                   "code_overlay_bootstrap"):
+        fit.run([cl65 or os.environ.get("CL65") or values["CL65"], *flags,
+                 "-c", "-o", str(codec_dir / (source + ".o")),
+                 str(client / "src" / "platform" / (source + ".c"))], cwd=client)
+    print("Publisher asset codecs compile; destination-root integration remains gated.")
 
 
 def main() -> int:

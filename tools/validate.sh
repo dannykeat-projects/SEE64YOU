@@ -117,16 +117,20 @@ cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
     client/src/platform/reu_runtime.c -o "$TMP_BIN"
 "$TMP_BIN"
 
-echo "== Host code asset preload/session tests =="
-cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
-    client/tests/code_assets_test.c client/src/platform/code_overlay_bootstrap.c client/src/platform/code_assets.c \
-    client/src/platform/code_assets_validate.c client/src/platform/code_assets_session.c client/src/platform/code_assets_session_build.c client/src/platform/code_assets_session_read.c \
-    client/src/platform/code_overlay.c client/src/platform/crc32.c \
-    client/src/platform/module_integrity.c client/src/platform/module_manifest.c \
-    client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c \
-    client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
-    client/src/platform/system_state.c client/src/platform/system_state_start.c -o "$TMP_BIN"
-"$TMP_BIN"
+for ASSET_MODULE_FLAGS in "" "-DS64_CODE_ASSET_PUBLISHER=1"
+do
+    echo "== Host code asset preload/session tests =="
+    cc $ASSET_MODULE_FLAGS -std=c99 -Wall -Wextra -Werror -Iclient/src \
+        client/tests/code_assets_test.c client/src/platform/code_overlay_bootstrap.c client/src/platform/code_assets.c \
+        client/src/platform/code_assets_validate.c client/src/platform/code_assets_session.c client/src/platform/code_assets_session_build.c client/src/platform/code_assets_session_read.c \
+        client/src/platform/code_overlay.c client/src/platform/crc32.c \
+        client/src/platform/module_integrity.c client/src/platform/module_manifest.c \
+        client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c \
+        client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
+        client/src/platform/system_state.c client/src/platform/system_state_start.c -o "$TMP_BIN"
+    "$TMP_BIN"
+
+done
 
 echo "== Host C64U module manifest tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \

@@ -751,13 +751,25 @@ SYS-context validation now shares RUNTIME; its CRC and low-level REU helpers
 remain resident. Expanding the allocator from 12 to 16 entries would otherwise
 reduce Publisher resident headroom below the enforced 1 KiB minimum.
 
-This is a link/fit diagnostic without trusted entry, Publisher cache setup or a
-Publisher asset manifest. Do not execute/deploy it. The existing allocator and
-editor-only asset/session contract must be extended intentionally before these
-three Publisher assets can be owned and selected; do not reuse editor cache
-handles or silently reload SD. Source/history/clipboard/settings persistence and
-executable UI bindings remain required. The Publisher fit is separate from the product package and
-Publisher transitions remain guarded.
+
+Publisher asset foundation uses the same codecs compiled with
+S64_CODE_ASSET_PUBLISHER=1. Its exact-root/CRC manifest is S64POVL.MNF (S64P,
+format 1/count 3), with S64PCNT.BIN, S64PNET.BIN and S64PRUN.BIN in
+CONTENT/NETWORK/RUNTIME order. Cache flags are $31-$33; its allocator-owned
+96-byte session uses flag 5 and S64Q magic, distinct from Editor $21-$23/flag 3
+and S64C. The selected module ID is enforced, so even identical root metadata
+cannot authorize the other module's manifest/session. Both variants retain
+atomic allocation, exact ACTIVE-journal binding, readback publication/revocation,
+trusted-arrival-only binding and no-SD consumer behavior.
+
+Host suites run both specializations, including opposite-module allocation
+sentinels through preload/store/load/clear and wrong-root/magic rejection.
+The Publisher fit builder generates/revalidates its manifest and separately
+cc65-compiles all specialized codecs. These codecs are not linked into the fit
+root yet: the reported fit sizes exclude consumer/bootstrap integration. The
+launcher still preloads only Editor code assets, and no new files belong in the
+current nine-file product package. Next prove integrated destination memory fit
+and bind launcher preload/revocation of both namespaces before enabling UI cycles.
 
 The allocator capacity change bumps package identity to 0x0202. Format-1
 control blocks are rejected rather than adopted; interrupted-state recovery

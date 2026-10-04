@@ -107,6 +107,27 @@ def main() -> int:
         make_prg(directory / "too-large.prg", 0x0801, 0x080D, b"x" * 0x8400)
         must_fail(lambda: GEN.inspect_root(directory / "too-large.prg"), "must end before")
 
+    with tempfile.TemporaryDirectory() as td:
+        directory = Path(td)
+        make_prg(directory / "publisher-overlay-fit.prg", 0x0801, 0x080D)
+        for group, source, canonical in GEN.PUBLISHER_GROUPS:
+            (directory / source).write_bytes(group.encode("ascii") * 23)
+        manifest = directory / "S64POVL.MNF"
+        encoded = GEN.generate(directory, manifest, module="publisher")
+        assert encoded[:6] == b"S64P\x01\x03"
+        GEN.validate(manifest, directory, module="publisher")
+        for group, source, canonical in GEN.PUBLISHER_GROUPS:
+            assert (directory / canonical).read_bytes() == (directory / source).read_bytes()
+        make_prg(directory / "editor-overlay-fit.prg", 0x0801, 0x080D)
+        for group, source, canonical in GEN.GROUPS:
+            (directory / canonical).write_bytes(b"editor bytes")
+        must_fail(lambda: GEN.validate(manifest, directory), "does not match")
+        canonical = directory / "S64PNET.BIN"
+        original = canonical.read_bytes()
+        canonical.write_bytes(bytes([original[0] ^ 1]) + original[1:])
+        must_fail(lambda: GEN.validate(manifest, directory, module="publisher"), "does not match")
+        must_fail(lambda: GEN.layout("settings"), "Unsupported")
+
     print("code asset manifest tests passed")
     return 0
 

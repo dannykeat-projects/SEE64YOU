@@ -186,7 +186,7 @@ if ($HostCc) {
             "client/src/platform/reu_runtime_build.c",
             "client/src/platform/reu_runtime.c"
         )
-        Invoke-CTest "code_assets" @(
+        $CodeAssetSources = @(
             "client/tests/code_assets_test.c",
             "client/src/platform/code_overlay_bootstrap.c",
             "client/src/platform/code_assets.c",
@@ -203,6 +203,8 @@ if ($HostCc) {
             "client/src/platform/system_state.c",
             "client/src/platform/system_state_start.c"
         )
+        Invoke-CTest "code_assets" $CodeAssetSources
+        Invoke-CTest "publisher_code_assets" (@("-DS64_CODE_ASSET_PUBLISHER=1") + $CodeAssetSources)
         Invoke-CTest "ultimate_dos" @(
             "client/tests/dos_test.c",
             "client/src/platform/dos.c"

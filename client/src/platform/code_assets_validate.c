@@ -2,7 +2,7 @@
 
 uint8_t s64_code_assets_editor_valid(const S64ModuleDescriptor* editor)
 {
-    return editor != 0 && editor->id == S64_MODULE_EDITOR
+    return editor != 0 && editor->id == S64_CODE_ASSET_MODULE
         && s64_module_descriptor_loadable(editor)
         && editor->load_address == 0x0801u
         && editor->byte_length - 2UL <= S64_CODE_OVERLAY_ADDRESS - 0x0801UL

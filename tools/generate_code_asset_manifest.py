@@ -27,6 +27,21 @@ GROUPS = (
 )
 
 
+PUBLISHER_GROUPS = (
+    ("CONTENT", "content.bin", "S64PCNT.BIN"),
+    ("NETWORK", "network.bin", "S64PNET.BIN"),
+    ("RUNTIME", "runtime.bin", "S64PRUN.BIN"),
+)
+
+
+def layout(module: str):
+    if module == "editor":
+        return GROUPS, MAGIC, "editor-overlay-fit.prg", "S64OVL.MNF"
+    if module == "publisher":
+        return PUBLISHER_GROUPS, b"S64P", "publisher-overlay-fit.prg", "S64POVL.MNF"
+    raise ValueError(f"Unsupported asset module: {module}")
+
+
 def _load_prg_inspector():
     spec = importlib.util.spec_from_file_location("module_manifest_generator", MODULE_GENERATOR)
     if spec is None or spec.loader is None:
@@ -96,17 +111,18 @@ def _asset_metadata(path: Path) -> tuple[int, int]:
 
 
 def render(directory: Path, root: Path | None = None,
-           app_version: int | None = None) -> bytes:
+           app_version: int | None = None, *, module: str = "editor") -> bytes:
     app_version = resolve_version(app_version)
-    root_path = root if root is not None else directory / "editor-overlay-fit.prg"
+    groups, magic, root_name, _manifest_name = layout(module)
+    root_path = root if root is not None else directory / root_name
     root_length, root_crc = inspect_root(root_path)
     result = bytearray(MANIFEST_SIZE)
-    result[0:4] = MAGIC
+    result[0:4] = magic
     result[4] = FORMAT_VERSION
-    result[5] = len(GROUPS)
+    result[5] = len(groups)
     struct.pack_into("<HHHH", result, 6, ABI_VERSION, app_version, SLOT_ADDRESS, SLOT_CAPACITY)
     struct.pack_into("<II", result, 16, root_length, root_crc)
-    for index, (group, _source, canonical) in enumerate(GROUPS):
+    for index, (group, _source, canonical) in enumerate(groups):
         length, checksum = _asset_metadata(directory / canonical)
         struct.pack_into("<II", result, 24 + index * 8, length, checksum)
     struct.pack_into("<I", result, 48, zlib.crc32(result[:48]) & 0xFFFFFFFF)
@@ -114,12 +130,13 @@ def render(directory: Path, root: Path | None = None,
 
 
 def generate(directory: Path, output: Path, root: Path | None = None,
-             app_version: int | None = None) -> bytes:
-    root_path = root if root is not None else directory / "editor-overlay-fit.prg"
+             app_version: int | None = None, *, module: str = "editor") -> bytes:
+    groups, magic, root_name, _manifest_name = layout(module)
+    root_path = root if root is not None else directory / root_name
     app_version = resolve_version(app_version)
     inspect_root(root_path)
     assets: list[tuple[Path, Path, bytes]] = []
-    for _group, source_name, canonical_name in GROUPS:
+    for _group, source_name, canonical_name in groups:
         source = directory / source_name
         data = source.read_bytes()
         if not 1 <= len(data) <= SLOT_CAPACITY:
@@ -128,15 +145,15 @@ def generate(directory: Path, output: Path, root: Path | None = None,
         assets.append((source, directory / canonical_name, data))
     for _source, canonical, data in assets:
         canonical.write_bytes(data)
-    manifest = render(directory, root, app_version)
+    manifest = render(directory, root, app_version, module=module)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_bytes(manifest)
     return manifest
 
 
 def validate(manifest_path: Path, directory: Path, root: Path | None = None,
-             app_version: int | None = None) -> None:
-    expected = render(directory, root, app_version)
+             app_version: int | None = None, *, module: str = "editor") -> None:
+    expected = render(directory, root, app_version, module=module)
     actual = manifest_path.read_bytes()
     if actual != expected:
         raise ValueError("code asset manifest does not match root PRG and canonical code assets")
@@ -146,17 +163,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
     parser.add_argument("--root", type=Path)
+    parser.add_argument("--module", choices=("editor", "publisher"), default="editor")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--validate", type=Path)
     parser.add_argument("--app-version", type=int)
     args = parser.parse_args()
-    output = args.output or args.directory / "S64OVL.MNF"
+    output = args.output or args.directory / layout(args.module)[3]
     try:
         if args.validate is not None:
-            validate(args.validate, args.directory, args.root, args.app_version)
+            validate(args.validate, args.directory, args.root, args.app_version, module=args.module)
             print(f"code asset manifest validated: {args.validate}")
         else:
-            generate(args.directory, output, args.root, args.app_version)
+            generate(args.directory, output, args.root, args.app_version, module=args.module)
             print(f"code asset manifest written: {output}")
         return 0
     except (OSError, ValueError) as exc:

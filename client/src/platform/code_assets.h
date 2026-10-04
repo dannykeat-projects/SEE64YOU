@@ -5,10 +5,30 @@
 #include "platform/session_journal.h"
 
 #define S64_CODE_ASSET_MANIFEST_SIZE 52u
+/* Each module image compiles the same codec against its own namespace.
+ * Producer integration must use the matching module build. */
+#ifdef S64_CODE_ASSET_PUBLISHER
+#define S64_CODE_ASSET_MANIFEST_FILENAME "S64POVL.MNF"
+#define S64_CODE_ASSET_MODULE S64_MODULE_PUBLISHER
+#define S64_CODE_ASSET_MAGIC_LAST 0x50u
+#define S64_CODE_ASSET_SESSION_MAGIC "S64Q"
+#define S64_CODE_ASSET_SESSION_FLAG 5u
+#define S64_CODE_ASSET_CACHE_FLAG 0x31u
+#define S64_CODE_ASSET_FILE_0 "S64PCNT.BIN"
+#define S64_CODE_ASSET_FILE_1 "S64PNET.BIN"
+#define S64_CODE_ASSET_FILE_2 "S64PRUN.BIN"
+#else
 #define S64_CODE_ASSET_MANIFEST_FILENAME "S64OVL.MNF"
-#define S64_CODE_ASSET_SESSION_SIZE 96u
+#define S64_CODE_ASSET_MODULE S64_MODULE_EDITOR
+#define S64_CODE_ASSET_MAGIC_LAST 0x4fu
+#define S64_CODE_ASSET_SESSION_MAGIC "S64C"
 #define S64_CODE_ASSET_SESSION_FLAG 3u
 #define S64_CODE_ASSET_CACHE_FLAG 0x21u
+#define S64_CODE_ASSET_FILE_0 "S64MODEL.BIN"
+#define S64_CODE_ASSET_FILE_1 "S64FILE.BIN"
+#define S64_CODE_ASSET_FILE_2 "S64RUN.BIN"
+#endif
+#define S64_CODE_ASSET_SESSION_SIZE 96u
 
 typedef struct {
     S64ReuAllocation cache;
@@ -23,7 +43,8 @@ typedef struct {
     S64CodeAsset assets[S64_CODE_OVERLAY_COUNT];
 } S64CodeAssets;
 
-/* Parsing binds raw assets to the exact editor PRG metadata, not filenames
+/* The editor_* fields below contain the selected module root metadata.
+ * Parsing binds raw assets to that exact module PRG metadata, not filenames
  * supplied by an external manifest. Outputs remain unchanged on failure. */
 uint8_t s64_code_assets_parse(S64CodeAssets* assets, const uint8_t* wire,
     uint16_t length, const S64ModuleDescriptor* editor);

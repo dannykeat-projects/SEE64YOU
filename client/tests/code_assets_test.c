@@ -63,7 +63,7 @@ S64DosResult s64_dos_change_dir(S64Dos* target, const char* path)
 { assert(target == &dos && !strcmp(path, "/sd/")); return S64_DOS_OK; }
 S64DosResult s64_dos_open_read(S64Dos* target, const char* name)
 {
-    static const char* const names[] = { "S64MODEL.BIN", "S64FILE.BIN", "S64RUN.BIN" };
+    static const char* const names[] = { S64_CODE_ASSET_FILE_0, S64_CODE_ASSET_FILE_1, S64_CODE_ASSET_FILE_2 };
     assert(target == &dos && !open_file);
     file_index = opens % 3;
     assert(!strcmp(name, names[file_index]));
@@ -107,7 +107,7 @@ static void fixture(void)
     s64_reu_runtime_init(&control, 1, 123);
     assert(s64_reu_runtime_allocate(&control, S64_REU_OWNER_MODULE, 65536, 256, 0));
     s64_module_manifest_init(&modules, 1);
-    editor = modules.modules[0];
+    editor = modules.modules[S64_CODE_ASSET_MODULE - 1u];
     editor.load_address = 0x801; editor.startup_address = 0x80d;
     editor.byte_length = 100; editor.integrity = 0x12345678;
     editor.cache_address = control.allocations[0].address; editor.cache_capacity = 65536;
@@ -115,7 +115,7 @@ static void fixture(void)
     assert(s64_session_journal_prepare(&journal, control.session_id, 1, 0, &snapshot));
     journal.sequence = 1;
     memset(manifest_wire, 0, sizeof(manifest_wire));
-    memcpy(manifest_wire, "S64O", 4); manifest_wire[4] = 1; manifest_wire[5] = 3;
+    memcpy(manifest_wire, "S64O", 4); manifest_wire[3] = S64_CODE_ASSET_MAGIC_LAST; manifest_wire[4] = 1; manifest_wire[5] = 3;
     put16(manifest_wire + 6, 1); put16(manifest_wire + 8, 1);
     put16(manifest_wire + 10, S64_CODE_OVERLAY_ADDRESS);
     put16(manifest_wire + 12, S64_CODE_OVERLAY_CAPACITY);
@@ -148,6 +148,13 @@ int main(int argc, char** argv)
     assert((s64_crc32_update(0xffffffffUL, (const uint8_t*)"123456789", 9) ^ 0xffffffffUL) == 0xcbf43926UL);
     fixture();
     saved = assets;
+    editor.id = S64_CODE_ASSET_MODULE == S64_MODULE_EDITOR ? S64_MODULE_PUBLISHER : S64_MODULE_EDITOR;
+    assert(!s64_code_assets_parse(&assets, manifest_wire, 52, &editor));
+    editor.id = S64_CODE_ASSET_MODULE;
+    manifest_wire[3] = S64_CODE_ASSET_MAGIC_LAST == 0x50u ? 0x4fu : 0x50u;
+    put32(manifest_wire + 48, crc(manifest_wire, 48));
+    assert(!s64_code_assets_parse(&assets, manifest_wire, 52, &editor));
+    fixture(); saved = assets;
     for (i = 0; i < 52; ++i) {
         manifest_wire[i] ^= 1;
         assert(!s64_code_assets_parse(&assets, manifest_wire, 52, &editor));
@@ -250,6 +257,28 @@ int main(int argc, char** argv)
     assert(!s64_code_assets_allocate(&assets, &control));
     assert(!memcmp(&assets, &saved, sizeof(saved)));
     assert(!memcmp(&control, &saved_control, sizeof(control)));
+    /* Opposite-module ownership must coexist without sharing caches/records. */
+    fixture();
+    saved_control = control;
+    for (i = 0; i < 4; ++i) {
+        assert(s64_reu_runtime_allocate(&control,
+            i == 3 ? S64_REU_OWNER_RUNTIME : S64_REU_OWNER_MODULE,
+            i == 3 ? S64_CODE_ASSET_SESSION_SIZE : 16, 256, 0));
+        control.allocations[control.allocation_count - 1].flags = i == 3
+            ? (S64_CODE_ASSET_SESSION_FLAG == 3 ? 5 : 3)
+            : (uint8_t)((S64_CODE_ASSET_CACHE_FLAG == 0x21 ? 0x31 : 0x21) + i);
+        memset(memory + control.allocations[control.allocation_count - 1].address, 0xa5,
+            control.allocations[control.allocation_count - 1].length);
+    }
+    assert(s64_code_assets_preload(&dos, &control, &editor, &assets, &system_state));
+    assert(s64_code_assets_store_verified(&control, &journal, &editor, &assets));
+    assert(s64_code_assets_load(&control, &journal, &editor, &loaded));
+    assert(s64_code_assets_clear(&control));
+    for (i = saved_control.allocation_count; i < control.allocation_count; ++i) {
+        uint32_t j;
+        for (j = 0; j < control.allocations[i].length; ++j)
+            assert(memory[control.allocations[i].address + j] == 0xa5);
+    }
     if (argc == 4) {
         FILE* file = fopen(argv[1], "rb");
         assert(file && fread(manifest_wire, 1, sizeof(manifest_wire), file) == sizeof(manifest_wire));

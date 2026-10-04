@@ -261,7 +261,12 @@ the owner state and links transition/return support. Expected measured sizes are
 resident BSS ending $86F5 and 1,290 bytes before the slot (minimum 1,024).
 Full validation runs this fit and both overlay-builder helper suites.
 
-This output has no trusted entry/cache/asset bindings and must not be executed
+The builder also emits/revalidates S64POVL.MNF and its three canonical Publisher
+assets, then separately cc65-compiles the specialized asset codecs. Host validation
+runs both Editor and Publisher preload/session suites and tests namespace isolation.
+The fit sizes exclude those codecs until destination-root integration is proven.
+
+This output has no trusted entry/cache bindings and must not be executed
 or deployed. The optional managed-publisher-fit target preserves the lean flat
 baseline, which fails with a 4,805-byte MAIN overflow; it is not a CI gate.
 The current c64u-package remains the working Launcher -> Editor -> BASIC package.

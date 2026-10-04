@@ -4,10 +4,10 @@
 #include <string.h>
 
 static const char* const filenames[S64_CODE_OVERLAY_COUNT] = {
-    "S64MODEL.BIN", "S64FILE.BIN", "S64RUN.BIN"
+    S64_CODE_ASSET_FILE_0, S64_CODE_ASSET_FILE_1, S64_CODE_ASSET_FILE_2
 };
 /* Generated binary wire bytes are ASCII even when cc65 literals are PETSCII. */
-static const uint8_t manifest_magic[4] = {0x53u, 0x36u, 0x34u, 0x4fu};
+static const uint8_t manifest_magic[4] = {0x53u, 0x36u, 0x34u, S64_CODE_ASSET_MAGIC_LAST};
 static uint16_t get16(const uint8_t* in)
 { return (uint16_t)(in[0] | ((uint16_t)in[1] << 8)); }
 static uint32_t get32(const uint8_t* in)

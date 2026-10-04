@@ -18,7 +18,7 @@ uint8_t s64_code_assets_load(const S64ReuRuntimeControl* control,
     if (!allocation || !assets || !s64_code_assets_active_session(control, journal)
         || !s64_reu_load((uint8_t)(allocation->address >> 16), (uint16_t)allocation->address,
             s64_code_assets_session_wire, sizeof(s64_code_assets_session_wire))) return 0;
-    if (memcmp(s64_code_assets_session_wire, "S64C", 4)
+    if (memcmp(s64_code_assets_session_wire, S64_CODE_ASSET_SESSION_MAGIC, 4)
         || s64_code_assets_session_wire[4] != 1
         || s64_code_assets_session_wire[5] != S64_CODE_OVERLAY_COUNT
         || get16(s64_code_assets_session_wire + 6) != S64_REU_RUNTIME_ABI_VERSION
