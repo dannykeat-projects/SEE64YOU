@@ -45,10 +45,8 @@ S64ModuleTransitionResult s64_module_transition_prepare(
         return S64_MODULE_TRANSITION_RECOVERY_REQUIRED;
     if (!s64_transfer_capsule_clear(&runtime->reu_control)
         || !s64_transfer_capsule_store(&runtime->reu_control,
-            &runtime->lifecycle.journal, &runtime->module_manifest,
-            (S64ModuleId)runtime->current_module, destination)
+            &runtime->lifecycle.journal, &runtime->module_manifest, destination)
         || !s64_transfer_capsule_load(&runtime->reu_control, &capsule)
-        || capsule.source != (S64ModuleId)runtime->current_module
         || capsule.destination != destination
         || capsule.module.id != expected_module->id
         || capsule.module.cache_state != expected_module->cache_state

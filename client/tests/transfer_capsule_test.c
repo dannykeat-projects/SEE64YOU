@@ -78,9 +78,8 @@ int main(void)
     untouched = capsule;
 
     assert(s64_transfer_capsule_store(&control, &journal, &manifest,
-        (S64ModuleId)0, S64_MODULE_EDITOR));
+        S64_MODULE_EDITOR));
     assert(s64_transfer_capsule_load(&control, &capsule));
-    assert(capsule.source == (S64ModuleId)0);
     assert(capsule.destination == S64_MODULE_EDITOR);
     assert(capsule.journal.sequence == journal.sequence);
     assert(capsule.journal.session_id == journal.session_id);
@@ -102,55 +101,46 @@ int main(void)
 
     journal.state = S64_SESSION_STATE_CLEAN;
     assert(!s64_transfer_capsule_store(&control, &journal, &manifest,
-        (S64ModuleId)0, S64_MODULE_EDITOR));
+        S64_MODULE_EDITOR));
     journal.state = S64_SESSION_STATE_ACTIVE;
     ++journal.session_id;
     assert(!s64_transfer_capsule_store(&control, &journal, &manifest,
-        (S64ModuleId)0, S64_MODULE_EDITOR));
+        S64_MODULE_EDITOR));
     --journal.session_id;
 
     manifest.modules[0].cache_state = S64_MODULE_CACHE_LOADED_UNVERIFIED;
     assert(!s64_transfer_capsule_store(&control, &journal, &manifest,
-        (S64ModuleId)0, S64_MODULE_EDITOR));
+        S64_MODULE_EDITOR));
     manifest.modules[0].cache_state = S64_MODULE_CACHE_READY;
 
     manifest.modules[0].startup_address = 0x7000u;
     assert(!s64_transfer_capsule_store(&control, &journal, &manifest,
-        (S64ModuleId)0, S64_MODULE_EDITOR));
+        S64_MODULE_EDITOR));
     manifest.modules[0].startup_address = 0x080du;
 
     manifest.modules[0].byte_length = 65536UL;
     assert(!s64_transfer_capsule_store(&control, &journal, &manifest,
-        (S64ModuleId)0, S64_MODULE_EDITOR));
+        S64_MODULE_EDITOR));
     manifest.modules[0].byte_length = 4096UL;
 
     manifest.modules[0].cache_address += 256UL;
     assert(!s64_transfer_capsule_store(&control, &journal, &manifest,
-        (S64ModuleId)0, S64_MODULE_EDITOR));
+        S64_MODULE_EDITOR));
     manifest.modules[0].cache_address -= 256UL;
 
     assert(!s64_transfer_capsule_store(&control, &journal, &manifest,
-        (S64ModuleId)0, (S64ModuleId)0));
-    assert(!s64_transfer_capsule_store(&control, &journal, &manifest,
-        (S64ModuleId)0, S64_MODULE_PUBLISHER));
-    assert(!s64_transfer_capsule_store(&control, &journal, &manifest,
-        S64_MODULE_EDITOR, S64_MODULE_EDITOR));
-    assert(s64_transfer_capsule_store(&control, &journal, &manifest,
-        S64_MODULE_EDITOR, S64_MODULE_PUBLISHER));
-    assert(s64_transfer_capsule_load(&control, &capsule));
-    assert(capsule.source == S64_MODULE_EDITOR
-        && capsule.destination == S64_MODULE_PUBLISHER);
+        (S64ModuleId)0));
     fail_store = 1u;
     assert(!s64_transfer_capsule_store(&control, &journal, &manifest,
-        (S64ModuleId)0, S64_MODULE_EDITOR));
+        S64_MODULE_EDITOR));
     fail_store = 0u;
     fail_load = 1u;
     assert(!s64_transfer_capsule_store(&control, &journal, &manifest,
-        (S64ModuleId)0, S64_MODULE_EDITOR));
+        S64_MODULE_EDITOR));
     fail_load = 0u;
     corrupt_read = 1u;
     assert(!s64_transfer_capsule_store(&control, &journal, &manifest,
-        (S64ModuleId)0, S64_MODULE_EDITOR));
+        S64_MODULE_EDITOR));
     corrupt_read = 0u;
 
     assert(s64_transfer_capsule_clear(&control));

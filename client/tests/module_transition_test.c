@@ -31,11 +31,11 @@ uint8_t s64_transfer_capsule_clear(const S64ReuRuntimeControl* c)
     memset(&saved, 0, sizeof(saved)); return 1;
 }
 uint8_t s64_transfer_capsule_store(const S64ReuRuntimeControl* c, const S64SessionJournal* j,
-    const S64ModuleManifest* m, S64ModuleId source, S64ModuleId destination)
+    const S64ModuleManifest* m, S64ModuleId destination)
 {
     (void)c; (void)m; ++stores;
     if (fault == 3 || fault == 8 || fault == 9) return 0;
-    saved.source = source; saved.destination = destination; saved.journal = *j;
+    saved.destination = destination; saved.journal = *j;
     saved.module = m->modules[(uint8_t)destination - 1u]; return 1;
 }
 uint8_t s64_transfer_capsule_load(const S64ReuRuntimeControl* c, S64TransferCapsule* out)
@@ -49,7 +49,6 @@ uint8_t s64_transfer_capsule_load(const S64ReuRuntimeControl* c, S64TransferCaps
     if (fault == 12) ++out->module.byte_length;
     if (fault == 13) ++out->module.startup_address;
     if (fault == 14) ++out->module.integrity;
-    if (fault == 15) out->source = S64_MODULE_SETTINGS;
     return 1;
 }
 static void setup(S64ModuleRuntime* r, S64ModuleTransferPlan* p)
@@ -88,7 +87,6 @@ int main(void)
         setup(&r, &p); r.current_module = pairs[i][0];
         lifecycle = r.lifecycle; snapshot = r.system_state.snapshot;
         assert(s64_module_transition_prepare(&r, pairs[i][1], &p) == S64_MODULE_TRANSITION_OK);
-        assert(saved.source == (S64ModuleId)pairs[i][0]);
         assert(p.destination == pairs[i][1] && p.reu_source == 0x030002UL && p.payload_length == 0x3000);
         assert(r.current_module == pairs[i][0] && r.system_state.mode == S64_SYSTEM_MODE_TRANSITION);
         assert(memcmp(&r.lifecycle, &lifecycle, sizeof(lifecycle)) == 0);
@@ -96,7 +94,7 @@ int main(void)
         assert(s64_module_transition_cancel(&r, &p) == S64_MODULE_TRANSITION_OK);
         zero_plan(&p); assert(r.system_state.mode == S64_SYSTEM_MODE_INTERACTIVE);
     }
-    for (i=1; i<=15; ++i) {
+    for (i=1; i<=14; ++i) {
         setup(&r, &p); fault = i; lifecycle = r.lifecycle; snapshot = r.system_state.snapshot;
         assert(s64_module_transition_prepare(&r, S64_MODULE_PUBLISHER, &p)
             == ((i==1 || i==8 || i==9) ? S64_MODULE_TRANSITION_RECOVERY_REQUIRED : S64_MODULE_TRANSITION_FAILED));

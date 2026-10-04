@@ -365,11 +365,9 @@ uint8_t s64_launcher_transfer_capsule_prepare(
             &runtime->reu_control,
             &runtime->lifecycle.journal,
             &runtime->module_manifest,
-            (S64ModuleId)0,
             destination
         )
         || !s64_transfer_capsule_load(&runtime->reu_control, &capsule)
-        || capsule.source != (S64ModuleId)0
         || capsule.destination != destination
         || capsule.journal.state != runtime->lifecycle.journal.state
         || capsule.journal.sequence != runtime->lifecycle.journal.sequence
