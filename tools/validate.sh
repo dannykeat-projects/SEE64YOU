@@ -492,6 +492,10 @@ if command -v cl65 >/dev/null 2>&1 \
     make -C client publisher-overlay-fit
     make -C client c64u-package
 
+    echo "== Authenticated resumed Editor diagnostic build and host gates =="
+    make -C client resume-editor-gate
+    sh ./tools/test_resume_editor_fixture.sh
+
     echo "== Base editor diagnostic build =="
     make -C client editor-probe
 

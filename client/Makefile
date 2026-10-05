@@ -226,6 +226,14 @@ build/managed-handoff-launcher.prg: $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) sr
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -DS64_CODE_ASSET_LAUNCHER=1 -DS64_EXECUTABLE_HANDOFF=1 -m build/managed-handoff-launcher.map -o $@ src/platform/basic_return_capture.s $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/basic_return.c src/platform/basic_return_build.c src/launcher/basic_return_runtime.c
 
+# Diagnostic only; the exact ordinary c64u-package Editor remains the destination.
+.PHONY: resume-editor-gate
+resume-editor-gate: c64u-package
+	python3 ../tools/build_resume_editor_fixture.py --output build/resume-editor-fixture
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -I build/resume-editor-fixture -m build/resume-editor-gate.map -o build/resume-editor-gate.prg src/platform/basic_return_capture.s diagnostics/resume_editor_gate.c diagnostics/resume_editor_fixture.c $(filter-out src/launcher/main.c,$(LAUNCHER_SOURCES)) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/basic_return.c src/platform/basic_return_build.c src/launcher/basic_return_runtime.c src/platform/application_state.c
+	python3 ../tools/check_memory_headroom.py build/resume-editor-gate.map --label resume-editor-gate --min-headroom 1024
+	python3 ../tools/check_prg_extent.py build/resume-editor-gate.prg --label resume-editor-gate --load-address 0x0801 --max-end 0xC7FF
+
 # Deliberate fit gate for the next managed destination; not a product artifact.
 MANAGED_PUBLISHER_RUNTIME_SOURCES := $(filter-out src/platform/code_overlay_bootstrap.c src/platform/module_arrival.c,$(MANAGED_EDITOR_RUNTIME_SOURCES)) src/platform/transfer_capsule_write.c
 .PHONY: publisher-overlay-fit

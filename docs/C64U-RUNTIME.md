@@ -884,6 +884,21 @@ PRINT 6*7 -> 42 -> READY. SD backups were restored with exact SHA256 parity
 and drive settings were unchanged. Physical input/full file/menu acceptance
 and Publisher cycles remain unverified.
 
+The separate `resume-editor-gate` diagnostic constructs fixture bytes on the
+build host with the real cc65 Editor model under sim65, preserving the existing
+migration history ABI. Its stripped main reuses production preflight, recovery,
+lifecycle, allocator, cache integrity, code assets, BASIC return and transfer.
+Native DOS `$21` populates the existing migration document/history/clipboard
+locations; the production journal encoder and CRC32 bind the state template to
+the current exact ACTIVE session in synchronous `$C800` workspace. Complete
+state readback precedes verified runtime-control authority publication. N flips
+one authoritative state byte after valid publication for the bounded rejection
+gate. The destination is the ordinary exact package Editor; production launcher
+sources, RAM boundaries, formats, allocator and publication callers are unchanged.
+This target is a diagnostic, not a module-cycle or producer-integration claim.
+Host binding/rejection and build fit pass; real-hardware resumed-entry acceptance
+remains outstanding. Reproducible steps are in `docs/LOCAL_TESTING.md`.
+
 ## 22. Retired production constraints
 
 The following are no longer design requirements:

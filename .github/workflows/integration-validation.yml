@@ -21,7 +21,7 @@ jobs:
 
       - name: Verify preinstalled C64 validation toolchain
         run: |
-          command -v cl65 cc php python3 curl make xvfb-run
+          command -v cl65 cc65 ca65 sim65 cc php python3 curl make xvfb-run
           x64sc -version
 
       - name: Run standalone site tests
@@ -235,3 +235,15 @@ jobs:
 
       - name: Run full validation
         run: sh ./tools/validate.sh
+
+      - name: Publish authenticated resumed Editor diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-resume-editor-gate
+          path: |
+            client/build/resume-editor-gate.prg
+            client/build/resume-editor-gate.map
+            client/build/resume-editor-fixture/*.DAT
+            client/build/resume-editor-fixture/resume_fixture.h
+          if-no-files-found: error
+          retention-days: 30

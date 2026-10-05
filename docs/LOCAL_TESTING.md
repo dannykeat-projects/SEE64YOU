@@ -122,6 +122,61 @@ Use disposable source files; publishing transitions remain blocked.
 
 ## 4. Hardware access from the development PC
 
+### Authenticated resumed Editor diagnostic
+
+Build `make -C client resume-editor-gate`, then run
+`sh tools/test_resume_editor_fixture.sh`. Full validation includes both. The
+build requires the preinstalled cc65 toolchain including `sim65`. The generator
+compiles the actual production Editor/buffer/history/clipboard/state code with
+the C64 character mapping and cc65 ABI, using a simulator file-backed REU mock.
+It verifies state capture/store/load, Undo, Redo and paste before exporting five
+deterministic `.DAT` files and their length/CRC header into
+`client/build/resume-editor-fixture/`. Host-native history structs are unsuitable
+for this fixture because their integer layout differs from cc65.
+
+Before hardware use, require full validation and successful exact-head CI;
+compare the downloaded nine-file `see64you-c64u-package` and the diagnostic PRG,
+five DAT files and header against local SHA256 values. Preserve existing SD files
+and drive settings as described below. Upload the exact ordinary package and
+five fixture DAT files to `/sd/`; run `resume-editor-gate.prg` as a temporary PRG.
+This target does not replace the ordinary package launcher or Editor.
+
+Select P for the positive case. The diagnostic runs the real preflight, recovery,
+ACTIVE lifecycle, allocator, exact manifest/cache integrity, shared session,
+BASIC-return capture and Editor code-asset preparation. It uses DOS `$21` to
+populate document `$000000` (61440 bytes), history payload `$00F000` (4096),
+history metadata `$01F000` (38) and clipboard `$010000` (4). Settings/handoff
+regions are untouched. The 512-byte template is loaded into the existing
+allocator-owned application-state allocation. Synchronous `$C800` workspace
+binds bytes 8..31 with the production journal encoder, recomputes CRC32 at
+508..511, verifies every replacement byte, then persists/readbacks application
+authority with the production runtime-control writer. The unchanged production
+capsule/transfer path enters the exact READY ordinary `S64EDIT.PRG`.
+
+Expected source is `RESUME GATE`, `MARKER`, then `A` on three lines. Generation is
+41, filename `RESUME.S64`, title `Resume Gate`, search `MARKER`, clipboard `CLIP`.
+Cursor is 18, selection anchor 12 and initial view start 12 (MARKER selected;
+scroll upward to reveal the heading). Check the restored visible selection and
+cursor. Ctrl+Z removes the final A; Ctrl+Shift+Z restores it. Clear selection,
+move to document end and Ctrl+V appends CLIP. Inspect metadata/search/filename
+through existing dialogs only. Verify ordinary editing remains usable, then
+Exit/discard: require revoked application authority, newest durable CLEAN,
+original responsive BASIC (`PRINT 6*7` gives 42), unchanged drives and no
+unexpected SD changes. Restore backed-up package/fixture files and remove only
+files created for this test; retain the resulting CLEAN journal.
+
+Only after positive acceptance, rerun and select N. After otherwise-valid
+publication it flips one generation byte at application-state offset 32,
+verifies that byte and leaves authority asserted and the old CRC intact. The
+same exact production Editor must halt with its managed-entry failure message,
+without adopting the fixture or falling back to fresh editing. Restart the
+normal launcher and verify its existing interrupted-session recovery restores
+the captured state; complete its ordinary managed exit and confirm newer CLEAN
+and responsive BASIC. This is one bounded negative; host tests own the broader
+failure matrix. Hardware acceptance is outstanding until actual results are
+recorded. Publisher/Settings execution and publication-producer callers remain
+gated.
+
 Ultimate64 Manager is installed on the existing Windows development machine. Read the current host/profile from its local configuration rather than assuming an address remains unchanged, and never print/commit stored passwords.
 
 REST/FTP can be used for authorized upload/run/readback testing. Preserve unsaved work before remotely replacing the running PRG.
