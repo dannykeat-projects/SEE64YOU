@@ -684,7 +684,7 @@ static void save_and_return(void)
     }
 #endif
 
-    set_status("Saved and verified /sd/SEE64YOU.CFG");
+    set_status("Saved SEE64YOU/SEE64YOU.CFG");
 #ifdef S64_SETTINGS_SAVE_TRACE
     end_save_trace("SAVE COMPLETE", 0);
 #else

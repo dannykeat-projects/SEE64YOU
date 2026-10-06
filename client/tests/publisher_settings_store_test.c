@@ -4,14 +4,17 @@
 #include <string.h>
 
 #include "platform/reu_layout.h"
+#include "platform/package_paths.h"
 #include "publisher/settings_store.h"
 
 static unsigned char reu_settings[S64_REU_SETTINGS_CAPACITY];
 static unsigned char stored[512];
+static unsigned char legacy_stored[512];
 static unsigned char profile_one[512];
 static unsigned char temporary[512];
 static unsigned char direct_key_file[128];
 static uint16_t stored_length;
+static uint16_t legacy_stored_length;
 static uint16_t profile_one_length;
 static uint16_t temporary_length;
 static uint16_t direct_key_file_length;
@@ -28,6 +31,7 @@ static uint8_t reu_writes;
 static uint8_t create_new_opened;
 static uint8_t fail_change_dir;
 static uint16_t change_dir_calls;
+static uint8_t current_directory;
 
 static S64UciResult mock_execute(
     const S64UciCommandPart* parts,
@@ -105,11 +109,11 @@ static void store_legacy_v1_fixture(void)
         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
     );
 
-    memcpy(stored, &legacy, checksum_offset);
-    checksum = legacy_checksum_bytes(stored, checksum_offset);
-    stored[checksum_offset] = (unsigned char)(checksum & 0xffu);
-    stored[checksum_offset + 1u] = (unsigned char)(checksum >> 8);
-    stored_length = (uint16_t)(checksum_offset + 2u);
+    memcpy(legacy_stored, &legacy, checksum_offset);
+    checksum = legacy_checksum_bytes(legacy_stored, checksum_offset);
+    legacy_stored[checksum_offset] = (unsigned char)(checksum & 0xffu);
+    legacy_stored[checksum_offset + 1u] = (unsigned char)(checksum >> 8);
+    legacy_stored_length = (uint16_t)(checksum_offset + 2u);
 }
 
 uint8_t s64_reu_store(uint8_t bank, uint16_t address, const void* source, uint16_t length)
@@ -139,8 +143,16 @@ S64DosResult s64_dos_change_dir(S64Dos* dos, const char* directory)
 {
     (void)dos;
     ++change_dir_calls;
-    if (strcmp(directory, "/sd/") != 0) return S64_DOS_INVALID_ARGUMENT;
-    return fail_change_dir ? S64_DOS_TARGET_ERROR : S64_DOS_OK;
+    if (fail_change_dir) return S64_DOS_TARGET_ERROR;
+    if (strcmp(directory, S64_PACKAGE_DIRECTORY) == 0) {
+        current_directory = 1u;
+        return S64_DOS_OK;
+    }
+    if (strcmp(directory, S64_SD_ROOT_DIRECTORY) == 0) {
+        current_directory = 0u;
+        return S64_DOS_OK;
+    }
+    return S64_DOS_INVALID_ARGUMENT;
 }
 
 S64DosResult s64_dos_file_exists(S64Dos* dos, const char* filename, uint8_t* exists)
@@ -148,7 +160,9 @@ S64DosResult s64_dos_file_exists(S64Dos* dos, const char* filename, uint8_t* exi
     (void)dos;
     if (exists == 0) return S64_DOS_INVALID_ARGUMENT;
     if (strcmp(filename, S64_SETTINGS_FILENAME) == 0) {
-        *exists = stored_length != 0u;
+        *exists = current_directory
+            ? stored_length != 0u
+            : legacy_stored_length != 0u;
     } else if (strcmp(filename, "S64DEST1.CFG") == 0) {
         *exists = profile_one_length != 0u;
     } else if (strcmp(filename, "SEE64YOU.CFG.TMP") == 0) {
@@ -165,15 +179,20 @@ S64DosResult s64_dos_open_read(S64Dos* dos, const char* filename)
 {
     (void)dos;
     if (fail_reopen) return S64_DOS_TARGET_ERROR;
-    if (strcmp(filename, S64_SETTINGS_FILENAME) == 0 && stored_length != 0u) {
+    if (strcmp(filename, S64_SETTINGS_FILENAME) == 0
+        && current_directory && stored_length != 0u) {
         read_source = stored;
         read_length = stored_length;
+    } else if (strcmp(filename, S64_SETTINGS_FILENAME) == 0
+        && !current_directory && legacy_stored_length != 0u) {
+        read_source = legacy_stored;
+        read_length = legacy_stored_length;
     } else if (strcmp(filename, "S64DEST1.CFG") == 0
         && profile_one_length != 0u) {
         read_source = profile_one;
         read_length = profile_one_length;
     } else if (strcmp(filename, S64_DIRECT_KEY_FILENAME) == 0
-        && direct_key_file_length != 0u) {
+        && !current_directory && direct_key_file_length != 0u) {
         read_source = direct_key_file;
         read_length = direct_key_file_length;
     } else {
@@ -243,7 +262,8 @@ S64DosResult s64_dos_delete_file(S64Dos* dos, const char* filename)
 {
     (void)dos;
     if (strcmp(filename, S64_SETTINGS_FILENAME) == 0) {
-        stored_length = 0u;
+        if (current_directory) stored_length = 0u;
+        else legacy_stored_length = 0u;
         return S64_DOS_OK;
     }
     if (strcmp(filename, "S64DEST1.CFG") == 0) {
@@ -264,7 +284,8 @@ S64DosResult s64_dos_rename_file(S64Dos* dos, const char* filename, const char* 
         || temporary_length == 0u) {
         return S64_DOS_INVALID_ARGUMENT;
     }
-    if (strcmp(new_name, S64_SETTINGS_FILENAME) == 0) {
+    if (strcmp(new_name, S64_SETTINGS_FILENAME) == 0
+        && current_directory) {
         memcpy(stored, temporary, temporary_length);
         stored_length = temporary_length;
         if (bad_final == 1u) stored_length = 0u;
@@ -301,6 +322,7 @@ int main(void)
     dos.target = S64_DOS_TARGET_PRIMARY;
     memset(reu_settings, 0, sizeof(reu_settings));
     stored_length = 0u;
+    legacy_stored_length = 0u;
     profile_one_length = 0u;
     temporary_length = 0u;
     direct_key_file_length = 0u;
@@ -310,13 +332,15 @@ int main(void)
     create_new_opened = 0u;
     fail_change_dir = 0u;
     change_dir_calls = 0u;
+    current_directory = 0u;
 
     s64_settings_exchange_init(&loaded);
     require(
         s64_settings_store_load(&dos, &loaded) == S64_SETTINGS_STORE_NOT_FOUND,
         "missing settings reported"
     );
-    require(change_dir_calls == 1u, "settings load selects SD root");
+    require(change_dir_calls == 2u,
+        "missing settings check app folder then legacy root");
 
     store_legacy_v1_fixture();
     memset(&loaded, 0, sizeof(loaded));
@@ -327,7 +351,25 @@ int main(void)
     require(loaded.version == S64_SETTINGS_VERSION, "legacy settings upgrade version");
     require(strcmp(loaded.base_url, "http://legacy.local:6464") == 0, "legacy URL preserved");
     require(loaded.direct_key[0] == '\0', "legacy settings start without direct key");
+    require(stored_length == sizeof(loaded),
+        "legacy settings copied to app folder");
+    require(legacy_stored_length == 0u,
+        "legacy root settings retired after verified migration");
+
     stored_length = 0u;
+    store_legacy_v1_fixture();
+    fail_write = 1u;
+    memset(&loaded, 0, sizeof(loaded));
+    require(
+        s64_settings_store_load(&dos, &loaded) == S64_SETTINGS_STORE_IO_ERROR,
+        "failed migration is reported"
+    );
+    require(stored_length == 0u,
+        "failed migration does not publish app-folder config");
+    require(legacy_stored_length != 0u,
+        "failed migration preserves legacy root config");
+    fail_write = 0u;
+    legacy_stored_length = 0u;
 
     s64_settings_exchange_init(&settings);
     settings.destination_type = (uint8_t)S64_DESTINATION_STANDALONE;
@@ -336,9 +378,11 @@ int main(void)
     strcpy(settings.relay_key, key);
     strcpy(settings.direct_key,
         "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789");
+    change_dir_calls = 0u;
     result = s64_settings_store_save(&dos, &settings);
     require(result == S64_SETTINGS_STORE_OK, "settings save succeeds");
-    require(change_dir_calls == 4u, "settings save selects SD root");
+    require(change_dir_calls == 2u,
+        "settings save and readback use app folder");
     require(create_new_opened, "settings save uses create-new temp file");
     require(stored_length == sizeof(settings), "settings file size");
 
@@ -367,9 +411,11 @@ int main(void)
         loaded.direct_key,
         "1111111111111111111111111111111111111111111111111111111111111111"
     );
+    change_dir_calls = 0u;
     result = s64_settings_import_direct_key(&dos, loaded.direct_key);
     require(result == S64_SETTINGS_STORE_OK, "direct key file import succeeds");
-    require(change_dir_calls == 6u, "direct key import selects SD root");
+    require(change_dir_calls == 2u,
+        "direct key import falls back from app folder to SD root");
     require(
         strcmp(
             loaded.direct_key,
@@ -403,9 +449,11 @@ int main(void)
     require(result == S64_SETTINGS_STORE_NOT_FOUND, "missing direct key file reported");
 
     strcpy(settings.base_url, "http://profile.local:6464");
+    change_dir_calls = 0u;
     result = s64_settings_profile_save(&dos, 0u, &settings);
     require(result == S64_SETTINGS_STORE_OK, "profile save succeeds");
-    require(change_dir_calls == 10u, "profile save selects SD root");
+    require(change_dir_calls == 2u,
+        "profile save and readback use app folder");
     require(profile_one_length == sizeof(settings), "profile file size");
     require(stored_length == sizeof(settings), "profile save preserves active file");
 
@@ -418,9 +466,10 @@ int main(void)
     );
 
     memset(&loaded, 0, sizeof(loaded));
+    change_dir_calls = 0u;
     result = s64_settings_profile_load(&dos, 0u, &loaded);
     require(result == S64_SETTINGS_STORE_OK, "profile load succeeds");
-    require(change_dir_calls == 12u, "profile load selects SD root");
+    require(change_dir_calls == 1u, "profile load uses app folder");
     require(
         strcmp(loaded.base_url, "http://profile.local:6464") == 0,
         "profile URL round trip"

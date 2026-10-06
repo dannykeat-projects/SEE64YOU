@@ -1,11 +1,11 @@
 #include "publisher/settings_store.h"
 #include "charset.h"
+#include "platform/package_paths.h"
 
 #include <stddef.h>
 #include <string.h>
 
 #define S64_SETTINGS_TEMP_FILENAME "SEE64YOU.CFG.TMP"
-#define S64_SETTINGS_STORAGE_PATH "/sd/"
 
 typedef struct {
     S64SettingsExchange* settings;
@@ -126,16 +126,20 @@ static uint8_t profile_filename(uint8_t slot, char* filename)
     return 1u;
 }
 
-static S64SettingsStoreResult select_storage_path(S64Dos* dos)
+static S64SettingsStoreResult select_storage_path(
+    S64Dos* dos,
+    const char* path
+)
 {
-    if (dos == 0) return S64_SETTINGS_STORE_INVALID;
-    return s64_dos_change_dir(dos, S64_SETTINGS_STORAGE_PATH) == S64_DOS_OK
+    if (dos == 0 || path == 0) return S64_SETTINGS_STORE_INVALID;
+    return s64_dos_change_dir(dos, path) == S64_DOS_OK
         ? S64_SETTINGS_STORE_OK
         : S64_SETTINGS_STORE_IO_ERROR;
 }
 
 static S64SettingsStoreResult load_named(
     S64Dos* dos,
+    const char* path,
     const char* filename,
     S64SettingsExchange* settings
 )
@@ -146,10 +150,10 @@ static S64SettingsStoreResult load_named(
     uint8_t exists;
     uint16_t bytes_read;
 
-    if (dos == 0 || filename == 0 || settings == 0) {
+    if (dos == 0 || path == 0 || filename == 0 || settings == 0) {
         return S64_SETTINGS_STORE_INVALID;
     }
-    if (select_storage_path(dos) != S64_SETTINGS_STORE_OK) {
+    if (select_storage_path(dos, path) != S64_SETTINGS_STORE_OK) {
         return S64_SETTINGS_STORE_IO_ERROR;
     }
 
@@ -245,6 +249,7 @@ static S64DosResult open_create_new(
 
 static S64SettingsStoreResult save_named(
     S64Dos* dos,
+    const char* path,
     const char* filename,
     S64SettingsExchange* settings
 )
@@ -254,10 +259,10 @@ static S64SettingsStoreResult save_named(
     /* Fixed scratch avoids consuming the helper software stack. */
     static S64SettingsExchange verified;
 
-    if (dos == 0 || filename == 0 || settings == 0) {
+    if (dos == 0 || path == 0 || filename == 0 || settings == 0) {
         return S64_SETTINGS_STORE_INVALID;
     }
-    if (select_storage_path(dos) != S64_SETTINGS_STORE_OK) {
+    if (select_storage_path(dos, path) != S64_SETTINGS_STORE_OK) {
         return S64_SETTINGS_STORE_IO_ERROR;
     }
 
@@ -306,7 +311,7 @@ static S64SettingsStoreResult save_named(
         return S64_SETTINGS_STORE_IO_ERROR;
     }
 
-    verified_result = load_named(dos, filename, &verified);
+    verified_result = load_named(dos, path, filename, &verified);
     if (verified_result != S64_SETTINGS_STORE_OK
         || memcmp(settings, &verified, sizeof(verified)) != 0) {
         memset(&verified, 0, sizeof(verified));
@@ -321,7 +326,41 @@ S64SettingsStoreResult s64_settings_store_load(
     S64SettingsExchange* settings
 )
 {
-    return load_named(dos, S64_SETTINGS_FILENAME, settings);
+    S64SettingsStoreResult result;
+    S64SettingsStoreResult migration;
+
+    result = load_named(
+        dos,
+        S64_PACKAGE_DIRECTORY,
+        S64_SETTINGS_FILENAME,
+        settings
+    );
+    if (result != S64_SETTINGS_STORE_NOT_FOUND) return result;
+
+    result = load_named(
+        dos,
+        S64_SD_ROOT_DIRECTORY,
+        S64_SETTINGS_FILENAME,
+        settings
+    );
+    if (result != S64_SETTINGS_STORE_OK) return result;
+
+    migration = save_named(
+        dos,
+        S64_PACKAGE_DIRECTORY,
+        S64_SETTINGS_FILENAME,
+        settings
+    );
+    if (migration != S64_SETTINGS_STORE_OK) return migration;
+
+    /* The verified app-folder copy is authoritative. Retiring the old root
+     * copy is best-effort so firmware-specific delete status cannot invalidate
+     * an already verified migration. */
+    if (select_storage_path(dos, S64_SD_ROOT_DIRECTORY)
+            == S64_SETTINGS_STORE_OK) {
+        (void)s64_dos_delete_file(dos, S64_SETTINGS_FILENAME);
+    }
+    return S64_SETTINGS_STORE_OK;
 }
 
 S64SettingsStoreResult s64_settings_store_save(
@@ -329,7 +368,12 @@ S64SettingsStoreResult s64_settings_store_save(
     S64SettingsExchange* settings
 )
 {
-    return save_named(dos, S64_SETTINGS_FILENAME, settings);
+    return save_named(
+        dos,
+        S64_PACKAGE_DIRECTORY,
+        S64_SETTINGS_FILENAME,
+        settings
+    );
 }
 
 S64SettingsStoreResult s64_settings_profile_load(
@@ -343,7 +387,7 @@ S64SettingsStoreResult s64_settings_profile_load(
     if (!profile_filename(slot, filename)) {
         return S64_SETTINGS_STORE_INVALID;
     }
-    return load_named(dos, filename, settings);
+    return load_named(dos, S64_PACKAGE_DIRECTORY, filename, settings);
 }
 
 S64SettingsStoreResult s64_settings_profile_save(
@@ -357,11 +401,12 @@ S64SettingsStoreResult s64_settings_profile_save(
     if (!profile_filename(slot, filename)) {
         return S64_SETTINGS_STORE_INVALID;
     }
-    return save_named(dos, filename, settings);
+    return save_named(dos, S64_PACKAGE_DIRECTORY, filename, settings);
 }
 
-S64SettingsStoreResult s64_settings_import_direct_key(
+static S64SettingsStoreResult import_direct_key_from(
     S64Dos* dos,
+    const char* path,
     char direct_key[65]
 )
 {
@@ -370,18 +415,13 @@ S64SettingsStoreResult s64_settings_import_direct_key(
     S64DirectKeyRead read;
     uint16_t bytes_read = 0u;
 
-    if (dos == 0 || direct_key == 0) {
+    if (dos == 0 || path == 0 || direct_key == 0) {
         return S64_SETTINGS_STORE_INVALID;
     }
-    if (select_storage_path(dos) != S64_SETTINGS_STORE_OK) {
+    if (select_storage_path(dos, path) != S64_SETTINGS_STORE_OK) {
         return S64_SETTINGS_STORE_IO_ERROR;
     }
 
-    /*
-     * Keep this path deliberately simple for stock C64U firmware. The file is
-     * exactly 64 bytes in the normal case, so FILE_STAT, over-reading past
-     * EOF, and multi-read EOF probing only add firmware-dependent behavior.
-     */
     result = s64_dos_open_read(dos, S64_DIRECT_KEY_FILENAME);
     if (result == S64_DOS_NOT_FOUND) return S64_SETTINGS_STORE_NOT_FOUND;
     if (result != S64_DOS_OK) return S64_SETTINGS_STORE_IO_ERROR;
@@ -400,12 +440,6 @@ S64SettingsStoreResult s64_settings_import_direct_key(
         memset(&read, 0, sizeof(read));
         return S64_SETTINGS_STORE_INVALID;
     }
-    /*
-     * A complete successful read is authoritative for this fixed-size import.
-     * Some Ultimate firmware/filesystem paths may report NO FILE TO CLOSE
-     * after EOF. We still issue CLOSE as cleanup, but do not discard a valid
-     * 64-byte key solely because the close status is non-OK.
-     */
     if (result != S64_DOS_OK) {
         memset(&read, 0, sizeof(read));
         return S64_SETTINGS_STORE_IO_ERROR;
@@ -420,4 +454,16 @@ S64SettingsStoreResult s64_settings_import_direct_key(
     memcpy(direct_key, read.key, sizeof(read.key));
     memset(&read, 0, sizeof(read));
     return S64_SETTINGS_STORE_OK;
+}
+
+S64SettingsStoreResult s64_settings_import_direct_key(
+    S64Dos* dos,
+    char direct_key[65]
+)
+{
+    S64SettingsStoreResult result;
+
+    result = import_direct_key_from(dos, S64_PACKAGE_DIRECTORY, direct_key);
+    if (result != S64_SETTINGS_STORE_NOT_FOUND) return result;
+    return import_direct_key_from(dos, S64_SD_ROOT_DIRECTORY, direct_key);
 }

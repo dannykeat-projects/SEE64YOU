@@ -29,12 +29,21 @@ uint8_t s64_managed_editor_settings_prepare(
     /* Revoke authority before touching SD. Ultimate-DOS can stream this exact
      * fixed-size file directly into the existing REU settings reservation, so
      * no extra C-side read/copy buffer is needed. */
-    if (!s64_settings_session_revoke()
-        || s64_dos_change_dir(runtime->dos, S64_SD_ROOT_DIRECTORY) != S64_DOS_OK
-        || s64_dos_open_read(runtime->dos, S64_SETTINGS_FILENAME)
+    if (!s64_settings_session_revoke()) return 0u;
+
+    if (s64_dos_change_dir(runtime->dos, S64_PACKAGE_DIRECTORY)
             != S64_DOS_OK) {
         return 0u;
     }
+    result = s64_dos_open_read(runtime->dos, S64_SETTINGS_FILENAME);
+    if (result == S64_DOS_NOT_FOUND) {
+        if (s64_dos_change_dir(runtime->dos, S64_SD_ROOT_DIRECTORY)
+                != S64_DOS_OK) {
+            return 0u;
+        }
+        result = s64_dos_open_read(runtime->dos, S64_SETTINGS_FILENAME);
+    }
+    if (result != S64_DOS_OK) return 0u;
 
     result = s64_dos_file_size(runtime->dos, &size);
     if (result == S64_DOS_OK && size != (uint32_t)sizeof(*settings)) {
