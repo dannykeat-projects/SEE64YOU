@@ -3,7 +3,8 @@
 #include <string.h>
 
 #include "launcher/code_assets_runtime.h"
-#include "platform/code_assets.h"\n#include "platform/package_paths.h"
+#include "platform/code_assets.h"
+#include "platform/package_paths.h"
 
 enum { FAIL_NONE, FAIL_PARSE, FAIL_ALLOCATE, FAIL_CONTROL, FAIL_PRELOAD, FAIL_READY };
 static uint8_t wire[S64_CODE_ASSET_MANIFEST_SIZE + 1u];
