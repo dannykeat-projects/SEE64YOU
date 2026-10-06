@@ -72,6 +72,7 @@ BRIDGES: dict[str, tuple[str, ...]] = {
         "s64_application_state_payload_valid",
         "s64_managed_editor_state_revoke",
         "s64_reu_runtime_store_verified",
+        "s64_session_journal_encode",
         "s64_system_state_set_mode",
     ),
 }
