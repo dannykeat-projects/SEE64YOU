@@ -426,13 +426,17 @@ and broader file/menu acceptance remain outstanding:
 6. exit through the managed owner and verify capsule + shared readiness are revoked, the original machine state is restored/verified, and a newer durable CLEAN journal is written;
 7. reset/interfere at bounded points and confirm failures leave ACTIVE recoverable rather than silently claiming CLEAN.
 
-The proven Launcher → Editor path can now be extended in bounded stages through:
+The proven Launcher → Editor path now has a software/CI-complete cached
+Editor → Publisher → Editor cycle. Hardware-accept it next:
 
-- Editor → Publisher;
-- Publisher → Editor;
-- Publisher → Settings;
-- Settings → Publisher;
-- repeated full cycles.
+- invoke Publisher from the managed Editor and require the deliberate OPENING PUBLISHER message;
+- verify Publisher arrives without a fresh SD module load, displays the same document/settings state and remains responsive;
+- make a bounded Publisher-side document metadata/status change, return with RUN/STOP, and require RETURNING TO SEE64YOU EDITOR;
+- verify the Editor restores the authenticated returned state, including dirty/replaced semantics where applicable;
+- repeat the round trip at least twice before exiting and verify the original machine state and durable CLEAN journal.
+
+Then extend the same cached ownership model through Publisher → Settings →
+Publisher and repeated full cycles.
 
 After initial module preload, transitions must not depend on software IEC or a fresh SD load.
 

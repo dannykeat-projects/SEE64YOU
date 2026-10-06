@@ -968,8 +968,12 @@ byte after authority publication: production entry halted, leaving ACTIVE 63.
 The normal launcher recovered to CLEAN 64, opened ACTIVE 65 and exited CLEAN 66.
 IRQ $EA31, advancing clock, BASIC PRINT 6*7 -> 42, unchanged drives, restored
 SD-file readback and root-listing parity passed. This proves authenticated
-resumed entry on firmware 1.1 only. Publisher/Settings execution, publication
-callers and module cycles remain gated. Evidence is in ignored
+resumed entry on firmware 1.1 only. Since that hardware gate, the production
+package has gained an exact-head-CI-validated managed Editor → Publisher →
+Editor cycle using the same ACTIVE ownership, application-state authority,
+Publisher asset/session authority, canonical session-bound settings and cached
+transfer stub. That cycle has not yet run on real C64U hardware. Settings
+execution and the remaining module cycles remain gated. Evidence is in ignored
 `client/build/hardware-resume-gate-20261006/`; reproducible steps are in
 `docs/LOCAL_TESTING.md`.
 
