@@ -331,7 +331,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
 echo "== Host settings I/O probe tests =="
 cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/tests/settings_io_probe_test.c client/src/platform/dos.c \
-    client/src/publisher/settings_exchange.c client/src/charset.c -o "$TMP_BIN"
+    client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c client/src/charset.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host settings exchange probe tests =="
@@ -359,7 +359,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src client/tests/publisher_state_test.c clien
 echo "== Host publisher settings exchange tests =="
 cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/tests/publisher_settings_exchange_test.c \
-    client/src/publisher/settings_exchange.c -o "$TMP_BIN"
+    client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host publisher preview tests =="
@@ -377,7 +377,7 @@ cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
 echo "== Host publisher settings persistence tests =="
 cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/tests/publisher_settings_store_test.c \
-    client/src/charset.c client/src/publisher/settings_exchange.c client/src/publisher/settings_store.c \
+    client/src/charset.c client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c client/src/publisher/settings_store.c \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
@@ -480,7 +480,7 @@ if command -v cl65 >/dev/null 2>&1 \
     for source in \
         client/src/publisher/plaintext.c \
         client/src/publisher/settings_bridge.c \
-        client/src/publisher/settings_exchange.c \
+        client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c \
         client/src/publisher/settings_store.c \
         client/src/platform/managed_editor_publish.c \
         client/src/platform/application_state_build.c \

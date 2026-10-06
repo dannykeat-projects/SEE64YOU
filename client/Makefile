@@ -51,9 +51,9 @@ UCI_ABSENCE_PROBE_SOURCES := diagnostics/uci_absence_probe.c src/platform/uci.c 
 NETWORK_PROBE_SOURCES := diagnostics/network_probe.c src/platform/uci.c src/platform/network.c src/charset.c
 HTTPS_PROBE_SOURCES := diagnostics/https_probe.c src/platform/uci.c src/platform/http.c src/charset.c
 DIRECT_SITE_PROBE_SOURCES := diagnostics/direct_site_probe.c src/platform/uci.c src/platform/network.c src/charset.c
-DIRECT_AUTH_PROBE_SOURCES := diagnostics/direct_auth_probe.c src/charset.c src/crypto/sha256.c src/platform/uci.c src/platform/network.c src/platform/dos.c src/platform/system_state.c src/platform/system_state_start.c src/platform/turbo.c src/platform/turbo_capture.c src/platform/reu.c src/platform/reu_dma.s src/publisher/direct_auth.c src/publisher/settings_exchange.c src/publisher/settings_store.c
+DIRECT_AUTH_PROBE_SOURCES := diagnostics/direct_auth_probe.c src/charset.c src/crypto/sha256.c src/platform/uci.c src/platform/network.c src/platform/dos.c src/platform/system_state.c src/platform/system_state_start.c src/platform/turbo.c src/platform/turbo_capture.c src/platform/reu.c src/platform/reu_dma.s src/publisher/direct_auth.c src/publisher/settings_exchange.c src/publisher/settings_validate.c src/publisher/settings_store.c
 HMAC_PROBE_SOURCES := diagnostics/hmac_probe.c src/crypto/sha256.c
-SETTINGS_IO_PROBE_SOURCES := diagnostics/settings_io_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/publisher/settings_exchange.c src/platform/reu.c src/platform/reu_dma.s
+SETTINGS_IO_PROBE_SOURCES := diagnostics/settings_io_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/publisher/settings_exchange.c src/publisher/settings_validate.c src/platform/reu.c src/platform/reu_dma.s
 SETTINGS_EXCHANGE_PROBE_SOURCES := diagnostics/settings_exchange_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/publisher/settings_store.c
 COMPANION_STREAM_PROBE_SOURCES := diagnostics/companion_stream_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/platform/dos_file.c src/platform/companion_loader.c
 COMPANION_LAUNCH_PROBE_SOURCES := diagnostics/companion_launch_probe.c src/charset.c src/platform/uci.c src/platform/dos.c src/platform/dos_file.c src/platform/companion_loader.c src/platform/companion_resident_enter.s
@@ -67,7 +67,7 @@ PUBLISHER_CORE_SOURCES := src/charset.c src/buffer_reu.c src/document.c src/plat
 PUBLISHER_DOCUMENT_SOURCES := src/publisher/standalone_documents.c
 PUBLISHER_COMPANION_FIT_SOURCES := diagnostics/publisher_companion_fit.c $(PUBLISHER_CORE_SOURCES) $(PUBLISHER_DOCUMENT_SOURCES)
 PUBLISHER_SOURCES := src/publisher/main.c src/platform/chain_editor.s $(filter-out src/platform/http.c src/publisher/relay.c src/publisher/standalone.c,$(PUBLISHER_CORE_SOURCES)) src/platform/network.c src/crypto/sha256.c src/publisher/direct_auth.c src/publisher/standalone_direct.c
-SETTINGS_SOURCES := src/publisher/settings_main.c src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/destination.c src/publisher/settings_exchange.c src/publisher/settings_store.c
+SETTINGS_SOURCES := src/publisher/settings_main.c src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/destination.c src/publisher/settings_exchange.c src/publisher/settings_validate.c src/publisher/settings_store.c
 LAUNCHER_SOURCES := src/platform/module_session.c src/platform/module_session_read.c src/platform/module_session_build.c src/platform/transfer_capsule.c src/platform/transfer_capsule_build.c src/platform/transfer_capsule_write.c src/platform/module_transfer.c src/platform/module_arrival.c src/platform/module_transfer_stub.s src/launcher/main.c src/platform/module_integrity.c src/platform/crc32.c src/platform/module_preload.c src/platform/dos_reu.c src/platform/dos_file.c src/launcher/recovery_runtime.c src/launcher/recovery_flow.c src/platform/preflight.c src/platform/requirements.c src/platform/module_manifest.c src/platform/module_manifest_build.c src/platform/module_manifest_parse.c src/platform/reu_runtime.c src/platform/reu_runtime_build.c src/platform/reu_runtime_write.c src/platform/session_lifecycle.c src/platform/session_lifecycle_start.c src/platform/session_recovery.c src/platform/session_journal.c src/platform/session_journal_start.c src/platform/system_state.c src/platform/system_state_start.c src/platform/dos.c src/platform/turbo.c src/platform/turbo_capture.c src/platform/uci.c src/platform/reu.c src/platform/reu_dma.s src/charset.c
 
 CL65 ?= cl65
@@ -164,7 +164,7 @@ $(SETTINGS_IO_PROBE_TARGET): $(SETTINGS_IO_PROBE_SOURCES) src/publisher/settings
 .PHONY: settings-exchange-probe
 settings-exchange-probe: $(SETTINGS_EXCHANGE_PROBE_TARGET)
 
-$(SETTINGS_EXCHANGE_PROBE_TARGET): $(SETTINGS_EXCHANGE_PROBE_SOURCES) src/publisher/settings_exchange.c
+$(SETTINGS_EXCHANGE_PROBE_TARGET): $(SETTINGS_EXCHANGE_PROBE_SOURCES) src/publisher/settings_exchange.c src/publisher/settings_validate.c
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -m build/settings-exchange-probe.map -o $@ $(SETTINGS_EXCHANGE_PROBE_SOURCES)
 

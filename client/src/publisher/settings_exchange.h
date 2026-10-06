@@ -35,6 +35,9 @@ typedef struct {
 } S64SettingsExchange;
 
 void s64_settings_exchange_init(S64SettingsExchange* settings);
+/* Canonical checksum/validation shared by helper, PREP producer and managed
+ * Publisher consumer. */
+uint16_t s64_settings_exchange_checksum(const S64SettingsExchange* settings);
 int s64_settings_exchange_values_valid(const S64SettingsExchange* settings);
 int s64_settings_exchange_validate(const S64SettingsExchange* settings);
 int s64_settings_exchange_load(S64SettingsExchange* settings);
