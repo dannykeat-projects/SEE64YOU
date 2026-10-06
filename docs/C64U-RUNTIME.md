@@ -592,6 +592,8 @@ Therefore:
 
 The setup wizard may recommend/require a register-controllable turbo mode if automatic performance management proves worthwhile, while preserving the user's selected underlying speed policy.
 
+Runtime package files now live under `/sd/SEE64YOU/` so installation is a single application folder. Module PRGs, manifests and overlay assets use the absolute package directory and no longer depend on the Ultimate-DOS working directory. The persistent `/sd/SEE64YOU.CFG` and session-journal locations remain unchanged until their separately verified transactional migration.
+
 ## 18. UI transition behaviour
 
 Every overlay transition immediately replaces stale UI with a deliberate state such as:
@@ -972,8 +974,7 @@ resumed entry on firmware 1.1 only. Since that hardware gate, the production
 package has gained an exact-head-CI-validated managed Editor → Publisher →
 Editor cycle using the same ACTIVE ownership, application-state authority,
 Publisher asset/session authority, canonical session-bound settings and cached
-transfer stub. That cycle has not yet run on real C64U hardware. Settings
-execution and the remaining module cycles remain gated. Evidence is in ignored
+transfer stub. That cycle has not yet run on real C64U hardware. The managed Editor → Publisher → Settings → Publisher → Editor software cycle is now implemented and exact-head CI/VICE validated. Settings save/cancel republishes the canonical ACTIVE-bound settings session before returning through the verified cached transfer path; Publisher re-entry reloads both authenticated application state and settings. Real-C64U execution and repeated-cycle physical acceptance remain outstanding. Evidence is in ignored
 `client/build/hardware-resume-gate-20261006/`; reproducible steps are in
 `docs/LOCAL_TESTING.md`.
 

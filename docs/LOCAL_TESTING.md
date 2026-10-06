@@ -435,8 +435,7 @@ Editor → Publisher → Editor cycle. Hardware-accept it next:
 - verify the Editor restores the authenticated returned state, including dirty/replaced semantics where applicable;
 - repeat the round trip at least twice before exiting and verify the original machine state and durable CLEAN journal.
 
-Then extend the same cached ownership model through Publisher → Settings →
-Publisher and repeated full cycles.
+The same cached ownership model is now implemented through Publisher → Settings → Publisher as well. Hardware-accept the full Editor → Publisher → Settings → Publisher → Editor sequence, including both Save and RUN/STOP cancel paths in Settings, then repeat the sequence at least twice before managed exit.
 
 After initial module preload, transitions must not depend on software IEC or a fresh SD load.
 
