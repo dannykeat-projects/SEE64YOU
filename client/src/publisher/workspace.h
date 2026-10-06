@@ -26,6 +26,17 @@ typedef union {
     uint8_t bytes[S64_PUBLISH_WORKSPACE_CAPACITY];
 } S64PublisherWorkspace;
 
+#ifdef S64_MANAGED_OVERLAY
+/*
+ * Managed Publisher overlays occupy $8C00-$C7FF. The 1 KiB window
+ * $C800-$CBFF is outside the overlay slot and below the software stack, so the
+ * strictly synchronous 768-byte Publisher workspace can live there without
+ * consuming resident BSS. The inbound transfer capsule at $C800 is one-shot
+ * authority and has already been consumed before normal Publisher work begins.
+ */
+#define s64_publisher_workspace (*(S64PublisherWorkspace*)0xc800u)
+#else
 extern S64PublisherWorkspace s64_publisher_workspace;
+#endif
 
 #endif
