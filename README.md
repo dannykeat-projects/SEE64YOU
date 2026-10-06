@@ -113,7 +113,7 @@ The current C64U package is built with:
 make -C client c64u-package
 ~~~
 
-Copy all nine files from client/build/c64u-package/ to /sd/ and run SEE64YOU.PRG.
+Copy all ten files from client/build/c64u-package/ to /sd/ and run SEE64YOU.PRG.
 The launcher validates and caches matching modules/code assets, enters the
 managed editor and restores machine state before returning to BASIC on exit.
 A 16 MiB REU and UCI/Ultimate-DOS are required. Current storage remains /sd/;

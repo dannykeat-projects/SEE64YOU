@@ -45,8 +45,8 @@ def main() -> int:
         setup(directory)
         manifest_path = directory / "S64OVL.MNF"
         encoded = GEN.generate(directory, manifest_path, app_version=0x2345)
-        assert len(encoded) == 52
-        assert encoded[:6] == b"S64O\x01\x03"
+        assert len(encoded) == 60
+        assert encoded[:6] == b"S64O\x02\x04"
         assert struct.unpack_from("<HHHH", encoded, 6) == (1, 0x2345, 0x8C00, 0x3C00)
 
         root = (directory / "editor-overlay-fit.prg").read_bytes()
@@ -59,8 +59,16 @@ def main() -> int:
                 len(data), zlib.crc32(data) & 0xFFFFFFFF
             )
         assert encoded[14:16] == b"\x00\x00"
-        assert struct.unpack_from("<I", encoded, 48)[0] == zlib.crc32(encoded[:48]) & 0xFFFFFFFF
+        assert struct.unpack_from("<I", encoded, 56)[0] == zlib.crc32(encoded[:56]) & 0xFFFFFFFF
         GEN.validate(manifest_path, directory, app_version=0x2345)
+        for offset, value in ((4, 1), (5, 3)):
+            obsolete = bytearray(encoded)
+            obsolete[offset] = value
+            struct.pack_into("<I", obsolete, len(obsolete) - 4,
+                             zlib.crc32(obsolete[:-4]) & 0xFFFFFFFF)
+            manifest_path.write_bytes(obsolete)
+            must_fail(lambda: GEN.validate(manifest_path, directory, app_version=0x2345), "does not match")
+        manifest_path.write_bytes(encoded)
         must_fail(lambda: GEN.validate(manifest_path, directory), "does not match")
 
         default_manifest = directory / "S64OVL.DEFAULT.MNF"
@@ -74,6 +82,15 @@ def main() -> int:
         original_file = file_path.read_bytes()
         file_path.write_bytes((directory / "S64RUN.BIN").read_bytes())
         must_fail(lambda: GEN.validate(manifest_path, directory, app_version=0x2345), "does not match")
+        file_path.write_bytes(original_file)
+        fourth = directory / "S64PREP.BIN"
+        original_fourth = fourth.read_bytes()
+        fourth.write_bytes(bytes([original_fourth[0] ^ 1]) + original_fourth[1:])
+        must_fail(lambda: GEN.validate(manifest_path, directory, app_version=0x2345), "does not match")
+        fourth.write_bytes(original_file)
+        file_path.write_bytes(original_fourth)
+        must_fail(lambda: GEN.validate(manifest_path, directory, app_version=0x2345), "does not match")
+        fourth.write_bytes(original_fourth)
         file_path.write_bytes(original_file)
         manifest_path.write_bytes(bytes([encoded[24] ^ 1]) + encoded[1:])
         must_fail(lambda: GEN.validate(manifest_path, directory, app_version=0x2345), "does not match")
@@ -114,7 +131,8 @@ def main() -> int:
             (directory / source).write_bytes(group.encode("ascii") * 23)
         manifest = directory / "S64POVL.MNF"
         encoded = GEN.generate(directory, manifest, module="publisher")
-        assert encoded[:6] == b"S64P\x01\x03"
+        assert len(encoded) == 52
+        assert encoded[:6] == b"S64P\x02\x03"
         GEN.validate(manifest, directory, module="publisher")
         for group, source, canonical in GEN.PUBLISHER_GROUPS:
             assert (directory / canonical).read_bytes() == (directory / source).read_bytes()

@@ -3,7 +3,6 @@
 #include <string.h>
 
 uint8_t s64_code_assets_session_wire[S64_CODE_ASSET_SESSION_SIZE];
-uint8_t s64_code_assets_session_readback[S64_CODE_ASSET_SESSION_SIZE];
 uint8_t s64_code_assets_session_journal_wire[S64_SESSION_JOURNAL_WIRE_SIZE];
 uint16_t s64_code_assets_session_checksum(const uint8_t* bytes)
 {
@@ -32,6 +31,14 @@ const S64ReuAllocation* s64_code_assets_session_allocation(const S64ReuRuntimeCo
     return found;
 }
 
+uint8_t s64_code_assets_session_verify(const S64ReuAllocation* allocation)
+{
+    uint8_t readback[S64_CODE_ASSET_SESSION_SIZE];
+    return s64_reu_load((uint8_t)(allocation->address >> 16),
+            (uint16_t)allocation->address, readback, sizeof(readback))
+        && memcmp(s64_code_assets_session_wire, readback, sizeof(readback)) == 0;
+}
+
 uint8_t s64_code_assets_clear(const S64ReuRuntimeControl* control)
 {
     const S64ReuAllocation* allocation = s64_code_assets_session_allocation(control);
@@ -39,10 +46,7 @@ uint8_t s64_code_assets_clear(const S64ReuRuntimeControl* control)
     memset(s64_code_assets_session_wire, 0, sizeof(s64_code_assets_session_wire));
     return s64_reu_store((uint8_t)(allocation->address >> 16), (uint16_t)allocation->address,
             s64_code_assets_session_wire, sizeof(s64_code_assets_session_wire))
-        && s64_reu_load((uint8_t)(allocation->address >> 16), (uint16_t)allocation->address,
-            s64_code_assets_session_readback, sizeof(s64_code_assets_session_readback))
-        && memcmp(s64_code_assets_session_wire, s64_code_assets_session_readback,
-            sizeof(s64_code_assets_session_wire)) == 0;
+        && s64_code_assets_session_verify(allocation);
 }
 
 uint8_t s64_code_assets_active_session(const S64ReuRuntimeControl* control,

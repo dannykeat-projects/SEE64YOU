@@ -2,7 +2,7 @@
 #define SEE64YOU_CODE_OVERLAY_BOOTSTRAP_H
 #include "platform/code_overlay.h"
 
-/* Emitted only by the final overlay link, in MODEL/FILE/RUNTIME order. */
+/* Final link order: MODEL/FILE/RUNTIME, then Editor-only PUBLICATION. */
 extern const uint16_t s64_code_overlay_linked_lengths[S64_CODE_OVERLAY_COUNT];
 
 /* Resident entry prerequisite, not session adoption. The verified launcher

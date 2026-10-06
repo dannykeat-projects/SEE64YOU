@@ -434,16 +434,16 @@ into a managed initial entry.
 
 The code-asset foundation now supplies that package and session contract.
 `editor-overlay-fit` emits/revalidates `S64OVL.MNF` beside the exact resident
-PRG and canonical `S64MODEL.BIN`, `S64FILE.BIN`, `S64RUN.BIN` copies. The
-52-byte little-endian manifest contains `S64O`, format/count bytes 1/3,
+PRG and canonical `S64MODEL.BIN`, `S64FILE.BIN`, `S64RUN.BIN`, `S64PREP.BIN`
+copies. The 60-byte little-endian manifest contains `S64O`, format/count bytes 2/4,
 16-bit ABI/application version, slot address/capacity and zero reserved word,
-32-bit full-editor length/CRC32, three ordered length/CRC32 pairs, then CRC32
-of the preceding 48 bytes. Its root payload must end before `$8C00`, and its
+32-bit full-editor length/CRC32, four ordered length/CRC32 pairs, then CRC32
+of the preceding 56 bytes. Its root payload must end before `$8C00`, and its
 SYS address must lie inside that payload. The C parser checks the exact same
 root/version/layout binding and leaves output unchanged on failure.
 
-`code_assets.c` atomically plans three exact, 256-byte-aligned MODULE allocations
-with flags `$21/$22/$23` and a 96-byte RUNTIME record with flag 3. It first
+`code_assets.c` atomically plans four exact, 256-byte-aligned MODULE allocations
+with flags `$21-$24` and a 112-byte RUNTIME record with flag 3. It first
 clears/readback-verifies prior asset readiness, then preloads the fixed raw
 filenames through native Ultimate-DOS, checks exact lengths and close results,
 and verifies every full cache CRC32 before marking any group READY. The module
@@ -452,8 +452,8 @@ DMA uses IO_SAFE and hashing uses the existing temporary CPU_INTENSIVE scope.
 The owner still must restore/verify state after failures.
 
 `code_assets_session.c` publishes/readbacks the checksummed record only for a
-verified editor and completely READY asset set. Its `S64C` v1 record binds the
-exact 24-byte ACTIVE journal, root length/CRC32, three ordered READY group
+verified editor and completely READY asset set. Its `S64C` v2 record binds the
+exact 24-byte ACTIVE journal, root length/CRC32, four ordered READY group
 IDs/flags/cache addresses/lengths/CRCs and the execution slot. Load rejects
 CLEAN, stale/mismatched sessions, checksum/reserved-field corruption and
 non-exact cache ownership without changing output. Binding requires trusted
@@ -462,15 +462,14 @@ selector configuration on failure. Failed publication blocks handoff until
 readiness can be cleared and verified; best-effort revocation alone is not
 proof of successful cleanup.
 
-The foundation passes 20 affected host suites and the same VICE ABI fixture.
-`code-assets-fit` links the complete producer beside the launcher with 2,134
-bytes before the stack; the ordinary launcher retains 8,695 bytes after the
-CRC extraction. These are layout gates. Production still does not read or
-preload the asset manifest. The resident entry must obtain launcher-validated
-cache handles before its first overlay call; the full record consumer is in
-RUNTIME and cannot bootstrap itself from an empty slot. Only after this entry
-boundary and launcher lifecycle/revocation integration are wired can the
-matching package run the real C64U handoff/exit acceptance gates.
+The foundation is covered by both namespace host suites and the VICE ABI fixture.
+`code-assets-fit` links the complete asset producer beside the launcher and must
+pass the existing headroom guard. The production launcher reads the Editor
+manifest and preloads all four assets before executable Editor entry. The resident
+entry obtains launcher-validated cache handles before its first overlay call;
+the full record consumer is in RUNTIME and cannot bootstrap from an empty slot.
+Publisher namespace preload remains a separate prerequisite before its transfer
+can be enabled.
 
 All launcher exits after durable ACTIVE, including partially failed session
 start, now converge on session end: restore, verify, then durable CLEAN. If
@@ -760,9 +759,9 @@ session settings and managed Settings ownership remain future integration work.
 
 Publisher asset foundation uses the same codecs compiled with
 S64_CODE_ASSET_PUBLISHER=1. Its exact-root/CRC manifest is S64POVL.MNF (S64P,
-format 1/count 3), with S64PCNT.BIN, S64PNET.BIN and S64PRUN.BIN in
+format 2/count 3), with S64PCNT.BIN, S64PNET.BIN and S64PRUN.BIN in
 CONTENT/NETWORK/RUNTIME order. Cache flags are $31-$33; its allocator-owned
-96-byte session uses flag 5 and S64Q magic, distinct from Editor $21-$23/flag 3
+96-byte v2 session uses flag 5 and S64Q magic, distinct from Editor $21-$24/flag 3
 and S64C. The selected module ID is enforced, so even identical root metadata
 cannot authorize the other module's manifest/session. Both variants retain
 atomic allocation, exact ACTIVE-journal binding, readback publication/revocation,
@@ -810,9 +809,10 @@ undo/redo are cleared, cursor/view/selection reset to the beginning, dirty set.
 Insert/wrap preferences, clipboard payload/length and repeat search remain intact.
 
 Banks 0-1 retain their migration-era document/history/clipboard/settings layout.
-Three module caches, module session, capsule, SYS return, both three-asset/session
-namespaces and this single record total 15/16 allocator entries. No ABI expansion
-or additional state allocations are introduced. RUNTIME authenticates the wire;
+Three module caches, module session, capsule, SYS return, Editor's four-asset/session
+namespace, Publisher's three-asset/session namespace and this single record total
+16/16 allocator entries. Allocator capacity and the application-state format are
+unchanged. RUNTIME authenticates the wire;
 CONTENT decodes it using the existing Publisher workspace as scratch. One-shot
 in-process authority connects the stages and is consumed on success or failure.
 The workspace must not be reused between adoption and document decoding.
@@ -865,13 +865,57 @@ before BASIC-record revocation and shared teardown/restore/CLEAN. Failure blocks
 CLEAN and BASIC return; successful revocation preserves the loaded snapshot.
 Revoking authority also prevents a previously prepared decoder from consuming it.
 
-The producer API is host-tested and separately cc65-compiled, but intentionally
-has no caller in the gated Publish command and is not linked into the current
-Editor root. Only exit revocation is integrated in the package. Executable
+The producer API is linked into the dedicated PUBLICATION overlay. The managed
+Publish command enters IO_SAFE, calls it with the existing synchronous workspace,
+and returns INTERACTIVE without executable transfer. A failed preparation verifies
+revocation even if capture/history failed before the producer could clear earlier
+authority. Revocation or mode recovery failure halts for launcher recovery with
+ACTIVE retained. Success advances generation exactly once and keeps the verified
+snapshot until transition preparation or cancellation. Every subsequent live input
+event verifies cancellation before processing editing, navigation or menu actions;
+ordinary events with no application authority avoid this cold overlay path.
 Publisher/Settings transitions remain blocked. The preceding consumer package
 passed the bounded first-entry/edit/CLEAN/BASIC-return hardware gate on
 2026-10-05 (CLEAN 60/package 514). The subsequent authenticated resumed-entry
 positive/negative gate is recorded below. See docs/LOCAL_TESTING.md for evidence.
+
+Publication placement was remeasured at `a786093` on 2026-10-06 after the append
+rendering and idle-autosave fixes. The unchanged production build passes with
+MODEL 15,216/15,360, FILE 15,355/15,360, RUNTIME 15,225/15,360 and resident BSS
+ending at $8BF5 (10 bytes before $8C00). Separately compiled existing producer,
+encoder/store and capture/replacement objects occupy 544, 1,680 and 938 code
+bytes respectively, with no object BSS. An isolated placement probe put capture
+in MODEL and publication/encoder/store in RUNTIME, using the existing returning
+bridges for capture and payload validation. Retaining every current linker
+guard, this failed with MODEL_CODE overflow 764 bytes, RUNTIME_CODE overflow
+1,967 bytes and resident BSS-area overflow 96 bytes. The latter area includes
+resident code growth and veneers as well as BSS; it is not 96 bytes of new
+mutable state. The probe did not yet add a production command coordinator.
+The baseline was rebuilt successfully afterward; no probe code was retained in
+production. The approved replacement is a fourth Editor-only PUBLICATION overlay
+at the same execution slot, containing the existing producer, capture/replacement
+and encoder/store implementations. Returning bridges call canonical FILE payload
+validation and RUNTIME revocation/control persistence, then restore PUBLICATION.
+History preparation remains the resident production implementation. The small
+preparation/cancellation coordinator also uses a returning RUNTIME mode bridge.
+Publisher
+continues to have three overlays; bootstrap selects RUNTIME ID 3 in both modules.
+The selector copies only verified transfer coordinates and checks the bound
+namespace count. The shared generated register gate preserves A/X/sreg for
+arguments and results; Y carries the overlay ID under cc65's caller-clobbered
+convention. Sharing the existing save/restore sequence removes repeated resident
+veneer code without changing any RAM/stack/workspace boundary. VICE exercises
+the four publication return bridges as well as nested MODEL/FILE restoration.
+The final measured Editor layout is MODEL 15,216, FILE 15,355, RUNTIME 15,275,
+PUBLICATION 3,534 bytes, each within the unchanged 15,360-byte slot. Resident BSS
+ends at $87B5, below $8C00. Publisher remains three overlays and passes its existing
+headroom guard. Session readback uses a bounded 112-byte (Publisher 96-byte)
+automatic buffer, and binding uses temporary handles whose transfer coordinates
+the selector copies; no pointers to expired stack storage are retained. The native
+readback helper's direct software-stack peak is 119 bytes before the DMA helper,
+within the existing 1 KiB reserve; bridges add only hardware-stack return frames.
+The complete planned allocator set now occupies exactly 16/16 entries; allocator
+capacity is unchanged. Asset v1 and wrong namespace counts are rejected.
 
 The allocator capacity change bumps package identity to 0x0202. Format-1
 control blocks are rejected rather than adopted; interrupted-state recovery

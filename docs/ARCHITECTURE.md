@@ -129,9 +129,15 @@ publication service captures controls after a history flush, verifies persisted
 revocation before replacing the record, verifies the complete replacement, then
 publishes and verifies the bit. Only successful publication advances generation.
 Managed Editor clean exit verifies the bit clear before teardown/CLEAN while
-preserving the already loaded BASIC-return context. The publication API remains
-uncalled while Publish is gated; its later executable integration and authenticated
-resumed-entry hardware gate are outstanding. See C64U-RUNTIME.md for the transaction.
+preserving the already loaded BASIC-return context. Publish now calls the existing
+service through a dedicated fourth Editor PUBLICATION overlay in IO_SAFE, then
+returns to INTERACTIVE without executing Publisher. Success retains verified
+authority until a transition or the next live input event; that event revokes
+authority before controls or payloads can change. Failure must verify revocation
+and recover INTERACTIVE, otherwise the Editor stops for launcher recovery with
+ACTIVE retained. The authenticated resumed-entry hardware gate passed on firmware
+1.1; this preparation caller and fourth asset still need hardware acceptance.
+See C64U-RUNTIME.md for the transaction and code-asset v2 contracts.
 
 ## Executable overlay model
 

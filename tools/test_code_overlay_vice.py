@@ -42,6 +42,8 @@ uint32_t __fastcall__ s64_overlay_file_s64_probe_file(uint16_t first, uint32_t l
 extern uint32_t __fastcall__ s64_overlay_bridge_file_s64_application_state_decode_editor(uint16_t, uint32_t);
 uint32_t __fastcall__ s64_overlay_file_s64_application_state_decode_payload(uint16_t first, uint32_t last)
 { return s64_overlay_bridge_file_s64_application_state_decode_editor(first, last) ^ 0x11225588UL; }
+uint32_t __fastcall__ s64_overlay_file_s64_application_state_payload_valid(uint32_t value)
+{ return value ^ 0x55667788UL; }
 """
 RUNTIME = """
 #include <stdint.h>
@@ -50,6 +52,28 @@ RUNTIME = """
 static const uint32_t mask = 0x11223344UL;
 uint32_t __fastcall__ s64_overlay_runtime_s64_probe_runtime(uint32_t value)
 { return value ^ mask; }
+uint32_t __fastcall__ s64_overlay_runtime_s64_managed_editor_state_revoke(uint32_t value)
+{ return value + 0x12345678UL; }
+uint32_t __fastcall__ s64_overlay_runtime_s64_reu_runtime_store_verified(uint32_t value)
+{ return value ^ 0x87654321UL; }
+uint32_t __fastcall__ s64_overlay_runtime_s64_system_state_set_mode(uint32_t value)
+{ return value + 0x76543210UL; }
+"""
+PUBLICATION = """
+#include <stdint.h>
+#pragma code-name ("PUBLICATION_CODE")
+#pragma rodata-name ("PUBLICATION_RODATA")
+extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_application_state_payload_valid(uint32_t);
+extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_managed_editor_state_revoke(uint32_t);
+extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_reu_runtime_store_verified(uint32_t);
+extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_system_state_set_mode(uint32_t);
+uint32_t __fastcall__ s64_overlay_publication_s64_probe_publication(uint32_t value)
+{
+    value = s64_overlay_bridge_prep_s64_application_state_payload_valid(value);
+    value = s64_overlay_bridge_prep_s64_managed_editor_state_revoke(value);
+    value = s64_overlay_bridge_prep_s64_reu_runtime_store_verified(value);
+    return s64_overlay_bridge_prep_s64_system_state_set_mode(value);
+}
 """
 MAIN = """
 #include <stdint.h>
@@ -59,19 +83,21 @@ MAIN = """
 extern const uint8_t model_image[], model_image_end[];
 extern const uint8_t file_image[], file_image_end[];
 extern const uint8_t runtime_image[], runtime_image_end[];
+extern const uint8_t publication_image[], publication_image_end[];
 extern uint32_t __fastcall__ s64_editor_selection_start(uint16_t, uint32_t);
 extern uint32_t __fastcall__ s64_probe_file(uint16_t, uint32_t);
 extern uint32_t __fastcall__ s64_probe_runtime(uint32_t);
 extern uint32_t __fastcall__ s64_probe_resume(uint16_t, uint32_t);
-static const uint8_t* images[3];
+extern uint32_t __fastcall__ s64_probe_publication(uint32_t);
+static const uint8_t* images[4];
 static S64ReuRuntimeControl control;
-static S64ReuAllocation caches[3];
+static S64ReuAllocation caches[4];
 static uint16_t reads;
 uint8_t s64_reu_load(uint8_t bank, uint16_t offset, void* target, uint16_t length)
 {
     uint8_t i;
     uint32_t address = ((uint32_t)bank << 16) | offset;
-    for (i = 0; i < 3; ++i) {
+    for (i = 0; i < 4; ++i) {
         if (address == caches[i].address && length == caches[i].length) {
             memcpy(target, images[i], length);
             ++reads;
@@ -100,21 +126,23 @@ int main(void)
     require(!s64_module_arrival_consume(marker, S64_MODULE_EDITOR), 8);
     *(volatile uint8_t*)0xc061 = 0;
     images[0] = model_image; images[1] = file_image; images[2] = runtime_image;
+    images[3] = publication_image;
     control.format_version = S64_REU_RUNTIME_FORMAT_VERSION;
     control.abi_version = S64_REU_RUNTIME_ABI_VERSION;
     control.session_id = 1;
-    control.allocation_count = 3;
+    control.allocation_count = 4;
     control.next_free = S64_REU_RUNTIME_HEAP_START;
     caches[0].length = model_image_end - model_image;
     caches[1].length = file_image_end - file_image;
     caches[2].length = runtime_image_end - runtime_image;
-    for (i = 0; i < 3; ++i) {
+    caches[3].length = publication_image_end - publication_image;
+    for (i = 0; i < 4; ++i) {
         caches[i].owner = S64_REU_OWNER_MODULE;
         caches[i].address = control.next_free;
         control.next_free += caches[i].length;
         control.allocations[i] = caches[i];
     }
-    require(s64_code_overlay_configure(&control, caches,
+    require(s64_code_overlay_configure(&control, caches, 4u,
         (void*)S64_CODE_OVERLAY_ADDRESS, S64_CODE_OVERLAY_CAPACITY, s64_reu_load), 1);
     for (i = 1; i <= 30; ++i) {
         input = 0xabcdef12UL + i;
@@ -132,6 +160,10 @@ int main(void)
             ^ 0x11225588UL ^ 0x12345678UL) + (0x3456u + i);
         require(s64_probe_resume(0x3456u + i, input) == expected, 9);
         require(reads == before + 5u, 10);
+        before = reads;
+        expected = (((input ^ 0x55667788UL) + 0x12345678UL) ^ 0x87654321UL) + 0x76543210UL;
+        require(s64_probe_publication(input) == expected, 11);
+        require(reads == before + 9u, 12);
     }
     *(volatile uint8_t*)0xc060 = 0x80;
     *(volatile uint8_t*)0xc061 = 0xa5;
@@ -148,10 +180,12 @@ def build() -> Path:
     wrappers = OUT / "wrappers.s"
     wrappers.write_text(fit.assembler_wrappers({
         "MODEL": [*fit.BRIDGES["FILE"], "s64_probe_resume"],
-        "FILE": ["s64_probe_file", *fit.BRIDGES["MODEL"]], "RUNTIME": ["s64_probe_runtime"],
+        "FILE": ["s64_probe_file", *fit.BRIDGES["MODEL"], "s64_application_state_payload_valid"],
+        "RUNTIME": ["s64_probe_runtime", "s64_managed_editor_state_revoke", "s64_reu_runtime_store_verified", "s64_system_state_set_mode"],
+        "PUBLICATION": ["s64_probe_publication"],
     }))
     sources = []
-    for name, content in (("model", MODEL), ("file", FILE), ("runtime", RUNTIME), ("main", MAIN)):
+    for name, content in (("model", MODEL), ("file", FILE), ("runtime", RUNTIME), ("publication", PUBLICATION), ("main", MAIN)):
         source = OUT / f"{name}.c"
         source.write_text(content)
         sources.append(source)
@@ -169,7 +203,7 @@ def build() -> Path:
     # addresses from the final resident layout rather than the dummy layout.
     for initial in (True, False, False):
         lines = ['.segment "RODATA"']
-        for group in ("model", "file", "runtime"):
+        for group in ("model", "file", "runtime", "publication"):
             lines += [f".export _{group}_image, _{group}_image_end", f"_{group}_image:",
                       ".byte 0" if initial else f'.incbin "{OUT.as_posix()}/{group}.bin"',
                       f"_{group}_image_end:"]

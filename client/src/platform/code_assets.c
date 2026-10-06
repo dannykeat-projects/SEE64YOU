@@ -5,6 +5,9 @@
 
 static const char* const filenames[S64_CODE_OVERLAY_COUNT] = {
     S64_CODE_ASSET_FILE_0, S64_CODE_ASSET_FILE_1, S64_CODE_ASSET_FILE_2
+#ifndef S64_CODE_ASSET_PUBLISHER
+    , S64_CODE_ASSET_FILE_3
+#endif
 };
 /* Generated binary wire bytes are ASCII even when cc65 literals are PETSCII. */
 static const uint8_t manifest_magic[4] = {0x53u, 0x36u, 0x34u, S64_CODE_ASSET_MAGIC_LAST};
@@ -20,7 +23,7 @@ uint8_t s64_code_assets_parse(S64CodeAssets* assets, const uint8_t* wire,
     uint8_t i;
     if (!assets || !wire || length != S64_CODE_ASSET_MANIFEST_SIZE
         || !s64_code_assets_editor_valid(editor) || memcmp(wire, manifest_magic, 4) != 0
-        || wire[4] != 1 || wire[5] != S64_CODE_OVERLAY_COUNT
+        || wire[4] != S64_CODE_ASSET_FORMAT_VERSION || wire[5] != S64_CODE_OVERLAY_COUNT
         || get16(wire + 6) != S64_REU_RUNTIME_ABI_VERSION
         || get16(wire + 8) != editor->app_version
         || get16(wire + 10) != S64_CODE_OVERLAY_ADDRESS
@@ -28,7 +31,7 @@ uint8_t s64_code_assets_parse(S64CodeAssets* assets, const uint8_t* wire,
         || get16(wire + 14) != 0
         || get32(wire + 16) != editor->byte_length
         || get32(wire + 20) != editor->integrity
-        || get32(wire + 48) != (s64_crc32_update(0xffffffffUL, wire, 48) ^ 0xffffffffUL))
+        || get32(wire + S64_CODE_ASSET_MANIFEST_CRC_OFFSET) != (s64_crc32_update(0xffffffffUL, wire, S64_CODE_ASSET_MANIFEST_CRC_OFFSET) ^ 0xffffffffUL))
         return 0;
     memset(&parsed, 0, sizeof(parsed));
     parsed.abi_version = get16(wire + 6);

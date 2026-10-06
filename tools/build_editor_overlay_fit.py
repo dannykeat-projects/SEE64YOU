@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build a diagnostic editor image with mutually exclusive REU code overlays.
 
-This target measures whether editor, file, and destination-runtime code can share
+This target measures whether model, file, runtime and publication code can share
 one 15 KiB C64 RAM slot, including trusted-entry bootstrap and destination
 ownership. It does not establish that an overlay is executable on hardware.
 """
@@ -51,8 +51,14 @@ GROUPS: dict[str, tuple[str, ...]] = {
         "src/platform/basic_return.c",
         "src/platform/basic_return_read.c",
     ),
+    "PUBLICATION": (
+        "src/platform/managed_editor_prepare.c",
+        "src/platform/managed_editor_publish.c",
+        "src/platform/application_state_editor.c",
+        "src/platform/application_state_build.c",
+    ),
 }
-GROUP_IDS = {"MODEL": 1, "FILE": 2, "RUNTIME": 3}
+GROUP_IDS = {"MODEL": 1, "FILE": 2, "RUNTIME": 3, "PUBLICATION": 4}
 BRIDGES: dict[str, tuple[str, ...]] = {
     "MODEL": ("s64_application_state_decode_payload",),
     "FILE": (
@@ -60,6 +66,12 @@ BRIDGES: dict[str, tuple[str, ...]] = {
         "s64_editor_selection_start",
         "s64_editor_selection_end",
         "s64_application_state_decode_editor",
+    ),
+    "PUBLICATION": (
+        "s64_application_state_payload_valid",
+        "s64_managed_editor_state_revoke",
+        "s64_reu_runtime_store_verified",
+        "s64_system_state_set_mode",
     ),
 }
 OVERLAY_LIMIT = 0x3C00
@@ -146,7 +158,10 @@ def overlay_symbol(group: str, name: str) -> str:
 
 
 def bridge_symbol(group: str, name: str) -> str:
-    return f"s64_overlay_bridge_{group.lower()}_{name}"
+    # cc65 retains only 63 identifier characters; PUBLICATION's full prefix
+    # would truncate the canonical payload-validator bridge name.
+    prefix = "prep" if group == "PUBLICATION" else group.lower()
+    return f"s64_overlay_bridge_{prefix}_{name}"
 
 
 def generated_translation_unit(
@@ -180,6 +195,26 @@ def assembler_wrappers(groups: dict[str, list[str]], *,
         '.import __MAIN_START__, __MAIN_SIZE__',
         '.assert __MAIN_START__ + __MAIN_SIZE__ = __HIMEM__, lderror, "crt0 software stack must start at HIMEM"',
         '.assert __HIMEM__ - __STACKSIZE__ - $C800 >= $0400, lderror, "Overlay requires 1 KiB before stack"',
+        # Y is caller-scratch in cc65's ABI. Sharing the existing register-save
+        # sequence keeps additional overlay veneers out of permanent storage.
+        's64_overlay_gate:',
+        '    pha',
+        '    txa',
+        '    pha',
+        '    lda sreg',
+        '    pha',
+        '    lda sreg+1',
+        '    pha',
+        '    tya',
+        '    jsr _s64_code_overlay_enter',
+        '    pla',
+        '    sta sreg+1',
+        '    pla',
+        '    sta sreg',
+        '    pla',
+        '    tax',
+        '    pla',
+        '    rts',
     ]
     for group, names in groups.items():
         for name in sorted(set(names)):
@@ -188,22 +223,8 @@ def assembler_wrappers(groups: dict[str, list[str]], *,
                     f".export _{name}",
                     f".import _{overlay_symbol(group, name)}",
                     f"_{name}:",
-                    "    pha",
-                    "    txa",
-                    "    pha",
-                    "    lda sreg",
-                    "    pha",
-                    "    lda sreg+1",
-                    "    pha",
-                    f"    lda #${group_ids[group]:02x}",
-                    "    jsr _s64_code_overlay_enter",
-                    "    pla",
-                    "    sta sreg+1",
-                    "    pla",
-                    "    sta sreg",
-                    "    pla",
-                    "    tax",
-                    "    pla",
+                    f"    ldy #${group_ids[group]:02x}",
+                    "    jsr s64_overlay_gate",
                     f"    jmp _{overlay_symbol(group, name)}",
                 ]
             )
@@ -214,22 +235,8 @@ def assembler_wrappers(groups: dict[str, list[str]], *,
                     f".export _{bridge_symbol(group, name)}",
                     f"_{bridge_symbol(group, name)}:",
                     f"    jsr _{name}",
-                    "    pha",
-                    "    txa",
-                    "    pha",
-                    "    lda sreg",
-                    "    pha",
-                    "    lda sreg+1",
-                    "    pha",
-                    f"    lda #${group_ids[group]:02x}",
-                    "    jsr _s64_code_overlay_enter",
-                    "    pla",
-                    "    sta sreg+1",
-                    "    pla",
-                    "    sta sreg",
-                    "    pla",
-                    "    tax",
-                    "    pla",
+                    f"    ldy #${group_ids[group]:02x}",
+                    "    jsr s64_overlay_gate",
                     "    rts",
                 ]
             )
@@ -302,7 +309,7 @@ def reject_cross_group_imports(
             in {bridge_symbol(group, name) for name in bridges.get(group, ())}
         )
     expected_bridges = set(bridges.get(group, ()))
-    bridge_prefix = f"s64_overlay_bridge_{group.lower()}_"
+    bridge_prefix = bridge_symbol(group, "")
     observed_names = {
         name[len(bridge_prefix):]
         for name in observed_bridges
@@ -445,6 +452,12 @@ def compile_overlay_layout(
                 map_text, re.MULTILINE,
             )
             if not match:
+                # ld65 omits empty segments from its segment list. Require
+                # the linked size symbol to prove this is actually empty.
+                if segment.endswith("_RODATA") and re.search(
+                    rf"\b__{segment}_SIZE__\s+000000\s", map_text
+                ):
+                    continue
                 raise FitError(f"Missing overlay segment {segment}")
             start, finish = (int(value, 16) for value in match.groups())
             if start < RESIDENT_BSS_LIMIT or finish >= RESIDENT_BSS_LIMIT + OVERLAY_LIMIT:
@@ -487,6 +500,10 @@ def compile_editor_overlay_fit(
                                   "src/platform/application_state_payload.c",
                                   "src/platform/application_state_editor_decode.c",
                                   "src/platform/application_state_wire.c",
+                                  "src/platform/managed_editor_publish.c",
+                                  "src/platform/managed_editor_prepare.c",
+                                  "src/platform/application_state_editor.c",
+                                  "src/platform/application_state_build.c",
                                   "src/platform/basic_return_stub.s", "src/platform/crc32.c"]))
     flags = shlex.split(values["CFLAGS"])
     if "-DS64_REU_BUFFER=1" not in flags:

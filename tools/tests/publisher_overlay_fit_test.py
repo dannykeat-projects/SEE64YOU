@@ -17,8 +17,8 @@ wrappers = fit.assembler_wrappers(
     {"CONTENT": ["s64_preview"], "NETWORK": ["s64_connect"]},
     group_ids={"CONTENT": 1, "NETWORK": 2}, bridges={},
 )
-assert "lda #$01\n    jsr _s64_code_overlay_enter" in wrappers
-assert "lda #$02\n    jsr _s64_code_overlay_enter" in wrappers
+assert "ldy #$01\n    jsr s64_overlay_gate" in wrappers
+assert "ldy #$02\n    jsr s64_overlay_gate" in wrappers
 assert "s64_overlay_bridge_" not in wrappers
 # Streaming callbacks must return into the same still-loaded overlay.
 for resident in ("src/document.c", "src/platform/dos.c", "src/platform/reu.c"):

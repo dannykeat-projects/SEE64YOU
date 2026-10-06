@@ -9,7 +9,7 @@ uint8_t s64_code_overlay_bootstrap(const S64ReuRuntimeControl* control,
     S64ReuAllocation caches[S64_CODE_OVERLAY_COUNT];
     uint8_t i, j, found;
     /* A failed or repeated entry must not retain an earlier selector. */
-    s64_code_overlay_configure(0, 0, 0, 0, 0);
+    s64_code_overlay_configure(0, 0, 0, 0, 0, 0);
     if (!trusted_arrival || !app_version || !lengths
         || !s64_reu_runtime_valid(control)
         || control->app_version != app_version) return 0u;
@@ -27,9 +27,9 @@ uint8_t s64_code_overlay_bootstrap(const S64ReuRuntimeControl* control,
         }
         if (!found) return 0u;
     }
-    if (s64_code_overlay_configure(control, caches, slot,
+    if (s64_code_overlay_configure(control, caches, S64_CODE_OVERLAY_COUNT, slot,
             S64_CODE_OVERLAY_CAPACITY, reader)
-        && s64_code_overlay_select(S64_CODE_OVERLAY_COUNT)) return 1u;
-    s64_code_overlay_configure(0, 0, 0, 0, 0);
+        && s64_code_overlay_select(3u)) return 1u;
+    s64_code_overlay_configure(0, 0, 0, 0, 0, 0);
     return 0u;
 }

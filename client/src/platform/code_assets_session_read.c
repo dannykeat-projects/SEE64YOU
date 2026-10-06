@@ -3,7 +3,6 @@
 #include <string.h>
 
 static S64CodeAssets decoded;
-static S64ReuAllocation handles[S64_CODE_OVERLAY_COUNT];
 
 static uint16_t get16(const uint8_t* in)
 { return (uint16_t)(in[0] | ((uint16_t)in[1] << 8)); }
@@ -19,15 +18,15 @@ uint8_t s64_code_assets_load(const S64ReuRuntimeControl* control,
         || !s64_reu_load((uint8_t)(allocation->address >> 16), (uint16_t)allocation->address,
             s64_code_assets_session_wire, sizeof(s64_code_assets_session_wire))) return 0;
     if (memcmp(s64_code_assets_session_wire, S64_CODE_ASSET_SESSION_MAGIC, 4)
-        || s64_code_assets_session_wire[4] != 1
+        || s64_code_assets_session_wire[4] != S64_CODE_ASSET_FORMAT_VERSION
         || s64_code_assets_session_wire[5] != S64_CODE_OVERLAY_COUNT
         || get16(s64_code_assets_session_wire + 6) != S64_REU_RUNTIME_ABI_VERSION
         || memcmp(s64_code_assets_session_wire + 8, s64_code_assets_session_journal_wire,
             sizeof(s64_code_assets_session_journal_wire))
-        || get16(s64_code_assets_session_wire + 88) != S64_CODE_OVERLAY_ADDRESS
-        || get16(s64_code_assets_session_wire + 90) != S64_CODE_OVERLAY_CAPACITY
-        || get16(s64_code_assets_session_wire + 92)
-        || get16(s64_code_assets_session_wire + 94)
+        || get16(s64_code_assets_session_wire + S64_CODE_ASSET_SESSION_TRAILER) != S64_CODE_OVERLAY_ADDRESS
+        || get16(s64_code_assets_session_wire + S64_CODE_ASSET_SESSION_TRAILER + 2) != S64_CODE_OVERLAY_CAPACITY
+        || get16(s64_code_assets_session_wire + S64_CODE_ASSET_SESSION_TRAILER + 4)
+        || get16(s64_code_assets_session_wire + S64_CODE_ASSET_SESSION_TRAILER + 6)
             != s64_code_assets_session_checksum(s64_code_assets_session_wire)) return 0;
     memset(&decoded, 0, sizeof(decoded));
     decoded.abi_version = get16(s64_code_assets_session_wire + 6);
@@ -56,9 +55,10 @@ uint8_t s64_code_assets_bind(const S64ReuRuntimeControl* control,
     const S64SessionJournal* journal, const S64ModuleDescriptor* editor,
     uint8_t trusted_arrival, void* slot, uint16_t capacity, S64CodeOverlayReader reader)
 {
+    S64ReuAllocation handles[S64_CODE_OVERLAY_COUNT];
     uint8_t i;
-    s64_code_overlay_configure(0, 0, 0, 0, 0);
+    s64_code_overlay_configure(0, 0, 0, 0, 0, 0);
     if (!trusted_arrival || !s64_code_assets_load(control, journal, editor, &decoded)) return 0;
     for (i = 0; i < S64_CODE_OVERLAY_COUNT; ++i) handles[i] = decoded.assets[i].cache;
-    return s64_code_overlay_configure(control, handles, slot, capacity, reader);
+    return s64_code_overlay_configure(control, handles, S64_CODE_OVERLAY_COUNT, slot, capacity, reader);
 }

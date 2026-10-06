@@ -66,12 +66,12 @@ for that ROM directory, or supply an existing directory containing `kernal.rom`,
 `basic.rom` and `chargen.rom`. The full VICE script runs this ABI fixture after
 preparing ROMs. Host cache-selector tests run in both validation scripts.
 The fit output is `client/build/editor-overlay-fit/`, including the PRG, map
-and three code binaries. The build also creates canonical code-asset copies
+and four Editor code binaries. The build also creates canonical code-asset copies
 and generates/revalidates `S64OVL.MNF` against that exact root and those copies.
 `code-assets-fit` enables the diagnostic launcher asset-preload/readiness path;
 it stops before executable transfer. `managed-package` assembles and validates
 the coherent preload package in `client/build/managed-package/`, including
-SEE64YOU.PRG, S64EDIT/PUB/CFG.PRG, both manifests and the three code assets.
+SEE64YOU.PRG, S64EDIT/PUB/CFG.PRG, both manifests and the four Editor code assets.
 The ordinary launcher and public product targets remain unchanged.
 Require all groups to fit the 15 KiB execution slot,
 resident BSS below `$8C00`, and the reserved 1 KiB gap before the stack.
@@ -88,27 +88,41 @@ journal rejection, unchanged failed outputs and trusted-arrival-only binding.
 The module integrity regression suite also runs against the shared CRC updater.
 None of these host tests establishes real UCI/REU timing or production entry.
 
+The publication-overlay infrastructure must pass before wiring its caller.
+The current host suites cover Editor four/Publisher three, version/count/order
+and cross-namespace rejection, final asset CRC/readback failure, atomic failure
+and the complete planned 16/16 allocation set. VICE additionally exercises all
+publication return bridges and the shared register gate, including 32-bit values.
+The production Publish command currently prepares state only: expect
+`State prepared; Publisher gated`, with no module transition. The next live input
+event revokes authority before editing/navigation/menu processing. Managed state
+tests use the real history and publication transaction to cover IO_SAFE ordering,
+single generation advancement, failures, cancellation and recovery-required
+mode/readback errors. Actual C64U acceptance of this new path remains outstanding.
+
 ## 3. Current C64U package build
 
 ~~~sh
 make -C client c64u-package
 ~~~
 
-Current upload files are the nine files in client/build/c64u-package/:
+Current upload files are the ten files in client/build/c64u-package/:
 
 - SEE64YOU.PRG: verified executable launcher with original SYS-context capture;
 - S64EDIT.PRG: managed editor root requiring trusted arrival;
 - S64PUB.PRG and S64CFG.PRG: cached companions, managed transitions still blocked;
 - S64MODULE.MNF: exact PRG lengths/entry points/CRC32;
 - S64OVL.MNF: exact editor-root and raw-asset binding;
-- S64MODEL.BIN, S64FILE.BIN and S64RUN.BIN: REU-cached editor code assets.
+- S64MODEL.BIN, S64FILE.BIN, S64RUN.BIN and S64PREP.BIN: REU-cached Editor
+  MODEL/FILE/RUNTIME/PUBLICATION assets. Publisher retains three assets in its
+  separate fit target; its namespace preload and executable transition remain gated.
 
 The target assembles the hardware-proven managed-handoff package into a separate
 product directory, then revalidates both manifests against the copied bytes.
 Launcher, resident editor/overlay slot, Publisher and Settings retain their
 existing memory gates. Do not mix these files with standalone editor builds.
 
-Copy all nine files to /sd/ and run SEE64YOU.PRG. Current storage still uses /sd/;
+Copy all ten files to /sd/ and run SEE64YOU.PRG. Current storage still uses /sd/;
 application-folder migration is queued. The standalone make launcher target and
 managed-package target remain gated preload diagnostics. The current product
 target executes the verified cached handoff and clean original SYS return.

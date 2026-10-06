@@ -132,7 +132,13 @@ static unsigned char restore_publisher_handoff(void)
 static void launch_publisher(void)
 {
 #ifdef S64_MANAGED_OVERLAY
-    s64_ui_message("Publisher transition not ready");
+    unsigned char prepared;
+    managed_application.document_replaced = local_document.document_replaced;
+    prepared = s64_managed_editor_state_prepare_publish(&managed_runtime,
+        &managed_application, &editor, &document, &local_document, &clipboard,
+        find_query, find_query_valid, S64_BASIC_RETURN_WORKSPACE);
+    if (prepared == 2u) managed_entry_failed(5u);
+    s64_ui_message(prepared ? "State prepared; Publisher gated" : "Publish preparation failed");
 #else
     if (!s64_history_prepare_handoff(&editor.history)) {
         s64_ui_message("Publish handoff failed");
@@ -664,6 +670,12 @@ int main(void)
             maybe_autosave();
             continue;
         }
+#ifdef S64_MANAGED_OVERLAY
+        /* Preserve the prepared snapshot only while live state is unchanged.
+         * This also revokes resumed authority before the first user edit. */
+        if ((managed_runtime.reu_control.state_flags & S64_REU_RUNTIME_STATE_APPLICATION_VALID)
+            && !s64_managed_editor_state_cancel(&managed_runtime)) managed_entry_failed(5u);
+#endif
         cursor_only = 0u;
 
         if (input.type == S64_INPUT_MENU || input.type == S64_INPUT_ACTIVATE) {

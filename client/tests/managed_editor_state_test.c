@@ -190,6 +190,79 @@ static void reject_prepare(void)
     no_payload_writes();
 }
 
+static unsigned mode_calls, failed_mode;
+static uint8_t apply_mode(void* context, S64SystemMode mode)
+{
+    (void)context;
+    assert(mode == S64_SYSTEM_MODE_IO_SAFE || mode == S64_SYSTEM_MODE_INTERACTIVE);
+    return ++mode_calls != failed_mode;
+}
+static uint8_t prepare_publish(S64ManagedEditorState* authority)
+{
+    return s64_managed_editor_state_prepare_publish(&runtime, authority,
+        &editor, &document, &local, &clipboard, search, 1, wire);
+}
+static void caller_tests(void)
+{
+    S64ManagedEditorState authority = {0, 0, 0};
+    S64ReuRuntimeControl persisted;
+    unsigned failure;
+    runtime.system_state.backend.apply_mode = apply_mode;
+    runtime.system_state.mode = S64_SYSTEM_MODE_INTERACTIVE;
+    mode_calls = failed_mode = 0;
+    assert(prepare_publish(&authority) == 1);
+    assert(mode_calls == 2 && authority.generation == 1);
+    assert(runtime.system_state.mode == S64_SYSTEM_MODE_INTERACTIVE);
+    assert(s64_reu_runtime_load(&persisted));
+    assert(persisted.state_flags & S64_REU_RUNTIME_STATE_APPLICATION_VALID);
+    assert(s64_managed_editor_state_cancel(&runtime));
+    assert(s64_reu_runtime_load(&persisted));
+    assert(!(persisted.state_flags & S64_REU_RUNTIME_STATE_APPLICATION_VALID));
+    assert(authority.generation == 1);
+
+    /* A dirty history failure may precede producer revocation. The caller
+     * clears even pre-existing authority before returning to live editing. */
+    assert(prepare_publish(&authority) == 1);
+    assert(s64_editor_insert(&editor, 'x'));
+    fail_history = 1;
+    assert(prepare_publish(&authority) == 0);
+    fail_history = 0;
+    assert(authority.generation == 2);
+    assert(s64_reu_runtime_load(&persisted));
+    assert(!(persisted.state_flags & S64_REU_RUNTIME_STATE_APPLICATION_VALID));
+    assert(runtime.system_state.mode == S64_SYSTEM_MODE_INTERACTIVE);
+
+    /* The real transaction failures cannot expose transition authority. */
+    assert(s64_history_prepare_handoff(&editor.history));
+    for (failure = 1; failure <= 9; ++failure) {
+        control_writes = control_reads = state_writes = state_reads = 0;
+        transaction = 1; fail_stage = failure;
+        assert(prepare_publish(&authority) == (failure == 9 ? 2 : 0));
+        transaction = fail_stage = 0;
+        assert(authority.generation == 2);
+        assert(s64_reu_runtime_load(&persisted));
+        assert(!(persisted.state_flags & S64_REU_RUNTIME_STATE_APPLICATION_VALID));
+    }
+    assert(s64_managed_editor_state_revoke(&runtime));
+    assert(s64_system_state_set_mode(&runtime.system_state,
+        S64_SYSTEM_MODE_INTERACTIVE) == S64_SYSTEM_OK);
+    mode_calls = 0; failed_mode = 1;
+    assert(prepare_publish(&authority) == 2 && authority.generation == 2);
+    assert(runtime.lifecycle.active_record_written && !runtime.lifecycle.clean_record_written);
+    mode_calls = 0; failed_mode = 2;
+    assert(prepare_publish(&authority) == 2 && authority.generation == 3);
+    assert(runtime.lifecycle.active_record_written && !runtime.lifecycle.clean_record_written);
+    failed_mode = 0;
+    assert(s64_managed_editor_state_cancel(&runtime));
+    assert(prepare_publish(&authority) == 1);
+    fail_read = reads + 1;
+    assert(!s64_managed_editor_state_cancel(&runtime));
+    fail_read = 0;
+    assert(runtime.lifecycle.active_record_written && !runtime.lifecycle.clean_record_written);
+    /* A failed clear is uncertain; recover through canonical verified revoke. */
+    assert(s64_managed_editor_state_revoke(&runtime));
+}
+
 int main(void)
 {
     uint32_t address;
@@ -295,5 +368,6 @@ int main(void)
     assert(s64_editor_redo(&decoded->editor)); assert(s64_buffer_length(&decoded->editor.buffer) == 3);
     editor = decoded->editor;
     publication_tests();
+    caller_tests();
     puts("managed editor state tests passed"); return 0;
 }

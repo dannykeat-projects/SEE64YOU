@@ -15,15 +15,16 @@ ROOT = Path(__file__).resolve().parents[1]
 MODULE_GENERATOR = ROOT / "tools" / "generate_module_manifest.py"
 PACKAGE_VERSION_HEADER = ROOT / "client" / "src" / "platform" / "package_version.h"
 MAGIC = b"S64O"
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 ABI_VERSION = 1
 SLOT_ADDRESS = 0x8C00
 SLOT_CAPACITY = 0x3C00
-MANIFEST_SIZE = 52
+MANIFEST_SIZE = 60
 GROUPS = (
     ("MODEL", "model.bin", "S64MODEL.BIN"),
     ("FILE", "file.bin", "S64FILE.BIN"),
     ("RUNTIME", "runtime.bin", "S64RUN.BIN"),
+    ("PUBLICATION", "publication.bin", "S64PREP.BIN"),
 )
 
 
@@ -116,7 +117,7 @@ def render(directory: Path, root: Path | None = None,
     groups, magic, root_name, _manifest_name = layout(module)
     root_path = root if root is not None else directory / root_name
     root_length, root_crc = inspect_root(root_path)
-    result = bytearray(MANIFEST_SIZE)
+    result = bytearray(28 + len(groups) * 8)
     result[0:4] = magic
     result[4] = FORMAT_VERSION
     result[5] = len(groups)
@@ -125,7 +126,7 @@ def render(directory: Path, root: Path | None = None,
     for index, (group, _source, canonical) in enumerate(groups):
         length, checksum = _asset_metadata(directory / canonical)
         struct.pack_into("<II", result, 24 + index * 8, length, checksum)
-    struct.pack_into("<I", result, 48, zlib.crc32(result[:48]) & 0xFFFFFFFF)
+    struct.pack_into("<I", result, len(result) - 4, zlib.crc32(result[:-4]) & 0xFFFFFFFF)
     return bytes(result)
 
 

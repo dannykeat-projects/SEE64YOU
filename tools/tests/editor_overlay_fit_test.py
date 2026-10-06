@@ -64,14 +64,12 @@ s64_message(
         ".importzp sreg",
         '.assert __HIMEM__ - __STACKSIZE__ - $C800 >= $0400, lderror, "Overlay requires 1 KiB before stack"',
         "    pha\n    txa\n    pha\n    lda sreg\n    pha\n    lda sreg+1\n    pha",
-        "    lda #$01\n    jsr _s64_code_overlay_enter",
+        "    ldy #$01\n    jsr s64_overlay_gate",
         "    pla\n    sta sreg+1\n    pla\n    sta sreg\n    pla\n    tax\n    pla",
         "    jmp _s64_overlay_model_s64_value",
         "_s64_overlay_bridge_file_s64_editor_has_selection:\n"
         "    jsr _s64_editor_has_selection\n"
-        "    pha\n    txa\n    pha\n    lda sreg\n    pha\n    lda sreg+1\n    pha\n"
-        "    lda #$02\n    jsr _s64_code_overlay_enter\n"
-        "    pla\n    sta sreg+1\n    pla\n    sta sreg\n    pla\n    tax\n    pla\n    rts",
+        "    ldy #$02\n    jsr s64_overlay_gate\n    rts",
     ):
         assert expected in wrappers, expected
     assert ".import _s64_editor_has_selection\n" not in wrappers
@@ -101,6 +99,19 @@ s64_message(
     assert "src/platform/managed_editor_restore.c" in FIT.GROUPS["MODEL"]
     assert FIT.BRIDGES["MODEL"] == ("s64_application_state_decode_payload",)
     assert "s64_application_state_decode_editor" in FIT.BRIDGES["FILE"]
+    assert FIT.GROUP_IDS["PUBLICATION"] == 4
+    assert FIT.GROUPS["PUBLICATION"] == (
+        "src/platform/managed_editor_prepare.c",
+        "src/platform/managed_editor_publish.c",
+        "src/platform/application_state_editor.c",
+        "src/platform/application_state_build.c",
+    )
+    assert FIT.BRIDGES["PUBLICATION"] == (
+        "s64_application_state_payload_valid",
+        "s64_managed_editor_state_revoke",
+        "s64_reu_runtime_store_verified",
+        "s64_system_state_set_mode",
+    )
 
     variables = FIT.make_variables(
         "C64U_SOURCES := src/main.c src/editor.c\n"

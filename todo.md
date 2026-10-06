@@ -47,7 +47,20 @@ Next work:
 1. Finish physical USB/native keyboard and ordinary editing/file/menu acceptance of the current c64u-package. Preserve original-context/ACTIVE binding, exact manifests and stack/headroom gates; missing/corrupt context keeps a safe CLEAN park.
    - 2026-10-06 fresh-editor hardware observation: first typed characters can be invisible while the editor cursor advances, then appear on a later redraw. The append fast path now explicitly positions conio at the tracked editor cursor, and the UI probe deliberately perturbs conio's cursor before its first append. Real-C64U confirmation is still required.
    - 2026-10-06 responsiveness observation: intermittent multi-second typing stalls matched the synchronous durable recovery write path. The editor now polls input without changing blocking menu/help behavior and only runs `maybe_autosave()` after one full second with no keyboard/joystick/mouse event; continuous typing therefore cannot start SD recovery I/O between keystrokes. The existing 30-second durable cadence remains, with an already-due fresh recovery written on the first genuine pause. CI/VICE and real-C64U responsiveness/recovery acceptance remain required.
-2. Integrate the shared application-state publication caller, both asset namespaces and validated session settings before enabling managed Editor → Publisher → Editor cycles. The producer API is host-tested and cc65-compiled but remains uncalled and unlinked in the production Editor; verified authority revocation is integrated into clean exit. Authenticated resumed entry now passes positive Undo/Redo/CLIP/ordinary-editing/clean-exit and bounded authoritative-corruption/recovery hardware gates on firmware 1.1.0 (2026-10-06, final CLEAN 66/package 514). Full local validation, implementation-head CI and package/diagnostic SHA256 parity pass. Keep current original-context/ACTIVE binding, allocator ownership, synchronous $C800 scratch and all stack/overlay guards. The complete proposed allocation set uses 15/16 entries. Publisher/Settings execution, module cycles and broader physical keyboard/file/menu acceptance remain outstanding. See docs/C64U-RUNTIME.md and docs/LOCAL_TESTING.md for the completed fixture and hardware evidence.
+2. Integrate the shared application-state publication caller, both asset namespaces and validated session settings before enabling managed Editor → Publisher → Editor cycles. The producer API is host-tested and now linked/called through the dedicated preparation overlay; verified authority revocation is integrated into clean exit. Authenticated resumed entry now passes positive Undo/Redo/CLIP/ordinary-editing/clean-exit and bounded authoritative-corruption/recovery hardware gates on firmware 1.1.0 (2026-10-06, final CLEAN 66/package 514). Full local validation, implementation-head CI and package/diagnostic SHA256 parity pass. Keep current original-context/ACTIVE binding, allocator ownership, synchronous $C800 scratch and all stack/overlay guards. The complete proposed allocation set uses 16/16 entries. Publisher/Settings execution, module cycles and broader physical keyboard/file/menu acceptance remain outstanding. See docs/C64U-RUNTIME.md and docs/LOCAL_TESTING.md for the completed fixture and hardware evidence.
+
+Publication placement and the preparation-only caller now use an Editor-only
+fourth PUBLICATION overlay (`S64PREP.BIN`). Editor asset manifest/session v2
+requires exactly four assets; Publisher v2 still requires three. Current guarded
+Editor sizes are MODEL 15,216, FILE 15,355, RUNTIME 15,275, PUBLICATION 3,534,
+resident BSS ending $87B5. Publish calls the canonical service in IO_SAFE and
+returns INTERACTIVE with executable transfer still gated; subsequent live input
+revokes prepared authority before changing state. Failed revocation/mode recovery
+requires launcher recovery. The complete planned allocator set is 16/16, with no
+capacity increase. Next finish dual namespace launcher preload and canonical
+ACTIVE-session settings before enabling Editor → Publisher. The new fourth-asset
+preparation path and recent typing/autosave fixes still need real-C64U acceptance.
+See docs/C64U-RUNTIME.md.
 
 Do not merge/deploy merely because diagnostic validation passes.
 

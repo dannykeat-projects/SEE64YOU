@@ -210,6 +210,11 @@ if ($HostCc) {
             "client/src/platform/system_state_start.c"
         )
         Invoke-CTest "code_assets" $CodeAssetSources
+        Invoke-CTest "publisher_code_overlay" @(
+            "-DS64_CODE_ASSET_PUBLISHER=1",
+            "client/tests/code_overlay_test.c", "client/src/platform/code_overlay.c",
+            "client/src/platform/reu_runtime.c"
+        )
         Invoke-CTest "publisher_code_assets" (@("-DS64_CODE_ASSET_PUBLISHER=1") + $CodeAssetSources)
         Invoke-CTest "ultimate_dos" @(
             "client/tests/dos_test.c",
@@ -338,6 +343,8 @@ if ($HostCc) {
             "client/src/platform/managed_editor_state.c",
             "client/src/platform/managed_editor_restore.c",
             "client/src/platform/managed_editor_publish.c",
+            "client/src/platform/managed_editor_prepare.c",
+            "client/src/platform/system_state.c",
             "client/src/platform/managed_editor_revoke.c",
             "client/src/platform/application_state_build.c",
             "client/src/platform/application_state_reserve.c",

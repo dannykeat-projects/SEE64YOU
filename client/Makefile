@@ -192,7 +192,7 @@ managed-package: editor-overlay-fit code-assets-fit publisher settings
 	cp build/code-assets-fit.prg build/managed-package/SEE64YOU.PRG
 	cp build/editor-overlay-fit/editor-overlay-fit.prg build/managed-package/S64EDIT.PRG
 	cp build/S64PUB.PRG build/S64CFG.PRG build/managed-package/
-	cp build/editor-overlay-fit/S64MODEL.BIN build/editor-overlay-fit/S64FILE.BIN build/editor-overlay-fit/S64RUN.BIN build/editor-overlay-fit/S64OVL.MNF build/managed-package/
+	cp build/editor-overlay-fit/S64MODEL.BIN build/editor-overlay-fit/S64FILE.BIN build/editor-overlay-fit/S64RUN.BIN build/editor-overlay-fit/S64PREP.BIN build/editor-overlay-fit/S64OVL.MNF build/managed-package/
 	python3 ../tools/generate_code_asset_manifest.py build/managed-package --root build/managed-package/S64EDIT.PRG --validate build/managed-package/S64OVL.MNF
 	python3 ../tools/generate_module_manifest.py build/managed-package --output build/managed-package/S64MODULE.MNF
 	python3 ../tools/generate_module_manifest.py build/managed-package --validate build/managed-package/S64MODULE.MNF
@@ -212,7 +212,7 @@ managed-handoff-package: managed-package build/managed-handoff-launcher.prg
 
 # Current supported package: verified executable launcher plus managed editor.
 # Publisher/Settings remain cached companions; their ownership cycles are gated.
-C64U_PACKAGE_FILES := SEE64YOU.PRG S64EDIT.PRG S64PUB.PRG S64CFG.PRG S64MODULE.MNF S64OVL.MNF S64MODEL.BIN S64FILE.BIN S64RUN.BIN
+C64U_PACKAGE_FILES := SEE64YOU.PRG S64EDIT.PRG S64PUB.PRG S64CFG.PRG S64MODULE.MNF S64OVL.MNF S64MODEL.BIN S64FILE.BIN S64RUN.BIN S64PREP.BIN
 .PHONY: c64u-package
 c64u-package: managed-handoff-package
 	@mkdir -p build/c64u-package
