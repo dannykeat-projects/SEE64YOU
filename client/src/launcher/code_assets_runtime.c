@@ -30,13 +30,12 @@ static uint8_t load_manifest(
     const char* filename = module == S64_MODULE_EDITOR
         ? "S64OVL.MNF"
         : (module == S64_MODULE_PUBLISHER ? "S64POVL.MNF" : 0);
-    uint16_t expected =
-        (uint16_t)(28u + (uint16_t)s64_dual_code_assets_count(module) * 8u);
+    uint16_t expected = module == S64_MODULE_PUBLISHER ? 52u : 60u;
     uint32_t size;
     uint16_t read = 0u;
 
     if (!runtime || !assets || !descriptor || !filename
-        || !s64_dual_code_assets_count(module)
+        || (module != S64_MODULE_EDITOR && module != S64_MODULE_PUBLISHER)
         || expected > S64_CODE_ASSET_SESSION_SIZE
         || s64_dos_change_dir(&runtime->dos, "/sd/") != S64_DOS_OK
         || s64_dos_open_read(&runtime->dos, filename) != S64_DOS_OK)

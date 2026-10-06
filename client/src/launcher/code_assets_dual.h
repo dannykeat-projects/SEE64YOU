@@ -3,7 +3,6 @@
 
 #include "platform/code_assets.h"
 
-uint8_t s64_dual_code_assets_count(S64ModuleId module);
 
 uint8_t s64_dual_code_assets_parse(
     S64ModuleId module,

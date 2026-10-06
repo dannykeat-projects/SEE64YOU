@@ -19,13 +19,6 @@ static void put16(uint8_t* out, uint16_t value)
 static void put32(uint8_t* out, uint32_t value)
 { put16(out, (uint16_t)value); put16(out + 2u, (uint16_t)(value >> 16)); }
 
-uint8_t s64_dual_code_assets_count(S64ModuleId module)
-{
-    if (module == S64_MODULE_EDITOR) return 4u;
-    if (module == S64_MODULE_PUBLISHER) return 3u;
-    return 0u;
-}
-
 static const char* asset_filename(S64ModuleId module, uint8_t index)
 {
     if (module == S64_MODULE_PUBLISHER) {
@@ -43,15 +36,13 @@ static const char* asset_filename(S64ModuleId module, uint8_t index)
     return 0;
 }
 
-static uint16_t session_size(S64ModuleId module)
-{ return (uint16_t)(48u + (uint16_t)s64_dual_code_assets_count(module) * 16u); }
-
 static uint8_t descriptor_valid(
     S64ModuleId module,
     const S64ModuleDescriptor* descriptor
 )
 {
-    return s64_dual_code_assets_count(module) != 0u
+    return module >= S64_MODULE_EDITOR
+        && module <= S64_MODULE_PUBLISHER
         && descriptor != 0
         && descriptor->id == module
         && s64_module_descriptor_loadable(descriptor)
@@ -71,18 +62,19 @@ static uint8_t assets_valid(
     uint8_t require_ready
 )
 {
-    uint8_t count = s64_dual_code_assets_count(module);
+    uint8_t count;
     uint8_t base = module == S64_MODULE_PUBLISHER ? 0x31u : 0x21u;
     uint8_t i, j, matches;
 
-    if (!count || !assets || !s64_reu_runtime_valid(control)
-        || !descriptor_valid(module, descriptor)
+    if (!descriptor_valid(module, descriptor)
+        || !assets || !s64_reu_runtime_valid(control)
         || descriptor->cache_state != S64_MODULE_CACHE_READY
         || assets->abi_version != S64_REU_RUNTIME_ABI_VERSION
         || assets->app_version != control->app_version
         || assets->app_version != descriptor->app_version
         || assets->editor_length != descriptor->byte_length
         || assets->editor_integrity != descriptor->integrity) return 0u;
+    count = (uint8_t)(5u - (uint8_t)module);
 
     for (i = 0u; i < count; ++i) {
         const S64CodeAsset* asset = &assets->assets[i];
@@ -114,10 +106,11 @@ static const S64ReuAllocation* session_allocation(
 {
     const S64ReuAllocation* found = 0;
     uint8_t flag = module == S64_MODULE_PUBLISHER ? 5u : 3u;
-    uint16_t length = session_size(module);
+    uint16_t length = (module == S64_MODULE_PUBLISHER ? 96u : 112u);
     uint8_t i;
 
-    if (!s64_dual_code_assets_count(module) || !s64_reu_runtime_valid(control)) return 0;
+    if (module < S64_MODULE_EDITOR || module > S64_MODULE_PUBLISHER
+        || !s64_reu_runtime_valid(control)) return 0;
     for (i = 0u; i < control->allocation_count; ++i) {
         const S64ReuAllocation* item = &control->allocations[i];
         if (item->owner == S64_REU_OWNER_RUNTIME && item->flags == flag) {
@@ -145,7 +138,7 @@ static uint8_t verify_record(
 static uint16_t session_checksum(S64ModuleId module, const uint8_t* bytes)
 {
     uint16_t value = 0x64a5u;
-    uint16_t length = session_size(module);
+    uint16_t length = (module == S64_MODULE_PUBLISHER ? 96u : 112u);
     uint16_t i;
     for (i = 0u; i < length - 2u; ++i) {
         value = (uint16_t)((value << 5) | (value >> 11));
@@ -163,14 +156,16 @@ uint8_t s64_dual_code_assets_parse(
 )
 {
     S64CodeAssets parsed;
-    uint8_t count = s64_dual_code_assets_count(module);
-    uint16_t expected = (uint16_t)(28u
-        + (uint16_t)s64_dual_code_assets_count(module) * 8u);
-    uint16_t crc_offset = (uint16_t)(expected - 4u);
+    uint8_t count;
+    uint16_t expected;
+    uint16_t crc_offset;
     uint8_t i;
 
-    if (!count || !assets || !wire || length != expected
-        || !descriptor_valid(module, descriptor)
+    if (!descriptor_valid(module, descriptor) || !assets || !wire) return 0u;
+    count = (uint8_t)(5u - (uint8_t)module);
+    expected = module == S64_MODULE_PUBLISHER ? 52u : 60u;
+    crc_offset = (uint16_t)(expected - 4u);
+    if (length != expected
         || wire[0] != 0x53u || wire[1] != 0x36u || wire[2] != 0x34u
         || wire[3] != (module == S64_MODULE_PUBLISHER ? 0x50u : 0x4fu)
         || wire[4] != S64_CODE_ASSET_FORMAT_VERSION || wire[5] != count
@@ -207,15 +202,17 @@ uint8_t s64_dual_code_assets_allocate(
     S64ReuRuntimeControl* control
 )
 {
-    uint8_t count = s64_dual_code_assets_count(module);
+    uint8_t count;
     uint8_t base = module == S64_MODULE_PUBLISHER ? 0x31u : 0x21u;
     uint8_t flag = module == S64_MODULE_PUBLISHER ? 5u : 3u;
     uint8_t i;
 
-    if (!count || !assets || !s64_reu_runtime_valid(control)
+    if (module < S64_MODULE_EDITOR || module > S64_MODULE_PUBLISHER
+        || !assets || !s64_reu_runtime_valid(control)
         || assets->app_version != control->app_version || !assets->app_version
         || assets->abi_version != S64_REU_RUNTIME_ABI_VERSION
         || !assets->editor_length || !assets->editor_integrity) return 0u;
+    count = (uint8_t)(5u - (uint8_t)module);
 
     for (i = 0u; i < control->allocation_count; ++i) {
         const S64ReuAllocation* item = &control->allocations[i];
@@ -239,7 +236,7 @@ uint8_t s64_dual_code_assets_allocate(
             asset->cache.flags;
     }
     if (!s64_reu_runtime_allocate(control, S64_REU_OWNER_RUNTIME,
-            session_size(module), 256u, 0)) return 0u;
+            (module == S64_MODULE_PUBLISHER ? 96u : 112u), 256u, 0)) return 0u;
     control->allocations[control->allocation_count - 1u].flags = flag;
     return 1u;
 }
@@ -250,7 +247,7 @@ uint8_t s64_dual_code_assets_clear(
 )
 {
     const S64ReuAllocation* allocation = session_allocation(module, control);
-    uint16_t length = session_size(module);
+    uint16_t length = (module == S64_MODULE_PUBLISHER ? 96u : 112u);
     if (!allocation || length > S64_CODE_ASSET_SESSION_SIZE) return 0u;
     memset(S64_DUAL_ASSET_RECORD, 0, length);
     return s64_reu_store((uint8_t)(allocation->address >> 16),
@@ -267,12 +264,14 @@ uint8_t s64_dual_code_assets_preload(
     S64SystemState* system
 )
 {
-    uint8_t count = s64_dual_code_assets_count(module);
+    uint8_t count;
     S64DosResult result, closed;
     uint32_t size;
     uint8_t i;
 
-    if (!count || !assets) return 0u;
+    if (module < S64_MODULE_EDITOR || module > S64_MODULE_PUBLISHER
+        || !assets) return 0u;
+    count = (uint8_t)(5u - (uint8_t)module);
     for (i = 0u; i < count; ++i)
         assets->assets[i].cache_state = S64_MODULE_CACHE_EMPTY;
     if (!dos || !system || !system->captured || system->restored
@@ -314,12 +313,18 @@ uint8_t s64_dual_code_assets_store_verified(
     const S64CodeAssets* assets
 )
 {
-    const S64ReuAllocation* allocation = session_allocation(module, control);
-    uint8_t count = s64_dual_code_assets_count(module);
-    uint16_t length = session_size(module);
-    uint16_t trailer = (uint16_t)(40u + (uint16_t)count * 16u);
+    const S64ReuAllocation* allocation;
+    uint8_t count;
+    uint16_t length;
+    uint16_t trailer;
     uint8_t i, offset;
 
+    if (module < S64_MODULE_EDITOR || module > S64_MODULE_PUBLISHER)
+        return 0u;
+    count = (uint8_t)(5u - (uint8_t)module);
+    length = module == S64_MODULE_PUBLISHER ? 96u : 112u;
+    trailer = (uint16_t)(40u + (uint16_t)count * 16u);
+    allocation = session_allocation(module, control);
     if (!allocation || !journal || journal->state != S64_SESSION_STATE_ACTIVE
         || !journal->sequence || journal->session_id != control->session_id
         || journal->package_version != control->app_version
