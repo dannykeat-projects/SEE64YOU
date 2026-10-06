@@ -82,6 +82,7 @@ Do not merge/deploy merely because diagnostic validation passes.
 - [ ] Add memory-pressure policy: reclaim disposable caches, previews/remote lists and oldest history before critical source.
 - [ ] Profile search/replace, preview/rendering, hashing, import/export and similar CPU-heavy work; use temporary turbo through the system manager where measurements justify it.
 - [ ] Re-enable/develop useful editor conveniences that were previously excluded only for conventional-C64 BSS headroom, subject to UI/value testing.
+- [ ] Add a simple persistent Editor appearance preference. With no saved preference (first start), use the normal/default C64 colour scheme rather than forcing the current black/green theme. Add a discoverable `Dark Mode` menu item and a collision-free keyboard shortcut (Ctrl+D is currently a suitable candidate if still unused when implemented). Dark Mode is specifically black background with white text. Save the choice and restore it on later launches. Reuse existing settings/persistence infrastructure where practical; do not create a separate theme subsystem for this single boolean preference. Keep menus/status/help consistent with the active mode, and preserve readable cursor/selection/reverse-video states in both schemes.
 
 ## P1 — Finish editor/storage/publishing acceptance
 
