@@ -49,17 +49,23 @@ Next work:
    - 2026-10-06 responsiveness observation: intermittent multi-second typing stalls matched the synchronous durable recovery write path. The editor now polls input without changing blocking menu/help behavior and only runs `maybe_autosave()` after one full second with no keyboard/joystick/mouse event; continuous typing therefore cannot start SD recovery I/O between keystrokes. The existing 30-second durable cadence remains, with an already-due fresh recovery written on the first genuine pause. CI/VICE and real-C64U responsiveness/recovery acceptance remain required.
 2. Integrate the shared application-state publication caller, both asset namespaces and validated session settings before enabling managed Editor → Publisher → Editor cycles. The producer API is host-tested and now linked/called through the dedicated preparation overlay; verified authority revocation is integrated into clean exit. Authenticated resumed entry now passes positive Undo/Redo/CLIP/ordinary-editing/clean-exit and bounded authoritative-corruption/recovery hardware gates on firmware 1.1.0 (2026-10-06, final CLEAN 66/package 514). Full local validation, implementation-head CI and package/diagnostic SHA256 parity pass. Keep current original-context/ACTIVE binding, allocator ownership, synchronous $C800 scratch and all stack/overlay guards. The complete proposed allocation set uses 16/16 entries. Publisher/Settings execution, module cycles and broader physical keyboard/file/menu acceptance remain outstanding. See docs/C64U-RUNTIME.md and docs/LOCAL_TESTING.md for the completed fixture and hardware evidence.
 
-Publication placement and the preparation-only caller now use an Editor-only
+Publication placement and the preparation-only caller use an Editor-only
 fourth PUBLICATION overlay (`S64PREP.BIN`). Editor asset manifest/session v2
-requires exactly four assets; Publisher v2 still requires three. Current guarded
-Editor sizes are MODEL 15,216, FILE 15,355, RUNTIME 15,275, PUBLICATION 3,534,
-resident BSS ending $87B5. Publish calls the canonical service in IO_SAFE and
-returns INTERACTIVE with executable transfer still gated; subsequent live input
-revokes prepared authority before changing state. Failed revocation/mode recovery
-requires launcher recovery. The complete planned allocator set is 16/16, with no
-capacity increase. Next finish dual namespace launcher preload and canonical
-ACTIVE-session settings before enabling Editor → Publisher. The new fourth-asset
-preparation path and recent typing/autosave fixes still need real-C64U acceptance.
+requires exactly four assets; Publisher v2 still requires three. Publisher asset
+preparation is deliberately **not** launcher-resident: the executable launcher has
+a protected original-SYS return workspace beginning at $C800 and remains on the
+already-proven compact Editor-only producer. The current 14-file package now also
+contains the exact managed Publisher root plus `S64POVL.MNF`, `S64PCNT.BIN`,
+`S64PNET.BIN` and `S64PRUN.BIN`. A preparation-only Publisher producer reuses
+the existing Publisher-specialized asset codec inside PUBLICATION/PREP; it is not
+called by production Editor code yet. With its DOS/CRC helpers the measured Editor
+layout is MODEL 15,216, FILE 15,355, RUNTIME 15,275, PUBLICATION 12,645 bytes,
+with resident BSS ending $8A14 below the unchanged $8C00 slot. Invoking Publisher
+preparation would consume the final four allocator entries and require exactly
+16/16. Executable Editor → Publisher remains gated. Next finish canonical
+ACTIVE-session settings, add focused preparation validation, then wire Publisher
+asset/settings preparation immediately before transition. The new Publisher PREP
+path and recent typing/autosave fixes still need real-C64U acceptance.
 See docs/C64U-RUNTIME.md.
 
 Do not merge/deploy merely because diagnostic validation passes.

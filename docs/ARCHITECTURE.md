@@ -130,13 +130,22 @@ revocation before replacing the record, verifies the complete replacement, then
 publishes and verifies the bit. Only successful publication advances generation.
 Managed Editor clean exit verifies the bit clear before teardown/CLEAN while
 preserving the already loaded BASIC-return context. Publish now calls the existing
-service through a dedicated fourth Editor PUBLICATION overlay in IO_SAFE, then
-returns to INTERACTIVE without executing Publisher. Success retains verified
-authority until a transition or the next live input event; that event revokes
-authority before controls or payloads can change. Failure must verify revocation
-and recover INTERACTIVE, otherwise the Editor stops for launcher recovery with
-ACTIVE retained. The authenticated resumed-entry hardware gate passed on firmware
-1.1; this preparation caller and fourth asset still need hardware acceptance.
+application-state service through a dedicated fourth Editor PUBLICATION overlay in
+IO_SAFE, then returns to INTERACTIVE without executing Publisher. Success retains
+verified authority until a transition or the next live input event; that event
+revokes authority before controls or payloads can change. Failure must verify
+revocation and recover INTERACTIVE, otherwise the Editor stops for launcher
+recovery with ACTIVE retained.
+
+Publisher asset preparation is also staged in this roomy PUBLICATION/PREP overlay,
+not the launcher. The launcher remains on its compact, hardware-proven Editor-only
+asset producer so the original-SYS return workspace at $C800 is untouched. The
+14-file package carries the exact managed Publisher root and its three asset
+binaries plus manifest. A preparation-only Publisher producer reuses the existing
+Publisher-specialized asset codec, consumes the final four allocator entries only
+when called, and remains production-gated until session-bound settings are ready.
+The authenticated resumed-entry hardware gate passed on firmware 1.1; the newer
+Publisher PREP path and fourth-asset changes still need hardware acceptance.
 See C64U-RUNTIME.md for the transaction and code-asset v2 contracts.
 
 ## Executable overlay model

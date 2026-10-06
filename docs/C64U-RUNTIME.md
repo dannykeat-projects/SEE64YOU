@@ -771,8 +771,13 @@ Host suites run both specializations, including opposite-module allocation
 sentinels through preload/store/load/clear and wrong-root/magic rejection.
 The Publisher fit builder generates/revalidates its exact manifest and links the
 specialized consumer codecs into the measured destination. Producer/preload codecs
-remain covered by both host namespace suites. The launcher still preloads only
-Editor assets; no Publisher files are added to the current nine-file package.
+remain covered by both host namespace suites. The executable launcher still
+preloads only Editor assets so it retains the proven original-SYS return boundary.
+The current 14-file package nevertheless carries the exact managed Publisher root
+and its four namespace files: `S64POVL.MNF`, `S64PCNT.BIN`, `S64PNET.BIN`
+and `S64PRUN.BIN`. Publisher preparation is staged in the Editor PUBLICATION/PREP
+overlay immediately before a future Publisher transition rather than in the
+launcher.
 
 ### Shared application-state record (prepared, transitions gated)
 
@@ -906,16 +911,28 @@ arguments and results; Y carries the overlay ID under cc65's caller-clobbered
 convention. Sharing the existing save/restore sequence removes repeated resident
 veneer code without changing any RAM/stack/workspace boundary. VICE exercises
 the four publication return bridges as well as nested MODEL/FILE restoration.
-The final measured Editor layout is MODEL 15,216, FILE 15,355, RUNTIME 15,275,
-PUBLICATION 3,534 bytes, each within the unchanged 15,360-byte slot. Resident BSS
-ends at $87B5, below $8C00. Publisher remains three overlays and passes its existing
-headroom guard. Session readback uses a bounded 112-byte (Publisher 96-byte)
-automatic buffer, and binding uses temporary handles whose transfer coordinates
-the selector copies; no pointers to expired stack storage are retained. The native
-readback helper's direct software-stack peak is 119 bytes before the DMA helper,
-within the existing 1 KiB reserve; bridges add only hardware-stack return frames.
-The complete planned allocator set now occupies exactly 16/16 entries; allocator
-capacity is unchanged. Asset v1 and wrong namespace counts are rejected.
+The Editor-only publication path originally measured MODEL 15,216, FILE 15,355,
+RUNTIME 15,275 and PUBLICATION 3,534 bytes. Publisher asset preparation was first
+considered for the launcher, but the executable launcher has only a narrow gap
+before the protected $C800 original-SYS return workspace; duplicating/generalising
+the producer there violated that boundary and was discarded. The approved
+placement keeps the launcher on its proven compact Editor-only producer and
+compiles the already-tested Publisher-specialized producer plus only its required
+DOS/CRC helpers into PUBLICATION/PREP. On 2026-10-06 this measured MODEL 15,216,
+FILE 15,355, RUNTIME 15,275 and PUBLICATION 12,645/15,360 bytes. Resident BSS ends
+at $8A14, below the unchanged $8C00 execution slot; Publisher itself remains three
+overlays and retains its existing headroom guard. Session readback uses a bounded
+112-byte (Publisher 96-byte) automatic buffer, and binding uses temporary handles
+whose transfer coordinates the selector copies; no pointers to expired stack
+storage are retained. The native readback helper's direct software-stack peak is
+119 bytes before the DMA helper, within the existing 1 KiB reserve; bridges add
+only hardware-stack return frames. The Publisher PREP producer is currently
+fit/validation-only and is not invoked by the production Publish command. When
+invoked it atomically plans the Publisher cache/session namespace, requires the
+resulting control to use exactly 16/16 entries, persists/readbacks that control,
+preloads and CRC-verifies all three assets, and publishes the ACTIVE-bound S64Q
+record; failed preparation attempts a verified rollback to the original control.
+Allocator capacity is unchanged. Asset v1 and wrong namespace counts are rejected.
 
 The allocator capacity change bumps package identity to 0x0202. Format-1
 control blocks are rejected rather than adopted; interrupted-state recovery
