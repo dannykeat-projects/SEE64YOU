@@ -425,7 +425,43 @@ static void return_to_editor(void)
 static void open_settings(void)
 {
 #ifdef S64_MANAGED_OVERLAY
-    set_status("Settings transition not ready");
+    S64ModuleTransferPlan plan;
+    S64ModuleTransitionResult transition;
+    uint8_t prepared;
+
+    prepared = s64_managed_publisher_return_state(
+        &managed_runtime,
+        &body,
+        &document,
+        document_changed,
+        document_replaced,
+        s64_publisher_workspace.bytes
+    );
+    if (prepared == 2u) managed_entry_failed(10u);
+    if (!prepared) {
+        set_status("Settings handoff state failed");
+        return;
+    }
+
+    clrscr();
+    cputs("OPENING SETTINGS...\r\n");
+    transition = s64_module_transition_prepare(
+        &managed_runtime,
+        S64_MODULE_SETTINGS,
+        &plan
+    );
+    if (transition == S64_MODULE_TRANSITION_RECOVERY_REQUIRED) {
+        managed_entry_failed(10u);
+    }
+    if (transition != S64_MODULE_TRANSITION_OK) {
+        set_status("Settings handoff failed");
+        return;
+    }
+    if (!s64_module_transfer_execute(&plan)) {
+        transition = s64_module_transition_cancel(&managed_runtime, &plan);
+        if (transition != S64_MODULE_TRANSITION_OK) managed_entry_failed(10u);
+        set_status("Settings handoff failed");
+    }
 #else
     if (!preserve_document_handoff(0u)) return;
     if (!s64_settings_bridge_request_edit()) {
