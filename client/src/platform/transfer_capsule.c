@@ -1,8 +1,10 @@
 #include "platform/transfer_capsule_internal.h"
 #include "platform/reu.h"
 
+#ifndef S64_MANAGED_OVERLAY
 uint8_t capsule_wire[S64_TRANSFER_CAPSULE_WIRE_SIZE];
 uint8_t capsule_readback[S64_TRANSFER_CAPSULE_WIRE_SIZE];
+#endif
 
 uint16_t s64_transfer_capsule_checksum(const uint8_t* bytes)
 {
