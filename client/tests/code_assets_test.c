@@ -3,7 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "platform/code_assets.h"\n#include "platform/package_paths.h"
+#include "platform/code_assets.h"
+#include "platform/package_paths.h"
 #include "platform/code_assets_internal.h"
 #include "platform/module_session.h"
 #include "platform/transfer_capsule.h"
