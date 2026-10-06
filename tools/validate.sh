@@ -266,6 +266,12 @@ cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host managed editor settings path/fallback tests =="
+cc -std=c99 -Wall -Wextra -Werror -DS64_REU_BUFFER=1 -Iclient/src \
+    client/tests/managed_editor_settings_test.c \
+    client/src/platform/managed_editor_settings.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host managed Publisher adoption/document tests =="
 cc -std=c99 -Wall -Wextra -Werror -DS64_REU_BUFFER=1 -DS64_CODE_ASSET_PUBLISHER=1 -Iclient/src \
     client/tests/managed_publisher_test.c client/src/platform/managed_publisher.c \
