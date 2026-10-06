@@ -52,6 +52,12 @@ RUNTIME = """
 static const uint32_t mask = 0x11223344UL;
 uint32_t __fastcall__ s64_overlay_runtime_s64_probe_runtime(uint32_t value)
 { return value ^ mask; }
+uint32_t __fastcall__ s64_overlay_runtime_s64_transfer_capsule_allocation(uint32_t value)
+{ return value; }
+uint32_t __fastcall__ s64_overlay_runtime_s64_transfer_capsule_checksum(uint32_t value)
+{ return value; }
+uint32_t __fastcall__ s64_overlay_runtime_s64_transfer_capsule_module_valid(uint32_t value)
+{ return value; }
 uint32_t __fastcall__ s64_overlay_runtime_s64_managed_editor_state_revoke(uint32_t value)
 { return value + 0x12345678UL; }
 uint32_t __fastcall__ s64_overlay_runtime_s64_reu_runtime_store_verified(uint32_t value)
@@ -65,6 +71,9 @@ PUBLICATION = """
 #include <stdint.h>
 #pragma code-name ("PUBLICATION_CODE")
 #pragma rodata-name ("PUBLICATION_RODATA")
+extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_transfer_capsule_allocation(uint32_t);
+extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_transfer_capsule_checksum(uint32_t);
+extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_transfer_capsule_module_valid(uint32_t);
 extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_application_state_payload_valid(uint32_t);
 extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_managed_editor_state_revoke(uint32_t);
 extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_reu_runtime_store_verified(uint32_t);
@@ -72,6 +81,9 @@ extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_session_journal_encode(
 extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_system_state_set_mode(uint32_t);
 uint32_t __fastcall__ s64_overlay_publication_s64_probe_publication(uint32_t value)
 {
+    value = s64_overlay_bridge_prep_s64_transfer_capsule_allocation(value);
+    value = s64_overlay_bridge_prep_s64_transfer_capsule_checksum(value);
+    value = s64_overlay_bridge_prep_s64_transfer_capsule_module_valid(value);
     value = s64_overlay_bridge_prep_s64_application_state_payload_valid(value);
     value = s64_overlay_bridge_prep_s64_managed_editor_state_revoke(value);
     value = s64_overlay_bridge_prep_s64_reu_runtime_store_verified(value);
@@ -167,7 +179,7 @@ int main(void)
         before = reads;
         expected = ((((input ^ 0x55667788UL) + 0x12345678UL) ^ 0x87654321UL) ^ 0x0f1e2d3cUL) + 0x76543210UL;
         require(s64_probe_publication(input) == expected, 11);
-        require(reads == before + 11u, 12);
+        require(reads == before + 17u, 12);
     }
     *(volatile uint8_t*)0xc060 = 0x80;
     *(volatile uint8_t*)0xc061 = 0xa5;
@@ -185,7 +197,7 @@ def build() -> Path:
     wrappers.write_text(fit.assembler_wrappers({
         "MODEL": [*fit.BRIDGES["FILE"], "s64_probe_resume"],
         "FILE": ["s64_probe_file", *fit.BRIDGES["MODEL"], "s64_application_state_payload_valid"],
-        "RUNTIME": ["s64_probe_runtime", "s64_managed_editor_state_revoke", "s64_reu_runtime_store_verified", "s64_session_journal_encode", "s64_system_state_set_mode"],
+        "RUNTIME": ["s64_probe_runtime", "s64_transfer_capsule_allocation", "s64_transfer_capsule_checksum", "s64_transfer_capsule_module_valid", "s64_managed_editor_state_revoke", "s64_reu_runtime_store_verified", "s64_session_journal_encode", "s64_system_state_set_mode"],
         "PUBLICATION": ["s64_probe_publication"],
     }))
     sources = []
