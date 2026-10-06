@@ -29,10 +29,10 @@ conventional-C64 and old standalone-editor fit gates are excluded.
 
 The full integration run passed for implementation commit d5ed796:
 https://github.com/dannykeat-projects/SEE64YOU/actions/runs/37176770706
-The downloaded see64you-c64u-package artifact contains exactly nine files, each
-matching the locally validated managed package by SHA256. This CI result covers
-software/build/VICE gates; physical keyboard and broader hardware acceptance
-remain separate.
+The downloaded see64you-c64u-package artifact contains the complete 14-file
+runtime package, each file matching the locally validated package by SHA256.
+This CI result covers software/build/VICE gates; physical keyboard and broader
+hardware acceptance remain separate.
 
 Windows PowerShell:
 
@@ -88,17 +88,17 @@ journal rejection, unchanged failed outputs and trusted-arrival-only binding.
 The module integrity regression suite also runs against the shared CRC updater.
 None of these host tests establishes real UCI/REU timing or production entry.
 
-The publication-overlay infrastructure must pass before wiring its caller.
-The current host suites cover Editor four/Publisher three, version/count/order
-and cross-namespace rejection, final asset CRC/readback failure, atomic failure
-and the complete planned 16/16 allocation set. VICE additionally exercises all
-publication return bridges and the shared register gate, including 32-bit values.
-The production Publish command currently prepares state only: expect
-`State prepared; Publisher gated`, with no module transition. The next live input
-event revokes authority before editing/navigation/menu processing. Managed state
-tests use the real history and publication transaction to cover IO_SAFE ordering,
-single generation advancement, failures, cancellation and recovery-required
-mode/readback errors. Actual C64U acceptance of this new path remains outstanding.
+The publication-overlay infrastructure must pass before managed transfer
+acceptance. The current host suites cover Editor four/Publisher three,
+version/count/order and cross-namespace rejection, final asset CRC/readback
+failure, atomic failure and the complete 16/16 allocation set. VICE additionally
+exercises all publication return bridges and the shared register gate, including
+32-bit values. The production Publish command now prepares authenticated state,
+Publisher assets and ACTIVE-bound settings, then enters Publisher through the
+verified cached transfer path. Managed state tests use the real history and
+publication transaction to cover IO_SAFE ordering, single generation advancement,
+failures, cancellation and recovery-required mode/readback errors. Complete
+real-C64U acceptance of the multi-module cycle remains outstanding.
 
 ## 3. Current C64U package build
 
@@ -106,23 +106,23 @@ mode/readback errors. Actual C64U acceptance of this new path remains outstandin
 make -C client c64u-package
 ~~~
 
-Current upload files are the ten files in client/build/c64u-package/:
+Current upload files are the 14 files in client/build/c64u-package/:
 
 - SEE64YOU.PRG: verified executable launcher with original SYS-context capture;
-- S64EDIT.PRG: managed editor root requiring trusted arrival;
-- S64PUB.PRG and S64CFG.PRG: cached companions, managed transitions still blocked;
+- S64EDIT.PRG, S64PUB.PRG and S64CFG.PRG: managed Editor/Publisher/Settings roots;
 - S64MODULE.MNF: exact PRG lengths/entry points/CRC32;
-- S64OVL.MNF: exact editor-root and raw-asset binding;
-- S64MODEL.BIN, S64FILE.BIN, S64RUN.BIN and S64PREP.BIN: REU-cached Editor
-  MODEL/FILE/RUNTIME/PUBLICATION assets. Publisher retains three assets in its
-  separate fit target; its namespace preload and executable transition remain gated.
+- S64OVL.MNF plus S64MODEL.BIN, S64FILE.BIN, S64RUN.BIN and S64PREP.BIN:
+  Editor MODEL/FILE/RUNTIME/PUBLICATION assets;
+- S64POVL.MNF plus S64PCNT.BIN, S64PNET.BIN and S64PRUN.BIN:
+  Publisher CONTENT/NETWORK/RUNTIME assets.
 
 The target assembles the hardware-proven managed-handoff package into a separate
 product directory, then revalidates both manifests against the copied bytes.
 Launcher, resident editor/overlay slot, Publisher and Settings retain their
 existing memory gates. Do not mix these files with standalone editor builds.
 
-Copy all ten files to /sd/ and run SEE64YOU.PRG. Current storage still uses /sd/;
+Copy all 14 files to /sd/SEE64YOU/ and run SEE64YOU.PRG from that folder.
+Runtime package files and publishing configuration use /sd/SEE64YOU/;
 application-folder migration is queued. The standalone make launcher target and
 managed-package target remain gated preload diagnostics. The current product
 target executes the verified cached handoff and clean original SYS return.
@@ -149,7 +149,7 @@ deterministic `.DAT` files and their length/CRC header into
 for this fixture because their integer layout differs from cc65.
 
 Before hardware use, require full validation and successful exact-head CI;
-compare the downloaded nine-file `see64you-c64u-package` and the diagnostic PRG,
+compare the downloaded 14-file `see64you-c64u-package` and the diagnostic PRG,
 five DAT files and header against local SHA256 values. Preserve existing SD files
 and drive settings as described below. Upload the exact ordinary package and
 five fixture DAT files to `/sd/`; run `resume-editor-gate.prg` as a temporary PRG.
@@ -187,8 +187,8 @@ without adopting the fixture or falling back to fresh editing. Restart the
 normal launcher and verify its existing interrupted-session recovery restores
 the captured state; complete its ordinary managed exit and confirm newer CLEAN
 and responsive BASIC. This is one bounded negative; host tests own the broader
-failure matrix. Publisher/Settings execution and publication-producer callers
-remain gated.
+failure matrix. Publisher/Settings execution is now implemented in the normal
+package; this resumed-entry diagnostic remains focused on Editor authentication.
 
 Both gates passed on real firmware 1.1.0 on 2026-10-06 using implementation
 `4c3ffa627615e9ee31deaef79b2dd370f9f1fcf1`, successful CI run 37390002322 and
@@ -342,10 +342,10 @@ Using the required 16 MiB configuration:
 ### Managed Publisher fit and ownership preparation
 
 Run make -C client publisher-overlay-fit for the managed destination layout.
-It compiles actual trusted Publisher entry, ACTIVE adoption, S64Q assets and shared
-application-state consumption with transition/return support. Require CONTENT
-13,697 / NETWORK 11,765 / RUNTIME 13,921 bytes within the 15,360-byte slot, resident
-BSS $866D and 1,426-byte headroom (minimum 1,024). It generates/revalidates the exact
+It compiles actual trusted Publisher entry, ACTIVE adoption, S64Q assets, shared
+application-state/settings consumption and transition/return support. Require all
+three overlay groups to remain within the 15,360-byte slot and the resident
+headroom guard to remain at least 1,024 bytes. It generates/revalidates the exact
 S64POVL.MNF and Publisher assets. Initial control load/validation must be resident;
 only the explicit tested return-bridge allowlist may cross overlay groups.
 
@@ -358,10 +358,10 @@ flush/undo/redo, no-op round trips and replacement preserving clipboard. Publish
 checks adoption/binding/state failure ordering, unchanged failed document outputs
 and one-shot decode authority. These are host contracts, not hardware execution.
 
-This Publisher diagnostic must not be executed or deployed. The launcher reserves
-the application-state allocation, but the publication caller, Publisher asset preload and
-validated session settings remain unintegrated. Publisher/Settings transitions
-stay gated. The current nine-file c64u-package retains Launcher -> Editor -> BASIC.
+This Publisher fit target is a build/ownership diagnostic, not a standalone
+cold-launch product. The production 14-file c64u-package now integrates application
+state, Publisher asset preparation, ACTIVE-bound settings and cached
+Editor -> Publisher -> Settings -> Publisher -> Editor transitions.
 
 Both validation scripts also run `managed_editor_state_test.c`: clear validity
 requires fresh entry without reading the state record; set validity requires exact
@@ -588,7 +588,7 @@ Firmware-1.1 REST quirks documented by the external harness still apply to autom
 
 The asset host suite also checks the resident bootstrap prerequisite: rejected cold arrival/version/length mismatch and DMA failure invalidate the selector; successful selection copies RUNTIME without SD access or turbo changes. Restore the pinned ROM fixture described by `tools/test_reu_vice.sh` when the temporary ROM directory is absent before rerunning the VICE command.
 
-The managed editor host suite checks adoption failure gates, asset revocation before restore/CLEAN, and retry after failed CLEAN persistence without reopening an already-restored I/O scope. The managed overlay-fit root rejects a direct cold launch with `Managed entry failed. Restart launcher.`; only a verified launcher copier arrival may start this diagnostic. Managed publisher transitions remain blocked pending ownership integration.
+The managed editor host suite checks adoption failure gates, asset revocation before restore/CLEAN, and retry after failed CLEAN persistence without reopening an already-restored I/O scope. The managed overlay-fit root rejects a direct cold launch with `Managed entry failed. Restart launcher.`; only a verified cached-transfer arrival may start managed modules. Publisher and Settings ownership transitions are now integrated; complete real-C64U cycle acceptance remains pending.
 
 For the executable diagnostic, build `make -C client managed-handoff-package`.
 This replaces only the diagnostic package's launcher with an executable-transfer
