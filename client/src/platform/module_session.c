@@ -2,10 +2,13 @@
 #include "platform/reu.h"
 #include <string.h>
 
-/* Shared scratch keeps this path off the cc65 software stack. Non-reentrant. */
+/* Shared scratch keeps this path off the cc65 software stack. Non-reentrant.
+ * Managed overlays reuse the reserved $C800 synchronous workspace instead. */
+#ifndef S64_MANAGED_OVERLAY
 uint8_t s64_module_session_wire[S64_MODULE_SESSION_WIRE_SIZE];
 uint8_t s64_module_session_readback[S64_MODULE_SESSION_WIRE_SIZE];
 uint8_t s64_module_session_journal_wire[S64_SESSION_JOURNAL_WIRE_SIZE];
+#endif
 
 uint16_t s64_module_session_checksum(const uint8_t* bytes)
 {
