@@ -69,7 +69,8 @@ def compile_publisher_overlay_fit(client: Path, *, make: str = "make",
               "src/publisher/settings_bridge.c"}
     sources = list(dict.fromkeys([source for source in shlex.split(values["PUBLISHER_SOURCES"])
                                  if source not in legacy]
-                                + list(runtime) + list(CONTENT) + list(RESIDENT_SUPPORT)))
+                                + list(runtime) + list(CONTENT) + list(NETWORK)
+                                + list(RESIDENT_SUPPORT)))
     flags = shlex.split(values["CFLAGS"]) + [
         "-DS64_CODE_ASSET_PUBLISHER=1", "-DS64_MANAGED_OVERLAY=1", "-DS64_REU_BUFFER=1", "-DS64_STANDALONE_ONLY=1", "-DS64_DIRECT_PUBLISHER=1",
     ]
