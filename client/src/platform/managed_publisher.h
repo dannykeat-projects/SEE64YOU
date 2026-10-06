@@ -13,6 +13,6 @@ uint8_t s64_managed_publisher_document(S64ModuleRuntime* runtime,
 /* Prepare the authenticated shared state for Publisher -> Editor. Returns
  * 0 for a safely retryable failure, 1 for success, 2 for recovery-required. */
 uint8_t s64_managed_publisher_return_state(S64ModuleRuntime* runtime,
-    const S64Buffer* body, const S64Document* document, uint8_t replaced,
-    uint8_t* wire);
+    const S64Buffer* body, const S64Document* document,
+    uint8_t changed, uint8_t replaced, uint8_t* wire);
 #endif

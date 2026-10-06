@@ -295,7 +295,7 @@ int main(void)
     runtime.system_state.mode = S64_SYSTEM_MODE_INTERACTIVE;
     runtime.reu_control.state_flags = S64_REU_RUNTIME_STATE_APPLICATION_VALID;
     document.body = &body;
-    assert(s64_managed_publisher_return_state(&runtime, &body, &document, 0u,
+    assert(s64_managed_publisher_return_state(&runtime, &body, &document, 0u, 0u,
         s64_publisher_workspace.bytes) == 1u);
     assert(application_writes == 1u && control_writes == 2u && resume_calls == 1u);
     assert(stored_wire[32] == 11u && stored_wire[36] == S64_MODULE_PUBLISHER);
@@ -324,7 +324,7 @@ int main(void)
     runtime.system_state.restored = 0u;
     runtime.system_state.mode = S64_SYSTEM_MODE_INTERACTIVE;
     runtime.reu_control.state_flags = S64_REU_RUNTIME_STATE_APPLICATION_VALID;
-    assert(s64_managed_publisher_return_state(&runtime, &body, &document, 1u,
+    assert(s64_managed_publisher_return_state(&runtime, &body, &document, 1u, 1u,
         s64_publisher_workspace.bytes) == 1u);
     assert(stored_wire[37] && stored_wire[71]);
     assert(stored_wire[40] == 7u && stored_wire[44] == 0u);
@@ -343,7 +343,7 @@ int main(void)
     runtime.reu_control.state_flags = S64_REU_RUNTIME_STATE_APPLICATION_VALID;
     document.body = &body;
     fail_application_write = 1u;
-    assert(s64_managed_publisher_return_state(&runtime, &body, &document, 0u,
+    assert(s64_managed_publisher_return_state(&runtime, &body, &document, 0u, 0u,
         s64_publisher_workspace.bytes) == 2u);
     assert(!(runtime.reu_control.state_flags & S64_REU_RUNTIME_STATE_APPLICATION_VALID));
     assert(resume_calls == 0u);

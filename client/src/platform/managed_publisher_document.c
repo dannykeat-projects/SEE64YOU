@@ -55,12 +55,11 @@ static uint8_t application_wire_store_verified(S64ModuleRuntime* runtime,
 }
 
 static uint8_t prepare_return_wire(S64ModuleRuntime* runtime,
-    const S64Buffer* body, const S64Document* document, uint8_t replaced,
-    uint8_t* wire)
+    const S64Buffer* body, const S64Document* document,
+    uint8_t changed, uint8_t replaced, uint8_t* wire)
 {
     uint32_t generation;
     uint32_t crc;
-    uint8_t changed;
 
     if (!s64_application_state_load_wire(&runtime->reu_control,
             &runtime->lifecycle.journal, wire)) {
@@ -71,13 +70,6 @@ static uint8_t prepare_return_wire(S64ModuleRuntime* runtime,
      * and avoids a second generic scalar codec in the crowded CONTENT overlay. */
     memcpy(&generation, wire + 32, sizeof(generation));
     if (!generation || generation == 0xffffffffUL) return 0u;
-    changed = wire[76] != (uint8_t)document->type
-        || wire[77] != (uint8_t)document->status
-        || memcmp(wire + 78, &document->order, sizeof(document->order))
-        || memcmp(wire + 82, document->slug, S64_DOCUMENT_SLUG_CAPACITY)
-        || memcmp(wire + 147, document->title, S64_DOCUMENT_TITLE_CAPACITY)
-        || memcmp(wire + 228, document->date, S64_DOCUMENT_DATE_CAPACITY);
-
     if (replaced) {
         memcpy(wire + 40, &body->gap_start, 2u);
         memcpy(wire + 42, &body->gap_end, 2u);
@@ -133,10 +125,11 @@ uint8_t s64_managed_publisher_document(S64ModuleRuntime* runtime,
 }
 
 uint8_t s64_managed_publisher_return_state(S64ModuleRuntime* runtime,
-    const S64Buffer* body, const S64Document* document, uint8_t replaced,
-    uint8_t* wire)
+    const S64Buffer* body, const S64Document* document,
+    uint8_t changed, uint8_t replaced, uint8_t* wire)
 {
-    if (!runtime || !body || !document || !wire || replaced > 1u
+    if (!runtime || !body || !document || !wire
+        || changed > 1u || replaced > 1u
         || document->body != body
         || runtime->current_module != S64_MODULE_PUBLISHER
         || !runtime->lifecycle.active_record_written
@@ -147,7 +140,7 @@ uint8_t s64_managed_publisher_return_state(S64ModuleRuntime* runtime,
         || runtime->system_state.mode != S64_SYSTEM_MODE_INTERACTIVE
         || !(runtime->reu_control.state_flags
             & S64_REU_RUNTIME_STATE_APPLICATION_VALID)
-        || !prepare_return_wire(runtime, body, document, replaced, wire)) {
+        || !prepare_return_wire(runtime, body, document, changed, replaced, wire)) {
         return 0u;
     }
 
