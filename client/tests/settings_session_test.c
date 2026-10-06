@@ -140,6 +140,7 @@ int main(void)
     S64SettingsExchange changed;
     uint8_t sentinel[8];
     uint8_t record[S64_SETTINGS_SESSION_SIZE];
+    unsigned cycle;
 
     memset(reu_bank1, 0, sizeof(reu_bank1));
     init_active(&control, &journal);
@@ -211,6 +212,25 @@ int main(void)
     check("changed settings accepted after republish",
         s64_settings_session_load(&control, &journal, &loaded)
         && memcmp(&changed, &loaded, sizeof(changed)) == 0);
+
+    /* Repeated Settings round trips in one ACTIVE session must replace
+     * authority cleanly rather than accumulating stale session state. */
+    for (cycle = 0u; cycle < 8u; ++cycle) {
+        changed = settings;
+        strcpy(changed.base_url, cycle & 1u
+            ? "http://cycle-a.invalid"
+            : "http://cycle-b.invalid");
+        changed.checksum = s64_settings_exchange_checksum(&changed);
+        check("cycle settings canonical",
+            s64_settings_exchange_validate(&changed));
+        check("cycle settings publish",
+            s64_settings_session_publish(&control, &journal, &changed));
+        memset(&loaded, 0, sizeof(loaded));
+        check("cycle settings load",
+            s64_settings_session_load(&control, &journal, &loaded));
+        check("cycle settings exact",
+            memcmp(&changed, &loaded, sizeof(changed)) == 0);
+    }
 
     check("revoke authority", s64_settings_session_revoke());
     memset(&loaded, 0, sizeof(loaded));
