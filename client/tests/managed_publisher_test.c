@@ -11,11 +11,8 @@
 
 S64PublisherWorkspace s64_publisher_workspace;
 static uint8_t state_ok, wire_ok = 1u;
-static S64ApplicationState loaded_state, stored_state;
+static S64ApplicationState loaded_state;
 static S64ModuleRuntime* expected_runtime;
-static unsigned state_store_calls, control_store_calls, resume_calls;
-static unsigned control_store_fail_at;
-static uint8_t state_store_ok = 1u, resume_ok = 1u;
 uint8_t s64_application_state_load_wire(const S64ReuRuntimeControl* control,
     const S64SessionJournal* journal, uint8_t* wire)
 {
@@ -32,23 +29,106 @@ uint8_t s64_application_state_decode_payload(S64ApplicationState* state,
     *state = loaded_state;
     return 1u;
 }
-uint8_t s64_application_state_store(const S64ReuRuntimeControl* control,
-    const S64SessionJournal* journal, const S64ApplicationState* state,
-    uint8_t* wire)
+static uint8_t stored_wire[S64_APPLICATION_STATE_SIZE];
+static S64ReuRuntimeControl stored_control;
+static S64ReuAllocation application_allocation = {
+    S64_REU_OWNER_RUNTIME, S64_APPLICATION_STATE_FLAG, 0x00030000UL,
+    S64_APPLICATION_STATE_SIZE
+};
+static uint8_t payload_ok = 1u, wire_valid_ok = 1u;
+static unsigned application_writes, control_writes, resume_calls;
+static unsigned fail_application_write, fail_control_write;
+static uint8_t resume_ok = 1u;
+
+static void put16_test(uint8_t* p, uint16_t value)
+{ p[0] = (uint8_t)value; p[1] = (uint8_t)(value >> 8); }
+static void put32_test(uint8_t* p, uint32_t value)
+{ put16_test(p, (uint16_t)value); put16_test(p + 2u, (uint16_t)(value >> 16)); }
+
+uint8_t s64_application_state_load_wire(const S64ReuRuntimeControl* control,
+    const S64SessionJournal* journal, uint8_t* wire)
 {
     assert(control == &expected_runtime->reu_control);
     assert(journal == &expected_runtime->lifecycle.journal);
     assert(wire == s64_publisher_workspace.bytes);
-    ++state_store_calls;
-    if (!state_store_ok) return 0u;
-    stored_state = *state;
+    if (!wire_ok) return 0u;
+    memset(wire, 0, S64_APPLICATION_STATE_SIZE);
+    wire[0] = 0x53u; wire[1] = 0x36u; wire[2] = 0x34u; wire[3] = 0x41u;
+    wire[4] = 1u; wire[5] = S64_REU_RUNTIME_ABI_VERSION;
+    put16_test(wire + 6u, S64_APPLICATION_STATE_SIZE);
+    put32_test(wire + 32u, loaded_state.generation);
+    wire[36] = loaded_state.source_module;
+    wire[37] = loaded_state.document_replaced;
+    put16_test(wire + 40u, loaded_state.editor.buffer.gap_start);
+    put16_test(wire + 42u, loaded_state.editor.buffer.gap_end);
+    put16_test(wire + 44u, loaded_state.editor.buffer.cursor);
+    wire[47] = loaded_state.editor.history.count;
+    wire[71] = loaded_state.editor.dirty;
+    wire[72] = loaded_state.editor.insert_mode;
+    wire[73] = loaded_state.editor.word_wrap;
+    wire[76] = (uint8_t)loaded_state.document.type;
+    wire[77] = (uint8_t)loaded_state.document.status;
+    put32_test(wire + 78u, (uint32_t)loaded_state.document.order);
+    memcpy(wire + 82u, loaded_state.document.slug, S64_DOCUMENT_SLUG_CAPACITY);
+    memcpy(wire + 147u, loaded_state.document.title, S64_DOCUMENT_TITLE_CAPACITY);
+    memcpy(wire + 228u, loaded_state.document.date, S64_DOCUMENT_DATE_CAPACITY);
+    memcpy(wire + 269u, loaded_state.filename, S64_LOCAL_FILENAME_CAPACITY);
+    wire[508] = 1u; /* wire-valid stub owns integrity in host coverage */
     return 1u;
 }
-uint8_t s64_reu_runtime_store_verified(const S64ReuRuntimeControl* control)
+uint8_t s64_application_state_payload_valid(const uint8_t* wire)
+{ (void)wire; return payload_ok; }
+uint8_t s64_application_state_wire_valid(const S64ReuRuntimeControl* control,
+    const S64SessionJournal* journal, const uint8_t* wire)
 {
     assert(control == &expected_runtime->reu_control);
-    ++control_store_calls;
-    return control_store_fail_at != control_store_calls;
+    assert(journal == &expected_runtime->lifecycle.journal);
+    assert(wire == s64_publisher_workspace.bytes);
+    return wire_valid_ok;
+}
+const S64ReuAllocation* s64_application_state_allocation(
+    const S64ReuRuntimeControl* control)
+{
+    assert(control == &expected_runtime->reu_control);
+    return &application_allocation;
+}
+uint32_t s64_crc32_update(uint32_t crc, const void* data, uint16_t length)
+{ (void)data; return crc ^ length; }
+uint8_t s64_reu_runtime_store(const S64ReuRuntimeControl* control)
+{
+    ++control_writes;
+    if (fail_control_write) return 0u;
+    stored_control = *control;
+    return 1u;
+}
+uint8_t s64_reu_runtime_load(S64ReuRuntimeControl* control)
+{
+    *control = stored_control;
+    return 1u;
+}
+uint8_t s64_reu_store(uint8_t bank, uint16_t offset, const void* source,
+    uint16_t length)
+{
+    uint32_t address = ((uint32_t)bank << 16) | offset;
+    if (address == application_allocation.address
+        && length == S64_APPLICATION_STATE_SIZE) {
+        ++application_writes;
+        if (fail_application_write) return 0u;
+        memcpy(stored_wire, source, length);
+    }
+    return 1u;
+}
+uint8_t s64_reu_load(uint8_t bank, uint16_t offset, void* destination,
+    uint16_t length)
+{
+    uint32_t address = ((uint32_t)bank << 16) | offset;
+    if (address >= application_allocation.address
+        && address + length <= application_allocation.address
+            + S64_APPLICATION_STATE_SIZE) {
+        memcpy(destination, stored_wire + (address - application_allocation.address),
+            length);
+    }
+    return 1u;
 }
 S64SystemResult s64_module_runtime_resume_interactive(S64ModuleRuntime* runtime)
 {
@@ -114,26 +194,17 @@ uint8_t s64_code_assets_bind(const S64ReuRuntimeControl* control,
     return bind_ok;
 }
 
-uint8_t s64_reu_load(uint8_t bank, uint16_t offset, void* destination,
-    uint16_t length)
-{
-    (void)bank;
-    (void)offset;
-    (void)destination;
-    (void)length;
-    return 1u;
-}
-
 static void reset(void)
 {
     init_calls = adopt_calls = mode_calls = bind_calls = 0;
-    state_store_calls = control_store_calls = resume_calls = 0;
-    control_store_fail_at = 0u;
-    state_store_ok = resume_ok = 1u;
+    application_writes = control_writes = resume_calls = 0u;
+    fail_application_write = fail_control_write = 0u;
+    payload_ok = wire_valid_ok = resume_ok = 1u;
+    memset(stored_wire, 0, sizeof(stored_wire));
+    memset(&stored_control, 0, sizeof(stored_control));
     event_count = 0;
     adopt_ok = mode_ok = bind_ok = 1u;
     memset(events, 0, sizeof(events));
-    memset(&stored_state, 0, sizeof(stored_state));
 }
 
 int main(void)
@@ -226,11 +297,9 @@ int main(void)
     document.body = &body;
     assert(s64_managed_publisher_return_state(&runtime, &body, &document, 0u,
         s64_publisher_workspace.bytes) == 1u);
-    assert(state_store_calls == 1u && control_store_calls == 2u && resume_calls == 1u);
-    assert(stored_state.generation == 11u
-        && stored_state.source_module == S64_MODULE_PUBLISHER);
-    assert(stored_state.editor.history.count == 3u
-        && !strcmp(stored_state.filename, "owned.s64"));
+    assert(application_writes == 1u && control_writes == 2u && resume_calls == 1u);
+    assert(stored_wire[32] == 11u && stored_wire[36] == S64_MODULE_PUBLISHER);
+    assert(stored_wire[47] == 3u && !strcmp((char*)stored_wire + 269u, "owned.s64"));
     assert(runtime.reu_control.state_flags & S64_REU_RUNTIME_STATE_APPLICATION_VALID);
 
     /* Replacement deliberately resets Editor position/history/local filename. */
@@ -257,11 +326,10 @@ int main(void)
     runtime.reu_control.state_flags = S64_REU_RUNTIME_STATE_APPLICATION_VALID;
     assert(s64_managed_publisher_return_state(&runtime, &body, &document, 1u,
         s64_publisher_workspace.bytes) == 1u);
-    assert(stored_state.document_replaced && stored_state.editor.dirty);
-    assert(stored_state.editor.buffer.gap_start == 7u
-        && stored_state.editor.buffer.cursor == 0u);
-    assert(!stored_state.editor.history.count && !stored_state.filename[0]);
-    assert(stored_state.editor.insert_mode && stored_state.editor.word_wrap);
+    assert(stored_wire[37] && stored_wire[71]);
+    assert(stored_wire[40] == 7u && stored_wire[44] == 0u);
+    assert(!stored_wire[47] && !stored_wire[269]);
+    assert(stored_wire[72] && stored_wire[73]);
 
     /* Failed payload store leaves authority revoked but safely interactive. */
     loaded_state.generation = 30u;
@@ -274,11 +342,11 @@ int main(void)
     runtime.system_state.mode = S64_SYSTEM_MODE_INTERACTIVE;
     runtime.reu_control.state_flags = S64_REU_RUNTIME_STATE_APPLICATION_VALID;
     document.body = &body;
-    state_store_ok = 0u;
+    fail_application_write = 1u;
     assert(s64_managed_publisher_return_state(&runtime, &body, &document, 0u,
-        s64_publisher_workspace.bytes) == 0u);
+        s64_publisher_workspace.bytes) == 2u);
     assert(!(runtime.reu_control.state_flags & S64_REU_RUNTIME_STATE_APPLICATION_VALID));
-    assert(resume_calls == 1u);
+    assert(resume_calls == 0u);
 
     assert(!s64_managed_publisher_adopt(0, &dos, 7u));
     puts("managed publisher adoption/document tests passed");
