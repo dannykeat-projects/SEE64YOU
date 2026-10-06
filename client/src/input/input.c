@@ -269,36 +269,44 @@ void s64_input_shutdown(void)
 #endif
 }
 
-unsigned char s64_input_poll(S64InputEvent* event)
+unsigned char s64_input_read(S64InputEvent* event, unsigned char idle_jiffies)
 {
     unsigned char key;
     unsigned char raw_key;
     unsigned char modifiers;
+    unsigned char idle_start;
 
     event->type = S64_INPUT_NONE;
     event->character = 0u;
     event->column = 0u;
     event->row = 0u;
 
-    s64_input_sync_repeat();
-    modifiers = S64_SHFLAG;
-    raw_key = S64_KEYCODE;
+    idle_start = S64_JIFFY_LOW;
+    for (;;) {
+        s64_input_sync_repeat();
+        modifiers = S64_SHFLAG;
+        raw_key = S64_KEYCODE;
 
 #ifdef S64_REU_BUFFER
-    if (s64_mouse_event(event) || s64_joystick_event(event)) {
-        return 1u;
-    }
+        if (s64_mouse_event(event) || s64_joystick_event(event)) {
+            return 1u;
+        }
 #endif
 
-    if (s64_modifier_ready(raw_key, modifiers, &event->type)) {
-        if (S64_KEY_COUNT != 0u) {
-            (void)cbm_k_getin();
+        if (s64_modifier_ready(raw_key, modifiers, &event->type)) {
+            if (S64_KEY_COUNT != 0u) {
+                (void)cbm_k_getin();
+            }
+            return 1u;
         }
-        return 1u;
-    }
 
-    if (!kbhit()) {
-        return 0u;
+        if (kbhit()) {
+            break;
+        }
+        if (idle_jiffies
+            && (unsigned char)(S64_JIFFY_LOW - idle_start) >= idle_jiffies) {
+            return 0u;
+        }
     }
 
     key = (unsigned char)cgetc();
@@ -395,10 +403,4 @@ unsigned char s64_input_poll(S64InputEvent* event)
         event->character = key;
     }
     return 1u;
-}
-
-void s64_input_read(S64InputEvent* event)
-{
-    while (!s64_input_poll(event)) {
-    }
 }
