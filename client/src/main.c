@@ -38,6 +38,7 @@ static void managed_entry_failed(uint8_t stage)
 #define LINE_TEXT_CAPACITY 6u
 #define AUTOSAVE_SECONDS 30UL
 #define AUTOSAVE_INTERVAL ((clock_t)(AUTOSAVE_SECONDS * (unsigned long)CLOCKS_PER_SEC))
+#define AUTOSAVE_IDLE_INTERVAL ((clock_t)CLOCKS_PER_SEC)
 
 static S64Editor editor;
 static S64Clipboard clipboard;
@@ -190,6 +191,21 @@ static void maybe_autosave(void)
     } else if (!recovery_error_shown) {
         recovery_error_shown = 1u;
         s64_ui_message("Autosave unavailable");
+    }
+}
+
+static void read_editor_input(S64InputEvent* input)
+{
+    clock_t idle_start = clock();
+
+    for (;;) {
+        if (s64_input_poll(input)) {
+            return;
+        }
+        if ((clock_t)(clock() - idle_start) >= AUTOSAVE_IDLE_INTERVAL) {
+            maybe_autosave();
+            idle_start = clock();
+        }
     }
 }
 
@@ -659,8 +675,7 @@ int main(void)
 #endif
 
     while (running) {
-        maybe_autosave();
-        s64_input_read(&input);
+        read_editor_input(&input);
         cursor_only = 0u;
 
         if (input.type == S64_INPUT_MENU || input.type == S64_INPUT_ACTIVATE) {

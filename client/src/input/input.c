@@ -269,7 +269,7 @@ void s64_input_shutdown(void)
 #endif
 }
 
-void s64_input_read(S64InputEvent* event)
+unsigned char s64_input_poll(S64InputEvent* event)
 {
     unsigned char key;
     unsigned char raw_key;
@@ -280,27 +280,25 @@ void s64_input_read(S64InputEvent* event)
     event->column = 0u;
     event->row = 0u;
 
-    for (;;) {
-        s64_input_sync_repeat();
-        modifiers = S64_SHFLAG;
-        raw_key = S64_KEYCODE;
+    s64_input_sync_repeat();
+    modifiers = S64_SHFLAG;
+    raw_key = S64_KEYCODE;
 
 #ifdef S64_REU_BUFFER
-        if (s64_mouse_event(event) || s64_joystick_event(event)) {
-            return;
-        }
+    if (s64_mouse_event(event) || s64_joystick_event(event)) {
+        return 1u;
+    }
 #endif
 
-        if (s64_modifier_ready(raw_key, modifiers, &event->type)) {
-            if (S64_KEY_COUNT != 0u) {
-                (void)cbm_k_getin();
-            }
-            return;
+    if (s64_modifier_ready(raw_key, modifiers, &event->type)) {
+        if (S64_KEY_COUNT != 0u) {
+            (void)cbm_k_getin();
         }
+        return 1u;
+    }
 
-        if (kbhit()) {
-            break;
-        }
+    if (!kbhit()) {
+        return 0u;
     }
 
     key = (unsigned char)cgetc();
@@ -309,28 +307,28 @@ void s64_input_read(S64InputEvent* event)
     if ((modifiers & S64_MOD_CONTROL) != 0u) {
         event->type = s64_control_command(key, modifiers);
         if (event->type != S64_INPUT_NONE) {
-            return;
+            return 1u;
         }
     }
 
     if ((modifiers & S64_MOD_COMMODORE) != 0u) {
         if (key == 'm' || key == 'M') {
             event->type = S64_INPUT_MENU;
-            return;
+            return 1u;
         }
         switch (key) {
             case CH_F1:
                 event->type = S64_INPUT_NEW;
-                return;
+                return 1u;
             case CH_F3:
                 event->type = S64_INPUT_OPEN;
-                return;
+                return 1u;
             case CH_F5:
                 event->type = S64_INPUT_SAVE;
-                return;
+                return 1u;
             case CH_F7:
                 event->type = S64_INPUT_SAVE_AS;
-                return;
+                return 1u;
             default:
                 break;
         }
@@ -339,55 +337,55 @@ void s64_input_read(S64InputEvent* event)
     switch (key) {
         case CH_CURS_LEFT:
             event->type = S64_INPUT_LEFT;
-            return;
+            return 1u;
         case CH_CURS_RIGHT:
             event->type = S64_INPUT_RIGHT;
-            return;
+            return 1u;
         case CH_CURS_UP:
             event->type = S64_INPUT_UP;
-            return;
+            return 1u;
         case CH_CURS_DOWN:
             event->type = S64_INPUT_DOWN;
-            return;
+            return 1u;
         case CH_HOME:
             event->type = S64_INPUT_HOME;
-            return;
+            return 1u;
         case CH_DEL:
             event->type = S64_INPUT_BACKSPACE;
-            return;
+            return 1u;
         case CH_INS:
             event->type = S64_INPUT_TOGGLE_INSERT;
-            return;
+            return 1u;
         case CH_ENTER:
             event->type = S64_INPUT_NEWLINE;
-            return;
+            return 1u;
         case CH_F1:
             event->type = S64_INPUT_TOGGLE_MARK;
-            return;
+            return 1u;
         case CH_F2:
             event->type = S64_INPUT_FIND_NEXT;
-            return;
+            return 1u;
         case CH_F3:
             event->type = S64_INPUT_COPY;
-            return;
+            return 1u;
         case CH_F4:
             event->type = S64_INPUT_FIND_PREVIOUS;
-            return;
+            return 1u;
         case CH_F5:
             event->type = S64_INPUT_CUT;
-            return;
+            return 1u;
         case CH_F6:
             event->type = S64_INPUT_REPLACE;
-            return;
+            return 1u;
         case CH_F7:
             event->type = S64_INPUT_PASTE;
-            return;
+            return 1u;
         case CH_F8:
             event->type = S64_INPUT_HELP;
-            return;
+            return 1u;
         case CH_STOP:
             event->type = S64_INPUT_EXIT;
-            return;
+            return 1u;
         default:
             break;
     }
@@ -395,5 +393,12 @@ void s64_input_read(S64InputEvent* event)
     if (s64_is_printable(key)) {
         event->type = S64_INPUT_CHARACTER;
         event->character = key;
+    }
+    return 1u;
+}
+
+void s64_input_read(S64InputEvent* event)
+{
+    while (!s64_input_poll(event)) {
     }
 }

@@ -468,6 +468,8 @@ When configuration eventually migrates into /sd/SEE64YOU/, test rollback from th
 Validate:
 
 - dirty edit creates/refreshes durable recovery;
+- continuous typing for longer than the 30-second durable interval does not start synchronous SD recovery I/O between keystrokes;
+- after at least one second with no keyboard/joystick/mouse event, an already-due recovery write may run, and subsequent durable writes retain the 30-second interval;
 - restart offers Recover/Discard;
 - recovered source remains dirty;
 - Save/Save As clears stale recovery;
