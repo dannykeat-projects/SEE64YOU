@@ -77,51 +77,6 @@ static uint8_t load_manifest(
         );
 }
 
-static uint8_t session_reserved(
-    const S64ReuRuntimeControl* control,
-    const S64LauncherCodeAssetNamespace* namespace
-)
-{
-    uint8_t i;
-
-    if (!control || !namespace) return 0u;
-    for (i = 0u; i < control->allocation_count; ++i) {
-        const S64ReuAllocation* item = &control->allocations[i];
-        if (item->owner == S64_REU_OWNER_RUNTIME
-            && item->flags == namespace->session_flag) {
-            return 1u;
-        }
-    }
-    return 0u;
-}
-
-static uint8_t clear_ready_sessions(
-    S64LauncherRecoveryRuntime* runtime,
-    const S64LauncherCodeAssetNamespace* editor_namespace,
-    const S64LauncherCodeAssetNamespace* publisher_namespace
-)
-{
-    uint8_t ok = 1u;
-
-    if (session_reserved(&runtime->reu_control, editor_namespace)
-        && !s64_dual_code_assets_clear(
-            editor_namespace,
-            &runtime->reu_control
-        )) {
-        ok = 0u;
-    }
-
-    if (session_reserved(&runtime->reu_control, publisher_namespace)
-        && !s64_dual_code_assets_clear(
-            publisher_namespace,
-            &runtime->reu_control
-        )) {
-        ok = 0u;
-    }
-
-    return ok;
-}
-
 uint8_t s64_launcher_code_assets_prepare(S64LauncherRecoveryRuntime* runtime)
 {
     const S64LauncherCodeAssetNamespace* editor_namespace =
@@ -171,12 +126,7 @@ uint8_t s64_launcher_code_assets_prepare(S64LauncherRecoveryRuntime* runtime)
     }
     runtime->reu_control = planned;
 
-    if (!clear_ready_sessions(
-            runtime,
-            editor_namespace,
-            publisher_namespace
-        )
-        || !s64_dual_code_assets_preload(
+    if (!s64_dual_code_assets_preload(
             editor_namespace,
             &runtime->dos,
             &runtime->reu_control,
@@ -206,10 +156,13 @@ uint8_t s64_launcher_code_assets_prepare(S64LauncherRecoveryRuntime* runtime)
             &runtime->module_manifest.modules[1],
             &publisher_assets
         )) {
-        (void)clear_ready_sessions(
-            runtime,
+        (void)s64_dual_code_assets_clear(
             editor_namespace,
-            publisher_namespace
+            &runtime->reu_control
+        );
+        (void)s64_dual_code_assets_clear(
+            publisher_namespace,
+            &runtime->reu_control
         );
         return 0u;
     }
@@ -231,19 +184,27 @@ S64SessionLifecycleResult s64_launcher_code_assets_end(
     }
 
     if (!runtime->module_session_invalidated
-        && (session_reserved(&runtime->reu_control, editor_namespace)
-            || session_reserved(
-                &runtime->reu_control,
-                publisher_namespace
-            ))) {
+        && runtime->reu_control.allocation_count
+            == S64_REU_RUNTIME_MAX_ALLOCATIONS) {
         if (s64_system_state_set_mode(
                 &runtime->system_state,
                 S64_SYSTEM_MODE_IO_SAFE
-            ) != S64_SYSTEM_OK
-            || !clear_ready_sessions(
-                runtime,
+            ) != S64_SYSTEM_OK) {
+            return S64_SESSION_LIFECYCLE_RESTORE_FAILED;
+        }
+        if (!s64_dual_code_assets_clear(
                 editor_namespace,
-                publisher_namespace
+                &runtime->reu_control
+            )) {
+            (void)s64_dual_code_assets_clear(
+                publisher_namespace,
+                &runtime->reu_control
+            );
+            return S64_SESSION_LIFECYCLE_RESTORE_FAILED;
+        }
+        if (!s64_dual_code_assets_clear(
+                publisher_namespace,
+                &runtime->reu_control
             )) {
             return S64_SESSION_LIFECYCLE_RESTORE_FAILED;
         }
