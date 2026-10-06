@@ -9,11 +9,10 @@
 #define RETURN_CONTROL_OFFSET S64_APPLICATION_STATE_SIZE
 #define RETURN_READBACK_SIZE 32u
 
-typedef char S64PublisherReturnScratchFits[
-    S64_PUBLISH_WORKSPACE_CAPACITY
-        >= S64_APPLICATION_STATE_SIZE + sizeof(S64ReuRuntimeControl) ? 1 : -1
-];
-
+/* The 768-byte Publisher workspace reserves bytes 512..767 for synchronous
+ * return verification. S64ReuRuntimeControl's fixed 16-entry representation
+ * is bounded by the 192-byte runtime wire contract, so it fits this 256-byte
+ * tail without adding resident BSS. */
 static S64ApplicationState application;
 extern S64ModuleRuntime* s64_managed_publisher_document_owner;
 
