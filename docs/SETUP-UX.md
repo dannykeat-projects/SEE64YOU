@@ -181,6 +181,8 @@ Advanced contains:
 
 Security-sensitive downgrades require explicit confirmation.
 
+The current Advanced screen includes a read-only Diagnostics view for package version, UCI/DOS/network capability, optional HTTP target visibility, REU bank count/16 MiB status, authoritative config path and key-import I/O details. It deliberately does not display publishing keys. Broader allocator/cache/recovery/performance/connection diagnostics and export remain follow-on work.
+
 ## Application installation/layout
 
 The intended package eventually presents a simple /sd/SEE64YOU/ folder.

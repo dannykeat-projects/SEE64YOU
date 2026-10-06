@@ -83,7 +83,7 @@ Do not merge/deploy merely because diagnostic validation passes.
   - transactional save + final readback;
   - EDIT OFFLINE path when only networking/publishing is unavailable.
 - [ ] Finish simplified Basic Settings / Advanced Settings separation. Basic now exposes website, publishing-key import/manual replacement/disable, readiness check, save/cancel and the Advanced entry only; plaintext-HTTP policy is Advanced-only. Existing key-import diagnostics are now explicitly reachable from Advanced. Finish moving broader hardware/cache/recovery diagnostics into the integrated Diagnostics screen rather than Basic.
-- [ ] Add an integrated Diagnostics screen/export showing version, firmware/hardware, UCI targets, 16 MiB REU health/usage, module cache, performance mode, storage/recovery and connection state without exposing secrets.
+- [ ] Finish the integrated Diagnostics screen/export. Advanced Settings now has a read-only Diagnostics screen showing package version, UCI, DOS, Network $03, optional HTTP $06, REU bank count/16 MiB status and the authoritative config path, plus a drill-down to key-import I/O results without exposing secrets. Still add firmware/control details, allocator/cache usage, performance mode, recovery state, connection/auth state and export.
 - [ ] Add explicit Exit See64You flow that resolves dirty source, closes resources, restores machine state and marks the session clean.
 
 ## P0 — Make hardware validation routine

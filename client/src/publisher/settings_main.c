@@ -8,6 +8,8 @@
 #include "platform/dos.h"
 #include "platform/reu.h"
 #include "platform/uci.h"
+#include "platform/package_paths.h"
+#include "platform/package_version.h"
 #include "publisher/destination.h"
 #include "publisher/settings_exchange.h"
 #include "publisher/settings_store.h"
@@ -251,7 +253,7 @@ static void render_advanced(void)
     gotoxy(0u, 19u); cputs("7 DISABLE RELAY KEY");
     gotoxy(0u, 20u); cputs("8 LOAD PROFILE");
     gotoxy(0u, 21u); cputs("9 SAVE PROFILE");
-    gotoxy(0u, 22u); cputs("D KEY IMPORT DIAGNOSTICS");
+    gotoxy(0u, 22u); cputs("D DIAGNOSTICS");
     gotoxy(0u, 23u); cputs("S SAVE  B BASIC  STOP CANCEL");
     clear_row(STATUS_ROW);
     gotoxy(0u, STATUS_ROW);
@@ -692,6 +694,44 @@ static void show_direct_key_diagnostics(void)
 }
 
 
+static void show_system_diagnostics(void)
+{
+    uint16_t banks;
+    uint8_t network;
+    unsigned char key;
+
+    banks = s64_reu_probe_banks();
+    network = s64_uci_probe_target(0x03u);
+
+    clrscr();
+    revers(1);
+    cputs(" SEE64YOU DIAGNOSTICS                  ");
+    revers(0);
+    cputs("\r\n\r\n");
+    cputs("UCI:       ");
+    cputs(capabilities.interface_present ? "READY" : "UNAVAILABLE");
+    cputs("\r\nDOS:       ");
+    cputs(capabilities.dos_target ? "READY" : "UNAVAILABLE");
+    cputs("\r\nNETWORK:   ");
+    cputs(network ? "READY" : "UNAVAILABLE");
+    cputs("\r\nHTTP $06:  ");
+    cputs(capabilities.http_target ? "AVAILABLE" : "UNAVAILABLE");
+    cputs("\r\nREU BANKS: ");
+    cprintf("%u", banks);
+    cputs(banks == 256u ? " (16 MB READY)" : " (CHECK REQUIRED)");
+    cputs("\r\nPACKAGE:   ");
+    cprintf("%04X", S64_PACKAGE_VERSION);
+    cputs("\r\nCONFIG:    " S64_PACKAGE_DIRECTORY S64_SETTINGS_FILENAME);
+    cputs("\r\n\r\nK KEY IMPORT DETAILS");
+    cputs("\r\nOTHER KEY RETURN");
+
+    key = (unsigned char)cgetc();
+    if (key == 'k' || key == 'K') {
+        diagnose_direct_key_io();
+        show_direct_key_diagnostics();
+    }
+}
+
 static void import_direct_key(void)
 {
     S64SettingsStoreResult result;
@@ -1013,9 +1053,8 @@ int main(void)
         } else if (key == '9') {
             save_profile();
         } else if (key == 'd' || key == 'D') {
-            diagnose_direct_key_io();
-            show_direct_key_diagnostics();
-            set_status("Key import diagnostics complete");
+            show_system_diagnostics();
+            set_status("Diagnostics complete");
         } else if (key == 'b' || key == 'B') {
             advanced_view = 0u;
             set_status("Basic settings");
