@@ -56,6 +56,8 @@ uint32_t __fastcall__ s64_overlay_runtime_s64_managed_editor_state_revoke(uint32
 { return value + 0x12345678UL; }
 uint32_t __fastcall__ s64_overlay_runtime_s64_reu_runtime_store_verified(uint32_t value)
 { return value ^ 0x87654321UL; }
+uint32_t __fastcall__ s64_overlay_runtime_s64_session_journal_encode(uint32_t value)
+{ return value ^ 0x0f1e2d3cUL; }
 uint32_t __fastcall__ s64_overlay_runtime_s64_system_state_set_mode(uint32_t value)
 { return value + 0x76543210UL; }
 """
@@ -66,12 +68,14 @@ PUBLICATION = """
 extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_application_state_payload_valid(uint32_t);
 extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_managed_editor_state_revoke(uint32_t);
 extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_reu_runtime_store_verified(uint32_t);
+extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_session_journal_encode(uint32_t);
 extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_system_state_set_mode(uint32_t);
 uint32_t __fastcall__ s64_overlay_publication_s64_probe_publication(uint32_t value)
 {
     value = s64_overlay_bridge_prep_s64_application_state_payload_valid(value);
     value = s64_overlay_bridge_prep_s64_managed_editor_state_revoke(value);
     value = s64_overlay_bridge_prep_s64_reu_runtime_store_verified(value);
+    value = s64_overlay_bridge_prep_s64_session_journal_encode(value);
     return s64_overlay_bridge_prep_s64_system_state_set_mode(value);
 }
 """
@@ -161,9 +165,9 @@ int main(void)
         require(s64_probe_resume(0x3456u + i, input) == expected, 9);
         require(reads == before + 5u, 10);
         before = reads;
-        expected = (((input ^ 0x55667788UL) + 0x12345678UL) ^ 0x87654321UL) + 0x76543210UL;
+        expected = ((((input ^ 0x55667788UL) + 0x12345678UL) ^ 0x87654321UL) ^ 0x0f1e2d3cUL) + 0x76543210UL;
         require(s64_probe_publication(input) == expected, 11);
-        require(reads == before + 9u, 12);
+        require(reads == before + 11u, 12);
     }
     *(volatile uint8_t*)0xc060 = 0x80;
     *(volatile uint8_t*)0xc061 = 0xa5;
@@ -181,7 +185,7 @@ def build() -> Path:
     wrappers.write_text(fit.assembler_wrappers({
         "MODEL": [*fit.BRIDGES["FILE"], "s64_probe_resume"],
         "FILE": ["s64_probe_file", *fit.BRIDGES["MODEL"], "s64_application_state_payload_valid"],
-        "RUNTIME": ["s64_probe_runtime", "s64_managed_editor_state_revoke", "s64_reu_runtime_store_verified", "s64_system_state_set_mode"],
+        "RUNTIME": ["s64_probe_runtime", "s64_managed_editor_state_revoke", "s64_reu_runtime_store_verified", "s64_session_journal_encode", "s64_system_state_set_mode"],
         "PUBLICATION": ["s64_probe_publication"],
     }))
     sources = []
