@@ -25,6 +25,7 @@ for resident in ("src/document.c", "src/platform/dos.c", "src/platform/reu.c"):
     assert resident not in publisher.CONTENT + publisher.NETWORK
 assert "diagnostics/managed_publisher_state_fit.c" not in publisher.RESIDENT_SUPPORT
 assert "src/platform/code_overlay_bootstrap.c" in publisher.RESIDENT_SUPPORT
+assert "src/platform/reu_runtime_write.c" in publisher.RESIDENT_SUPPORT
 assert "src/platform/managed_publisher.c" in publisher.RUNTIME_SUPPORT
 assert "src/platform/code_assets_session_read.c" in publisher.RUNTIME_SUPPORT
 assert "src/publisher/settings_session.c" in publisher.NETWORK

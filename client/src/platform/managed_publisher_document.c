@@ -18,12 +18,8 @@ extern S64ModuleRuntime* s64_managed_publisher_document_owner;
 
 static uint8_t control_store_verified(S64ModuleRuntime* runtime, uint8_t* wire)
 {
-    S64ReuRuntimeControl* readback =
-        (S64ReuRuntimeControl*)(wire + RETURN_CONTROL_OFFSET);
-    return s64_reu_runtime_store(&runtime->reu_control)
-        && s64_reu_runtime_load(readback)
-        && memcmp(&runtime->reu_control, readback,
-            sizeof(runtime->reu_control)) == 0;
+    (void)wire;
+    return s64_reu_runtime_store_verified(&runtime->reu_control);
 }
 
 static uint8_t application_wire_store_verified(S64ModuleRuntime* runtime,

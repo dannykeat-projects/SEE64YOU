@@ -94,16 +94,11 @@ const S64ReuAllocation* s64_application_state_allocation(
 }
 uint32_t s64_crc32_update(uint32_t crc, const void* data, uint16_t length)
 { (void)data; return crc ^ length; }
-uint8_t s64_reu_runtime_store(const S64ReuRuntimeControl* control)
+uint8_t s64_reu_runtime_store_verified(const S64ReuRuntimeControl* control)
 {
     ++control_writes;
     if (fail_control_write) return 0u;
     stored_control = *control;
-    return 1u;
-}
-uint8_t s64_reu_runtime_load(S64ReuRuntimeControl* control)
-{
-    *control = stored_control;
     return 1u;
 }
 uint8_t s64_reu_store(uint8_t bank, uint16_t offset, const void* source,

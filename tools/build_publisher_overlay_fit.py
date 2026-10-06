@@ -36,6 +36,7 @@ RESIDENT_SUPPORT = (
     "src/platform/module_transfer.c", "src/platform/module_transfer_stub.s",
     "src/platform/module_arrival.c", "src/platform/basic_return_stub.s",
     "src/platform/crc32.c", "src/platform/code_overlay_bootstrap.c",
+    "src/platform/reu_runtime_write.c",
 )
 RUNTIME_SUPPORT = (
     "src/platform/code_assets_validate.c", "src/platform/code_assets_session.c",
