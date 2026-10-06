@@ -45,7 +45,7 @@ Next work:
 1. Finish physical USB/native keyboard and ordinary editing/file/menu acceptance of the current c64u-package. Preserve original-context/ACTIVE binding, exact manifests and stack/headroom gates; missing/corrupt context keeps a safe CLEAN park.
    - 2026-10-06 fresh-editor hardware observation: first typed characters can be invisible while the editor cursor advances, then appear on a later redraw. The append fast path now explicitly positions conio at the tracked editor cursor, and the UI probe deliberately perturbs conio's cursor before its first append. Real-C64U confirmation is still required.
    - 2026-10-06 responsiveness observation: intermittent multi-second typing stalls matched the synchronous durable recovery write path. The editor now polls input without changing blocking menu/help behavior and only runs `maybe_autosave()` after one full second with no keyboard/joystick/mouse event; continuous typing therefore cannot start SD recovery I/O between keystrokes. The existing 30-second durable cadence remains, with an already-due fresh recovery written on the first genuine pause. CI/VICE and real-C64U responsiveness/recovery acceptance remain required.
-2. Hardware-accept the managed Editor → Publisher → Settings → Publisher → Editor cycle now present in the production package. Software/CI validation covers authenticated application-state publication/return, exact Publisher asset/session authority, canonical ACTIVE-bound settings, destination capsule validation, cached transfer execution and return to Editor without a fresh SD module load. Preserve original-context/ACTIVE binding, 16/16 allocator ownership, synchronous $C800 scratch and all stack/overlay guards. Then implement Publisher → Settings → Publisher and repeated cycles. Authenticated resumed Editor entry remains hardware-proven on firmware 1.1.0 (2026-10-06, final CLEAN 66/package 514).
+2. Hardware-accept the complete managed Editor → Publisher → Settings → Publisher → Editor cycle now present in the production package. Software/CI validation covers authenticated application-state publication/return, exact Publisher asset/session authority, canonical ACTIVE-bound settings, Settings round trips, destination capsule validation, cached transfer execution and return to Editor without a fresh SD module load. Preserve original-context/ACTIVE binding, 16/16 allocator ownership, synchronous $C800 scratch and all stack/overlay guards. Repeated Publisher return-state and Settings authority cycles now have host regression coverage; repeated real-C64U cycles remain pending. Authenticated resumed Editor entry remains hardware-proven on firmware 1.1.0 (2026-10-06, final CLEAN 66/package 514).
 
 Publication placement and the preparation-only caller use an Editor-only
 fourth PUBLICATION overlay (`S64PREP.BIN`). Editor asset manifest/session v2
@@ -55,8 +55,8 @@ a protected original-SYS return workspace beginning at $C800 and remains on the
 already-proven compact Editor-only producer. The current 14-file package now also
 contains the exact managed Publisher root plus `S64POVL.MNF`, `S64PCNT.BIN`,
 `S64PNET.BIN` and `S64PRUN.BIN`. A preparation-only Publisher producer reuses
-the existing Publisher-specialized asset codec inside PUBLICATION/PREP; it is not
-called by production Editor code yet. With its DOS/CRC helpers the measured Editor
+the existing Publisher-specialized asset codec inside PUBLICATION/PREP and is now
+called by the production Editor before first Publisher entry. With its DOS/CRC helpers the measured Editor
 layout is MODEL 15,216, FILE 15,355, RUNTIME 15,275, PUBLICATION 12,645 bytes,
 with resident BSS ending $8A14 below the unchanged $8C00 slot. Invoking Publisher
 preparation consumes the final four allocator entries and requires exactly
