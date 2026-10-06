@@ -201,6 +201,7 @@ int main(void)
     S64Buffer body, before_body;
     S64Document document, before_document;
     uint8_t dirty = 99u, replaced = 99u;
+    unsigned cycle;
     expected_runtime = &runtime;
     memset(&runtime, 0, sizeof(runtime));
     memset(&dos, 0, sizeof(dos));
@@ -317,6 +318,39 @@ int main(void)
     assert(stored_wire[40] == 7u && stored_wire[44] == 0u);
     assert(!stored_wire[47] && !stored_wire[269]);
     assert(stored_wire[72] && stored_wire[73]);
+
+    /* Repeated Publisher returns must keep advancing authority without losing
+     * preserved Editor-side state after the first successful round trip. */
+    for (cycle = 0u; cycle < 4u; ++cycle) {
+        loaded_state.generation = 40u + cycle;
+        loaded_state.source_module = S64_MODULE_EDITOR;
+        loaded_state.document_replaced = 0u;
+        loaded_state.editor.history.count = (uint8_t)(5u + cycle);
+        loaded_state.editor.dirty = 1u;
+        strcpy(loaded_state.filename, "cycle.s64");
+        reset();
+        assert(s64_managed_publisher_adopt(&runtime, &dos, 7u));
+        assert(s64_managed_publisher_document(
+            &runtime, &body, &document, &dirty, &replaced));
+        runtime.current_module = S64_MODULE_PUBLISHER;
+        runtime.lifecycle.active_record_written = 1u;
+        runtime.lifecycle.clean_record_written = 0u;
+        runtime.system_state.captured = 1u;
+        runtime.system_state.restored = 0u;
+        runtime.system_state.mode = S64_SYSTEM_MODE_INTERACTIVE;
+        runtime.reu_control.state_flags =
+            S64_REU_RUNTIME_STATE_APPLICATION_VALID;
+        document.body = &body;
+        assert(s64_managed_publisher_return_state(
+            &runtime, &body, &document, 0u, 0u,
+            s64_publisher_workspace.bytes) == 1u);
+        assert(stored_wire[32] == (uint8_t)(41u + cycle));
+        assert(stored_wire[36] == S64_MODULE_PUBLISHER);
+        assert(stored_wire[47] == (uint8_t)(5u + cycle));
+        assert(!strcmp((char*)stored_wire + 269u, "cycle.s64"));
+        assert(runtime.reu_control.state_flags
+            & S64_REU_RUNTIME_STATE_APPLICATION_VALID);
+    }
 
     /* Failed payload store leaves authority revoked but safely interactive. */
     loaded_state.generation = 30u;
