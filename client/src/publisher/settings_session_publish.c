@@ -56,6 +56,10 @@ uint8_t s64_settings_session_publish(
     uint8_t readback[S64_SETTINGS_SESSION_SIZE];
     uint16_t settings_checksum;
 
+    /* Editor PREP revokes old authority before DOS I/O, streams the exact
+     * persistent settings bytes into the fixed REU region, reads them back
+     * into this object and validates them canonically before calling here.
+     * Publish only the ACTIVE binding; do not rewrite/re-read identical data. */
     if (!settings
         || settings->state != S64_SETTINGS_STATE_READY
         || !s64_settings_exchange_validate(settings)
@@ -64,22 +68,7 @@ uint8_t s64_settings_session_publish(
         || journal->state != S64_SESSION_STATE_ACTIVE
         || !journal->sequence
         || journal->session_id != control->session_id
-        || journal->package_version != control->app_version
-        || !s64_settings_session_revoke()
-        || !s64_reu_store(
-            S64_REU_SETTINGS_BANK,
-            S64_REU_SETTINGS_BASE,
-            settings,
-            (uint16_t)sizeof(*settings)
-        )
-        || !s64_reu_load(
-            S64_REU_SETTINGS_BANK,
-            S64_REU_SETTINGS_BASE,
-            settings,
-            (uint16_t)sizeof(*settings)
-        )
-        || settings->state != S64_SETTINGS_STATE_READY
-        || !s64_settings_exchange_validate(settings)) {
+        || journal->package_version != control->app_version) {
         return 0u;
     }
 
