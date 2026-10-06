@@ -137,22 +137,18 @@ static uint8_t load_manifest(
         );
 }
 
-static uint8_t rollback_control(
+static void rollback_control(
     S64ModuleRuntime* runtime,
     const S64ReuRuntimeControl* original
 )
 {
-    if (!runtime || !original) return 0u;
-
     /* A stale S64Q record is harmless once its allocation disappears from the
      * verified control, but clear it first when the new allocation is usable. */
     (void)s64_code_assets_clear(&runtime->reu_control);
     runtime->reu_control = *original;
     if (!s64_reu_runtime_store_verified(&runtime->reu_control)) {
         runtime->shared_invalidated = 1u;
-        return 0u;
     }
-    return 1u;
 }
 
 uint8_t s64_managed_editor_publisher_assets_prepare(
@@ -183,10 +179,7 @@ uint8_t s64_managed_editor_publisher_assets_prepare(
         || runtime->reu_control.allocation_count
             != S64_REU_RUNTIME_MAX_ALLOCATIONS
         || !s64_reu_runtime_store_verified(&runtime->reu_control)) {
-        runtime->reu_control = original;
-        if (!s64_reu_runtime_store_verified(&runtime->reu_control)) {
-            runtime->shared_invalidated = 1u;
-        }
+        rollback_control(runtime, &original);
         return 0u;
     }
 
@@ -203,7 +196,7 @@ uint8_t s64_managed_editor_publisher_assets_prepare(
             &runtime->module_manifest.modules[S64_MODULE_PUBLISHER - 1u],
             &assets
         )) {
-        (void)rollback_control(runtime, &original);
+        rollback_control(runtime, &original);
         return 0u;
     }
 
