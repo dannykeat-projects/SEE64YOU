@@ -1,5 +1,4 @@
 #include "platform/module_runtime.h"
-#include "platform/package_paths.h"
 
 static uint8_t s64_pubprep_reu_runtime_allocate(
     S64ReuRuntimeControl* control,
@@ -48,6 +47,7 @@ static uint8_t s64_pubprep_reu_runtime_allocate(
  * resident Editor-namespace consumer remains independent.
  */
 #define S64_CODE_ASSET_PUBLISHER 1
+#define S64_CODE_ASSET_PRESELECTED_DIRECTORY 1
 #define s64_code_assets_parse s64_pubprep_code_assets_parse
 #define s64_code_assets_allocate s64_pubprep_code_assets_allocate
 #define s64_code_assets_preload s64_pubprep_code_assets_preload
@@ -107,7 +107,6 @@ static uint8_t load_manifest(
     uint16_t read = 0u;
 
     if (!runtime || !runtime->dos || !assets || !scratch
-        || s64_dos_change_dir(runtime->dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK
         || s64_dos_open_read(runtime->dos,
             S64_CODE_ASSET_MANIFEST_FILENAME) != S64_DOS_OK) {
         return 0u;

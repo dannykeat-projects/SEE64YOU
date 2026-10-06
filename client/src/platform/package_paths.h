@@ -9,6 +9,7 @@
  * Persistent SEE64YOU.CFG and session journals deliberately remain at their
  * hardware-proven locations until their separate transactional migration.
  */
+#define S64_SD_ROOT_DIRECTORY "/sd/"
 #define S64_PACKAGE_DIRECTORY "/sd/SEE64YOU/"
 
 #endif

@@ -8,6 +8,7 @@
 #include "input/input.h"
 #include "menu.h"
 #include "platform/dos.h"
+#include "platform/package_paths.h"
 #include "platform/uci.h"
 #ifdef S64_REU_BUFFER
 #include "platform/chain.h"
@@ -158,15 +159,21 @@ static void launch_publisher(void)
      * reuse the exact verified namespace; its consumer still rejects stale or
      * corrupt S64Q authority before any later executable transfer. */
     if (managed_runtime.reu_control.allocation_count
-            < S64_REU_RUNTIME_MAX_ALLOCATIONS
-        && !s64_managed_editor_pub_assets_prepare(
-            &managed_runtime, S64_BASIC_RETURN_WORKSPACE)) {
-        if (s64_module_runtime_resume_interactive(&managed_runtime)
-                != S64_SYSTEM_OK) {
+            < S64_REU_RUNTIME_MAX_ALLOCATIONS) {
+        if (s64_dos_change_dir(&dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK
+            || !s64_managed_editor_pub_assets_prepare(
+                &managed_runtime, S64_BASIC_RETURN_WORKSPACE)) {
+            (void)s64_dos_change_dir(&dos, S64_SD_ROOT_DIRECTORY);
+            if (s64_module_runtime_resume_interactive(&managed_runtime)
+                    != S64_SYSTEM_OK) {
+                managed_entry_failed(5u);
+            }
+            s64_ui_message("Publisher assets unavailable");
+            return;
+        }
+        if (s64_dos_change_dir(&dos, S64_SD_ROOT_DIRECTORY) != S64_DOS_OK) {
             managed_entry_failed(5u);
         }
-        s64_ui_message("Publisher assets unavailable");
-        return;
     }
 
     if (!s64_managed_editor_settings_prepare(
@@ -684,6 +691,7 @@ int main(void)
             1u, S64_PACKAGE_VERSION, s64_code_overlay_linked_lengths,
             (void*)S64_CODE_OVERLAY_ADDRESS, s64_reu_load)) managed_entry_failed(3u);
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
+    if (s64_dos_change_dir(&dos, S64_SD_ROOT_DIRECTORY) != S64_DOS_OK) managed_entry_failed(4u);
     if (!s64_managed_editor_adopt(&managed_runtime, &dos, S64_PACKAGE_VERSION)) managed_entry_failed(4u);
     managed_entry = s64_managed_editor_state_prepare(&managed_runtime, S64_BASIC_RETURN_WORKSPACE);
     if (!managed_entry) managed_entry_failed(7u);

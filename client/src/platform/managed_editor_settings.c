@@ -1,6 +1,7 @@
 #include "platform/managed_editor_settings.h"
 
 #include "platform/reu.h"
+#include "platform/package_paths.h"
 #include "publisher/settings_session.h"
 #include "publisher/settings_store.h"
 
@@ -29,7 +30,7 @@ uint8_t s64_managed_editor_settings_prepare(
      * fixed-size file directly into the existing REU settings reservation, so
      * no extra C-side read/copy buffer is needed. */
     if (!s64_settings_session_revoke()
-        || s64_dos_change_dir(runtime->dos, "/sd/") != S64_DOS_OK
+        || s64_dos_change_dir(runtime->dos, S64_SD_ROOT_DIRECTORY) != S64_DOS_OK
         || s64_dos_open_read(runtime->dos, S64_SETTINGS_FILENAME)
             != S64_DOS_OK) {
         return 0u;
