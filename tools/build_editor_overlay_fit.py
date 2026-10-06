@@ -54,6 +54,7 @@ GROUPS: dict[str, tuple[str, ...]] = {
     "PUBLICATION": (
         "src/platform/managed_editor_prepare.c",
         "src/platform/managed_editor_publish.c",
+        "src/platform/managed_editor_publisher_assets.c",
         "src/platform/application_state_editor.c",
         "src/platform/application_state_build.c",
     ),
@@ -502,6 +503,7 @@ def compile_editor_overlay_fit(
                                   "src/platform/application_state_wire.c",
                                   "src/platform/managed_editor_publish.c",
                                   "src/platform/managed_editor_prepare.c",
+                                  "src/platform/managed_editor_publisher_assets.c",
                                   "src/platform/application_state_editor.c",
                                   "src/platform/application_state_build.c",
                                   "src/platform/basic_return_stub.s", "src/platform/crc32.c"]))
