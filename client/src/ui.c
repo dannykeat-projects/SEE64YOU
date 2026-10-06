@@ -488,6 +488,9 @@ void s64_ui_render_append(const S64Editor* editor, unsigned char value)
 
     hide_editor_cursor();
     revers(0);
+    /* The fast append path must not depend on whatever conio call last moved
+     * its own cursor. The editor cursor is tracked independently in screen RAM. */
+    gotoxy(col, row);
     if (value == '\n') {
         col = 0u;
         ++row;

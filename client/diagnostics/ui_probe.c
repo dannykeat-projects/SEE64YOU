@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include <conio.h>\n#include <stdint.h>
 
 #include "editor.h"
 #include "ui.h"
@@ -64,6 +64,10 @@ int main(void)
     DIAG_PROGRESS = 0x03u;
     s64_ui_render(&editor);
     DIAG_PROGRESS = 0x04u;
+
+    /* Reproduce a real-world hazard for the append fast path: other UI code
+     * may leave conio's cursor somewhere unrelated to the editor cursor. */
+    gotoxy(39u, 24u);
 
     append_text(
         "0123456789012345678901234567890123456789012345\n"
