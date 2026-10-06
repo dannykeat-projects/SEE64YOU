@@ -57,8 +57,6 @@ uint8_t s64_managed_editor_settings_prepare(
             settings,
             (uint16_t)sizeof(*settings)
         )
-        && settings->state == S64_SETTINGS_STATE_READY
-        && s64_settings_exchange_validate(settings)
         && s64_settings_session_publish(
             &runtime->reu_control,
             &runtime->lifecycle.journal,
