@@ -26,12 +26,6 @@ uint8_t s64_dual_code_assets_count(S64ModuleId module)
     return 0u;
 }
 
-static uint8_t session_flag(S64ModuleId module)
-{ return module == S64_MODULE_PUBLISHER ? 5u : 3u; }
-
-static uint8_t cache_flag(S64ModuleId module)
-{ return module == S64_MODULE_PUBLISHER ? 0x31u : 0x21u; }
-
 static const char* asset_filename(S64ModuleId module, uint8_t index)
 {
     if (module == S64_MODULE_PUBLISHER) {
@@ -78,7 +72,7 @@ static uint8_t assets_valid(
 )
 {
     uint8_t count = s64_dual_code_assets_count(module);
-    uint8_t base = cache_flag(module);
+    uint8_t base = module == S64_MODULE_PUBLISHER ? 0x31u : 0x21u;
     uint8_t i, j, matches;
 
     if (!count || !assets || !s64_reu_runtime_valid(control)
@@ -119,7 +113,7 @@ static const S64ReuAllocation* session_allocation(
 )
 {
     const S64ReuAllocation* found = 0;
-    uint8_t flag = session_flag(module);
+    uint8_t flag = module == S64_MODULE_PUBLISHER ? 5u : 3u;
     uint16_t length = session_size(module);
     uint8_t i;
 
