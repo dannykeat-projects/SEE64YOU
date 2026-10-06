@@ -27,7 +27,9 @@ static uint8_t load_manifest(
 {
     S64AssetManifestRead manifest_read;
     S64DosResult result, closed;
-    const char* filename = s64_dual_code_assets_manifest_filename(module);
+    const char* filename = module == S64_MODULE_EDITOR
+        ? "S64OVL.MNF"
+        : (module == S64_MODULE_PUBLISHER ? "S64POVL.MNF" : 0);
     uint16_t expected =
         (uint16_t)(28u + (uint16_t)s64_dual_code_assets_count(module) * 8u);
     uint32_t size;

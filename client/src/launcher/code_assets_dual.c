@@ -32,13 +32,6 @@ static uint8_t session_flag(S64ModuleId module)
 static uint8_t cache_flag(S64ModuleId module)
 { return module == S64_MODULE_PUBLISHER ? 0x31u : 0x21u; }
 
-const char* s64_dual_code_assets_manifest_filename(S64ModuleId module)
-{
-    if (module == S64_MODULE_EDITOR) return "S64OVL.MNF";
-    if (module == S64_MODULE_PUBLISHER) return "S64POVL.MNF";
-    return 0;
-}
-
 static const char* asset_filename(S64ModuleId module, uint8_t index)
 {
     if (module == S64_MODULE_PUBLISHER) {
@@ -55,9 +48,6 @@ static const char* asset_filename(S64ModuleId module, uint8_t index)
     }
     return 0;
 }
-
-static uint16_t manifest_size(S64ModuleId module)
-{ return (uint16_t)(28u + (uint16_t)s64_dual_code_assets_count(module) * 8u); }
 
 static uint16_t session_size(S64ModuleId module)
 { return (uint16_t)(48u + (uint16_t)s64_dual_code_assets_count(module) * 16u); }
@@ -180,7 +170,8 @@ uint8_t s64_dual_code_assets_parse(
 {
     S64CodeAssets parsed;
     uint8_t count = s64_dual_code_assets_count(module);
-    uint16_t expected = manifest_size(module);
+    uint16_t expected = (uint16_t)(28u
+        + (uint16_t)s64_dual_code_assets_count(module) * 8u);
     uint16_t crc_offset = (uint16_t)(expected - 4u);
     uint8_t i;
 

@@ -4,7 +4,6 @@
 #include "platform/code_assets.h"
 
 uint8_t s64_dual_code_assets_count(S64ModuleId module);
-const char* s64_dual_code_assets_manifest_filename(S64ModuleId module);
 
 uint8_t s64_dual_code_assets_parse(
     S64ModuleId module,
