@@ -27,6 +27,8 @@ assert "diagnostics/managed_publisher_state_fit.c" not in publisher.RESIDENT_SUP
 assert "src/platform/code_overlay_bootstrap.c" in publisher.RESIDENT_SUPPORT
 assert "src/platform/managed_publisher.c" in publisher.RUNTIME_SUPPORT
 assert "src/platform/code_assets_session_read.c" in publisher.RUNTIME_SUPPORT
+assert "src/publisher/settings_session.c" in publisher.RUNTIME_SUPPORT
+assert "src/publisher/settings_validate.c" in publisher.RUNTIME_SUPPORT
 assert "src/platform/application_state.c" in publisher.CONTENT
 assert "src/platform/application_state_payload.c" in publisher.CONTENT
 assert "src/platform/managed_publisher_document.c" in publisher.CONTENT

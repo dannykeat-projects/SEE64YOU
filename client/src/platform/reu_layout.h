@@ -25,6 +25,12 @@
 #define S64_REU_SETTINGS_BASE 64512u
 #define S64_REU_SETTINGS_CAPACITY 768u
 
+/* Managed Publisher authority uses only the otherwise-unused final 256 bytes
+ * of the settings reservation; the canonical S64SettingsExchange remains at
+ * S64_REU_SETTINGS_BASE for compatibility with the Settings helper. */
+#define S64_REU_SETTINGS_SESSION_BASE (S64_REU_SETTINGS_BASE + 512u)
+#define S64_REU_SETTINGS_SESSION_CAPACITY 256u
+
 #define S64_REU_HANDOFF_BANK 1u
 #define S64_REU_HANDOFF_BASE 65280u
 #define S64_REU_HANDOFF_CAPACITY 256u

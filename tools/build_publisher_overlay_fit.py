@@ -39,6 +39,7 @@ RESIDENT_SUPPORT = (
 RUNTIME_SUPPORT = (
     "src/platform/code_assets_validate.c", "src/platform/code_assets_session.c",
     "src/platform/code_assets_session_read.c", "src/platform/managed_publisher.c",
+    "src/publisher/settings_session.c", "src/publisher/settings_validate.c",
 )
 BRIDGES = {
     "CONTENT": (
