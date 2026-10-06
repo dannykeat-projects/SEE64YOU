@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include "platform/package_paths.h"
 #define main probe_main
 #include "../diagnostics/settings_exchange_probe.c"
 #undef main
@@ -71,7 +72,10 @@ S64UciResult s64_uci_execute(const S64UciCommandPart* parts, uint8_t count, S64U
             assert((length == strlen(PROBE_TEMP) && memcmp(name, PROBE_TEMP, length) == 0)
                 || (length == strlen(PROBE_FINAL) && memcmp(name, PROBE_FINAL, length) == 0)
                 || (length == strlen(S64_DIRECT_KEY_FILENAME) && memcmp(name, S64_DIRECT_KEY_FILENAME, length) == 0)
-                || (length == 4 && memcmp(name, "/sd/", 4) == 0));
+                || (length == strlen(S64_PACKAGE_DIRECTORY)
+                    && memcmp(name, S64_PACKAGE_DIRECTORY, length) == 0)
+                || (length == strlen(S64_SD_ROOT_DIRECTORY)
+                    && memcmp(name, S64_SD_ROOT_DIRECTORY, length) == 0));
         }
     }
     if (opcode == 2 && parts[0].data[2] != 1) {
