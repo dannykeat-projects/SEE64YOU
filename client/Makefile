@@ -43,7 +43,7 @@ C64U_SOURCES := $(filter-out src/buffer.c src/history.c,$(SOURCES)) src/buffer_r
 # Destinations validate existing state; allocation and manifest parsing stay in the launcher.
 MANAGED_EDITOR_RUNTIME_SOURCES := src/platform/code_overlay_bootstrap.c src/platform/module_arrival.c src/platform/module_runtime.c src/platform/transfer_capsule.c src/platform/module_session.c src/platform/module_session_read.c src/platform/module_manifest.c src/platform/reu_runtime.c src/platform/session_lifecycle.c src/platform/session_journal.c src/platform/system_state.c src/platform/turbo.c
 MANAGED_SETTINGS_RUNTIME_SOURCES := $(filter-out src/platform/code_overlay_bootstrap.c,$(MANAGED_EDITOR_RUNTIME_SOURCES)) src/platform/transfer_capsule_write.c src/platform/module_transition.c src/platform/module_transfer.c src/platform/module_transfer_stub.s src/publisher/settings_session.c
-MANAGED_SETTINGS_SOURCES := $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES))
+MANAGED_SETTINGS_SOURCES = $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES))
 CODE_ASSET_RUNTIME_SOURCES := src/platform/code_assets_validate.c src/platform/code_assets_session.c src/platform/code_assets_session_read.c
 CODE_ASSET_SOURCES := src/platform/code_assets.c src/platform/code_assets_validate.c src/platform/code_assets_session.c src/platform/code_assets_session_build.c
 EDITOR_PROBE_SOURCES := diagnostics/editor_probe.c src/buffer.c src/history.c src/clipboard.c src/editor.c src/editor_format.c
