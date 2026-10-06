@@ -119,7 +119,7 @@ static void prepare(void)
     reu_record.allow_insecure_http = 1;
     strcpy(reu_record.direct_key, direct_secret);
     strcpy(reu_record.relay_key, relay_secret);
-    reu_record.checksum = settings_checksum(&reu_record);
+    reu_record.checksum = s64_settings_exchange_checksum(&reu_record);
     backup = reu_record;
 }
 
