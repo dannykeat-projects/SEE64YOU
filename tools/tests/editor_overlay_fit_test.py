@@ -103,6 +103,10 @@ s64_message(
     assert FIT.GROUPS["PUBLICATION"] == (
         "src/platform/managed_editor_prepare.c",
         "src/platform/managed_editor_publish.c",
+        "src/platform/managed_editor_publisher_assets.c",
+        "src/platform/dos_file.c",
+        "src/platform/dos_reu.c",
+        "src/platform/module_integrity.c",
         "src/platform/application_state_editor.c",
         "src/platform/application_state_build.c",
     )
@@ -110,6 +114,7 @@ s64_message(
         "s64_application_state_payload_valid",
         "s64_managed_editor_state_revoke",
         "s64_reu_runtime_store_verified",
+        "s64_session_journal_encode",
         "s64_system_state_set_mode",
     )
 
