@@ -12,7 +12,6 @@ uint8_t s64_managed_editor_settings_prepare(
 {
     S64SettingsExchange* settings = (S64SettingsExchange*)scratch;
     S64DosResult result;
-    uint32_t size;
 
     if (!runtime || !runtime->dos || !scratch
         || runtime->current_module != S64_MODULE_EDITOR
@@ -37,13 +36,13 @@ uint8_t s64_managed_editor_settings_prepare(
         }
         result = s64_dos_open_read(runtime->dos, S64_SETTINGS_FILENAME);
     }
-    if (result != S64_DOS_OK
-        || s64_dos_file_size(runtime->dos, &size) != S64_DOS_OK
-        || size != (uint32_t)sizeof(*settings)) {
+    if (result != S64_DOS_OK) {
         (void)s64_dos_close(runtime->dos);
         return 0u;
     }
 
+    /* Ultimate-DOS $21 is an exact-length transfer: dos_reu validates both
+     * the reported byte count and destination address before returning OK. */
     result = s64_dos_load_reu(
         runtime->dos,
         ((uint32_t)S64_REU_SETTINGS_BANK << 16)
