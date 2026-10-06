@@ -16,39 +16,6 @@
 static S64ApplicationState application;
 extern S64ModuleRuntime* s64_managed_publisher_document_owner;
 
-static uint16_t get16(const uint8_t* p)
-{
-    return (uint16_t)(p[0] | ((uint16_t)p[1] << 8));
-}
-
-static uint32_t get32(const uint8_t* p)
-{
-    return (uint32_t)get16(p) | ((uint32_t)get16(p + 2u) << 16);
-}
-
-static void put16(uint8_t* p, uint16_t value)
-{
-    p[0] = (uint8_t)value;
-    p[1] = (uint8_t)(value >> 8);
-}
-
-static void put32(uint8_t* p, uint32_t value)
-{
-    put16(p, (uint16_t)value);
-    put16(p + 2u, (uint16_t)(value >> 16));
-}
-
-static uint8_t metadata_changed(const uint8_t* wire,
-    const S64Document* document)
-{
-    return wire[76] != (uint8_t)document->type
-        || wire[77] != (uint8_t)document->status
-        || get32(wire + 78) != (uint32_t)document->order
-        || memcmp(wire + 82, document->slug, S64_DOCUMENT_SLUG_CAPACITY)
-        || memcmp(wire + 147, document->title, S64_DOCUMENT_TITLE_CAPACITY)
-        || memcmp(wire + 228, document->date, S64_DOCUMENT_DATE_CAPACITY);
-}
-
 static uint8_t control_store_verified(S64ModuleRuntime* runtime, uint8_t* wire)
 {
     S64ReuRuntimeControl* readback =
@@ -92,6 +59,7 @@ static uint8_t prepare_return_wire(S64ModuleRuntime* runtime,
     uint8_t* wire)
 {
     uint32_t generation;
+    uint32_t crc;
     uint8_t changed;
 
     if (!s64_application_state_load_wire(&runtime->reu_control,
@@ -99,18 +67,25 @@ static uint8_t prepare_return_wire(S64ModuleRuntime* runtime,
         return 0u;
     }
 
-    generation = get32(wire + 32);
+    /* C64/cc65 and the wire are both little-endian. memcpy keeps this compact
+     * and avoids a second generic scalar codec in the crowded CONTENT overlay. */
+    memcpy(&generation, wire + 32, sizeof(generation));
     if (!generation || generation == 0xffffffffUL) return 0u;
-    changed = metadata_changed(wire, document);
+    changed = wire[76] != (uint8_t)document->type
+        || wire[77] != (uint8_t)document->status
+        || memcmp(wire + 78, &document->order, sizeof(document->order))
+        || memcmp(wire + 82, document->slug, S64_DOCUMENT_SLUG_CAPACITY)
+        || memcmp(wire + 147, document->title, S64_DOCUMENT_TITLE_CAPACITY)
+        || memcmp(wire + 228, document->date, S64_DOCUMENT_DATE_CAPACITY);
 
     if (replaced) {
-        put16(wire + 40, body->gap_start);
-        put16(wire + 42, body->gap_end);
-        put16(wire + 44, 0u);
+        memcpy(wire + 40, &body->gap_start, 2u);
+        memcpy(wire + 42, &body->gap_end, 2u);
+        wire[44] = wire[45] = 0u;
         /* History, viewport, selection and preferred-position controls. */
         memset(wire + 46, 0, 25u);
-        put16(wire + 56, 1u);
-        put16(wire + 58, 1u);
+        wire[56] = wire[58] = 1u;
+        wire[57] = wire[59] = 0u;
         wire[71] = 1u;
         memset(wire + 269, 0, S64_LOCAL_FILENAME_CAPACITY);
         wire[37] = 1u;
@@ -118,18 +93,19 @@ static uint8_t prepare_return_wire(S64ModuleRuntime* runtime,
         wire[71] = 1u;
     }
 
+    ++generation;
+    memcpy(wire + 32, &generation, sizeof(generation));
     wire[36] = S64_MODULE_PUBLISHER;
-    put32(wire + 32, generation + 1UL);
     wire[76] = (uint8_t)document->type;
     wire[77] = (uint8_t)document->status;
-    put32(wire + 78, (uint32_t)document->order);
+    memcpy(wire + 78, &document->order, sizeof(document->order));
     memcpy(wire + 82, document->slug, S64_DOCUMENT_SLUG_CAPACITY);
     memcpy(wire + 147, document->title, S64_DOCUMENT_TITLE_CAPACITY);
     memcpy(wire + 228, document->date, S64_DOCUMENT_DATE_CAPACITY);
 
     if (!s64_application_state_payload_valid(wire)) return 0u;
-    put32(wire + 508,
-        s64_crc32_update(0xffffffffUL, wire, 508u) ^ 0xffffffffUL);
+    crc = s64_crc32_update(0xffffffffUL, wire, 508u) ^ 0xffffffffUL;
+    memcpy(wire + 508, &crc, sizeof(crc));
     return s64_application_state_wire_valid(&runtime->reu_control,
         &runtime->lifecycle.journal, wire);
 }
