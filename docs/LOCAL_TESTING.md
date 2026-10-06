@@ -648,3 +648,18 @@ execution remains gated.
 Editor SHA256: c17a1ab0958078bf38dcb00cb098e41d10c7b1c6d9656fd517681150541953a4.
 Launcher SHA256: e71649f248c6112eafcc0499b939d9ef1b418adbf22308fcb4e3dae860e69a22.
 Evidence/backups: ignored client/build/hardware-editor-resume-20261005/.
+
+
+### App-folder settings migration
+
+For an upgrade test, begin with the 14 runtime package files in `/sd/SEE64YOU/` and a valid legacy `/sd/SEE64YOU.CFG` only.
+
+1. Open Settings or otherwise trigger a normal settings load.
+2. Require the legacy configuration to load unchanged.
+3. Verify `/sd/SEE64YOU/SEE64YOU.CFG` exists and reopens with the same canonical values/checksum.
+4. Only after that verified copy exists, the old root `/sd/SEE64YOU.CFG` may disappear.
+5. Simulate a failed app-folder write/readback and verify the legacy root file remains intact and the migration reports failure.
+6. Verify Publisher entry can still use the root fallback before migration and prefers the app-folder file afterward.
+7. Verify profiles are written under `/sd/SEE64YOU/`; `SEE64KEY.TXT` may be imported from either the app folder or SD root.
+
+Do not move `S64JRN0.DAT` / `S64JRN1.DAT` as part of this test. Their recovery-safe migration is a separate change.

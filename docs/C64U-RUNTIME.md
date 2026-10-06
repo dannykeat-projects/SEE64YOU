@@ -592,7 +592,7 @@ Therefore:
 
 The setup wizard may recommend/require a register-controllable turbo mode if automatic performance management proves worthwhile, while preserving the user's selected underlying speed policy.
 
-Runtime package files now live under `/sd/SEE64YOU/` so installation is a single application folder. Module PRGs, manifests and overlay assets use the absolute package directory and no longer depend on the Ultimate-DOS working directory. The persistent `/sd/SEE64YOU.CFG` and session-journal locations remain unchanged until their separately verified transactional migration.
+Runtime package files now live under `/sd/SEE64YOU/` so installation is a single application folder. Module PRGs, manifests and overlay assets use the absolute package directory and no longer depend on the Ultimate-DOS working directory. Publishing configuration is now authoritative at `/sd/SEE64YOU/SEE64YOU.CFG`. A valid legacy `/sd/SEE64YOU.CFG` is copied through the existing transactional save path, reopened and canonically validated before the root copy is retired best-effort; migration failure leaves the legacy copy untouched. Editor PREP prefers the app-folder file and retains a legacy-root read fallback until migration occurs. Session journals remain at `/sd/` pending a separate migration that preserves their exact two-slot ACTIVE/CLEAN records and sequence authority.
 
 ## 18. UI transition behaviour
 

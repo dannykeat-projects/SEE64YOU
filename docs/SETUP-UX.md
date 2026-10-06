@@ -203,7 +203,7 @@ Normal transitions use validated REU-cached modules, not software IEC.
 
 Persistent settings are durable SD state. REU is fast working/cache state, not the sole durable copy.
 
-The current /sd/SEE64YOU.CFG has passed real-hardware cold persistence testing. Do not move it merely for folder neatness. Migration to the final application directory must write, reopen and verify the new copy before retiring the old location.
+The original `/sd/SEE64YOU.CFG` passed real-hardware cold persistence testing. The implemented migration now makes `/sd/SEE64YOU/SEE64YOU.CFG` authoritative only after the new copy is transactionally written, reopened and canonically verified; failure leaves the legacy root copy untouched. Editor PREP retains a root fallback during this migration window. Session journals remain at the root until their own exact-record recovery-safe migration is implemented.
 
 ## Error handling
 
