@@ -97,6 +97,9 @@ static char key_diag_open[S64_KEY_DIAG_STATUS_CAPACITY];
 static char key_diag_read[S64_KEY_DIAG_STATUS_CAPACITY];
 static char key_diag_close[S64_KEY_DIAG_STATUS_CAPACITY];
 static uint16_t key_diag_bytes;
+static uint8_t advanced_view;
+
+static uint8_t validate_settings(void);
 
 #ifdef S64_SETTINGS_SAVE_TRACE
 static void end_save_trace(const char* stage, uint8_t result)
@@ -194,13 +197,45 @@ static void print_value(unsigned char row, const char* label, const char* value)
     }
 }
 
-static void render(void)
+static void render_basic(void)
 {
     clrscr();
     revers(1);
     gotoxy(0u, 0u);
-    cputs(" SEE64YOU PUBLISHING SETTINGS          ");
+    cputs(" SEE64YOU SETTINGS                     ");
     revers(0);
+    print_value(3u, "Website: ", settings.base_url[0] != '\0'
+        ? settings.base_url : "(not set)");
+    print_value(5u, "Publishing key: ", settings.direct_key[0] != '\0'
+        ? "configured" : "not set");
+    print_value(7u, "Plain HTTP: ", settings.allow_insecure_http
+        ? "allowed" : "blocked");
+    print_value(9u, "Publishing: ",
+        settings.destination_type == (uint8_t)S64_DESTINATION_NONE
+            ? "not configured" : destination_name());
+
+    gotoxy(0u, 12u); cputs("1 WEBSITE");
+    gotoxy(0u, 13u); cputs("2 IMPORT SEE64KEY.TXT");
+    gotoxy(0u, 14u); cputs("3 TYPE / REPLACE KEY");
+    gotoxy(0u, 15u); cputs("4 PLAIN HTTP POLICY");
+    gotoxy(0u, 16u); cputs("5 DISABLE PUBLISHING KEY");
+    gotoxy(0u, 18u); cputs("T CHECK SETTINGS");
+    gotoxy(0u, 19u); cputs("A ADVANCED SETTINGS");
+    gotoxy(0u, 21u); cputs("S SAVE + RETURN");
+    gotoxy(0u, 22u); cputs("RUN/STOP CANCEL + RETURN");
+    clear_row(STATUS_ROW);
+    gotoxy(0u, STATUS_ROW);
+    revers(1); cputs(status_text); revers(0);
+}
+
+static void render_advanced(void)
+{
+    clrscr();
+    revers(1);
+    gotoxy(0u, 0u);
+    cputs(" SEE64YOU ADVANCED SETTINGS            ");
+    revers(0);
+    gotoxy(0u, 2u); cputs("B BASIC SETTINGS");
     print_value(3u, "Destination: ", destination_name());
     print_value(5u, "Site URL: ", settings.base_url[0] != '\0' ? settings.base_url : "(not set)");
     print_value(7u, "Plain HTTP: ", settings.allow_insecure_http ? "allowed" : "blocked");
@@ -208,7 +243,7 @@ static void render(void)
     print_value(10u, "Relay key: ", settings.relay_key[0] != '\0' ? "configured" : "off");
     gotoxy(0u, 12u); cputs("1 DESTINATION TYPE");
     gotoxy(0u, 13u); cputs("2 SITE URL");
-    gotoxy(0u, 14u); cputs("3 TOGGLE PLAIN HTTP");
+    gotoxy(0u, 14u); cputs("3 PLAIN HTTP POLICY");
     gotoxy(0u, 15u); cputs("4 IMPORT DIRECT KEY FILE");
     gotoxy(0u, 16u); cputs("A TYPE DIRECT KEY");
     gotoxy(0u, 17u); cputs("5 DISABLE DIRECT KEY");
@@ -221,6 +256,12 @@ static void render(void)
     clear_row(STATUS_ROW);
     gotoxy(0u, STATUS_ROW);
     revers(1); cputs(status_text); revers(0);
+}
+
+static void render(void)
+{
+    if (advanced_view) render_advanced();
+    else render_basic();
 }
 
 static uint8_t printable(unsigned char key)
@@ -284,6 +325,89 @@ static unsigned char edit_text(
             value[length] = '\0';
         }
     }
+}
+
+static void edit_site_url(void)
+{
+    if (edit_text(
+            "SITE URL: ",
+            settings.base_url,
+            (unsigned char)sizeof(settings.base_url),
+            0u
+        )) {
+        if (settings.base_url[0] != '\0'
+            && settings.destination_type == (uint8_t)S64_DESTINATION_NONE) {
+            settings.destination_type = (uint8_t)S64_DESTINATION_STANDALONE;
+        }
+        set_status("Website updated; S to save");
+    }
+}
+
+static void replace_direct_key(void)
+{
+    relay_replacement[0] = '\0';
+    if (edit_text(
+            "DIRECT KEY: ",
+            relay_replacement,
+            (unsigned char)sizeof(relay_replacement),
+            1u
+        )) {
+        if (relay_replacement[0] == '\0') {
+            set_status("Direct key unchanged");
+        } else {
+            memcpy(
+                settings.direct_key,
+                relay_replacement,
+                sizeof(relay_replacement)
+            );
+            if (!s64_settings_exchange_values_valid(&settings)) {
+                settings.direct_key[0] = '\0';
+                set_status("Direct key must be 64 hex chars");
+            } else {
+                set_status("Direct key replaced; S to save");
+            }
+        }
+    }
+    memset(relay_replacement, 0, sizeof(relay_replacement));
+}
+
+static void toggle_plain_http(void)
+{
+    unsigned char key;
+
+    if (settings.allow_insecure_http) {
+        settings.allow_insecure_http = 0u;
+        set_status("Plain HTTP blocked");
+        return;
+    }
+
+    clear_row(STATUS_ROW);
+    gotoxy(0u, STATUS_ROW);
+    revers(1);
+    cputs("ALLOW UNENCRYPTED HTTP? Y/N");
+    for (;;) {
+        key = (unsigned char)cgetc();
+        if (key == 'y' || key == 'Y') {
+            settings.allow_insecure_http = 1u;
+            revers(0);
+            set_status("Plain HTTP allowed; S to save");
+            return;
+        }
+        if (key == 'n' || key == 'N' || key == CH_STOP) {
+            revers(0);
+            set_status("Plain HTTP remains blocked");
+            return;
+        }
+    }
+}
+
+static void check_settings(void)
+{
+    if (settings.destination_type == (uint8_t)S64_DESTINATION_NONE
+        && settings.base_url[0] != '\0') {
+        settings.destination_type = (uint8_t)S64_DESTINATION_STANDALONE;
+    }
+    if (validate_settings()) set_status("Settings are valid");
 }
 
 static void choose_destination(void)
@@ -818,49 +942,47 @@ int main(void)
 
     s64_uci_probe_capabilities(&capabilities);
     original_settings = settings;
+    advanced_view = 0u;
     status_text[0] = '\0';
     for (;;) {
         render();
         key = (unsigned char)cgetc();
+
+        if (!advanced_view) {
+            if (key == '1') {
+                edit_site_url();
+            } else if (key == '2') {
+                import_direct_key();
+            } else if (key == '3') {
+                replace_direct_key();
+            } else if (key == '4') {
+                toggle_plain_http();
+            } else if (key == '5') {
+                settings.direct_key[0] = '\0';
+                set_status("Publishing key disabled");
+            } else if (key == 't' || key == 'T') {
+                check_settings();
+            } else if (key == 'a' || key == 'A') {
+                advanced_view = 1u;
+                set_status("Advanced settings");
+            } else if (key == 's' || key == 'S') {
+                save_and_return();
+            } else if (key == CH_STOP) {
+                cancel_and_return();
+            }
+            continue;
+        }
+
         if (key == '1') {
             choose_destination();
         } else if (key == '2') {
-            if (settings.destination_type == (uint8_t)S64_DESTINATION_NONE) {
-                set_status("Choose destination type first");
-            } else {
-                (void)edit_text(
-                    "SITE URL: ",
-                    settings.base_url,
-                    (unsigned char)sizeof(settings.base_url),
-                    0u
-                );
-            }
+            edit_site_url();
         } else if (key == '3') {
-            settings.allow_insecure_http = settings.allow_insecure_http ? 0u : 1u;
-            set_status(settings.allow_insecure_http ? "Plain HTTP allowed" : "Plain HTTP blocked");
+            toggle_plain_http();
         } else if (key == '4') {
             import_direct_key();
         } else if (key == 'a' || key == 'A') {
-            relay_replacement[0] = '\0';
-            if (edit_text(
-                    "DIRECT KEY: ",
-                    relay_replacement,
-                    (unsigned char)sizeof(relay_replacement),
-                    1u
-                )) {
-                if (relay_replacement[0] == '\0') {
-                    set_status("Direct key unchanged");
-                } else {
-                    memcpy(settings.direct_key, relay_replacement, sizeof(relay_replacement));
-                    if (!s64_settings_exchange_values_valid(&settings)) {
-                        settings.direct_key[0] = '\0';
-                        set_status("Direct key must be 64 hex chars");
-                    } else {
-                        set_status("Direct key replaced");
-                    }
-                }
-            }
-            memset(relay_replacement, 0, sizeof(relay_replacement));
+            replace_direct_key();
         } else if (key == '5') {
             settings.direct_key[0] = '\0';
             set_status("Direct key disabled");
@@ -892,6 +1014,9 @@ int main(void)
             load_profile();
         } else if (key == '9') {
             save_profile();
+        } else if (key == 'b' || key == 'B') {
+            advanced_view = 0u;
+            set_status("Basic settings");
         } else if (key == 's' || key == 'S') {
             save_and_return();
         } else if (key == CH_STOP) {
