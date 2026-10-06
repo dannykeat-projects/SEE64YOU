@@ -518,6 +518,7 @@ def compile_editor_overlay_fit(
                                   "src/platform/managed_editor_settings.c",
                                   "src/platform/managed_editor_publisher_capsule.c",
                                   "src/publisher/settings_session_publish.c",
+                                  "src/publisher/settings_session_revoke.c",
                                   "src/publisher/settings_validate.c",
                                   "src/platform/dos_file.c",
                                   "src/platform/dos_reu.c",
