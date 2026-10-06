@@ -537,7 +537,7 @@ static S64InputType run_menu(unsigned char initial_group)
     for (;;) {
         s64_ui_render(&editor);
         s64_menu_render(group, item);
-        s64_input_read(&menu_input, 0u);
+        (void)s64_input_read(&menu_input, 0u);
 
         switch (menu_input.type) {
             case S64_INPUT_LEFT:
@@ -660,7 +660,10 @@ int main(void)
 #endif
 
     while (running) {
-        s64_input_read(&input, AUTOSAVE_IDLE_JIFFIES);
+        if (!s64_input_read(&input, AUTOSAVE_IDLE_JIFFIES)) {
+            maybe_autosave();
+            continue;
+        }
         cursor_only = 0u;
 
         if (input.type == S64_INPUT_MENU || input.type == S64_INPUT_ACTIVATE) {
@@ -849,7 +852,7 @@ int main(void)
                 break;
             case S64_INPUT_HELP:
                 s64_ui_show_help();
-                s64_input_read(&input, 0u);
+                (void)s64_input_read(&input, 0u);
                 s64_ui_render(&editor);
                 continue;
 
@@ -959,8 +962,6 @@ int main(void)
                 continue;
 
             case S64_INPUT_NONE:
-                maybe_autosave();
-                continue;
             default:
                 continue;
         }
