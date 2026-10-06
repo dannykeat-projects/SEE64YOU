@@ -1,4 +1,5 @@
 #include "platform/module_preload.h"
+#include "platform/package_paths.h"
 
 uint8_t s64_module_preload(S64Dos* dos, S64ModuleManifest* manifest)
 {
@@ -12,7 +13,7 @@ uint8_t s64_module_preload(S64Dos* dos, S64ModuleManifest* manifest)
         manifest->modules[i].cache_state = S64_MODULE_CACHE_EMPTY;
     }
     if (!s64_module_manifest_loadable(manifest)
-        || s64_dos_change_dir(dos, "/sd/") != S64_DOS_OK) return 0u;
+        || s64_dos_change_dir(dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK) return 0u;
 
     for (i = 0u; i < S64_MODULE_COUNT; ++i) {
         module = &manifest->modules[i];

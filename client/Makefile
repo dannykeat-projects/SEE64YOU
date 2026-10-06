@@ -219,13 +219,15 @@ managed-handoff-package: managed-package build/managed-handoff-launcher.prg
 # Current supported package: verified launcher plus managed Editor/Publisher/Settings
 # destinations. Real-hardware module-cycle acceptance remains separately gated.
 C64U_PACKAGE_FILES := SEE64YOU.PRG S64EDIT.PRG S64PUB.PRG S64CFG.PRG S64MODULE.MNF S64OVL.MNF S64MODEL.BIN S64FILE.BIN S64RUN.BIN S64PREP.BIN S64POVL.MNF S64PCNT.BIN S64PNET.BIN S64PRUN.BIN
+C64U_PACKAGE_DIR := build/c64u-package/SEE64YOU
 .PHONY: c64u-package
 c64u-package: managed-handoff-package
-	@mkdir -p build/c64u-package
-	cp $(addprefix build/managed-package/,$(C64U_PACKAGE_FILES)) build/c64u-package/
-	python3 ../tools/generate_module_manifest.py build/c64u-package --validate build/c64u-package/S64MODULE.MNF
-	python3 ../tools/generate_code_asset_manifest.py build/c64u-package --root build/c64u-package/S64EDIT.PRG --validate build/c64u-package/S64OVL.MNF
-	python3 ../tools/generate_code_asset_manifest.py build/c64u-package --module publisher --root build/c64u-package/S64PUB.PRG --validate build/c64u-package/S64POVL.MNF
+	rm -rf build/c64u-package
+	@mkdir -p $(C64U_PACKAGE_DIR)
+	cp $(addprefix build/managed-package/,$(C64U_PACKAGE_FILES)) $(C64U_PACKAGE_DIR)/
+	python3 ../tools/generate_module_manifest.py $(C64U_PACKAGE_DIR) --validate $(C64U_PACKAGE_DIR)/S64MODULE.MNF
+	python3 ../tools/generate_code_asset_manifest.py $(C64U_PACKAGE_DIR) --root $(C64U_PACKAGE_DIR)/S64EDIT.PRG --validate $(C64U_PACKAGE_DIR)/S64OVL.MNF
+	python3 ../tools/generate_code_asset_manifest.py $(C64U_PACKAGE_DIR) --module publisher --root $(C64U_PACKAGE_DIR)/S64PUB.PRG --validate $(C64U_PACKAGE_DIR)/S64POVL.MNF
 	python3 ../tools/check_memory_headroom.py build/see64you-publisher.map --label publisher --min-headroom 1024
 	python3 ../tools/check_memory_headroom.py build/see64you-settings.map --label settings --min-headroom 1024
 	python3 ../tools/check_memory_headroom.py build/managed-settings.map --label managed-settings --min-headroom 1024

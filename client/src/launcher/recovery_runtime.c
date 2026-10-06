@@ -1,4 +1,5 @@
 #include "launcher/recovery_runtime.h"
+#include "platform/package_paths.h"
 #include "charset.h"
 
 #include <string.h>
@@ -456,7 +457,7 @@ uint8_t s64_launcher_module_manifest_load(
         return 0u;
     }
 
-    if (s64_dos_change_dir(&runtime->dos, "/sd/") != S64_DOS_OK) {
+    if (s64_dos_change_dir(&runtime->dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK) {
         return 0u;
     }
     if (s64_dos_open_read(

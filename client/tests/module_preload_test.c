@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "platform/module_preload.h"
+#include "platform/module_preload.h"\n#include "platform/package_paths.h"
 
 static unsigned calls, opens, closes, loads;
 static unsigned failure;
@@ -20,8 +20,10 @@ static S64UciResult execute(const S64UciCommandPart* parts, uint8_t count,
     assert(count >= 1);
     if (failure == 9) return S64_UCI_UNAVAILABLE;
     if (op == 0x11) {
-        assert(count == 2 && parts[1].length == 4);
-        assert(memcmp(parts[1].data, "/sd/", 4) == 0);
+        assert(count == 2
+            && parts[1].length == (uint16_t)strlen(S64_PACKAGE_DIRECTORY));
+        assert(memcmp(parts[1].data, S64_PACKAGE_DIRECTORY,
+            strlen(S64_PACKAGE_DIRECTORY)) == 0);
     } else if (op == 2) {
         ++opens;
         if (failure == 6) status = "82,NOT FOUND";

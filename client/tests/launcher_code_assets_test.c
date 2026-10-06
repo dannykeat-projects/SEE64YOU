@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "launcher/code_assets_runtime.h"
-#include "platform/code_assets.h"
+#include "platform/code_assets.h"\n#include "platform/package_paths.h"
 
 enum { FAIL_NONE, FAIL_PARSE, FAIL_ALLOCATE, FAIL_CONTROL, FAIL_PRELOAD, FAIL_READY };
 static uint8_t wire[S64_CODE_ASSET_MANIFEST_SIZE + 1u];
@@ -34,7 +34,7 @@ static void reset(void)
 }
 
 S64DosResult s64_dos_change_dir(S64Dos* dos, const char* path)
-{ assert(dos && !strcmp(path, "/sd/")); ++dirs; event('D'); return S64_DOS_OK; }
+{ assert(dos && !strcmp(path, S64_PACKAGE_DIRECTORY)); ++dirs; event('D'); return S64_DOS_OK; }
 S64DosResult s64_dos_open_read(S64Dos* dos, const char* name)
 {
     assert(dos && !open_file && !strcmp(name, S64_CODE_ASSET_MANIFEST_FILENAME));

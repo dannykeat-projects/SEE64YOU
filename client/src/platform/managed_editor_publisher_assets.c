@@ -1,4 +1,5 @@
 #include "platform/module_runtime.h"
+#include "platform/package_paths.h"
 
 static uint8_t s64_pubprep_reu_runtime_allocate(
     S64ReuRuntimeControl* control,
@@ -106,7 +107,7 @@ static uint8_t load_manifest(
     uint16_t read = 0u;
 
     if (!runtime || !runtime->dos || !assets || !scratch
-        || s64_dos_change_dir(runtime->dos, "/sd/") != S64_DOS_OK
+        || s64_dos_change_dir(runtime->dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK
         || s64_dos_open_read(runtime->dos,
             S64_CODE_ASSET_MANIFEST_FILENAME) != S64_DOS_OK) {
         return 0u;
