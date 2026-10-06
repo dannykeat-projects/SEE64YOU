@@ -173,9 +173,27 @@ without adopting the fixture or falling back to fresh editing. Restart the
 normal launcher and verify its existing interrupted-session recovery restores
 the captured state; complete its ordinary managed exit and confirm newer CLEAN
 and responsive BASIC. This is one bounded negative; host tests own the broader
-failure matrix. Hardware acceptance is outstanding until actual results are
-recorded. Publisher/Settings execution and publication-producer callers remain
-gated.
+failure matrix. Publisher/Settings execution and publication-producer callers
+remain gated.
+
+Both gates passed on real firmware 1.1.0 on 2026-10-06 using implementation
+`4c3ffa627615e9ee31deaef79b2dd370f9f1fcf1`, successful CI run 37390002322 and
+matching downloaded package/diagnostic SHA256 values. ACTIVE 61/package 514
+restored generation 41, the visible MARKER selection/cursor and exact bound
+metadata. The user confirmed Ctrl+Z, Ctrl+Shift+Z, F7 CLIP paste and ordinary
+editing; screen readback showed ACLIP. Normal managed discard/exit completed
+the verified authority-revocation/restore path, CLEAN 62 and original BASIC.
+The negative altered only generation byte 32 (41 -> 40) while retaining its old
+CRC and asserted authority: production entry halted with Managed entry failed.
+Restart launcher., leaving ACTIVE 63. Normal startup recovered to CLEAN 64,
+opened ACTIVE 65 and exited CLEAN 66. Both journal checksums, IRQ $EA31,
+advancing clock, BASIC PRINT 6*7 -> 42 and unchanged drives passed. Clear the
+screen before the final BASIC command if transfer-stub characters remain.
+All original package/recovery files were restored with exact FTP readback;
+new fixture/diagnostic files were removed and root SD listing parity passed,
+allowing the resulting journal slots. No independent REST REU/turbo inspection
+is claimed; CLEAN follows the production mandatory verified teardown path.
+Evidence/backups: ignored `client/build/hardware-resume-gate-20261006/`.
 
 Ultimate64 Manager is installed on the existing Windows development machine. Read the current host/profile from its local configuration rather than assuming an address remains unchanged, and never print/commit stored passwords.
 
@@ -355,7 +373,8 @@ BSS ends at `$8BE5` (26 bytes before `$8C00`); MODEL 15,216 / FILE 15,341 /
 RUNTIME 15,225 bytes fit the 15,360-byte slot. The original workspace/stack and
 slot limits remain mandatory. The preceding consumer package passed the bounded real-C64U
 first-entry/edit/CLEAN/BASIC-return gate on 2026-10-05 (details below). Physical
-keyboard/file/menu and actual resumed-entry hardware acceptance remain outstanding.
+keyboard/file/menu acceptance remains outstanding; authenticated resumed-entry
+positive/negative acceptance is recorded in section 4.
 
 Full host validation includes module_transition_test.c for ordering, cancellation,
 invalid ownership, failed mode/write/readback/load/plan and recovery-required
@@ -605,7 +624,8 @@ restore/verify path; REST RAM-shadow reads are not independent live turbo proof.
 Original companions/manifest/SEE64YOU.REC were restored with exact readback
 parity; the four newly created raw assets/asset manifest and temporary S64R500.PRG
 were removed. The new CLEAN journal was retained. This exercises Launcher first
-entry only; Publisher execution and actual resumed-entry hardware remain gated.
+entry only. The later resumed-entry gate is recorded in section 4; Publisher
+execution remains gated.
 Editor SHA256: c17a1ab0958078bf38dcb00cb098e41d10c7b1c6d9656fd517681150541953a4.
 Launcher SHA256: e71649f248c6112eafcc0499b939d9ef1b418adbf22308fcb4e3dae860e69a22.
 Evidence/backups: ignored client/build/hardware-editor-resume-20261005/.

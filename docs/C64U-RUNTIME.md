@@ -870,8 +870,8 @@ has no caller in the gated Publish command and is not linked into the current
 Editor root. Only exit revocation is integrated in the package. Executable
 Publisher/Settings transitions remain blocked. The preceding consumer package
 passed the bounded first-entry/edit/CLEAN/BASIC-return hardware gate on
-2026-10-05 (CLEAN 60/package 514); actual resumed-entry hardware acceptance
-remains outstanding. See docs/LOCAL_TESTING.md for exact artifact evidence.
+2026-10-05 (CLEAN 60/package 514). The subsequent authenticated resumed-entry
+positive/negative gate is recorded below. See docs/LOCAL_TESTING.md for evidence.
 
 The allocator capacity change bumps package identity to 0x0202. Format-1
 control blocks are rejected rather than adopted; interrupted-state recovery
@@ -896,8 +896,21 @@ one authoritative state byte after valid publication for the bounded rejection
 gate. The destination is the ordinary exact package Editor; production launcher
 sources, RAM boundaries, formats, allocator and publication callers are unchanged.
 This target is a diagnostic, not a module-cycle or producer-integration claim.
-Host binding/rejection and build fit pass; real-hardware resumed-entry acceptance
-remains outstanding. Reproducible steps are in `docs/LOCAL_TESTING.md`.
+Host binding/rejection, build fit, full validation and exact implementation-head
+CI pass. On 2026-10-06 the positive and bounded negative gates passed on real
+C64U firmware 1.1.0 using the exact ordinary production Editor. ACTIVE 61/package
+514 resumed generation 41 with the expected document and control metadata;
+the user verified Undo, Redo, CLIP paste and ordinary editing. Normal managed
+exit passed mandatory verified application-authority revocation and restoration
+before CLEAN 62 and original BASIC return. The negative flipped one generation
+byte after authority publication: production entry halted, leaving ACTIVE 63.
+The normal launcher recovered to CLEAN 64, opened ACTIVE 65 and exited CLEAN 66.
+IRQ $EA31, advancing clock, BASIC PRINT 6*7 -> 42, unchanged drives, restored
+SD-file readback and root-listing parity passed. This proves authenticated
+resumed entry on firmware 1.1 only. Publisher/Settings execution, publication
+callers and module cycles remain gated. Evidence is in ignored
+`client/build/hardware-resume-gate-20261006/`; reproducible steps are in
+`docs/LOCAL_TESTING.md`.
 
 ## 22. Retired production constraints
 
