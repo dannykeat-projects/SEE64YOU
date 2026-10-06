@@ -1,5 +1,46 @@
 #include "platform/module_runtime.h"
 
+static uint8_t s64_pubprep_reu_runtime_allocate(
+    S64ReuRuntimeControl* control,
+    S64ReuOwner owner,
+    uint32_t length,
+    uint16_t alignment,
+    S64ReuAllocation* allocation
+)
+{
+    uint32_t mask;
+    uint32_t start;
+    S64ReuAllocation* item;
+
+    if (!s64_reu_runtime_valid(control)
+        || owner < S64_REU_OWNER_RUNTIME
+        || owner > S64_REU_OWNER_UPDATE
+        || length == 0UL
+        || alignment == 0u
+        || (alignment & (uint16_t)(alignment - 1u)) != 0u
+        || control->allocation_count >= S64_REU_RUNTIME_MAX_ALLOCATIONS) {
+        return 0u;
+    }
+
+    mask = (uint32_t)alignment - 1UL;
+    start = (control->next_free + mask) & ~mask;
+    if (start < control->next_free
+        || start >= S64_REU_RUNTIME_HEAP_END
+        || length > S64_REU_RUNTIME_HEAP_END - start) {
+        return 0u;
+    }
+
+    item = &control->allocations[control->allocation_count];
+    item->owner = (uint8_t)owner;
+    item->flags = 0u;
+    item->address = start;
+    item->length = length;
+    ++control->allocation_count;
+    control->next_free = start + length;
+    if (allocation) *allocation = *item;
+    return 1u;
+}
+
 /*
  * Reuse the already-tested compact asset producer verbatim, specialised for
  * the Publisher namespace. Rename its public symbols so the managed Editor's
@@ -19,6 +60,7 @@
 #define s64_code_assets_session_checksum s64_pubprep_code_assets_session_checksum
 #define s64_code_assets_session_wire s64_pubprep_code_assets_session_wire
 #define s64_code_assets_session_journal_wire s64_pubprep_code_assets_session_journal_wire
+#define s64_reu_runtime_allocate s64_pubprep_reu_runtime_allocate
 
 #include "platform/code_assets.c"
 #include "platform/code_assets_validate.c"

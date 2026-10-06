@@ -58,7 +58,6 @@ GROUPS: dict[str, tuple[str, ...]] = {
         "src/platform/dos_file.c",
         "src/platform/dos_reu.c",
         "src/platform/module_integrity.c",
-        "src/platform/reu_runtime_build.c",
         "src/platform/application_state_editor.c",
         "src/platform/application_state_build.c",
     ),
@@ -512,7 +511,6 @@ def compile_editor_overlay_fit(
                                   "src/platform/dos_file.c",
                                   "src/platform/dos_reu.c",
                                   "src/platform/module_integrity.c",
-                                  "src/platform/reu_runtime_build.c",
                                   "src/platform/application_state_editor.c",
                                   "src/platform/application_state_build.c",
                                   "src/platform/basic_return_stub.s", "src/platform/crc32.c"]))
