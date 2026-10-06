@@ -76,9 +76,9 @@ BRIDGES: dict[str, tuple[str, ...]] = {
         "s64_application_state_decode_editor",
     ),
     "PUBLICATION": (
-        "capsule_allocation",
-        "capsule_checksum",
-        "capsule_module_valid",
+        "s64_transfer_capsule_allocation",
+        "s64_transfer_capsule_checksum",
+        "s64_transfer_capsule_module_valid",
         "s64_application_state_payload_valid",
         "s64_managed_editor_state_revoke",
         "s64_reu_runtime_store_verified",

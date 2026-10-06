@@ -29,7 +29,7 @@ static const S64ModuleDescriptor* destination_module(
         return 0;
     }
     module = &manifest->modules[(uint8_t)destination - 1u];
-    return capsule_module_valid(control, module, destination) ? module : 0;
+    return s64_transfer_capsule_module_valid(control, module, destination) ? module : 0;
 }
 
 uint8_t s64_transfer_capsule_store(
@@ -39,7 +39,7 @@ uint8_t s64_transfer_capsule_store(
     S64ModuleId destination
 )
 {
-    const S64ReuAllocation* allocation = capsule_allocation(control);
+    const S64ReuAllocation* allocation = s64_transfer_capsule_allocation(control);
     const S64ModuleDescriptor* module =
         destination_module(control, manifest, destination);
 
@@ -74,7 +74,7 @@ uint8_t s64_transfer_capsule_store(
     put32(capsule_wire + CAPSULE_MODULE_OFFSET + 14u, module->integrity);
     put32(capsule_wire + CAPSULE_MODULE_OFFSET + 18u, module->cache_address);
     put32(capsule_wire + CAPSULE_MODULE_OFFSET + 22u, module->cache_capacity);
-    put16(capsule_wire + CAPSULE_CHECKSUM_OFFSET, capsule_checksum(capsule_wire));
+    put16(capsule_wire + CAPSULE_CHECKSUM_OFFSET, s64_transfer_capsule_checksum(capsule_wire));
 
     return s64_reu_store((uint8_t)(allocation->address >> 16),
             (uint16_t)allocation->address, capsule_wire, sizeof(capsule_wire))

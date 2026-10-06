@@ -10,10 +10,10 @@
 #define CAPSULE_MODULE_OFFSET 32u
 #define CAPSULE_CHECKSUM_OFFSET 62u
 
-uint16_t capsule_checksum(const uint8_t* bytes);
-const S64ReuAllocation* capsule_allocation(const S64ReuRuntimeControl* control);
+uint16_t s64_transfer_capsule_checksum(const uint8_t* bytes);
+const S64ReuAllocation* s64_transfer_capsule_allocation(const S64ReuRuntimeControl* control);
 const char* capsule_filename(S64ModuleId destination);
-uint8_t capsule_module_valid(const S64ReuRuntimeControl* control,
+uint8_t s64_transfer_capsule_module_valid(const S64ReuRuntimeControl* control,
     const S64ModuleDescriptor* module, S64ModuleId destination);
 extern uint8_t capsule_wire[S64_TRANSFER_CAPSULE_WIRE_SIZE];
 extern uint8_t capsule_readback[S64_TRANSFER_CAPSULE_WIRE_SIZE];

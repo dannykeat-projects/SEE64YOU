@@ -4,7 +4,7 @@
 uint8_t capsule_wire[S64_TRANSFER_CAPSULE_WIRE_SIZE];
 uint8_t capsule_readback[S64_TRANSFER_CAPSULE_WIRE_SIZE];
 
-uint16_t capsule_checksum(const uint8_t* bytes)
+uint16_t s64_transfer_capsule_checksum(const uint8_t* bytes)
 {
     uint16_t value = 0x6454u;
     uint8_t i;
@@ -16,7 +16,7 @@ uint16_t capsule_checksum(const uint8_t* bytes)
     return value == 0u ? 1u : value;
 }
 
-const S64ReuAllocation* capsule_allocation(
+const S64ReuAllocation* s64_transfer_capsule_allocation(
     const S64ReuRuntimeControl* control
 )
 {
@@ -50,7 +50,7 @@ const char* capsule_filename(S64ModuleId destination)
         ? filenames[(uint8_t)destination - 1u] : 0;
 }
 
-uint8_t capsule_module_valid(
+uint8_t s64_transfer_capsule_module_valid(
     const S64ReuRuntimeControl* control,
     const S64ModuleDescriptor* module,
     S64ModuleId destination
@@ -102,7 +102,7 @@ static uint32_t get32(const uint8_t* in)
 
 uint8_t s64_transfer_capsule_clear(const S64ReuRuntimeControl* control)
 {
-    const S64ReuAllocation* allocation = capsule_allocation(control);
+    const S64ReuAllocation* allocation = s64_transfer_capsule_allocation(control);
 
     if (allocation == 0) return 0u;
     memset(capsule_wire, 0, sizeof(capsule_wire));
@@ -118,7 +118,7 @@ uint8_t s64_transfer_capsule_load(
     S64TransferCapsule* capsule
 )
 {
-    const S64ReuAllocation* allocation = capsule_allocation(control);
+    const S64ReuAllocation* allocation = s64_transfer_capsule_allocation(control);
     S64TransferCapsule decoded;
     uint8_t i;
 
@@ -134,7 +134,7 @@ uint8_t s64_transfer_capsule_load(
         || capsule_wire[5] != S64_REU_RUNTIME_ABI_VERSION
         || capsule_wire[6] < S64_MODULE_EDITOR || capsule_wire[6] > S64_MODULE_SETTINGS
         || capsule_wire[7] != 0u
-        || get16(capsule_wire + CAPSULE_CHECKSUM_OFFSET) != capsule_checksum(capsule_wire)) {
+        || get16(capsule_wire + CAPSULE_CHECKSUM_OFFSET) != s64_transfer_capsule_checksum(capsule_wire)) {
         return 0u;
     }
 
@@ -169,7 +169,7 @@ uint8_t s64_transfer_capsule_load(
     strncpy(decoded.module.filename, capsule_filename(decoded.destination),
         sizeof(decoded.module.filename) - 1u);
 
-    if (!capsule_module_valid(
+    if (!s64_transfer_capsule_module_valid(
             control,
             &decoded.module,
             decoded.destination
