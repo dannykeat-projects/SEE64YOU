@@ -33,6 +33,8 @@
 #include "platform/module_arrival.h"
 #include "platform/code_overlay_bootstrap.h"
 #include "platform/managed_publisher.h"
+#include "platform/module_transition.h"
+#include "platform/module_transfer.h"
 #include "platform/package_version.h"
 #include "publisher/settings_session.h"
 static S64ModuleRuntime managed_runtime;
@@ -373,7 +375,45 @@ static unsigned char preserve_document_handoff(unsigned char returning)
 static void return_to_editor(void)
 {
 #ifdef S64_MANAGED_OVERLAY
-    set_status("Editor transition not ready");
+    S64ModuleTransferPlan plan;
+    S64ModuleTransitionResult transition;
+    uint8_t prepared;
+
+    prepared = s64_managed_publisher_return_state(
+        &managed_runtime,
+        &body,
+        &document,
+        document_changed,
+        document_replaced,
+        s64_publisher_workspace.bytes
+    );
+    if (prepared == 2u) managed_entry_failed(9u);
+    if (!prepared) {
+        set_status("Editor return state failed");
+        return;
+    }
+
+    clrscr();
+    cputs("RETURNING TO SEE64YOU EDITOR...\r\n");
+
+    transition = s64_module_transition_prepare(
+        &managed_runtime,
+        S64_MODULE_EDITOR,
+        &plan
+    );
+    if (transition == S64_MODULE_TRANSITION_RECOVERY_REQUIRED) {
+        managed_entry_failed(9u);
+    }
+    if (transition != S64_MODULE_TRANSITION_OK) {
+        set_status("Editor handoff failed");
+        return;
+    }
+
+    if (!s64_module_transfer_execute(&plan)) {
+        transition = s64_module_transition_cancel(&managed_runtime, &plan);
+        if (transition != S64_MODULE_TRANSITION_OK) managed_entry_failed(9u);
+        set_status("Editor handoff failed");
+    }
 #else
     if (!preserve_document_handoff(1u)) return;
     clrscr();
