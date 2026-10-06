@@ -41,8 +41,8 @@ SOURCES := src/main.c src/charset.c src/buffer.c src/history.c src/clipboard.c s
 C64U_SOURCES := $(filter-out src/buffer.c src/history.c,$(SOURCES)) src/buffer_reu.c src/history_reu.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/editor_handoff.c src/publisher/editor_handoff_record.s
 # Destinations validate existing state; allocation and manifest parsing stay in the launcher.
 MANAGED_EDITOR_RUNTIME_SOURCES := src/platform/code_overlay_bootstrap.c src/platform/module_arrival.c src/platform/module_runtime.c src/platform/transfer_capsule.c src/platform/module_session.c src/platform/module_session_read.c src/platform/module_manifest.c src/platform/reu_runtime.c src/platform/session_lifecycle.c src/platform/session_journal.c src/platform/system_state.c src/platform/turbo.c
-CODE_ASSET_RUNTIME_SOURCES := src/platform/code_assets_validate.c src/platform/code_assets_session.c src/platform/code_assets_session_read.c
-CODE_ASSET_SOURCES := src/platform/code_assets.c src/platform/code_assets_validate.c src/platform/code_assets_session.c src/platform/code_assets_session_build.c
+CODE_ASSET_RUNTIME_SOURCES := src/platform/code_assets_namespace.c src/platform/code_assets_validate.c src/platform/code_assets_session.c src/platform/code_assets_session_read.c
+CODE_ASSET_SOURCES := src/platform/code_assets_namespace.c src/platform/code_assets.c src/platform/code_assets_validate.c src/platform/code_assets_session.c src/platform/code_assets_session_build.c
 EDITOR_PROBE_SOURCES := diagnostics/editor_probe.c src/buffer.c src/history.c src/clipboard.c src/editor.c src/editor_format.c
 UI_PROBE_SOURCES := diagnostics/ui_probe.c diagnostics/ui_conio_shim.c src/buffer.c src/history.c src/clipboard.c src/editor.c src/editor_format.c src/ui.c src/ui_status.s
 INPUT_REPEAT_PROBE_SOURCES := diagnostics/input_repeat_probe.c src/input/repeat.s
@@ -186,14 +186,17 @@ editor-overlay-fit:
 
 # Reviewable preload package only. Its launcher stops before executable DMA.
 .PHONY: managed-package
-managed-package: editor-overlay-fit code-assets-fit publisher settings
+managed-package: editor-overlay-fit publisher-overlay-fit code-assets-fit publisher settings
 	python3 ../tools/check_memory_headroom.py build/code-assets-fit.map --label managed-launcher --min-headroom 1024
 	@mkdir -p build/managed-package
 	cp build/code-assets-fit.prg build/managed-package/SEE64YOU.PRG
 	cp build/editor-overlay-fit/editor-overlay-fit.prg build/managed-package/S64EDIT.PRG
-	cp build/S64PUB.PRG build/S64CFG.PRG build/managed-package/
+	cp build/publisher-overlay-fit/publisher-overlay-fit.prg build/managed-package/S64PUB.PRG
+	cp build/S64CFG.PRG build/managed-package/
 	cp build/editor-overlay-fit/S64MODEL.BIN build/editor-overlay-fit/S64FILE.BIN build/editor-overlay-fit/S64RUN.BIN build/editor-overlay-fit/S64PREP.BIN build/editor-overlay-fit/S64OVL.MNF build/managed-package/
+	cp build/publisher-overlay-fit/S64PCNT.BIN build/publisher-overlay-fit/S64PNET.BIN build/publisher-overlay-fit/S64PRUN.BIN build/publisher-overlay-fit/S64POVL.MNF build/managed-package/
 	python3 ../tools/generate_code_asset_manifest.py build/managed-package --root build/managed-package/S64EDIT.PRG --validate build/managed-package/S64OVL.MNF
+	python3 ../tools/generate_code_asset_manifest.py build/managed-package --module publisher --root build/managed-package/S64PUB.PRG --validate build/managed-package/S64POVL.MNF
 	python3 ../tools/generate_module_manifest.py build/managed-package --output build/managed-package/S64MODULE.MNF
 	python3 ../tools/generate_module_manifest.py build/managed-package --validate build/managed-package/S64MODULE.MNF
 
@@ -203,7 +206,7 @@ code-assets-fit: build/code-assets-fit.prg
 
 build/code-assets-fit.prg: $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/package_version.h
 	@mkdir -p build
-	$(CL65) $(CFLAGS) -DS64_CODE_ASSET_LAUNCHER=1 -m build/code-assets-fit.map -o $@ $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c
+	$(CL65) $(CFLAGS) -DS64_CODE_ASSET_LAUNCHER=1 -DS64_CODE_ASSET_DUAL_NAMESPACE=1 -m build/code-assets-fit.map -o $@ $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c
 
 .PHONY: managed-handoff-package
 managed-handoff-package: managed-package build/managed-handoff-launcher.prg
@@ -212,25 +215,26 @@ managed-handoff-package: managed-package build/managed-handoff-launcher.prg
 
 # Current supported package: verified executable launcher plus managed editor.
 # Publisher/Settings remain cached companions; their ownership cycles are gated.
-C64U_PACKAGE_FILES := SEE64YOU.PRG S64EDIT.PRG S64PUB.PRG S64CFG.PRG S64MODULE.MNF S64OVL.MNF S64MODEL.BIN S64FILE.BIN S64RUN.BIN S64PREP.BIN
+C64U_PACKAGE_FILES := SEE64YOU.PRG S64EDIT.PRG S64PUB.PRG S64CFG.PRG S64MODULE.MNF S64OVL.MNF S64MODEL.BIN S64FILE.BIN S64RUN.BIN S64PREP.BIN S64POVL.MNF S64PCNT.BIN S64PNET.BIN S64PRUN.BIN
 .PHONY: c64u-package
 c64u-package: managed-handoff-package
 	@mkdir -p build/c64u-package
 	cp $(addprefix build/managed-package/,$(C64U_PACKAGE_FILES)) build/c64u-package/
 	python3 ../tools/generate_module_manifest.py build/c64u-package --validate build/c64u-package/S64MODULE.MNF
 	python3 ../tools/generate_code_asset_manifest.py build/c64u-package --root build/c64u-package/S64EDIT.PRG --validate build/c64u-package/S64OVL.MNF
+	python3 ../tools/generate_code_asset_manifest.py build/c64u-package --module publisher --root build/c64u-package/S64PUB.PRG --validate build/c64u-package/S64POVL.MNF
 	python3 ../tools/check_memory_headroom.py build/see64you-publisher.map --label publisher --min-headroom 1024
 	python3 ../tools/check_memory_headroom.py build/see64you-settings.map --label settings --min-headroom 1024
 
 build/managed-handoff-launcher.prg: $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/package_version.h src/platform/basic_return_capture.s src/platform/basic_return.c src/platform/basic_return_build.c src/launcher/basic_return_runtime.c
 	@mkdir -p build
-	$(CL65) $(CFLAGS) -DS64_CODE_ASSET_LAUNCHER=1 -DS64_EXECUTABLE_HANDOFF=1 -m build/managed-handoff-launcher.map -o $@ src/platform/basic_return_capture.s $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/basic_return.c src/platform/basic_return_build.c src/launcher/basic_return_runtime.c
+	$(CL65) $(CFLAGS) -DS64_CODE_ASSET_LAUNCHER=1 -DS64_CODE_ASSET_DUAL_NAMESPACE=1 -DS64_EXECUTABLE_HANDOFF=1 -m build/managed-handoff-launcher.map -o $@ src/platform/basic_return_capture.s $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/basic_return.c src/platform/basic_return_build.c src/launcher/basic_return_runtime.c
 
 # Diagnostic only; the exact ordinary c64u-package Editor remains the destination.
 .PHONY: resume-editor-gate
 resume-editor-gate: c64u-package
 	python3 ../tools/build_resume_editor_fixture.py --output build/resume-editor-fixture
-	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -I build/resume-editor-fixture -m build/resume-editor-gate.map -o build/resume-editor-gate.prg src/platform/basic_return_capture.s diagnostics/resume_editor_gate.c diagnostics/resume_editor_fixture.c $(filter-out src/launcher/main.c,$(LAUNCHER_SOURCES)) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/basic_return.c src/platform/basic_return_build.c src/launcher/basic_return_runtime.c src/platform/application_state.c
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_CODE_ASSET_DUAL_NAMESPACE=1 -I build/resume-editor-fixture -m build/resume-editor-gate.map -o build/resume-editor-gate.prg src/platform/basic_return_capture.s diagnostics/resume_editor_gate.c diagnostics/resume_editor_fixture.c $(filter-out src/launcher/main.c,$(LAUNCHER_SOURCES)) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/basic_return.c src/platform/basic_return_build.c src/launcher/basic_return_runtime.c src/platform/application_state.c
 	python3 ../tools/check_memory_headroom.py build/resume-editor-gate.map --label resume-editor-gate --min-headroom 1024
 	python3 ../tools/check_prg_extent.py build/resume-editor-gate.prg --label resume-editor-gate --load-address 0x0801 --max-end 0xC7FF
 
