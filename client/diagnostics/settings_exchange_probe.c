@@ -12,8 +12,10 @@ char cgetc(void);
 #include "platform/reu_layout.h"
 #include "publisher/settings_store.h"
 /* Reuse the exact private key/termination classifiers without exporting a
- * production API. This diagnostic is the only translation unit including it. */
+ * production API. These implementation files are included only by this
+ * diagnostic translation unit; normal builds compile them separately. */
 #include "../src/publisher/settings_exchange.c"
+#include "../src/publisher/settings_validate.c"
 
 #define PROBE_TEMP "S64EXCH.TMP"
 #define PROBE_FINAL "S64EXCH.CFG"
