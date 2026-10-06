@@ -56,7 +56,7 @@ typedef struct {
 
 void s64_input_init(void);
 void s64_input_shutdown(void);
-unsigned char s64_input_read(S64InputEvent* event, unsigned char idle_jiffies);
+void s64_input_read(S64InputEvent* event, unsigned char idle_jiffies);
 void s64_input_sync_repeat(void);
 void s64_input_restore_repeat(void);
 

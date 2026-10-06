@@ -124,7 +124,7 @@ static unsigned char s64_modifier_ready(
     if ((modifier_repeat_state & 0x7fu) != signature) {
         modifier_repeat_state = signature;
         modifier_repeat_tick = now;
-        return 1u;
+        return;
     }
 
     interval = (modifier_repeat_state & 0x80u) != 0u
@@ -137,7 +137,7 @@ static unsigned char s64_modifier_ready(
 
     modifier_repeat_state = (unsigned char)(signature | 0x80u);
     modifier_repeat_tick = now;
-    return 1u;
+    return;
 }
 
 #ifdef S64_REU_BUFFER
@@ -166,7 +166,7 @@ static unsigned char s64_joystick_event(S64InputEvent* event)
     } else {
         interval = joystick_repeating ? S64_REPEAT_RATE : S64_REPEAT_DELAY;
         if ((unsigned char)(now - joystick_repeat_tick) < interval) {
-            return 0u;
+            return;
         }
         joystick_repeat_tick = now;
         joystick_repeating = 1u;
@@ -178,7 +178,7 @@ static unsigned char s64_joystick_event(S64InputEvent* event)
     else if (JOY_LEFT(state)) event->type = S64_INPUT_LEFT;
     else if (JOY_RIGHT(state)) event->type = S64_INPUT_RIGHT;
     else return 0u;
-    return 1u;
+    return;
 }
 
 static unsigned char s64_mouse_event(S64InputEvent* event)
@@ -206,7 +206,7 @@ static unsigned char s64_mouse_event(S64InputEvent* event)
         mouse_previous_buttons = pressed;
         mouse_previous_x = info.pos.x;
         mouse_previous_y = info.pos.y;
-        return 1u;
+        return;
     }
 
     if (pressed && mouse_previous_buttons
@@ -218,7 +218,7 @@ static unsigned char s64_mouse_event(S64InputEvent* event)
         if (event->row > 24u) event->row = 24u;
         mouse_previous_x = info.pos.x;
         mouse_previous_y = info.pos.y;
-        return 1u;
+        return;
     }
 
     mouse_previous_buttons = pressed;
@@ -269,7 +269,7 @@ void s64_input_shutdown(void)
 #endif
 }
 
-unsigned char s64_input_read(S64InputEvent* event, unsigned char idle_jiffies)
+void s64_input_read(S64InputEvent* event, unsigned char idle_jiffies)
 {
     unsigned char key;
     unsigned char raw_key;
@@ -289,7 +289,7 @@ unsigned char s64_input_read(S64InputEvent* event, unsigned char idle_jiffies)
 
 #ifdef S64_REU_BUFFER
         if (s64_mouse_event(event) || s64_joystick_event(event)) {
-            return 1u;
+            return;
         }
 #endif
 
@@ -297,7 +297,7 @@ unsigned char s64_input_read(S64InputEvent* event, unsigned char idle_jiffies)
             if (S64_KEY_COUNT != 0u) {
                 (void)cbm_k_getin();
             }
-            return 1u;
+            return;
         }
 
         if (kbhit()) {
@@ -315,28 +315,28 @@ unsigned char s64_input_read(S64InputEvent* event, unsigned char idle_jiffies)
     if ((modifiers & S64_MOD_CONTROL) != 0u) {
         event->type = s64_control_command(key, modifiers);
         if (event->type != S64_INPUT_NONE) {
-            return 1u;
+            return;
         }
     }
 
     if ((modifiers & S64_MOD_COMMODORE) != 0u) {
         if (key == 'm' || key == 'M') {
             event->type = S64_INPUT_MENU;
-            return 1u;
+            return;
         }
         switch (key) {
             case CH_F1:
                 event->type = S64_INPUT_NEW;
-                return 1u;
+                return;
             case CH_F3:
                 event->type = S64_INPUT_OPEN;
-                return 1u;
+                return;
             case CH_F5:
                 event->type = S64_INPUT_SAVE;
-                return 1u;
+                return;
             case CH_F7:
                 event->type = S64_INPUT_SAVE_AS;
-                return 1u;
+                return;
             default:
                 break;
         }
@@ -345,55 +345,55 @@ unsigned char s64_input_read(S64InputEvent* event, unsigned char idle_jiffies)
     switch (key) {
         case CH_CURS_LEFT:
             event->type = S64_INPUT_LEFT;
-            return 1u;
+            return;
         case CH_CURS_RIGHT:
             event->type = S64_INPUT_RIGHT;
-            return 1u;
+            return;
         case CH_CURS_UP:
             event->type = S64_INPUT_UP;
-            return 1u;
+            return;
         case CH_CURS_DOWN:
             event->type = S64_INPUT_DOWN;
-            return 1u;
+            return;
         case CH_HOME:
             event->type = S64_INPUT_HOME;
-            return 1u;
+            return;
         case CH_DEL:
             event->type = S64_INPUT_BACKSPACE;
-            return 1u;
+            return;
         case CH_INS:
             event->type = S64_INPUT_TOGGLE_INSERT;
-            return 1u;
+            return;
         case CH_ENTER:
             event->type = S64_INPUT_NEWLINE;
-            return 1u;
+            return;
         case CH_F1:
             event->type = S64_INPUT_TOGGLE_MARK;
-            return 1u;
+            return;
         case CH_F2:
             event->type = S64_INPUT_FIND_NEXT;
-            return 1u;
+            return;
         case CH_F3:
             event->type = S64_INPUT_COPY;
-            return 1u;
+            return;
         case CH_F4:
             event->type = S64_INPUT_FIND_PREVIOUS;
-            return 1u;
+            return;
         case CH_F5:
             event->type = S64_INPUT_CUT;
-            return 1u;
+            return;
         case CH_F6:
             event->type = S64_INPUT_REPLACE;
-            return 1u;
+            return;
         case CH_F7:
             event->type = S64_INPUT_PASTE;
-            return 1u;
+            return;
         case CH_F8:
             event->type = S64_INPUT_HELP;
-            return 1u;
+            return;
         case CH_STOP:
             event->type = S64_INPUT_EXIT;
-            return 1u;
+            return;
         default:
             break;
     }
@@ -402,5 +402,4 @@ unsigned char s64_input_read(S64InputEvent* event, unsigned char idle_jiffies)
         event->type = S64_INPUT_CHARACTER;
         event->character = key;
     }
-    return 1u;
 }
