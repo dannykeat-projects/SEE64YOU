@@ -208,8 +208,8 @@ uint8_t s64_dual_code_assets_allocate(
 )
 {
     uint8_t count = s64_dual_code_assets_count(module);
-    uint8_t base = cache_flag(module);
-    uint8_t flag = session_flag(module);
+    uint8_t base = module == S64_MODULE_PUBLISHER ? 0x31u : 0x21u;
+    uint8_t flag = module == S64_MODULE_PUBLISHER ? 5u : 3u;
     uint8_t i;
 
     if (!count || !assets || !s64_reu_runtime_valid(control)
