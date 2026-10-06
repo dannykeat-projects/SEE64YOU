@@ -156,7 +156,7 @@ static void launch_publisher(void)
      * corrupt S64Q authority before any later executable transfer. */
     if (managed_runtime.reu_control.allocation_count
             < S64_REU_RUNTIME_MAX_ALLOCATIONS
-        && !s64_managed_editor_publisher_assets_prepare(
+        && !s64_managed_editor_pub_assets_prepare(
             &managed_runtime, S64_BASIC_RETURN_WORKSPACE)) {
         if (s64_module_runtime_resume_interactive(&managed_runtime)
                 != S64_SYSTEM_OK) {
