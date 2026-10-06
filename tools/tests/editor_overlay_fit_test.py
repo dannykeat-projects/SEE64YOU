@@ -105,7 +105,8 @@ s64_message(
         "src/platform/managed_editor_publish.c",
         "src/platform/managed_editor_publisher_assets.c",
         "src/platform/managed_editor_settings.c",
-        "src/publisher/settings_session.c",
+        "src/platform/managed_editor_publisher_capsule.c",
+        "src/publisher/settings_session_publish.c",
         "src/publisher/settings_validate.c",
         "src/platform/dos_file.c",
         "src/platform/dos_reu.c",
@@ -114,6 +115,9 @@ s64_message(
         "src/platform/application_state_build.c",
     )
     assert FIT.BRIDGES["PUBLICATION"] == (
+        "s64_transfer_capsule_allocation",
+        "s64_transfer_capsule_checksum",
+        "s64_transfer_capsule_module_valid",
         "s64_application_state_payload_valid",
         "s64_managed_editor_state_revoke",
         "s64_reu_runtime_store_verified",
