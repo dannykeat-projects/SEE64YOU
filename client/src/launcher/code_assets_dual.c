@@ -19,11 +19,6 @@ static void put16(uint8_t* out, uint16_t value)
 static void put32(uint8_t* out, uint32_t value)
 { put16(out, (uint16_t)value); put16(out + 2u, (uint16_t)(value >> 16)); }
 
-static uint8_t supported(S64ModuleId module)
-{
-    return module == S64_MODULE_EDITOR || module == S64_MODULE_PUBLISHER;
-}
-
 uint8_t s64_dual_code_assets_count(S64ModuleId module)
 {
     if (module == S64_MODULE_EDITOR) return 4u;
@@ -72,7 +67,7 @@ static uint8_t descriptor_valid(
     const S64ModuleDescriptor* descriptor
 )
 {
-    return supported(module)
+    return s64_dual_code_assets_count(module) != 0u
         && descriptor != 0
         && descriptor->id == module
         && s64_module_descriptor_loadable(descriptor)
@@ -138,7 +133,7 @@ static const S64ReuAllocation* session_allocation(
     uint16_t length = session_size(module);
     uint8_t i;
 
-    if (!supported(module) || !s64_reu_runtime_valid(control)) return 0;
+    if (!s64_dual_code_assets_count(module) || !s64_reu_runtime_valid(control)) return 0;
     for (i = 0u; i < control->allocation_count; ++i) {
         const S64ReuAllocation* item = &control->allocations[i];
         if (item->owner == S64_REU_OWNER_RUNTIME && item->flags == flag) {
