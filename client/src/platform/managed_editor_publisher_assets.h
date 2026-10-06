@@ -19,4 +19,12 @@ uint8_t s64_managed_editor_pub_assets_prepare(
     uint8_t* scratch
 );
 
+/* PREP-only exact Publisher transfer capsule producer. Caller owns IO_SAFE and
+ * supplies the synchronous $C800 workspace. Success leaves the verified wire
+ * in scratch for s64_module_transfer_capsule_enter(). */
+uint8_t s64_managed_editor_publisher_capsule_store(
+    S64ModuleRuntime* runtime,
+    uint8_t* scratch
+);
+
 #endif

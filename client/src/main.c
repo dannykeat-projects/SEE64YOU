@@ -23,6 +23,7 @@
 #include "platform/managed_editor_state.h"
 #include "platform/managed_editor_publisher_assets.h"
 #include "platform/managed_editor_settings.h"
+#include "platform/module_transfer.h"
 #include "platform/basic_return.h"
 #include "platform/package_version.h"
 static S64ModuleRuntime managed_runtime;
@@ -146,6 +147,8 @@ static void launch_publisher(void)
         return;
     }
 
+    s64_ui_message("Opening Publisher...");
+
     if (s64_system_state_set_mode(&managed_runtime.system_state,
             S64_SYSTEM_MODE_IO_SAFE) != S64_SYSTEM_OK) {
         managed_entry_failed(5u);
@@ -176,11 +179,23 @@ static void launch_publisher(void)
         return;
     }
 
-    if (s64_module_runtime_resume_interactive(&managed_runtime)
+    if (!s64_managed_editor_publisher_capsule_store(
+            &managed_runtime, S64_BASIC_RETURN_WORKSPACE)) {
+        if (!s64_transfer_capsule_clear(&managed_runtime.reu_control)
+            || s64_module_runtime_resume_interactive(&managed_runtime)
+                != S64_SYSTEM_OK) {
+            managed_entry_failed(5u);
+        }
+        s64_ui_message("Publisher handoff failed");
+        return;
+    }
+
+    if (s64_module_runtime_prepare_transition(&managed_runtime)
             != S64_SYSTEM_OK) {
         managed_entry_failed(5u);
     }
-    s64_ui_message("Publisher prepared; transfer gated");
+
+    s64_module_transfer_capsule_enter();
 #else
     if (!s64_history_prepare_handoff(&editor.history)) {
         s64_ui_message("Publish handoff failed");

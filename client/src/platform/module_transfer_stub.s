@@ -3,6 +3,9 @@
 .export _s64_module_transfer_stub_image
 .export _s64_module_transfer_stub_end
 .export _s64_module_transfer_stub_enter
+.ifdef S64_MANAGED_OVERLAY
+.export _s64_module_transfer_capsule_enter
+.endif
 
 REU_COMMAND = $df01
 REU_C64_LO = $df02
@@ -87,3 +90,54 @@ _s64_module_transfer_stub_end:
 .proc _s64_module_transfer_stub_enter
     jmp $0700
 .endproc
+
+
+.ifdef S64_MANAGED_OVERLAY
+; Managed module-to-module transitions leave the verified 64-byte transfer
+; capsule at $C800. Stage the same transient DMA stub used by the launcher
+; directly from that capsule, then transfer control. Success never returns.
+.proc _s64_module_transfer_capsule_enter
+    ldx #(_s64_module_transfer_stub_end - _s64_module_transfer_stub_image)
+@copy:
+    dex
+    lda _s64_module_transfer_stub_image,x
+    sta $0700,x
+    cpx #$00
+    bne @copy
+
+    ; REU source = READY module cache address + PRG load-header size.
+    clc
+    lda $c832
+    adc #$02
+    sta PARAM_SOURCE_LO
+    lda $c833
+    adc #$00
+    sta PARAM_SOURCE_HI
+    lda $c834
+    adc #$00
+    sta PARAM_SOURCE_BANK
+
+    lda $c826
+    sta PARAM_DEST_LO
+    lda $c827
+    sta PARAM_DEST_HI
+
+    ; Payload length = exact PRG byte length - 2-byte load header.
+    sec
+    lda $c82a
+    sbc #$02
+    sta PARAM_LENGTH_LO
+    lda $c82b
+    sbc #$00
+    sta PARAM_LENGTH_HI
+
+    lda $c828
+    sta PARAM_START_LO
+    lda $c829
+    sta PARAM_START_HI
+    lda $c806
+    sta PARAM_DESTINATION
+
+    jmp $0700
+.endproc
+.endif

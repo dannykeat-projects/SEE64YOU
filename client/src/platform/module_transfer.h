@@ -20,6 +20,11 @@ uint8_t s64_module_transfer_plan(
 /* Success does not return: execution continues at plan->startup_address. */
 uint8_t s64_module_transfer_execute(const S64ModuleTransferPlan* plan);
 #ifdef __CC65__
+#ifdef S64_MANAGED_OVERLAY
+/* Uses a readback-verified transfer capsule staged at $C800. Success does not
+ * return; the transient $0700 DMA stub enters the destination startup address. */
+void s64_module_transfer_capsule_enter(void);
+#endif
 /* One-shot proof that startup arrived through the transient transfer stub. */
 uint8_t s64_module_transfer_consume_arrival(S64ModuleId destination);
 #endif
