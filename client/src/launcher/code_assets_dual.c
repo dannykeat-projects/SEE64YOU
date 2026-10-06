@@ -18,6 +18,8 @@ static const S64LauncherCodeAssetNamespace publisher_namespace = {
     {"S64PCNT.BIN", "S64PNET.BIN", "S64PRUN.BIN", 0}
 };
 
+static uint8_t session_record[S64_CODE_ASSET_SESSION_SIZE];
+
 static uint16_t get16(const uint8_t* in)
 { return (uint16_t)(in[0] | ((uint16_t)in[1] << 8)); }
 
@@ -266,8 +268,6 @@ uint8_t s64_dual_code_assets_allocate(
     S64ReuRuntimeControl* control
 )
 {
-    S64ReuRuntimeControl planned;
-    S64CodeAssets planned_assets;
     uint8_t i;
 
     if (!namespace_valid(namespace)
@@ -293,11 +293,13 @@ uint8_t s64_dual_code_assets_allocate(
         }
     }
 
-    planned = *control;
-    planned_assets = *assets;
-
+    /*
+     * Launcher orchestration passes a temporary control plan and reparses the
+     * manifest on every retry. Mutating those temporaries here avoids another
+     * large cc65 stack copy while keeping the persisted control atomic.
+     */
     for (i = 0u; i < namespace->overlay_count; ++i) {
-        S64CodeAsset* asset = &planned_assets.assets[i];
+        S64CodeAsset* asset = &assets->assets[i];
 
         if (!asset->cache.length
             || asset->cache.length > S64_CODE_OVERLAY_CAPACITY
@@ -305,7 +307,7 @@ uint8_t s64_dual_code_assets_allocate(
             || asset->cache_state != S64_MODULE_CACHE_EMPTY
             || asset->cache.owner != S64_REU_OWNER_NONE
             || !s64_reu_runtime_allocate(
-                &planned,
+                control,
                 S64_REU_OWNER_MODULE,
                 asset->cache.length,
                 256u,
@@ -315,12 +317,12 @@ uint8_t s64_dual_code_assets_allocate(
         }
 
         asset->cache.flags = (uint8_t)(namespace->cache_flag + i);
-        planned.allocations[planned.allocation_count - 1u].flags =
+        control->allocations[control->allocation_count - 1u].flags =
             asset->cache.flags;
     }
 
     if (!s64_reu_runtime_allocate(
-            &planned,
+            control,
             S64_REU_OWNER_RUNTIME,
             session_size(namespace),
             256u,
@@ -329,11 +331,8 @@ uint8_t s64_dual_code_assets_allocate(
         return 0u;
     }
 
-    planned.allocations[planned.allocation_count - 1u].flags =
+    control->allocations[control->allocation_count - 1u].flags =
         namespace->session_flag;
-
-    *control = planned;
-    *assets = planned_assets;
     return 1u;
 }
 
@@ -343,21 +342,20 @@ uint8_t s64_dual_code_assets_clear(
 )
 {
     const S64ReuAllocation* allocation;
-    uint8_t zero[S64_CODE_ASSET_SESSION_SIZE];
     uint16_t size;
 
     allocation = session_allocation(namespace, control);
     size = session_size(namespace);
-    if (!allocation || !size || size > sizeof(zero)) return 0u;
+    if (!allocation || !size || size > sizeof(session_record)) return 0u;
 
-    memset(zero, 0, size);
+    memset(session_record, 0, size);
     return s64_reu_store(
             (uint8_t)(allocation->address >> 16),
             (uint16_t)allocation->address,
-            zero,
+            session_record,
             size
         )
-        && verify_record(allocation, zero, size);
+        && verify_record(allocation, session_record, size);
 }
 
 uint8_t s64_dual_code_assets_preload(
@@ -438,8 +436,6 @@ uint8_t s64_dual_code_assets_store_verified(
 )
 {
     const S64ReuAllocation* allocation;
-    uint8_t record[S64_CODE_ASSET_SESSION_SIZE];
-    uint8_t journal_wire[S64_SESSION_JOURNAL_WIRE_SIZE];
     uint16_t size;
     uint16_t trailer;
     uint8_t i;
@@ -450,49 +446,48 @@ uint8_t s64_dual_code_assets_store_verified(
     trailer = session_trailer(namespace);
 
     if (!allocation
-        || size > sizeof(record)
+        || size > sizeof(session_record)
         || !journal
         || journal->state != S64_SESSION_STATE_ACTIVE
         || !journal->sequence
         || journal->session_id != control->session_id
         || journal->package_version != control->app_version
         || !assets_valid(namespace, assets, control, module, 1u)
-        || !s64_session_journal_encode(journal, journal_wire)
         || !s64_dual_code_assets_clear(namespace, control)) {
         return 0u;
     }
 
-    memset(record, 0, size);
-    memcpy(record, namespace->session_magic, 4u);
-    record[4] = S64_CODE_ASSET_FORMAT_VERSION;
-    record[5] = namespace->overlay_count;
-    put16(record + 6u, S64_REU_RUNTIME_ABI_VERSION);
-    memcpy(record + 8u, journal_wire, sizeof(journal_wire));
-    put32(record + 32u, assets->editor_length);
-    put32(record + 36u, assets->editor_integrity);
+    memset(session_record, 0, size);
+    memcpy(session_record, namespace->session_magic, 4u);
+    session_record[4] = S64_CODE_ASSET_FORMAT_VERSION;
+    session_record[5] = namespace->overlay_count;
+    put16(session_record + 6u, S64_REU_RUNTIME_ABI_VERSION);
+    if (!s64_session_journal_encode(journal, session_record + 8u)) return 0u;
+    put32(session_record + 32u, assets->editor_length);
+    put32(session_record + 36u, assets->editor_integrity);
 
     for (i = 0u; i < namespace->overlay_count; ++i) {
         const S64CodeAsset* asset = &assets->assets[i];
         offset = (uint8_t)(40u + i * 16u);
-        record[offset] = i + 1u;
-        record[offset + 1u] = S64_MODULE_CACHE_READY;
-        record[offset + 2u] = asset->cache.flags;
-        put32(record + offset + 4u, asset->cache.address);
-        put32(record + offset + 8u, asset->cache.length);
-        put32(record + offset + 12u, asset->integrity);
+        session_record[offset] = i + 1u;
+        session_record[offset + 1u] = S64_MODULE_CACHE_READY;
+        session_record[offset + 2u] = asset->cache.flags;
+        put32(session_record + offset + 4u, asset->cache.address);
+        put32(session_record + offset + 8u, asset->cache.length);
+        put32(session_record + offset + 12u, asset->integrity);
     }
 
-    put16(record + trailer, S64_CODE_OVERLAY_ADDRESS);
-    put16(record + trailer + 2u, S64_CODE_OVERLAY_CAPACITY);
-    put16(record + trailer + 6u, session_checksum(namespace, record));
+    put16(session_record + trailer, S64_CODE_OVERLAY_ADDRESS);
+    put16(session_record + trailer + 2u, S64_CODE_OVERLAY_CAPACITY);
+    put16(session_record + trailer + 6u, session_checksum(namespace, session_record));
 
     if (!s64_reu_store(
             (uint8_t)(allocation->address >> 16),
             (uint16_t)allocation->address,
-            record,
+            session_record,
             size
         )
-        || !verify_record(allocation, record, size)) {
+        || !verify_record(allocation, session_record, size)) {
         (void)s64_dual_code_assets_clear(namespace, control);
         return 0u;
     }
