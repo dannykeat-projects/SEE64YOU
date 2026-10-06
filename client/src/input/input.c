@@ -124,7 +124,7 @@ static unsigned char s64_modifier_ready(
     if ((modifier_repeat_state & 0x7fu) != signature) {
         modifier_repeat_state = signature;
         modifier_repeat_tick = now;
-        return;
+        return 1u;
     }
 
     interval = (modifier_repeat_state & 0x80u) != 0u
@@ -137,7 +137,7 @@ static unsigned char s64_modifier_ready(
 
     modifier_repeat_state = (unsigned char)(signature | 0x80u);
     modifier_repeat_tick = now;
-    return;
+    return 1u;
 }
 
 #ifdef S64_REU_BUFFER
@@ -166,7 +166,7 @@ static unsigned char s64_joystick_event(S64InputEvent* event)
     } else {
         interval = joystick_repeating ? S64_REPEAT_RATE : S64_REPEAT_DELAY;
         if ((unsigned char)(now - joystick_repeat_tick) < interval) {
-            return;
+            return 0u;
         }
         joystick_repeat_tick = now;
         joystick_repeating = 1u;
@@ -178,7 +178,7 @@ static unsigned char s64_joystick_event(S64InputEvent* event)
     else if (JOY_LEFT(state)) event->type = S64_INPUT_LEFT;
     else if (JOY_RIGHT(state)) event->type = S64_INPUT_RIGHT;
     else return 0u;
-    return;
+    return 1u;
 }
 
 static unsigned char s64_mouse_event(S64InputEvent* event)
@@ -206,7 +206,7 @@ static unsigned char s64_mouse_event(S64InputEvent* event)
         mouse_previous_buttons = pressed;
         mouse_previous_x = info.pos.x;
         mouse_previous_y = info.pos.y;
-        return;
+        return 1u;
     }
 
     if (pressed && mouse_previous_buttons
@@ -218,7 +218,7 @@ static unsigned char s64_mouse_event(S64InputEvent* event)
         if (event->row > 24u) event->row = 24u;
         mouse_previous_x = info.pos.x;
         mouse_previous_y = info.pos.y;
-        return;
+        return 1u;
     }
 
     mouse_previous_buttons = pressed;
@@ -305,7 +305,7 @@ void s64_input_read(S64InputEvent* event, unsigned char idle_jiffies)
         }
         if (idle_jiffies
             && (unsigned char)(S64_JIFFY_LOW - idle_start) >= idle_jiffies) {
-            return 0u;
+            return;
         }
     }
 
