@@ -1,4 +1,5 @@
 #include "launcher/code_assets_dual.h"
+#include "launcher/code_assets_scratch.h"
 
 #include "platform/crc32.h"
 #include "platform/module_integrity.h"
@@ -18,7 +19,6 @@ static const S64LauncherCodeAssetNamespace publisher_namespace = {
     {"S64PCNT.BIN", "S64PNET.BIN", "S64PRUN.BIN", 0}
 };
 
-static uint8_t session_record[S64_CODE_ASSET_SESSION_SIZE];
 
 static uint16_t get16(const uint8_t* in)
 { return (uint16_t)(in[0] | ((uint16_t)in[1] << 8)); }
@@ -181,18 +181,16 @@ static uint8_t verify_record(
     uint16_t length
 )
 {
-    uint8_t readback[S64_CODE_ASSET_SESSION_SIZE];
-
-    if (!allocation || !expected || length > sizeof(readback)
+    if (!allocation || !expected || length > S64_CODE_ASSET_SESSION_SIZE
         || allocation->length != length) return 0u;
 
     return s64_reu_load(
             (uint8_t)(allocation->address >> 16),
             (uint16_t)allocation->address,
-            readback,
+            S64_DUAL_ASSET_READBACK,
             length
         )
-        && memcmp(expected, readback, length) == 0;
+        && memcmp(expected, S64_DUAL_ASSET_READBACK, length) == 0;
 }
 
 const S64LauncherCodeAssetNamespace* s64_dual_code_assets_namespace(
@@ -346,16 +344,16 @@ uint8_t s64_dual_code_assets_clear(
 
     allocation = session_allocation(namespace, control);
     size = session_size(namespace);
-    if (!allocation || !size || size > sizeof(session_record)) return 0u;
+    if (!allocation || !size || size > S64_CODE_ASSET_SESSION_SIZE) return 0u;
 
-    memset(session_record, 0, size);
+    memset(S64_DUAL_ASSET_RECORD, 0, size);
     return s64_reu_store(
             (uint8_t)(allocation->address >> 16),
             (uint16_t)allocation->address,
-            session_record,
+            S64_DUAL_ASSET_RECORD,
             size
         )
-        && verify_record(allocation, session_record, size);
+        && verify_record(allocation, S64_DUAL_ASSET_RECORD, size);
 }
 
 uint8_t s64_dual_code_assets_preload(
@@ -446,7 +444,7 @@ uint8_t s64_dual_code_assets_store_verified(
     trailer = session_trailer(namespace);
 
     if (!allocation
-        || size > sizeof(session_record)
+        || size > S64_CODE_ASSET_SESSION_SIZE
         || !journal
         || journal->state != S64_SESSION_STATE_ACTIVE
         || !journal->sequence
@@ -457,37 +455,37 @@ uint8_t s64_dual_code_assets_store_verified(
         return 0u;
     }
 
-    memset(session_record, 0, size);
-    memcpy(session_record, namespace->session_magic, 4u);
-    session_record[4] = S64_CODE_ASSET_FORMAT_VERSION;
-    session_record[5] = namespace->overlay_count;
-    put16(session_record + 6u, S64_REU_RUNTIME_ABI_VERSION);
-    if (!s64_session_journal_encode(journal, session_record + 8u)) return 0u;
-    put32(session_record + 32u, assets->editor_length);
-    put32(session_record + 36u, assets->editor_integrity);
+    memset(S64_DUAL_ASSET_RECORD, 0, size);
+    memcpy(S64_DUAL_ASSET_RECORD, namespace->session_magic, 4u);
+    S64_DUAL_ASSET_RECORD[4] = S64_CODE_ASSET_FORMAT_VERSION;
+    S64_DUAL_ASSET_RECORD[5] = namespace->overlay_count;
+    put16(S64_DUAL_ASSET_RECORD + 6u, S64_REU_RUNTIME_ABI_VERSION);
+    if (!s64_session_journal_encode(journal, S64_DUAL_ASSET_RECORD + 8u)) return 0u;
+    put32(S64_DUAL_ASSET_RECORD + 32u, assets->editor_length);
+    put32(S64_DUAL_ASSET_RECORD + 36u, assets->editor_integrity);
 
     for (i = 0u; i < namespace->overlay_count; ++i) {
         const S64CodeAsset* asset = &assets->assets[i];
         offset = (uint8_t)(40u + i * 16u);
-        session_record[offset] = i + 1u;
-        session_record[offset + 1u] = S64_MODULE_CACHE_READY;
-        session_record[offset + 2u] = asset->cache.flags;
-        put32(session_record + offset + 4u, asset->cache.address);
-        put32(session_record + offset + 8u, asset->cache.length);
-        put32(session_record + offset + 12u, asset->integrity);
+        S64_DUAL_ASSET_RECORD[offset] = i + 1u;
+        S64_DUAL_ASSET_RECORD[offset + 1u] = S64_MODULE_CACHE_READY;
+        S64_DUAL_ASSET_RECORD[offset + 2u] = asset->cache.flags;
+        put32(S64_DUAL_ASSET_RECORD + offset + 4u, asset->cache.address);
+        put32(S64_DUAL_ASSET_RECORD + offset + 8u, asset->cache.length);
+        put32(S64_DUAL_ASSET_RECORD + offset + 12u, asset->integrity);
     }
 
-    put16(session_record + trailer, S64_CODE_OVERLAY_ADDRESS);
-    put16(session_record + trailer + 2u, S64_CODE_OVERLAY_CAPACITY);
-    put16(session_record + trailer + 6u, session_checksum(namespace, session_record));
+    put16(S64_DUAL_ASSET_RECORD + trailer, S64_CODE_OVERLAY_ADDRESS);
+    put16(S64_DUAL_ASSET_RECORD + trailer + 2u, S64_CODE_OVERLAY_CAPACITY);
+    put16(S64_DUAL_ASSET_RECORD + trailer + 6u, session_checksum(namespace, S64_DUAL_ASSET_RECORD));
 
     if (!s64_reu_store(
             (uint8_t)(allocation->address >> 16),
             (uint16_t)allocation->address,
-            session_record,
+            S64_DUAL_ASSET_RECORD,
             size
         )
-        || !verify_record(allocation, session_record, size)) {
+        || !verify_record(allocation, S64_DUAL_ASSET_RECORD, size)) {
         (void)s64_dual_code_assets_clear(namespace, control);
         return 0u;
     }
