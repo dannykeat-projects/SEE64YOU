@@ -23,7 +23,8 @@ CONTENT = (
     "src/platform/application_state_payload.c",
     "src/platform/application_state_editor_decode.c",
     "src/platform/application_state_wire.c",
-    "src/platform/application_state.c", "src/platform/module_transition.c",
+    "src/platform/application_state.c", "src/platform/application_state_build.c",
+    "src/platform/module_transition.c",
     "src/platform/basic_return.c", "src/platform/basic_return_read.c",
 )
 NETWORK = (
@@ -40,6 +41,7 @@ RESIDENT_SUPPORT = (
 RUNTIME_SUPPORT = (
     "src/platform/code_assets_validate.c", "src/platform/code_assets_session.c",
     "src/platform/code_assets_session_read.c", "src/platform/managed_publisher.c",
+    "src/platform/reu_runtime_write.c",
 )
 BRIDGES = {
     "NETWORK": ("s64_session_journal_encode",),
@@ -48,6 +50,7 @@ BRIDGES = {
         "s64_transfer_capsule_clear", "s64_transfer_capsule_store",
         "s64_transfer_capsule_load", "s64_module_runtime_prepare_transition",
         "s64_module_runtime_resume_interactive",
+        "s64_reu_runtime_store_verified",
     ),
     "RUNTIME": ("s64_application_state_load_wire",),
 }
