@@ -56,6 +56,7 @@ GROUPS: dict[str, tuple[str, ...]] = {
         "src/platform/managed_editor_publish.c",
         "src/platform/managed_editor_publisher_assets.c",
         "src/platform/managed_editor_settings.c",
+        "src/platform/transfer_capsule_write.c",
         "src/publisher/settings_session_publish.c",
         "src/publisher/settings_validate.c",
         "src/platform/dos_file.c",
@@ -75,6 +76,9 @@ BRIDGES: dict[str, tuple[str, ...]] = {
         "s64_application_state_decode_editor",
     ),
     "PUBLICATION": (
+        "capsule_allocation",
+        "capsule_checksum",
+        "capsule_module_valid",
         "s64_application_state_payload_valid",
         "s64_managed_editor_state_revoke",
         "s64_reu_runtime_store_verified",
@@ -512,6 +516,7 @@ def compile_editor_overlay_fit(
                                   "src/platform/managed_editor_prepare.c",
                                   "src/platform/managed_editor_publisher_assets.c",
                                   "src/platform/managed_editor_settings.c",
+                                  "src/platform/transfer_capsule_write.c",
                                   "src/publisher/settings_session_publish.c",
                                   "src/publisher/settings_validate.c",
                                   "src/platform/dos_file.c",
@@ -519,6 +524,7 @@ def compile_editor_overlay_fit(
                                   "src/platform/module_integrity.c",
                                   "src/platform/application_state_editor.c",
                                   "src/platform/application_state_build.c",
+                                  "src/platform/module_transfer_stub.s",
                                   "src/platform/basic_return_stub.s", "src/platform/crc32.c"]))
     flags = shlex.split(values["CFLAGS"])
     if "-DS64_REU_BUFFER=1" not in flags:
