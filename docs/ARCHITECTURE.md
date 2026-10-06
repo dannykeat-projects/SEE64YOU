@@ -142,10 +142,12 @@ not the launcher. The launcher remains on its compact, hardware-proven Editor-on
 asset producer so the original-SYS return workspace at $C800 is untouched. The
 14-file package carries the exact managed Publisher root and its three asset
 binaries plus manifest. A preparation-only Publisher producer reuses the existing
-Publisher-specialized asset codec, consumes the final four allocator entries only
-when called, and remains production-gated until session-bound settings are ready.
+Publisher-specialized asset codec and consumes the final four allocator entries on
+first Publisher preparation, bringing the approved plan to exactly 16/16. Production
+Editor now invokes that path before first Publisher entry, publishes canonical
+ACTIVE-bound settings, and transfers through the authenticated cached-module path.
 The authenticated resumed-entry hardware gate passed on firmware 1.1; the newer
-Publisher PREP path and fourth-asset changes still need hardware acceptance.
+Publisher PREP/settings/module-cycle path still needs complete real-C64U acceptance.
 See C64U-RUNTIME.md for the transaction and code-asset v2 contracts.
 
 ## Executable overlay model
@@ -172,8 +174,9 @@ crt0 and publishes it as a checksummed allocator-owned ACTIVE-session record.
 Managed editor exit validates it before revocation, restores/verifies system state,
 persists CLEAN, runs cc65 destructors and restores the original stack/zero page/
 memory map through a transient stub. Invalid context retains a safe CLEAN park.
-The current c64u-package target enables this verified Editor entry and exit.
-Publisher/Settings ownership cycles remain gated.
+The current c64u-package target enables verified Editor entry/exit and the
+managed Editor -> Publisher -> Settings -> Publisher -> Editor ownership cycle.
+The complete multi-module cycle remains a real-C64U hardware acceptance gate.
 See docs/C64U-RUNTIME.md for the wire, scratch and hardware evidence contracts.
 
 ## Package manifest and integrity
@@ -198,8 +201,9 @@ fresh initialization or exact ACTIVE-bound state resumption. A resumed record
 must authenticate and pass payload range checks before live controls are bound;
 failure halts entry. Document/history/clipboard payloads remain in REU. Entry
 uses synchronous scratch in the asserted `$C800` workspace/stack gap, and exit
-reloads its original SYS-return record independently. Publisher execution remains
-gated pending state publication and complete module-cycle acceptance.
+reloads its original SYS-return record independently. Publisher execution now consumes authenticated application state and
+ACTIVE-bound settings through the cached transfer path; complete real-C64U
+module-cycle acceptance remains pending.
 
 ## Canonical document
 

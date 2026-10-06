@@ -323,8 +323,7 @@ are rejected without modifying caller output. Session cleanup clears/readbacks
 the capsule before revoking the shared module-session record and before
 restore/verify -> CLEAN.
 
-The execution-transfer implementation is now staged but not yet enabled in the
-production launcher. A host-tested transfer plan derives the exact REU payload
+The execution-transfer implementation is enabled in the production C64U package. A host-tested transfer plan derives the exact REU payload
 source (cached PRG address + 2), RAM destination, payload length and startup
 address from the verified capsule. It rejects REU wrap, RAM images below $0801,
 images extending into $D000+, and startup addresses outside the copied payload.
@@ -339,9 +338,10 @@ the CPU memory-configuration byte and flags, then jumps indirectly to the
 validated startup address. The assembly is size-guarded to remain below the
 parameter block.
 
-Production SEE64YOU.PRG still stops after TRANSFER CAPSULE READY / TRANSFER PLAN
-READY / EDITOR HANDOFF PENDING; it does not call the new execution stub yet.
-That final call remains gated on build/CI confirmation and real-C64U validation.
+Production SEE64YOU.PRG now executes the verified transfer stub after capsule and
+plan validation. Launcher -> Editor -> BASIC is hardware-proven; the complete
+Editor/Publisher/Settings ownership cycle is software/CI-complete and still awaits
+real-C64U acceptance.
 
 Because REU can survive reset, a valid capsule alone is not sufficient proof of
 an immediate handoff. The transient transfer stub now writes a one-shot
@@ -698,9 +698,10 @@ the KERNAL clock advanced; BASIC executed PRINT 6*7, displayed 42 and returned
 READY. Both journal checksums passed; newest CLEAN was sequence 56/package 513.
 Original SD modules/manifest/recovery were restored with exact SHA256 readback,
 temporary diagnostic files were removed, and drive configuration was unchanged.
-This proves the bounded diagnostic exit, not physical keyboard, long-edit or
-Publisher/Settings ownership cycles. The current c64u-package enables the proven
-Editor entry/exit; other module ownership cycles remain gated.
+This proves the bounded diagnostic exit, not physical keyboard, long-edit or the
+newer complete Publisher/Settings ownership cycle. The current c64u-package keeps
+the proven Editor entry/exit and now also implements the managed multi-module cycle;
+that newer cycle remains hardware-unverified.
 
 To retain fit while adding this exit path, module/asset session producer and
 consumer code now link separately. Wire contracts and shared non-reentrant scratch
@@ -755,9 +756,11 @@ clear/store/load and runtime prepare/resume calls, plus RUNTIME's application-wi
 load. All other cross-group imports remain rejected.
 
 The managed Publisher uses no legacy handoff or Settings helper exchange.
-Editor return and Settings UI remain gated. Persistent settings format and
-transactional /sd/SEE64YOU.CFG save/readback are unchanged; shared validated
-session settings and managed Settings ownership remain future integration work.
+Editor return and managed Settings UI are now wired through the authenticated
+cached-transfer path. Persistent settings remain transactionally stored at
+/sd/SEE64YOU/SEE64YOU.CFG, while validated ACTIVE-bound session settings are
+republished across managed Settings round trips. Real-C64U multi-module acceptance
+remains outstanding.
 
 Publisher asset foundation uses the same codecs compiled with
 S64_CODE_ASSET_PUBLISHER=1. Its exact-root/CRC manifest is S64POVL.MNF (S64P,
@@ -881,8 +884,9 @@ ACTIVE retained. Success advances generation exactly once and keeps the verified
 snapshot until transition preparation or cancellation. Every subsequent live input
 event verifies cancellation before processing editing, navigation or menu actions;
 ordinary events with no application authority avoid this cold overlay path.
-Publisher/Settings transitions remain blocked. The preceding consumer package
-passed the bounded first-entry/edit/CLEAN/BASIC-return hardware gate on
+Publisher/Settings transitions are now enabled in the production package through
+the authenticated cached transfer path. The preceding consumer package passed the
+bounded first-entry/edit/CLEAN/BASIC-return hardware gate on
 2026-10-05 (CLEAN 60/package 514). The subsequent authenticated resumed-entry
 positive/negative gate is recorded below. See docs/LOCAL_TESTING.md for evidence.
 

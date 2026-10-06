@@ -113,16 +113,20 @@ The current C64U package is built with:
 make -C client c64u-package
 ~~~
 
-Copy all ten files from client/build/c64u-package/ to /sd/ and run SEE64YOU.PRG.
-The launcher validates and caches matching modules/code assets, enters the
-managed editor and restores machine state before returning to BASIC on exit.
-A 16 MiB REU and UCI/Ultimate-DOS are required. Current storage remains /sd/;
-the final application-folder layout is still queued.
+Copy the complete 14-file contents of client/build/c64u-package/ into
+/sd/SEE64YOU/ and run SEE64YOU.PRG from that folder. The launcher validates and
+caches matching modules/code assets, enters the managed editor and restores
+machine state before returning to BASIC on exit. A 16 MiB REU and
+UCI/Ultimate-DOS are required. Publishing config is authoritative at
+/sd/SEE64YOU/SEE64YOU.CFG; the crash-recovery journals deliberately remain at
+the SD root until their separate two-slot migration is hardware-proven.
 
-Publisher and Settings are cached companions; their managed transitions remain
-blocked. The package supports offline editing while those ownership cycles are
-completed. Physical USB/native keyboard and full file/menu acceptance remain
-hardware gates. Do not cold-launch S64EDIT.PRG: it requires trusted launcher entry.
+Editor, Publisher and Settings now use the authenticated managed cached-transfer
+cycle in software/CI, including return-state and ACTIVE-bound settings authority.
+Real C64U acceptance of the complete Editor -> Publisher -> Settings -> Publisher
+-> Editor cycle, repeated cycles, physical USB/native keyboard behavior and full
+file/menu behavior remains pending. Do not cold-launch S64EDIT.PRG, S64PUB.PRG or
+S64CFG.PRG: managed modules require trusted launcher/module entry.
 
 Conventional-C64 and old standalone editor targets remain optional migration
 diagnostics. They are excluded from current product artifacts and CI fit gates.
