@@ -13,14 +13,6 @@ S64PublisherWorkspace s64_publisher_workspace;
 static uint8_t state_ok, wire_ok = 1u;
 static S64ApplicationState loaded_state;
 static S64ModuleRuntime* expected_runtime;
-uint8_t s64_application_state_load_wire(const S64ReuRuntimeControl* control,
-    const S64SessionJournal* journal, uint8_t* wire)
-{
-    assert(control == &expected_runtime->reu_control);
-    assert(journal == &expected_runtime->lifecycle.journal);
-    assert(wire == s64_publisher_workspace.bytes);
-    return wire_ok;
-}
 uint8_t s64_application_state_decode_payload(S64ApplicationState* state,
     const uint8_t* wire)
 {
