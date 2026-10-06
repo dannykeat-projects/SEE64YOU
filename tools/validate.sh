@@ -362,6 +362,13 @@ cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host managed settings session tests =="
+cc -std=c99 -Wall -Wextra -Werror -DS64_REU_BUFFER=1 -Iclient/src \
+    client/tests/settings_session_test.c client/src/publisher/settings_session.c \
+    client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c \
+    -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host publisher preview tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/publisher_preview_test.c client/src/buffer.c \
