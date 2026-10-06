@@ -2,13 +2,31 @@
 #include <string.h>
 
 #include "charset.h"
+#ifndef S64_MANAGED_OVERLAY
 #include "platform/chain.h"
+#endif
 #include "platform/dos.h"
 #include "platform/reu.h"
 #include "platform/uci.h"
 #include "publisher/destination.h"
 #include "publisher/settings_exchange.h"
 #include "publisher/settings_store.h"
+#ifdef S64_MANAGED_OVERLAY
+#include "platform/module_arrival.h"
+#include "platform/module_runtime.h"
+#include "platform/module_transition.h"
+#include "platform/module_transfer.h"
+#include "platform/package_version.h"
+#include "publisher/settings_session.h"
+static S64ModuleRuntime managed_runtime;
+static void managed_entry_failed(uint8_t stage)
+{
+    clrscr();
+    cputs("Managed settings failed. Restart launcher.");
+    cputc((char)('0' + stage));
+    for (;;) { }
+}
+#endif
 
 #ifdef S64_SETTINGS_SAVE_TRACE
 #include "../../diagnostics/settings_save_trace.h"
@@ -582,9 +600,34 @@ static void import_direct_key(void)
 
 static void return_to_publisher(void)
 {
+#ifdef S64_MANAGED_OVERLAY
+    S64ModuleTransferPlan plan;
+    S64ModuleTransitionResult transition;
+
+    clrscr();
+    cputs("RETURNING TO PUBLISHER...\r\n");
+    transition = s64_module_transition_prepare(
+        &managed_runtime,
+        S64_MODULE_PUBLISHER,
+        &plan
+    );
+    if (transition == S64_MODULE_TRANSITION_RECOVERY_REQUIRED) {
+        managed_entry_failed(6u);
+    }
+    if (transition != S64_MODULE_TRANSITION_OK) {
+        set_status("Publisher handoff failed");
+        return;
+    }
+    if (!s64_module_transfer_execute(&plan)) {
+        transition = s64_module_transition_cancel(&managed_runtime, &plan);
+        if (transition != S64_MODULE_TRANSITION_OK) managed_entry_failed(6u);
+        set_status("Publisher handoff failed");
+    }
+#else
     clrscr();
     cputs("RETURNING TO PUBLISHER...\r\n");
     s64_chain_publisher();
+#endif
 }
 
 static void save_and_return(void)
@@ -622,6 +665,16 @@ static void save_and_return(void)
 #endif
         return;
     }
+#ifdef S64_MANAGED_OVERLAY
+    if (!s64_settings_session_publish(
+            &managed_runtime.reu_control,
+            &managed_runtime.lifecycle.journal,
+            &settings
+        )) {
+        set_status("Cannot publish settings session");
+        return;
+    }
+#else
     if (!s64_settings_exchange_store(&settings)) {
         set_status("Cannot preserve settings");
 #ifdef S64_SETTINGS_SAVE_TRACE
@@ -629,6 +682,7 @@ static void save_and_return(void)
 #endif
         return;
     }
+#endif
 
     set_status("Saved and verified /sd/SEE64YOU.CFG");
 #ifdef S64_SETTINGS_SAVE_TRACE
@@ -642,10 +696,21 @@ static void cancel_and_return(void)
 {
     settings = original_settings;
     settings.state = S64_SETTINGS_STATE_READY;
+#ifdef S64_MANAGED_OVERLAY
+    if (!s64_settings_session_publish(
+            &managed_runtime.reu_control,
+            &managed_runtime.lifecycle.journal,
+            &settings
+        )) {
+        set_status("Cannot restore settings session");
+        return;
+    }
+#else
     if (!s64_settings_exchange_store(&settings)) {
         set_status("Cannot preserve settings");
         return;
     }
+#endif
     return_to_publisher();
 }
 
@@ -686,7 +751,9 @@ static void service_load_request(void)
 int main(void)
 {
     unsigned char key;
+#ifndef S64_MANAGED_OVERLAY
     unsigned char have_exchange;
+#endif
 
     bgcolor(COLOR_BLUE);
     bordercolor(COLOR_BLUE);
@@ -694,14 +761,38 @@ int main(void)
     clrscr();
     cursor(0);
 
+#ifdef S64_MANAGED_OVERLAY
+    if (!s64_module_transfer_consume_arrival(S64_MODULE_SETTINGS)) {
+        managed_entry_failed(1u);
+    }
+    s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
+    s64_module_runtime_init_hardware(&managed_runtime, &dos);
+    if (!s64_module_runtime_adopt(
+            &managed_runtime,
+            S64_MODULE_SETTINGS,
+            S64_PACKAGE_VERSION,
+            1u
+        )) {
+        managed_entry_failed(2u);
+    }
+    if (!s64_settings_session_load(
+            &managed_runtime.reu_control,
+            &managed_runtime.lifecycle.journal,
+            &settings
+        )) {
+        managed_entry_failed(3u);
+    }
+    if (s64_module_runtime_resume_interactive(&managed_runtime)
+            != S64_SYSTEM_OK) {
+        managed_entry_failed(4u);
+    }
+#else
     if (!s64_reu_probe() || s64_reu_probe_banks() < 2u) {
         cputs("SEE64YOU SETTINGS\r\n128K REU REQUIRED\r\n");
         return 1;
     }
 
-    s64_uci_probe_capabilities(&capabilities);
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
-
     have_exchange = s64_settings_exchange_load(&settings) ? 1u : 0u;
     if (have_exchange && settings.state == S64_SETTINGS_STATE_LOAD_REQUEST) {
         service_load_request();
@@ -723,7 +814,9 @@ int main(void)
         s64_settings_exchange_init(&settings);
         settings.state = S64_SETTINGS_STATE_EDIT_REQUEST;
     }
+#endif
 
+    s64_uci_probe_capabilities(&capabilities);
     original_settings = settings;
     status_text[0] = '\0';
     for (;;) {
