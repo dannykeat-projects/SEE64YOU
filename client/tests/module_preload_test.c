@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "platform/module_preload.h"\n#include "platform/package_paths.h"
+#include "platform/module_preload.h"
+#include "platform/package_paths.h"
 
 static unsigned calls, opens, closes, loads;
 static unsigned failure;
