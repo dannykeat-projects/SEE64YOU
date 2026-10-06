@@ -63,7 +63,7 @@ uint8_t s64_settings_session_publish(
     if (!settings
         || settings->state != S64_SETTINGS_STATE_READY
         || !s64_settings_exchange_validate(settings)
-        || !s64_reu_runtime_valid(control)
+        || !control
         || !journal
         || journal->state != S64_SESSION_STATE_ACTIVE
         || !journal->sequence

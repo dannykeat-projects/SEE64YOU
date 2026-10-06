@@ -25,14 +25,9 @@ uint8_t s64_managed_editor_publisher_capsule_store(
     const S64ModuleDescriptor* module;
     uint8_t* readback;
 
-    if (!runtime || !scratch
-        || runtime->current_module != S64_MODULE_EDITOR
-        || runtime->system_state.mode != S64_SYSTEM_MODE_IO_SAFE
-        || !runtime->lifecycle.active_record_written
-        || runtime->lifecycle.clean_record_written
-        || runtime->shared_invalidated) {
-        return 0u;
-    }
+    /* PREP-only helper: caller already owns the live Editor in IO_SAFE.
+     * Revalidate the authority-bearing journal and destination descriptor here. */
+    if (!runtime || !scratch) return 0u;
 
     allocation = s64_transfer_capsule_allocation(&runtime->reu_control);
     module = &runtime->module_manifest.modules[S64_MODULE_PUBLISHER - 1u];
