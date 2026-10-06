@@ -148,7 +148,7 @@ static void launch_publisher(void)
         return;
     }
 
-    s64_ui_message("Opening Publisher...");
+    s64_ui_message("Preparing Publisher...");
 
     if (s64_system_state_set_mode(&managed_runtime.system_state,
             S64_SYSTEM_MODE_IO_SAFE) != S64_SYSTEM_OK) {
@@ -202,6 +202,8 @@ static void launch_publisher(void)
         managed_entry_failed(5u);
     }
 
+    clrscr();
+    cputs("OPENING PUBLISHER...\r\n");
     s64_module_transfer_capsule_enter();
 #else
     if (!s64_history_prepare_handoff(&editor.history)) {

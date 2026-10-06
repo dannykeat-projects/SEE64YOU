@@ -23,7 +23,7 @@ Completed troubleshooting/evidence belongs in canonical docs and Git history, no
   - Publisher → Settings → Publisher: software/CI complete; hardware acceptance pending;
   - repeated full cycles with exact state preservation.
 - [ ] After initial preload, demonstrate that normal module transitions perform no software-IEC/KERNAL LOAD and do not require a fresh SD read.
-- [ ] Give every transition deliberate UI (OPENING PUBLISHER..., OPENING SETTINGS..., RETURNING TO EDITOR...) even if REU-cached transitions become nearly instant.
+- [x] Give every managed module transition deliberate UI. Editor → Publisher now clears stale Editor UI immediately before DMA and shows `OPENING PUBLISHER...`; Publisher → Settings shows `OPENING SETTINGS...`; Settings → Publisher shows `RETURNING TO PUBLISHER...`; Publisher → Editor shows `RETURNING TO SEE64YOU EDITOR...`.
 - [ ] Define final /sd/SEE64YOU/ package/storage layout. Runtime package binaries/manifests/assets now live under /sd/SEE64YOU/. Publishing config is now authoritative at /sd/SEE64YOU/SEE64YOU.CFG: Settings first tries the app-folder copy, transactionally migrates a valid legacy /sd/SEE64YOU.CFG by write/reopen/exact validation, and retires the old root copy only after success. Editor PREP prefers the app-folder copy and retains a legacy-root read fallback until migration occurs. Profiles also use the app folder; SEE64KEY.TXT may be imported from the app folder or SD root. Exact-head CI/VICE and focused migration/fallback tests pass. Session journals deliberately remain at /sd/ pending a separately designed exact-record migration that preserves two-slot ACTIVE/CLEAN recovery authority.
 
 ## Current P0 handoff checkpoint
