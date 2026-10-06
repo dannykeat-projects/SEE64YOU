@@ -35,17 +35,6 @@
 #define S64_CODE_ASSET_SESSION_SIZE (S64_CODE_ASSET_SESSION_TRAILER + 8u)
 
 typedef struct {
-    S64ModuleId module;
-    uint8_t magic_last;
-    uint8_t session_flag;
-    uint8_t cache_flag;
-    uint8_t overlay_count;
-    const char* manifest_filename;
-    const char* session_magic;
-    const char* filenames[S64_CODE_OVERLAY_MAX_COUNT];
-} S64CodeAssetNamespace;
-
-typedef struct {
     S64ReuAllocation cache;
     uint32_t integrity;
     uint8_t cache_state;
@@ -58,35 +47,18 @@ typedef struct {
     S64CodeAsset assets[S64_CODE_OVERLAY_COUNT];
 } S64CodeAssets;
 
-/* Non-dual module builds expose only their own namespace. Launcher builds set
- * S64_CODE_ASSET_DUAL_NAMESPACE and can resolve both Editor and Publisher. */
-const S64CodeAssetNamespace* s64_code_assets_namespace(S64ModuleId module);
-
-/* Namespace-aware producer APIs let one launcher implementation prepare both
- * asset sets without linking two copies of the codec. The namespace count must
- * fit the S64CodeAssets array compiled into the caller. */
-uint8_t s64_code_assets_parse_for(const S64CodeAssetNamespace* namespace,
-    S64CodeAssets* assets, const uint8_t* wire, uint16_t length,
-    const S64ModuleDescriptor* editor);
-uint8_t s64_code_assets_allocate_for(const S64CodeAssetNamespace* namespace,
-    S64CodeAssets* assets, S64ReuRuntimeControl* control);
-uint8_t s64_code_assets_preload_for(const S64CodeAssetNamespace* namespace,
-    S64Dos* dos, const S64ReuRuntimeControl* control,
-    const S64ModuleDescriptor* editor, S64CodeAssets* assets,
-    S64SystemState* system);
-uint8_t s64_code_assets_clear_for(const S64CodeAssetNamespace* namespace,
-    const S64ReuRuntimeControl* control);
-uint8_t s64_code_assets_store_verified_for(
-    const S64CodeAssetNamespace* namespace,
-    const S64ReuRuntimeControl* control, const S64SessionJournal* journal,
-    const S64ModuleDescriptor* editor, const S64CodeAssets* assets);
-
-/* Existing destination/default-namespace API. */
+/* The editor_* fields below contain the selected module root metadata.
+ * Parsing binds raw assets to that exact module PRG metadata, not filenames
+ * supplied by an external manifest. Outputs remain unchanged on failure. */
 uint8_t s64_code_assets_parse(S64CodeAssets* assets, const uint8_t* wire,
     uint16_t length, const S64ModuleDescriptor* editor);
+/* Reserve namespace-specific exact MODULE caches and one session record atomically. */
 uint8_t s64_code_assets_allocate(S64CodeAssets* assets, S64ReuRuntimeControl* control);
+/* Revoke published readiness before changing bytes. Requires verified editor
+ * metadata and an owned IO_SAFE scope; all namespace CRCs must pass together. */
 uint8_t s64_code_assets_preload(S64Dos* dos, const S64ReuRuntimeControl* control,
     const S64ModuleDescriptor* editor, S64CodeAssets* assets, S64SystemState* system);
+/* Session-record DMA APIs below require an exclusively owned IO_SAFE scope. */
 uint8_t s64_code_assets_clear(const S64ReuRuntimeControl* control);
 uint8_t s64_code_assets_store_verified(const S64ReuRuntimeControl* control,
     const S64SessionJournal* journal, const S64ModuleDescriptor* editor,
