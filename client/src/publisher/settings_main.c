@@ -199,6 +199,8 @@ static void print_value(unsigned char row, const char* label, const char* value)
 
 static void render_basic(void)
 {
+    const char* publishing;
+
     clrscr();
     revers(1);
     gotoxy(0u, 0u);
@@ -210,9 +212,10 @@ static void render_basic(void)
         ? "configured" : "not set");
     print_value(7u, "Plain HTTP: ", settings.allow_insecure_http
         ? "allowed" : "blocked");
-    print_value(9u, "Publishing: ",
-        settings.destination_type == (uint8_t)S64_DESTINATION_NONE
-            ? "not configured" : destination_name());
+    publishing = settings.destination_type == (uint8_t)S64_DESTINATION_NONE
+        ? (const char*)"not configured"
+        : destination_name();
+    print_value(9u, "Publishing: ", publishing);
 
     gotoxy(0u, 12u); cputs("1 WEBSITE");
     gotoxy(0u, 13u); cputs("2 IMPORT SEE64KEY.TXT");
