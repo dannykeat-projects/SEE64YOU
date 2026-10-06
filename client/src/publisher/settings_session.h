@@ -8,7 +8,7 @@
 #include "publisher/settings_exchange.h"
 
 #define S64_SETTINGS_SESSION_FORMAT_VERSION 1u
-#define S64_SETTINGS_SESSION_SIZE 40u
+#define S64_SETTINGS_SESSION_SIZE 36u
 
 /* Remove managed-session authority without changing persistent settings. */
 uint8_t s64_settings_session_revoke(void);
