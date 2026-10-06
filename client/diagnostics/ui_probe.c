@@ -1,4 +1,5 @@
-#include <conio.h>\n#include <stdint.h>
+#include <conio.h>
+#include <stdint.h>
 
 #include "editor.h"
 #include "ui.h"
