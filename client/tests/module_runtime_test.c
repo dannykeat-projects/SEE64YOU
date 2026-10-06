@@ -136,6 +136,7 @@ int main(void)
     S64SessionJournal journal;
     S64ModuleRuntime runtime;
     S64Dos dos;
+    S64Dos dos_before;
     FakeRegister reg;
     unsigned reads_before, writes_before;
 
@@ -144,7 +145,8 @@ int main(void)
     memset(capsule_wire, 0, sizeof(capsule_wire));
     prepare_shared(&control, &manifest, &journal);
 
-    memset(&dos, 0, sizeof(dos));
+    memset(&dos, 0xa5, sizeof(dos));
+    dos_before = dos;
     memset(&reg, 0, sizeof(reg));
     reg.value = 0x25u;
 
@@ -219,8 +221,14 @@ int main(void)
             assert(runtime.system_state.snapshot.turbo_control == 0x25u);
             assert(runtime.reu_control.allocation_count == control.allocation_count);
             assert(s64_module_runtime_resume_interactive(&runtime) == S64_SYSTEM_OK);
+            assert(memcmp(&dos, &dos_before, sizeof(dos)) == 0);
         }
     }
+
+    /* Managed cache-to-cache transitions/adoption never consume or mutate DOS
+     * state. Real hardware remains the final proof that no fresh SD transfer is
+     * issued, but this regression keeps the software path REU-only. */
+    assert(memcmp(&dos, &dos_before, sizeof(dos)) == 0);
 
     puts("module runtime tests passed");
     return 0;
