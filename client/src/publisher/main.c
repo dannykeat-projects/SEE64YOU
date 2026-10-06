@@ -34,6 +34,7 @@
 #include "platform/code_overlay_bootstrap.h"
 #include "platform/managed_publisher.h"
 #include "platform/package_version.h"
+#include "publisher/settings_session.h"
 static S64ModuleRuntime managed_runtime;
 static void managed_entry_failed(uint8_t stage)
 {
@@ -398,7 +399,6 @@ static void open_settings(void)
 #endif
 }
 
-#ifndef S64_MANAGED_OVERLAY
 static const char* settings_status(uint8_t result)
 {
     if (result == S64_SETTINGS_RESULT_OK) return "Settings loaded";
@@ -407,10 +407,36 @@ static const char* settings_status(uint8_t result)
     return "Settings storage unavailable";
 }
 
-static unsigned char restore_settings(void)
+static unsigned char apply_settings(const S64SettingsExchange* settings)
 {
     uint8_t result;
 
+    if (!settings) return 0u;
+    result = settings->result;
+    s64_destination_clear(&destination);
+    if (settings->destination_type != (uint8_t)S64_DESTINATION_NONE) {
+        destination.type = (S64DestinationType)settings->destination_type;
+        destination.allow_insecure_http = settings->allow_insecure_http;
+        memcpy(destination.base_url, settings->base_url, sizeof(destination.base_url));
+    }
+#ifdef S64_DIRECT_PUBLISHER
+    (void)s64_direct_publisher_key(settings->direct_key);
+#else
+    if (!s64_relay_set_key(settings->relay_key)) {
+        s64_destination_clear(&destination);
+        (void)s64_relay_set_key("");
+        set_status("Publisher settings invalid");
+        return 0u;
+    }
+#endif
+
+    set_status(settings_status(result));
+    return 1u;
+}
+
+#ifndef S64_MANAGED_OVERLAY
+static unsigned char restore_settings(void)
+{
     if (!s64_settings_bridge_load_ready(WORK_SETTINGS)) {
         if (!s64_settings_bridge_request_load(WORK_SETTINGS)) {
             set_status("Settings handoff unavailable");
@@ -423,26 +449,7 @@ static unsigned char restore_settings(void)
         return 0u;
     }
 
-    result = WORK_SETTINGS->result;
-    s64_destination_clear(&destination);
-    if (WORK_SETTINGS->destination_type != (uint8_t)S64_DESTINATION_NONE) {
-        destination.type = (S64DestinationType)WORK_SETTINGS->destination_type;
-        destination.allow_insecure_http = WORK_SETTINGS->allow_insecure_http;
-        memcpy(destination.base_url, WORK_SETTINGS->base_url, sizeof(destination.base_url));
-    }
-#ifdef S64_DIRECT_PUBLISHER
-    (void)s64_direct_publisher_key(WORK_SETTINGS->direct_key);
-#else
-    if (!s64_relay_set_key(WORK_SETTINGS->relay_key)) {
-        s64_destination_clear(&destination);
-        (void)s64_relay_set_key("");
-        set_status("Publisher settings invalid");
-        return 0u;
-    }
-#endif
-
-    set_status(settings_status(result));
-    return 1u;
+    return apply_settings(WORK_SETTINGS);
 }
 #endif
 
@@ -1147,8 +1154,12 @@ int main(void)
     if (!s64_managed_publisher_adopt(&managed_runtime, &dos, S64_PACKAGE_VERSION)) managed_entry_failed(4u);
     if (!s64_managed_publisher_document(&managed_runtime, &body, &document,
             &document_changed, &document_replaced)) managed_entry_failed(5u);
+    if (!s64_settings_session_load(&managed_runtime.reu_control,
+            &managed_runtime.lifecycle.journal, WORK_SETTINGS)) {
+        managed_entry_failed(6u);
+    }
     if (s64_module_runtime_resume_interactive(&managed_runtime)
-            != S64_SYSTEM_OK) managed_entry_failed(6u);
+            != S64_SYSTEM_OK) managed_entry_failed(7u);
 #else
     if (!s64_reu_probe() || s64_reu_probe_banks() < 2u) {
         cputs("SEE64YOU PUBLISHER\r\n128K REU REQUIRED\r\n");
@@ -1182,7 +1193,7 @@ int main(void)
     document_replaced = 0u;
 #endif
 #ifdef S64_MANAGED_OVERLAY
-    set_status("Settings transition not ready");
+    if (!apply_settings(WORK_SETTINGS)) managed_entry_failed(8u);
 #else
     (void)restore_settings();
 #endif

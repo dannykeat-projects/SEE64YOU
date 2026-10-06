@@ -21,6 +21,8 @@
 #include "platform/code_overlay_bootstrap.h"
 #include "platform/managed_editor.h"
 #include "platform/managed_editor_state.h"
+#include "platform/managed_editor_publisher_assets.h"
+#include "platform/managed_editor_settings.h"
 #include "platform/basic_return.h"
 #include "platform/package_version.h"
 static S64ModuleRuntime managed_runtime;
@@ -133,12 +135,52 @@ static void launch_publisher(void)
 {
 #ifdef S64_MANAGED_OVERLAY
     unsigned char prepared;
+
     managed_application.document_replaced = local_document.document_replaced;
     prepared = s64_managed_editor_state_prepare_publish(&managed_runtime,
         &managed_application, &editor, &document, &local_document, &clipboard,
         find_query, find_query_valid, S64_BASIC_RETURN_WORKSPACE);
     if (prepared == 2u) managed_entry_failed(5u);
-    s64_ui_message(prepared ? "State prepared; Publisher gated" : "Publish preparation failed");
+    if (!prepared) {
+        s64_ui_message("Publish preparation failed");
+        return;
+    }
+
+    if (s64_system_state_set_mode(&managed_runtime.system_state,
+            S64_SYSTEM_MODE_IO_SAFE) != S64_SYSTEM_OK) {
+        managed_entry_failed(5u);
+    }
+
+    /* Publisher caches are allocated once per ACTIVE session. Re-entry can
+     * reuse the exact verified namespace; its consumer still rejects stale or
+     * corrupt S64Q authority before any later executable transfer. */
+    if (managed_runtime.reu_control.allocation_count
+            < S64_REU_RUNTIME_MAX_ALLOCATIONS
+        && !s64_managed_editor_publisher_assets_prepare(
+            &managed_runtime, S64_BASIC_RETURN_WORKSPACE)) {
+        if (s64_module_runtime_resume_interactive(&managed_runtime)
+                != S64_SYSTEM_OK) {
+            managed_entry_failed(5u);
+        }
+        s64_ui_message("Publisher assets unavailable");
+        return;
+    }
+
+    if (!s64_managed_editor_settings_prepare(
+            &managed_runtime, S64_BASIC_RETURN_WORKSPACE)) {
+        if (s64_module_runtime_resume_interactive(&managed_runtime)
+                != S64_SYSTEM_OK) {
+            managed_entry_failed(5u);
+        }
+        s64_ui_message("Publishing settings unavailable");
+        return;
+    }
+
+    if (s64_module_runtime_resume_interactive(&managed_runtime)
+            != S64_SYSTEM_OK) {
+        managed_entry_failed(5u);
+    }
+    s64_ui_message("Publisher prepared; transfer gated");
 #else
     if (!s64_history_prepare_handoff(&editor.history)) {
         s64_ui_message("Publish handoff failed");
