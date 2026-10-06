@@ -151,7 +151,7 @@ static void rollback_control(
     }
 }
 
-uint8_t s64_managed_editor_publisher_assets_prepare(
+uint8_t s64_managed_editor_pub_assets_prepare(
     S64ModuleRuntime* runtime,
     uint8_t* scratch
 )
