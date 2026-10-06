@@ -210,20 +210,17 @@ static void render_basic(void)
         ? settings.base_url : "(not set)");
     print_value(5u, "Publishing key: ", settings.direct_key[0] != '\0'
         ? "configured" : "not set");
-    print_value(7u, "Plain HTTP: ", settings.allow_insecure_http
-        ? "allowed" : "blocked");
     publishing = settings.destination_type == (uint8_t)S64_DESTINATION_NONE
         ? (const char*)"not configured"
         : destination_name();
-    print_value(9u, "Publishing: ", publishing);
+    print_value(7u, "Publishing: ", publishing);
 
-    gotoxy(0u, 12u); cputs("1 WEBSITE");
-    gotoxy(0u, 13u); cputs("2 IMPORT SEE64KEY.TXT");
-    gotoxy(0u, 14u); cputs("3 TYPE / REPLACE KEY");
-    gotoxy(0u, 15u); cputs("4 PLAIN HTTP POLICY");
-    gotoxy(0u, 16u); cputs("5 DISABLE PUBLISHING KEY");
-    gotoxy(0u, 18u); cputs("T CHECK SETTINGS");
-    gotoxy(0u, 19u); cputs("A ADVANCED SETTINGS");
+    gotoxy(0u, 11u); cputs("1 WEBSITE");
+    gotoxy(0u, 12u); cputs("2 IMPORT SEE64KEY.TXT");
+    gotoxy(0u, 13u); cputs("3 TYPE / REPLACE KEY");
+    gotoxy(0u, 14u); cputs("4 DISABLE PUBLISHING KEY");
+    gotoxy(0u, 17u); cputs("T CHECK READINESS");
+    gotoxy(0u, 18u); cputs("A ADVANCED SETTINGS");
     gotoxy(0u, 21u); cputs("S SAVE + RETURN");
     gotoxy(0u, 22u); cputs("RUN/STOP CANCEL + RETURN");
     clear_row(STATUS_ROW);
@@ -254,8 +251,8 @@ static void render_advanced(void)
     gotoxy(0u, 19u); cputs("7 DISABLE RELAY KEY");
     gotoxy(0u, 20u); cputs("8 LOAD PROFILE");
     gotoxy(0u, 21u); cputs("9 SAVE PROFILE");
-    gotoxy(0u, 22u); cputs("S SAVE + RETURN");
-    gotoxy(0u, 23u); cputs("RUN/STOP CANCEL + RETURN");
+    gotoxy(0u, 22u); cputs("D KEY IMPORT DIAGNOSTICS");
+    gotoxy(0u, 23u); cputs("S SAVE  B BASIC  STOP CANCEL");
     clear_row(STATUS_ROW);
     gotoxy(0u, STATUS_ROW);
     revers(1); cputs(status_text); revers(0);
@@ -959,8 +956,6 @@ int main(void)
             } else if (key == '3') {
                 replace_direct_key();
             } else if (key == '4') {
-                toggle_plain_http();
-            } else if (key == '5') {
                 settings.direct_key[0] = '\0';
                 set_status("Publishing key disabled");
             } else if (key == 't' || key == 'T') {
@@ -1017,6 +1012,10 @@ int main(void)
             load_profile();
         } else if (key == '9') {
             save_profile();
+        } else if (key == 'd' || key == 'D') {
+            diagnose_direct_key_io();
+            show_direct_key_diagnostics();
+            set_status("Key import diagnostics complete");
         } else if (key == 'b' || key == 'B') {
             advanced_view = 0u;
             set_status("Basic settings");

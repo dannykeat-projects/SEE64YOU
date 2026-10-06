@@ -161,6 +161,8 @@ After setup, Basic Settings should contain only user-meaningful choices:
 
 Do not expose UCI target IDs in Basic Settings.
 
+Current implementation keeps Basic deliberately narrow: website, publishing-key import/manual replacement/disable, readiness validation, save/cancel and the Advanced entry. The explicit plaintext-HTTP downgrade and low-level key-import diagnostics are Advanced-only. Connection/network diagnostics remain a separate follow-on rather than being folded back into Basic.
+
 ## Advanced Settings
 
 Advanced contains:

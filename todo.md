@@ -82,7 +82,7 @@ Do not merge/deploy merely because diagnostic validation passes.
   - direct connection test;
   - transactional save + final readback;
   - EDIT OFFLINE path when only networking/publishing is unavailable.
-- [ ] Implement simplified Basic Settings and move transport/hardware/cache/recovery diagnostics to Advanced.
+- [ ] Finish simplified Basic Settings / Advanced Settings separation. Basic now exposes website, publishing-key import/manual replacement/disable, readiness check, save/cancel and the Advanced entry only; plaintext-HTTP policy is Advanced-only. Existing key-import diagnostics are now explicitly reachable from Advanced. Finish moving broader hardware/cache/recovery diagnostics into the integrated Diagnostics screen rather than Basic.
 - [ ] Add an integrated Diagnostics screen/export showing version, firmware/hardware, UCI targets, 16 MiB REU health/usage, module cache, performance mode, storage/recovery and connection state without exposing secrets.
 - [ ] Add explicit Exit See64You flow that resolves dirty source, closes resources, restores machine state and marks the session clean.
 
