@@ -3,9 +3,7 @@
 .export _s64_module_transfer_stub_image
 .export _s64_module_transfer_stub_end
 .export _s64_module_transfer_stub_enter
-.ifdef S64_MANAGED_OVERLAY
 .export _s64_module_transfer_capsule_enter
-.endif
 
 REU_COMMAND = $df01
 REU_C64_LO = $df02
@@ -92,7 +90,6 @@ _s64_module_transfer_stub_end:
 .endproc
 
 
-.ifdef S64_MANAGED_OVERLAY
 ; Managed module-to-module transitions leave the verified 64-byte transfer
 ; capsule at $C800. Stage the same transient DMA stub used by the launcher
 ; directly from that capsule, then transfer control. Success never returns.
@@ -140,4 +137,3 @@ _s64_module_transfer_stub_end:
 
     jmp $0700
 .endproc
-.endif

@@ -179,7 +179,7 @@ static void launch_publisher(void)
         return;
     }
 
-    if (!s64_managed_editor_publisher_capsule_store(
+    if (!s64_managed_editor_pub_capsule_store(
             &managed_runtime, S64_BASIC_RETURN_WORKSPACE)) {
         if (!s64_transfer_capsule_clear(&managed_runtime.reu_control)
             || s64_module_runtime_resume_interactive(&managed_runtime)

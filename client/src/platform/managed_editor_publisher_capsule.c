@@ -16,7 +16,7 @@ static void put32(uint8_t* out, uint32_t value)
     put16(out + 2u, (uint16_t)(value >> 16));
 }
 
-uint8_t s64_managed_editor_publisher_capsule_store(
+uint8_t s64_managed_editor_pub_capsule_store(
     S64ModuleRuntime* runtime,
     uint8_t* scratch
 )
