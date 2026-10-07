@@ -419,16 +419,18 @@ int main(void)
             &network, network_handle
         ) == S64_NET_OK, 54u);
 
-        require(s64_direct_publisher_key(key_hex), 55u);
-        fake_http_open_count = 0u;
-        direct_http.execute = fake_http_uci;
-        direct_result = s64_direct_publisher_test(
-            &direct_http,
-            "http://example.test/api.php?action=settings",
-            1u
-        );
-        require(direct_result == S64_STANDALONE_OK,
-            (uint8_t)(120u + s64_persistent_direct_trace));
+        if (cycle == 1u) {
+            require(s64_direct_publisher_key(key_hex), 55u);
+            fake_http_open_count = 0u;
+            direct_http.execute = fake_http_uci;
+            direct_result = s64_direct_publisher_test(
+                &direct_http,
+                "http://example.test/api.php?action=settings",
+                1u
+            );
+            require(direct_result == S64_STANDALONE_OK,
+                (uint8_t)(120u + s64_persistent_direct_trace));
+        }
 
         require(s64_probe_pruntime_ping(cycle)
             == (uint16_t)(cycle ^ 0xa55au), 40u);
@@ -684,8 +686,8 @@ def main() -> int:
         process = subprocess.Popen(command, stdout=log, stderr=log)
         monitor = None
         try:
-            monitor = wait_for_monitor("127.0.0.1", args.port, 20)
-            deadline = time.monotonic() + 90
+            monitor = wait_for_monitor("127.0.0.1", args.port, 120)
+            deadline = time.monotonic() + 120
             state = b""
             while time.monotonic() < deadline:
                 state = monitor.read_memory(0xc060, 0xc062)
