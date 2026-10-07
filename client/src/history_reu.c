@@ -18,8 +18,18 @@ typedef struct {
     unsigned char coalesce_insert;
 } S64HistoryEntry;
 
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+#include "platform/persistent_fit_scratch.h"
+#define history_target ((unsigned char*)S64_PERSISTENT_FIT_SCRATCH_BASE)
+#define history_current ((unsigned char*)(S64_PERSISTENT_FIT_SCRATCH_BASE \
+    + S64_HISTORY_TRANSFER_SIZE))
+typedef char S64PersistentFitHistoryScratchFits[
+    2u * S64_HISTORY_TRANSFER_SIZE <= S64_PERSISTENT_FIT_SCRATCH_CAPACITY ? 1 : -1
+];
+#else
 static unsigned char history_target[S64_HISTORY_TRANSFER_SIZE];
 static unsigned char history_current[S64_HISTORY_TRANSFER_SIZE];
+#endif
 static S64HistoryEntry history_entry;
 static unsigned char history_entry_slot;
 static unsigned char history_entry_valid;
