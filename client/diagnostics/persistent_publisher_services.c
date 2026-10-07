@@ -1,6 +1,7 @@
 #include "document.h"
+#include "publisher/persistent_services.h"
 
-int s64_document_slug_valid(const char* slug)
+int s64_persistent_document_slug_valid(const char* slug)
 {
     uint16_t i;
     uint8_t expect_alnum = 1u;
