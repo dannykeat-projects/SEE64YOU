@@ -65,6 +65,14 @@ full local validation pass without changing overlay sizes or resident limits.
 The fixed native probe confirms NOT_FOUND/legacy-root OK. Finish uninstrumented
 package hardware acceptance, then diagnose the Publisher entry boundary if the
 diagnostic-only `Managed entry failed. Restart launcher.0` reproduces there.
+The uninstrumented package passed settings preparation but reproduced Publisher
+entry failure 0. Live Editor IRQ points to $0840, which Publisher overwrites with
+its failure handler. Both transfer paths now run cc65 destructors before DMA;
+the VICE regression fails on the old code and passes with original IRQ restored
+on generic and capsule-DMA departure. Full local host/cc65/VICE validation passes;
+resident footprint and all overlay sizes are unchanged (Editor $8BFF, Publisher
+1474-byte headroom, Settings 9213 bytes before $CC00). Real-C64U module-cycle
+acceptance of this fix remains pending.
 The interrupted diagnostic recovered to CLEAN 78, restored original files
 exactly and verified unchanged drives/IRQ. Full module cycles and managed exit
 remain unverified. Managed Settings depends on both record headers, preventing

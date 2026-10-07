@@ -612,6 +612,8 @@ if command -v cl65 >/dev/null 2>&1 \
         sh ./tools/test_reu_vice.sh
         echo "== VICE original SYS return validation =="
         python3 tools/test_basic_return_vice.py
+        echo "== VICE module-transfer IRQ teardown =="
+        python3 tools/test_module_transfer_vice.py
     else
         echo "SKIP REU VICE validation (x64sc/xvfb-run/python3/curl required)"
     fi

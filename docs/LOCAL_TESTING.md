@@ -4,6 +4,14 @@ This file contains the **current** reproducible validation path for the C64 Ulti
 
 The authoritative outstanding-work queue is todo.md.
 
+`python3 tools/test_module_transfer_vice.py` verifies cc65 IRQ teardown on both
+generic and capsule transfer entries. It installs a real cc65 interruptor,
+records the prior/installed vectors, then checks the original vector at the
+destination before startup. Capsule coverage executes 16 MiB REU DMA and checks
+the arrival marker. It runs in `tools/validate.sh` alongside the original SYS
+return probe and uses the same pinned `/tmp/see64you-roms` fixtures. Real-C64U
+module-cycle acceptance remains a separate required gate.
+
 ## 1. Product test baseline
 
 Target machine configuration:

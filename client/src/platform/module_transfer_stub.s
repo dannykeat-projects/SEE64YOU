@@ -4,6 +4,7 @@
 .export _s64_module_transfer_stub_end
 .export _s64_module_transfer_stub_enter
 .export _s64_module_transfer_capsule_enter
+.import donelib
 
 REU_COMMAND = $df01
 REU_C64_LO = $df02
@@ -85,11 +86,6 @@ _s64_module_transfer_stub_end:
 
 .segment "CODE"
 
-.proc _s64_module_transfer_stub_enter
-    jmp $0700
-.endproc
-
-
 ; Managed module-to-module transitions leave the verified 64-byte transfer
 ; capsule at $C800. Stage the same transient DMA stub used by the launcher
 ; directly from that capsule, then transfer control. Success never returns.
@@ -135,5 +131,12 @@ _s64_module_transfer_stub_end:
     lda $c806
     sta PARAM_DESTINATION
 
+.endproc
+
+; Both entry paths reach teardown only after staging the complete transfer.
+; Restore cc65-owned IRQ/mouse hooks before DMA overwrites their code. Capsule
+; entry falls through to keep the constrained resident footprint unchanged.
+.proc _s64_module_transfer_stub_enter
+    jsr donelib
     jmp $0700
 .endproc

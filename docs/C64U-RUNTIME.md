@@ -19,6 +19,12 @@ Ultimate-DOS missing-file classification accepts the exact filesystem text
 numeric FILE_STAT status codes. This allows Editor preparation to try the legacy
 root config when the app-folder config is absent; other filesystem errors remain
 errors. Direct matching of the supported numeric pairs preserves resident fit.
+At irreversible module departure, both generic and capsule transfer entries run
+cc65 destructors after staging all transfer parameters and before DMA. This
+restores departing IRQ/mouse hooks before their code is overwritten. Capsule
+entry falls through into the common teardown, keeping resident code size unchanged.
+This does not end the ACTIVE session or restore the application-owned snapshot;
+the destination retains the existing authenticated session adoption contract.
 
 Initial supported baseline:
 
