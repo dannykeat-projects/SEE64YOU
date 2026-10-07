@@ -6,8 +6,10 @@
 #define decoded (*(S64CodeAssets*)(S64_PERSISTENT_FIT_SCRATCH_BASE \
     + S64_CODE_ASSET_SESSION_SIZE + S64_SESSION_JOURNAL_WIRE_SIZE))
 typedef char S64PersistentFitAssetDecodeFits[
-    S64_CODE_ASSET_SESSION_SIZE + S64_SESSION_JOURNAL_WIRE_SIZE
-        + sizeof(S64CodeAssets) <= S64_PERSISTENT_FIT_SCRATCH_CAPACITY ? 1 : -1
+    S64_PERSISTENT_FIT_SCRATCH_CAPACITY
+        - S64_CODE_ASSET_SESSION_SIZE
+        - S64_SESSION_JOURNAL_WIRE_SIZE
+        - (int)sizeof(S64CodeAssets)
 ];
 #else
 static S64CodeAssets decoded;
