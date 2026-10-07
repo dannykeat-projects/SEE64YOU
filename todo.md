@@ -162,6 +162,15 @@ Software fit result (GitHub-hosted cc65 2.19, exact head before this note):
   path as fallback until real Publisher/Settings overlays and hardware cycles
   are accepted.
 
+GitHub-hosted validation also passed the synthetic VICE gate without the
+self-hosted runner: cc65/VICE/Xvfb were installed on `ubuntu-latest`, the probe
+preloaded three REU assets once, completed 30
+Editor -> Publisher -> Settings -> Publisher -> Editor cycles, preserved exact
+resident and REU state, retained one lifecycle owner and wrote one final CLEAN.
+Use `.github/workflows/persistent-runtime-spike.yml` for software-only spike
+validation while the self-hosted runner is unavailable. Real C64U hardware
+remains the final authority.
+
 Decision rule:
 - If the diagnostic passes cleanly and the projected real asset layout has
   sensible headroom, pivot production incrementally to the persistent-runtime
