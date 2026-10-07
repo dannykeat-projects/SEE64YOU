@@ -62,17 +62,25 @@ Integrated diagnostics isolated OPEN_FILE's target error. Native firmware 1.1
 reports a missing app-folder config as `FILE DOESN'T EXIST`; exact classification
 now maps it to NOT_FOUND so the existing legacy fallback can run. Regression and
 full local validation pass without changing overlay sizes or resident limits.
-The fixed native probe confirms NOT_FOUND/legacy-root OK. Finish uninstrumented
-package hardware acceptance, then diagnose the Publisher entry boundary if the
-diagnostic-only `Managed entry failed. Restart launcher.0` reproduces there.
+The fixed native probe confirms NOT_FOUND/legacy-root OK. The normal package
+passes settings preparation using the original root config alone.
 The uninstrumented package passed settings preparation but reproduced Publisher
 entry failure 0. Live Editor IRQ points to $0840, which Publisher overwrites with
 its failure handler. Both transfer paths now run cc65 destructors before DMA;
 the VICE regression fails on the old code and passes with original IRQ restored
 on generic and capsule-DMA departure. Full local host/cc65/VICE validation passes;
 resident footprint and all overlay sizes are unchanged (Editor $8BFF, Publisher
-1474-byte headroom, Settings 9213 bytes before $CC00). Real-C64U module-cycle
-acceptance of this fix remains pending.
+1474-byte headroom, Settings 9213 bytes before $CC00).
+The normal package now reaches Publisher's genuine stage-4 failure with original
+IRQ $EA31 restored and a valid software stack. An isolated hardware probe
+confirms session adoption, IO_SAFE mode and Publisher asset binding succeed;
+`s64_application_state_load_wire()` fails on loading or validating the
+ACTIVE-bound application-state record. Next isolate its allocation/DMA/header/
+journal/CRC checks. Full module-cycle acceptance remains pending.
+At wrap-up the diagnostic session recovered to CLEAN 86; original package,
+config and recovery files were restored with exact readback, drive state and
+IRQ unchanged, and the machine returned to BASIC. This recovery is not managed
+clean-exit acceptance.
 The interrupted diagnostic recovered to CLEAN 78, restored original files
 exactly and verified unchanged drives/IRQ. Full module cycles and managed exit
 remain unverified. Managed Settings depends on both record headers, preventing

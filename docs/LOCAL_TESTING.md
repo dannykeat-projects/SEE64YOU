@@ -12,6 +12,20 @@ the arrival marker. It runs in `tools/validate.sh` alongside the original SYS
 return probe and uses the same pinned `/tmp/see64you-roms` fixtures. Real-C64U
 module-cycle acceptance remains a separate required gate.
 
+On 2026-10-07, code commit `e5ffd0f` passed full local validation and exact-head
+CI run 37609738482. All 14 package files matched hardware SD readback. On real
+firmware-1.1 C64U, Editor → Publisher now restores IRQ $EA31 and reaches a genuine
+stage-4 adoption failure with software stack $CFFA, replacing the stale-IRQ
+failure 0. The isolated adoption diagnostic recorded $02AA=4 and $02AB=17:
+module-runtime/session adoption, IO_SAFE selection and Publisher asset binding
+succeeded; application-state wire loading/validation failed. It did not test
+Settings, a complete module cycle or managed clean exit. Temporary diagnostic
+instrumentation is outside tracked production code.
+Wrap-up used the existing diagnostic recovery tool to supersede ACTIVE 85 with
+CLEAN 86. Original package/config/recovery files matched exact restore readback;
+drive state and IRQ matched the saved baseline and the machine returned to
+BASIC. This recovery does not establish managed clean-exit acceptance.
+
 ## 1. Product test baseline
 
 Target machine configuration:
