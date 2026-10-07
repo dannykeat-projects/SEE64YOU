@@ -18,18 +18,30 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install cc65 toolchain
+      - name: Install cc65 and VICE toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y cc65 make python3
-          command -v cl65 cc65 ca65 make python3
+          sudo apt-get install -y cc65 make python3 curl xvfb vice
+          command -v cl65 cc65 ca65 make python3 curl xvfb-run x64sc
           cl65 --version || true
+          x64sc -version
 
       - name: Build synthetic persistent-owner probe
         run: python3 tools/test_persistent_runtime_vice.py --build-only
 
       - name: Measure real persistent Editor root
         run: python3 tools/build_persistent_editor_fit.py
+
+      - name: Prepare pinned Open ROMs
+        run: |
+          mkdir -p /tmp/see64you-roms
+          base="https://raw.githubusercontent.com/MEGA65/open-roms/ad178dbe4d48cd6a317737a8e0e7e662f7e33d32/bin"
+          curl --fail --location --silent --show-error "$base/kernal_generic.rom" -o /tmp/see64you-roms/kernal.rom
+          curl --fail --location --silent --show-error "$base/basic_generic.rom" -o /tmp/see64you-roms/basic.rom
+          curl --fail --location --silent --show-error "$base/chargen_openroms.rom" -o /tmp/see64you-roms/chargen.rom
+
+      - name: Run persistent-owner VICE cycles
+        run: python3 tools/test_persistent_runtime_vice.py
 
       - name: Publish persistent-runtime fit maps
         if: always()
