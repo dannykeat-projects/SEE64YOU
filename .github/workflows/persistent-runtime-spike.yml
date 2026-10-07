@@ -32,6 +32,9 @@ jobs:
       - name: Measure real persistent Editor root
         run: python3 tools/build_persistent_editor_fit.py
 
+      - name: Measure real persistent Publisher slice
+        run: python3 tools/build_persistent_publisher_slice_fit.py
+
       - name: Prepare pinned Open ROMs
         run: |
           mkdir -p /tmp/see64you-roms
