@@ -46,6 +46,9 @@ jobs:
       - name: Run persistent-owner VICE cycles
         run: python3 tools/test_persistent_runtime_vice.py
 
+      - name: Run real persistent Publisher namespace VICE gate
+        run: python3 tools/test_persistent_publisher_vice.py
+
       - name: Publish persistent-runtime fit maps
         if: always()
         uses: actions/upload-artifact@v4
@@ -56,5 +59,9 @@ jobs:
             client/build/persistent-runtime-probe/persistent-runtime-probe.prg
             client/build/persistent-editor-fit/persistent-editor-fit.map
             client/build/persistent-editor-fit/persistent-editor-fit.prg
+            client/build/persistent-publisher-slice-fit/persistent-publisher-slice-fit.map
+            client/build/persistent-publisher-slice-fit/persistent-publisher-slice-fit.prg
+            client/build/persistent-publisher-vice/persistent-publisher-vice.map
+            client/build/persistent-publisher-vice/persistent-publisher-vice.prg
           if-no-files-found: warn
           retention-days: 14
