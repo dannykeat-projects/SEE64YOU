@@ -16,8 +16,9 @@ const S64ReuAllocation* s64_code_assets_session_allocation(const S64ReuRuntimeCo
     (*(uint8_t (*)[S64_SESSION_JOURNAL_WIRE_SIZE]) \
         (S64_PERSISTENT_FIT_SCRATCH_BASE + S64_CODE_ASSET_SESSION_SIZE))
 typedef char S64PersistentFitAssetScratchFits[
-    S64_CODE_ASSET_SESSION_SIZE + S64_SESSION_JOURNAL_WIRE_SIZE
-        <= S64_PERSISTENT_FIT_SCRATCH_CAPACITY ? 1 : -1
+    S64_PERSISTENT_FIT_SCRATCH_CAPACITY
+        - S64_CODE_ASSET_SESSION_SIZE
+        - S64_SESSION_JOURNAL_WIRE_SIZE
 ];
 #else
 extern uint8_t s64_code_assets_session_wire[S64_CODE_ASSET_SESSION_SIZE];
