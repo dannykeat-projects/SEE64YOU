@@ -29,7 +29,15 @@
 #define S64_UCI_WAIT_SECONDS     15UL
 #define S64_UCI_STREAM_BUFFER    128u
 
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+#include "platform/persistent_fit_scratch.h"
+#define stream_buffer ((uint8_t*)S64_PERSISTENT_FIT_SCRATCH_BASE)
+typedef char S64PersistentFitUciScratchFits[
+    S64_UCI_STREAM_BUFFER <= S64_PERSISTENT_FIT_SCRATCH_CAPACITY ? 1 : -1
+];
+#else
 static uint8_t stream_buffer[S64_UCI_STREAM_BUFFER];
+#endif
 
 static uint8_t s64_uci_interface_present(void)
 {
