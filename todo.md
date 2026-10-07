@@ -28,6 +28,91 @@ Completed troubleshooting/evidence belongs in canonical docs and Git history, no
 
 ## Current P0 handoff checkpoint
 
+### Architecture decision gate — persistent supervisor/code-overlay spike
+
+Pause further debugging of the production Editor -> Publisher application-state
+adoption failure while this bounded spike is evaluated. Preserve the current
+whole-PRG handoff implementation as the fallback; code commit `e5ffd0f` plus
+checkpoint `6ccf818` is the last hardware-diagnosed baseline before this
+reassessment. Do not delete or weaken its tests while the spike is undecided.
+
+The question is deliberately narrow: can SEE64YOU keep **one cc65 runtime,
+one ACTIVE lifecycle owner and one system-state snapshot alive for the whole
+application**, while Editor, Publisher and Settings execute as REU-cached code
+assets in the existing `$8C00-$C7FF` slot? If yes, normal mode changes no longer
+need PRG-to-PRG crt0 replacement, destination lifecycle adoption, arrival
+markers, transfer capsules or reconstruction of application state that is
+already live in the owning runtime.
+
+Build this first as a diagnostic target, tentatively
+`persistent-runtime-fit`. It must not replace `c64u-package` or change the
+production package while feasibility is unknown.
+
+Reuse rather than redesign:
+- the 16 MiB REU allocator/control block;
+- durable ACTIVE/CLEAN journal and original BASIC return handling;
+- central system-state/performance manager;
+- Ultimate-DOS preload and CRC verification;
+- the existing Editor code-overlay selector/REU DMA mechanism;
+- current Editor, Publisher and Settings logic where it can be linked as code
+  assets without changing behaviour.
+
+The first spike should use tiny representative Editor/Publisher/Settings assets,
+not port the complete applications. One persistent owner should preload the
+assets, enter an Editor asset, mutate known resident/REU state, switch to
+Publisher, switch to Settings, return through Publisher to Editor, verify the
+same state, repeat the sequence at least 30 times, then perform the normal
+restore/verify -> CLEAN -> original BASIC return. No transition inside this
+diagnostic should start a new crt0/runtime or adopt another ACTIVE lifecycle.
+
+Acceptance gates before any production pivot:
+1. **Conventional RAM:** measure the exact resident map. The design should recover
+   useful safety margin rather than merely link; target at least 1 KiB below the
+   `$8C00` overlay slot after moving cold/shared data to REU where appropriate,
+   while retaining the existing `$CC00-$CFFF` 1 KiB software stack and all
+   current memory guards. If that target is impractical, record the measured
+   blocker rather than squeezing by bytes.
+2. **Overlay fit:** every representative asset must stay within the existing
+   15,360-byte slot. Report headroom for each real Editor/Publisher/Settings
+   grouping proposed for migration and split responsibilities instead of
+   accepting single-digit permanent headroom.
+3. **State continuity:** resident and REU test state must survive 30 consecutive
+   Editor -> Publisher -> Settings -> Publisher -> Editor cycles exactly.
+4. **Lifecycle simplicity:** one capture, one durable ACTIVE session and one
+   final restore/verify/CLEAN. No per-mode session adoption or application-state
+   rehydration is allowed in the spike.
+5. **No transition I/O:** after initial preload, mode switches perform no fresh
+   SD/module load and no software-IEC/KERNAL LOAD.
+6. **Allocator fit:** produce a projected production allocation table. Removing
+   whole-PRG module caches/session/capsule ownership must free enough entries for
+   the required code assets without exceeding the current allocator capacity;
+   do not increase capacity merely to make the spike pass.
+7. **Validation:** add focused host tests, a repeatable VICE cycle/ABI test and
+   the usual map/headroom checks. Real C64U testing is required only after the
+   software spike passes these gates.
+
+Decision rule:
+- If the diagnostic passes cleanly and the projected real asset layout has
+  sensible headroom, pivot production incrementally to the persistent-runtime
+  model. First replace only Editor <-> Publisher, then Settings, retaining the
+  old handoff path until each replacement is accepted.
+- If resident RAM, overlay fit or allocator ownership requires comparable or
+  greater machinery than the current design, stop the spike, leave production
+  unchanged and resume diagnosis at `s64_application_state_load_wire()`.
+
+Implementation order:
+1. inventory the current resident Editor root, overlay selector, Publisher
+   overlay groups, Settings dependencies and allocator ownership;
+2. add the isolated persistent-runtime fit target and synthetic three-mode
+   cycle test;
+3. measure maps/headroom and projected allocator entries;
+4. only if those gates pass, link real Publisher responsibilities as assets,
+   then real Settings responsibilities;
+5. after software/VICE success, hardware-accept repeated cycles and clean BASIC
+   return;
+6. only then update the canonical architecture docs and retire obsolete
+   cross-PRG transfer/adoption machinery.
+
 Use PR #61 on `feature/c64u-publisher-chain` as the authoritative working branch. Before changing code in a new chat, read `AGENTS.md`, this file, `docs/C64U-RUNTIME.md`, `docs/ARCHITECTURE.md` and `docs/LOCAL_TESTING.md`, then inspect the current PR head rather than assuming a saved SHA is still current.
 
 The active bounded task is the cached-module executable handoff. The launcher currently preflights, recovers, enters durable ACTIVE, creates/verifies the REU control/allocator, loads the generated module manifest, preloads and CRC-verifies Editor/Publisher/Settings, publishes the shared module-session record, enters TRANSITION, creates/readbacks a destination-bound transfer capsule and derives an exact transfer plan. The current c64u-package executes the verified copier into the managed Editor. Standalone launcher/preload targets remain gated diagnostics that cancel back to INTERACTIVE/CLEAN.
