@@ -33,7 +33,7 @@
 #include "platform/persistent_fit_scratch.h"
 #define stream_buffer ((uint8_t*)S64_PERSISTENT_FIT_SCRATCH_BASE)
 typedef char S64PersistentFitUciScratchFits[
-    S64_UCI_STREAM_BUFFER <= S64_PERSISTENT_FIT_SCRATCH_CAPACITY ? 1 : -1
+    S64_PERSISTENT_FIT_SCRATCH_CAPACITY - S64_UCI_STREAM_BUFFER
 ];
 #else
 static uint8_t stream_buffer[S64_UCI_STREAM_BUFFER];
