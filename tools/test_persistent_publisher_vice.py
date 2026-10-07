@@ -99,6 +99,7 @@ static uint16_t network_payload_length;
 static uint16_t network_received;
 static S64HttpTransport direct_http;
 static uint8_t fake_http_open_count;
+static S64StandaloneResult direct_result;
 static S64Buffer body;
 static S64Document document;
 static S64PersistentPublisher publisher;
@@ -420,11 +421,13 @@ int main(void)
         require(s64_direct_publisher_key(key_hex), 55u);
         fake_http_open_count = 0u;
         direct_http.execute = fake_http_uci;
-        require(s64_direct_publisher_test(
+        direct_result = s64_direct_publisher_test(
             &direct_http,
             "http://example.test/api.php?action=settings",
             1u
-        ) == S64_STANDALONE_OK, 56u);
+        );
+        require(direct_result == S64_STANDALONE_OK,
+            (uint8_t)(60u + (uint8_t)direct_result));
 
         require(s64_probe_pruntime_ping(cycle)
             == (uint16_t)(cycle ^ 0xa55au), 40u);
