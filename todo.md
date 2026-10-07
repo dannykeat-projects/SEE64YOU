@@ -96,6 +96,24 @@ Acceptance gates before any production pivot:
    whole-PRG module caches/session/capsule ownership must free enough entries for
    the required code assets without exceeding the current allocator capacity;
    do not increase capacity merely to make the spike pass.
+
+Current projection after source/package inspection:
+- retain one full Editor-root PRG cache for the already-proven Launcher -> Editor
+  bootstrap, plus its module-session, initial transfer capsule and BASIC-return
+  records: 4 allocations;
+- Editor code assets: 4 allocations;
+- current Publisher groups: 3 allocations;
+- Settings must be split: the current managed `S64CFG.PRG` artifact is 38,579
+  bytes and cannot be treated as one 15,360-byte asset; budget 2-3 Settings
+  assets until measured;
+- prefer one unified ACTIVE-bound code-asset/session record for all in-process
+  modes, because there is now only one lifecycle owner.
+
+That projects to 14 allocations with two Settings assets or 15 with three,
+without increasing the 16-entry allocator. Separate per-mode asset-session
+records would consume the remaining margin unnecessarily and should not be the
+default persistent-runtime design. This is a projection, not yet a validated
+package layout.
 7. **Validation:** add focused host tests, a repeatable VICE cycle/ABI test and
    the usual map/headroom checks. Real C64U testing is required only after the
    software spike passes these gates.
