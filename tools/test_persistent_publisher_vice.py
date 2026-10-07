@@ -17,7 +17,7 @@ OUT = CLIENT / "build" / "persistent-publisher-vice"
 
 GROUPS = {
     "PCONTENT": ("src/publisher/destination.c", "src/publisher/state.c"),
-    "PNETWORK": ("src/crypto/sha256.c", "src/publisher/direct_auth.c"),
+    "PNETWORK": ("src/platform/network.c", "src/crypto/sha256.c", "src/publisher/direct_auth.c"),
     "PRUNTIME": ("src/publisher/settings_validate.c", "src/publisher/settings_exchange.c"),
 }
 GROUP_IDS = {"EDITOR": 1, "PCONTENT": 1, "PNETWORK": 2, "PRUNTIME": 3, "SETTINGS": 1}
@@ -62,6 +62,7 @@ MAIN = r"""
 #include "document.h"
 #include "platform/code_overlay.h"
 #include "platform/code_overlay_namespace.h"
+#include "platform/network.h"
 #include "platform/reu.h"
 #include "platform/reu_runtime.h"
 #include "publisher/direct_auth.h"
@@ -90,6 +91,11 @@ static uint8_t key[32];
 static uint8_t body_digest[32];
 static char signature[65];
 static char url[S64_DESTINATION_URL_CAPACITY];
+static S64NetTransport network;
+static uint8_t network_handle;
+static uint8_t network_payload[4];
+static uint16_t network_payload_length;
+static uint16_t network_received;
 static S64Buffer body;
 static S64Document document;
 static S64PersistentPublisher publisher;
@@ -146,6 +152,75 @@ static uint8_t hex64(const char* value)
             || (c >= 'A' && c <= 'F'))) return 0u;
     }
     return 1u;
+}
+
+static uint8_t capture_network_payload(
+    const uint8_t* data, uint16_t length, void* context)
+{
+    uint16_t i;
+    (void)context;
+    if (network_payload_length + length > sizeof(network_payload)) return 0u;
+    for (i = 0u; i < length; ++i) {
+        network_payload[network_payload_length++] = data[i];
+    }
+    return 1u;
+}
+
+static S64UciResult fake_network_uci(
+    const S64UciCommandPart* parts, uint8_t part_count, S64UciReply* reply)
+{
+    uint8_t command;
+    uint8_t data[4];
+    uint16_t sent;
+
+    if (!parts || !part_count || !reply || !parts[0].data
+        || parts[0].length < 2u || parts[0].data[0] != 0x03u
+        || !reply->status || reply->status_capacity < 3u) {
+        return S64_UCI_PROTOCOL_ERROR;
+    }
+
+    command = parts[0].data[1];
+    reply->status[0] = '0';
+    reply->status[1] = '0';
+    reply->status[2] = 0;
+    reply->status_length = 2u;
+
+    if (command == 0x07u) {
+        data[0] = 0x2au;
+        if (!reply->data_sink
+            || !reply->data_sink(data, 1u, reply->data_context)) {
+            return S64_UCI_CONSUMER_ABORTED;
+        }
+        return S64_UCI_OK;
+    }
+
+    if (command == 0x11u) {
+        if (part_count != 2u || !reply->data_sink) {
+            return S64_UCI_PROTOCOL_ERROR;
+        }
+        sent = parts[1].length;
+        data[0] = (uint8_t)sent;
+        data[1] = (uint8_t)(sent >> 8);
+        if (!reply->data_sink(data, 2u, reply->data_context)) {
+            return S64_UCI_CONSUMER_ABORTED;
+        }
+        return S64_UCI_OK;
+    }
+
+    if (command == 0x10u) {
+        data[0] = 2u;
+        data[1] = 0u;
+        data[2] = 'O';
+        data[3] = 'K';
+        if (!reply->data_sink
+            || !reply->data_sink(data, 4u, reply->data_context)) {
+            return S64_UCI_CONSUMER_ABORTED;
+        }
+        return S64_UCI_OK;
+    }
+
+    if (command == 0x09u) return S64_UCI_OK;
+    return S64_UCI_PROTOCOL_ERROR;
 }
 
 int main(void)
@@ -235,6 +310,31 @@ int main(void)
             signature
         ), 18u);
         require(hex64(signature) && !strcmp(signature, expected_signature), 19u);
+
+        s64_net_init(&network, fake_network_uci);
+        require(s64_net_open_tcp(
+            &network, "example.test", 80u, &network_handle
+        ) == S64_NET_OK && network_handle == 0x2au, 51u);
+        require(s64_net_write_text(
+            &network, network_handle, "PING", 4u
+        ) == S64_NET_OK, 52u);
+        network_payload_length = 0u;
+        network_received = 0u;
+        require(s64_net_read(
+            &network,
+            network_handle,
+            16u,
+            capture_network_payload,
+            0,
+            &network_received
+        ) == S64_NET_OK
+            && network_received == 2u
+            && network_payload_length == 2u
+            && network_payload[0] == 'O'
+            && network_payload[1] == 'K', 53u);
+        require(s64_net_close(
+            &network, network_handle
+        ) == S64_NET_OK, 54u);
 
         require(s64_probe_pruntime_ping(cycle)
             == (uint16_t)(cycle ^ 0xa55au), 40u);
