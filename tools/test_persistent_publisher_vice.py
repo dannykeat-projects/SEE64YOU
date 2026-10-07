@@ -17,7 +17,7 @@ OUT = CLIENT / "build" / "persistent-publisher-vice"
 
 GROUPS = {
     "PCONTENT": ("src/publisher/destination.c", "src/publisher/state.c"),
-    "PNETWORK": ("src/platform/network.c", "src/crypto/sha256.c", "src/publisher/direct_auth.c"),
+    "PNETWORK": ("src/platform/network.c", "src/crypto/sha256.c", "src/publisher/direct_auth.c", "src/publisher/standalone_direct.c"),
     "PRUNTIME": ("src/publisher/settings_validate.c", "src/publisher/settings_exchange.c"),
 }
 GROUP_IDS = {"EDITOR": 1, "PCONTENT": 1, "PNETWORK": 2, "PRUNTIME": 3, "SETTINGS": 1}
@@ -66,6 +66,7 @@ MAIN = r"""
 #include "platform/reu.h"
 #include "platform/reu_runtime.h"
 #include "publisher/direct_auth.h"
+#include "publisher/standalone_direct.h"
 #include "publisher/persistent_mode.h"
 #include "publisher/settings_exchange.h"
 
@@ -96,6 +97,8 @@ static uint8_t network_handle;
 static uint8_t network_payload[4];
 static uint16_t network_payload_length;
 static uint16_t network_received;
+static S64HttpTransport direct_http;
+static uint8_t fake_http_open_count;
 static S64Buffer body;
 static S64Document document;
 static S64PersistentPublisher publisher;
@@ -223,6 +226,84 @@ static S64UciResult fake_network_uci(
     return S64_UCI_PROTOCOL_ERROR;
 }
 
+static S64UciResult fake_http_uci(
+    const S64UciCommandPart* parts, uint8_t part_count, S64UciReply* reply)
+{
+    static const uint8_t challenge_response[] =
+        "\x48\x54\x54\x50\x2f\x31\x2e\x30\x20\x32\x30\x30\x20\x4f\x4b"
+        "\x0d\x0a\x43\x6f\x6e\x74\x65\x6e\x74\x2d\x4c\x65\x6e\x67\x74"
+        "\x68\x3a\x20\x34\x38\x0d\x0a\x0d\x0a\x7b\x22\x63\x68\x61\x6c"
+        "\x6c\x65\x6e\x67\x65\x22\x3a\x22\x30\x31\x32\x33\x34\x35\x36"
+        "\x37\x38\x39\x61\x62\x63\x64\x65\x66\x30\x31\x32\x33\x34\x35"
+        "\x36\x37\x38\x39\x61\x62\x63\x64\x65\x66\x22\x7d";
+    static const uint8_t ack_response[] =
+        "\x48\x54\x54\x50\x2f\x31\x2e\x30\x20\x32\x30\x30\x20\x4f\x4b"
+        "\x0d\x0a\x43\x6f\x6e\x74\x65\x6e\x74\x2d\x4c\x65\x6e\x67\x74"
+        "\x68\x3a\x20\x31\x31\x0d\x0a\x0d\x0a\x7b\x22\x6f\x6b\x22\x3a"
+        "\x74\x72\x75\x65\x7d";
+    const uint8_t* response;
+    uint16_t response_length;
+    uint16_t sent;
+    uint8_t count[2];
+    uint8_t handle = 0x31u;
+    uint8_t command;
+
+    if (!parts || !part_count || !reply || !parts[0].data
+        || parts[0].length < 2u || parts[0].data[0] != 0x03u
+        || !reply->status || reply->status_capacity < 3u) {
+        return S64_UCI_PROTOCOL_ERROR;
+    }
+
+    command = parts[0].data[1];
+    reply->status[0] = '0';
+    reply->status[1] = '0';
+    reply->status[2] = 0;
+    reply->status_length = 2u;
+
+    if (command == 0x07u) {
+        ++fake_http_open_count;
+        if (!reply->data_sink
+            || !reply->data_sink(&handle, 1u, reply->data_context)) {
+            return S64_UCI_CONSUMER_ABORTED;
+        }
+        return S64_UCI_OK;
+    }
+
+    if (command == 0x11u) {
+        if (part_count != 2u || !reply->data_sink) {
+            return S64_UCI_PROTOCOL_ERROR;
+        }
+        sent = parts[1].length;
+        count[0] = (uint8_t)sent;
+        count[1] = (uint8_t)(sent >> 8);
+        if (!reply->data_sink(count, 2u, reply->data_context)) {
+            return S64_UCI_CONSUMER_ABORTED;
+        }
+        return S64_UCI_OK;
+    }
+
+    if (command == 0x10u) {
+        if (!reply->data_sink) return S64_UCI_PROTOCOL_ERROR;
+        if (fake_http_open_count & 1u) {
+            response = challenge_response;
+            response_length = (uint16_t)(sizeof(challenge_response) - 1u);
+        } else {
+            response = ack_response;
+            response_length = (uint16_t)(sizeof(ack_response) - 1u);
+        }
+        count[0] = (uint8_t)response_length;
+        count[1] = (uint8_t)(response_length >> 8);
+        if (!reply->data_sink(count, 2u, reply->data_context)
+            || !reply->data_sink(response, response_length, reply->data_context)) {
+            return S64_UCI_CONSUMER_ABORTED;
+        }
+        return S64_UCI_OK;
+    }
+
+    if (command == 0x09u) return S64_UCI_OK;
+    return S64_UCI_PROTOCOL_ERROR;
+}
+
 int main(void)
 {
     static const char key_hex[] =
@@ -335,6 +416,15 @@ int main(void)
         require(s64_net_close(
             &network, network_handle
         ) == S64_NET_OK, 54u);
+
+        require(s64_direct_publisher_key(key_hex), 55u);
+        fake_http_open_count = 0u;
+        direct_http.execute = fake_http_uci;
+        require(s64_direct_publisher_test(
+            &direct_http,
+            "http://example.test/api.php?action=settings",
+            1u
+        ) == S64_STANDALONE_OK, 56u);
 
         require(s64_probe_pruntime_ping(cycle)
             == (uint16_t)(cycle ^ 0xa55au), 40u);
