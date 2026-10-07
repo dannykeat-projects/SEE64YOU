@@ -604,6 +604,9 @@ if command -v cl65 >/dev/null 2>&1 \
             --label "C64U settings helper" --min-headroom 1024
     fi
 
+    echo "== Persistent runtime overlay diagnostic fit =="
+    python3 tools/test_persistent_runtime_vice.py --build-only
+
     if command -v x64sc >/dev/null 2>&1 \
         && command -v xvfb-run >/dev/null 2>&1 \
         && command -v python3 >/dev/null 2>&1 \
@@ -614,6 +617,8 @@ if command -v cl65 >/dev/null 2>&1 \
         python3 tools/test_basic_return_vice.py
         echo "== VICE module-transfer IRQ teardown =="
         python3 tools/test_module_transfer_vice.py
+        echo "== VICE persistent runtime overlay validation =="
+        python3 tools/test_persistent_runtime_vice.py
     else
         echo "SKIP REU VICE validation (x64sc/xvfb-run/python3/curl required)"
     fi
