@@ -2,7 +2,16 @@
 #include "platform/reu.h"
 #include <string.h>
 
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+#define decoded (*(S64CodeAssets*)(S64_PERSISTENT_FIT_SCRATCH_BASE \
+    + S64_CODE_ASSET_SESSION_SIZE + S64_SESSION_JOURNAL_WIRE_SIZE))
+typedef char S64PersistentFitAssetDecodeFits[
+    S64_CODE_ASSET_SESSION_SIZE + S64_SESSION_JOURNAL_WIRE_SIZE
+        + sizeof(S64CodeAssets) <= S64_PERSISTENT_FIT_SCRATCH_CAPACITY ? 1 : -1
+];
+#else
 static S64CodeAssets decoded;
+#endif
 
 static uint16_t get16(const uint8_t* in)
 { return (uint16_t)(in[0] | ((uint16_t)in[1] << 8)); }
