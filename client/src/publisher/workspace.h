@@ -8,7 +8,11 @@
  * parsing and handoff scratch areas therefore share one aligned workspace
  * instead of permanently consuming separate C64 BSS allocations.
  */
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+#define S64_PUBLISH_WORKSPACE_CAPACITY 1024u
+#else
 #define S64_PUBLISH_WORKSPACE_CAPACITY 768u
+#endif
 #define S64_PUBLISH_WORK_HEADER_OFFSET 0u
 #define S64_PUBLISH_WORK_TEXT_OFFSET 257u
 #define S64_PUBLISH_WORK_AUX_OFFSET 449u
