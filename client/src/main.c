@@ -410,6 +410,30 @@ static void save_document(void)
     s64_ui_message("File saved");
 }
 
+static unsigned char confirm_exit(void)
+{
+    unsigned char key;
+
+    if (!editor.dirty) return 1u;
+
+    s64_ui_message("S SAVE  D DISCARD  STOP CANCEL");
+    for (;;) {
+        key = (unsigned char)cgetc();
+        if (key == 's' || key == 'S') {
+            save_document();
+            return editor.dirty ? 0u : 1u;
+        }
+        if (key == 'd' || key == 'D') {
+            clear_recovery_snapshot();
+            return 1u;
+        }
+        if (key == CH_STOP) {
+            s64_ui_render(&editor);
+            return 0u;
+        }
+    }
+}
+
 static void handle_clipboard_result(unsigned char ok, const char* failure)
 {
     if (!ok) {
@@ -1030,12 +1054,8 @@ int main(void)
                 }
                 break;
             case S64_INPUT_EXIT:
-                if (editor.dirty && !s64_ui_prompt_yes_no("Discard and exit? Y/N")) {
-                    s64_ui_render(&editor);
+                if (!confirm_exit()) {
                     continue;
-                }
-                if (editor.dirty) {
-                    clear_recovery_snapshot();
                 }
                 running = 0u;
                 continue;

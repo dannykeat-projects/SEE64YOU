@@ -210,6 +210,10 @@ Persistent settings are durable SD state. REU is fast working/cache state, not t
 
 The original `/sd/SEE64YOU.CFG` passed real-hardware cold persistence testing. The implemented migration now makes `/sd/SEE64YOU/SEE64YOU.CFG` authoritative only after the new copy is transactionally written, reopened and canonically verified; failure leaves the legacy root copy untouched. Editor PREP retains a root fallback during this migration window. Session journals remain at the root until their own exact-record recovery-safe migration is implemented.
 
+## Exit flow
+
+Choosing Exit from the Editor resolves unsaved source before tearing down the managed session. A dirty document offers `S SAVE / D DISCARD / STOP CANCEL`. Save uses the ordinary local save path and exits only after the document becomes clean; a failed or cancelled save remains in the Editor. Discard clears the recovery snapshot before exit. Managed teardown then revokes shared authority, restores and verifies temporary machine state, writes CLEAN and returns through the preserved original SYS context when available.
+
 ## Error handling
 
 Errors should state the problem and next useful action.

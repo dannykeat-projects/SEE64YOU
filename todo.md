@@ -84,7 +84,7 @@ Do not merge/deploy merely because diagnostic validation passes.
   - EDIT OFFLINE path when only networking/publishing is unavailable.
 - [ ] Finish simplified Basic Settings / Advanced Settings separation. Basic now exposes website, publishing-key import/manual replacement/disable, readiness check, save/cancel and the Advanced entry only; plaintext-HTTP policy is Advanced-only. Existing key-import diagnostics are now explicitly reachable from Advanced. Finish moving broader hardware/cache/recovery diagnostics into the integrated Diagnostics screen rather than Basic.
 - [ ] Finish the integrated Diagnostics screen/export. Advanced Settings now has a read-only Diagnostics screen showing package version, UCI, DOS, Network $03, optional HTTP $06, REU bank count/16 MiB status and the authoritative config path, plus a drill-down to key-import I/O results without exposing secrets. Still add firmware/control details, allocator/cache usage, performance mode, recovery state, connection/auth state and export.
-- [ ] Add explicit Exit See64You flow that resolves dirty source, closes resources, restores machine state and marks the session clean.
+- [ ] Finish explicit Exit See64You acceptance. The Editor now resolves dirty source with S SAVE / D DISCARD / STOP CANCEL; Save reuses the normal verified save path and exits only if the document becomes clean, while Discard removes the recovery snapshot. Managed exit already revokes shared authority, restores/verifies machine state, writes CLEAN and returns through the original SYS context. Real-C64U acceptance remains.
 
 ## P0 — Make hardware validation routine
 
