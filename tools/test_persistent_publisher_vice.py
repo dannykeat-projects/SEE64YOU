@@ -293,6 +293,7 @@ def build() -> Path:
     cfg.write_text(config_text(), encoding="ascii", newline="\n")
     flags = [
         "-t", "c64", "-Os", "-I", "src", "-C", str(cfg),
+        "-DS64_NATIVE_PETSCII=1",
         "-DS64_REU_BUFFER=1", "-DS64_PERSISTENT_RUNTIME_FIT=1",
     ]
 
