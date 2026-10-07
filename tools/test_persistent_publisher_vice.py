@@ -68,6 +68,17 @@ static S64CodeOverlayNamespace publisher_namespace;
 static S64CodeOverlayNamespace settings_namespace;
 static uint16_t overlay_reads;
 
+static uint8_t key[32];
+static uint8_t body_digest[32];
+static char signature[65];
+static S64Buffer body;
+static S64Document document;
+static S64PersistentPublisher publisher;
+static S64SettingsExchange settings;
+static S64SettingsExchange loaded;
+static uint8_t cycle;
+static uint16_t before;
+
 static uint8_t overlay_reader(uint8_t bank, uint16_t offset, void* target, uint16_t length)
 {
     ++overlay_reads;
@@ -126,17 +137,6 @@ int main(void)
     static const char expected_signature[] =
         "bd550bf6a8184b7cf73837292476b31d"
         "23e4c7269dd66ab2507598bfe0eec4b9";
-    uint8_t key[32];
-    uint8_t body_digest[32];
-    char signature[65];
-    S64Buffer body;
-    S64Document document;
-    S64PersistentPublisher publisher;
-    S64SettingsExchange settings;
-    S64SettingsExchange loaded;
-    uint8_t cycle;
-    uint16_t before;
-
     *(volatile uint8_t*)0xc061 = 0u;
     require(s64_reu_probe() && s64_reu_probe_banks() == 256u, 1u);
 
