@@ -1,5 +1,10 @@
 #include "destination.h"
 
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+#include "publisher/persistent_services.h"
+#define s64_document_slug_valid s64_persistent_document_slug_valid
+#endif
+
 #include <string.h>
 
 static uint8_t type_valid(S64DestinationType type)
