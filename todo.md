@@ -85,6 +85,25 @@ Acceptance gates before any production pivot:
    15,360-byte slot. Report headroom for each real Editor/Publisher/Settings
    grouping proposed for migration and split responsibilities instead of
    accepting single-digit permanent headroom.
+
+   - BSS is part of this gate: cc65 code overlays do not make ordinary static
+     data disappear. Publisher/Settings mode-local state must not simply be
+     added to the persistent Editor root.
+   - Use `$C800-$CBFF` as a disposable **mode workspace** while Publisher or
+     Settings is active, with durable mode data in REU. The BASIC-return record
+     remains authoritative in REU during normal operation and claims its RAM
+     workspace only during final exit, after Publisher/Settings have returned.
+   - Existing Publisher evidence supports this direction: its standalone map
+     has 2,248 bytes of BSS, including a 768-byte workspace plus UCI/crypto/
+     plaintext/preview/direct-request scratch. The managed Publisher already
+     removes the 768-byte workspace from resident BSS. Do not carry the
+     remaining scratch as permanent Editor globals.
+   - Existing Publisher code assets already fit at CONTENT 15,130, NETWORK
+     14,066 and RUNTIME 13,971 bytes. The tight CONTENT asset currently includes
+     application-state decoding, module-transition and BASIC-return machinery
+     that the persistent Publisher will no longer own, so the migrated grouping
+     should gain material headroom rather than merely preserve the current
+     230-byte margin.
 3. **State continuity:** resident and REU test state must survive 30 consecutive
    Editor -> Publisher -> Settings -> Publisher -> Editor cycles exactly.
 4. **Lifecycle simplicity:** one capture, one durable ACTIVE session and one
