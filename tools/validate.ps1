@@ -75,6 +75,11 @@ if ($HostCc) {
     }
 
     try {
+        Write-Host "== Host exit prompt tests =="
+        & $HostCc.Path -std=c99 -Wall -Wextra -Werror -DCH_STOP=3 -Iclient/tests/launcher_stubs -Iclient/src client/tests/ui_exit_test.c client/src/ui_exit.c -o (Join-Path $TestDir "ui_exit.exe")
+        if ($LASTEXITCODE -ne 0) { throw "Exit prompt test build failed" }
+        & (Join-Path $TestDir "ui_exit.exe")
+        if ($LASTEXITCODE -ne 0) { throw "Exit prompt tests failed" }
         Invoke-CTest "charset" @(
             "client/tests/charset_test.c",
             "client/src/charset.c"

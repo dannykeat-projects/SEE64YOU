@@ -38,12 +38,13 @@ SETTINGS_TARGET := build/see64you-settings.prg
 SETTINGS_CHAIN_TARGET := build/S64CFG.PRG
 MANAGED_SETTINGS_TARGET := build/managed-settings.prg
 MODULE_MANIFEST_TARGET := build/S64MODULE.MNF
-SOURCES := src/main.c src/charset.c src/buffer.c src/history.c src/clipboard.c src/document.c src/editor.c src/editor_format.c src/ui.c src/ui_status.s src/menu.c src/input/input.c src/input/repeat.s src/platform/uci.c src/platform/dos.c src/storage/local.c
+SOURCES := src/main.c src/ui_exit.c src/charset.c src/buffer.c src/history.c src/clipboard.c src/document.c src/editor.c src/editor_format.c src/ui.c src/ui_status.s src/menu.c src/input/input.c src/input/repeat.s src/platform/uci.c src/platform/dos.c src/storage/local.c
 C64U_SOURCES := $(filter-out src/buffer.c src/history.c,$(SOURCES)) src/buffer_reu.c src/history_reu.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/editor_handoff.c src/publisher/editor_handoff_record.s
 # Destinations validate existing state; allocation and manifest parsing stay in the launcher.
 MANAGED_EDITOR_RUNTIME_SOURCES := src/platform/code_overlay_bootstrap.c src/platform/module_arrival.c src/platform/module_runtime.c src/platform/transfer_capsule.c src/platform/module_session.c src/platform/module_session_read.c src/platform/module_manifest.c src/platform/reu_runtime.c src/platform/session_lifecycle.c src/platform/session_journal.c src/platform/system_state.c src/platform/turbo.c
 MANAGED_SETTINGS_RUNTIME_SOURCES := $(filter-out src/platform/code_overlay_bootstrap.c,$(MANAGED_EDITOR_RUNTIME_SOURCES)) src/platform/transfer_capsule_write.c src/platform/module_transition.c src/platform/module_transfer.c src/platform/module_transfer_stub.s src/publisher/settings_session.c
-MANAGED_SETTINGS_SOURCES = $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES))
+# Settings config validation needs no document storage or publishing URL builders.
+MANAGED_SETTINGS_SOURCES = $(filter-out src/platform/chain.s src/buffer_reu.c src/document.c,$(SETTINGS_SOURCES))
 CODE_ASSET_RUNTIME_SOURCES := src/platform/code_assets_validate.c src/platform/code_assets_session.c src/platform/code_assets_session_read.c
 CODE_ASSET_SOURCES := src/platform/code_assets.c src/platform/code_assets_validate.c src/platform/code_assets_session.c src/platform/code_assets_session_build.c
 EDITOR_PROBE_SOURCES := diagnostics/editor_probe.c src/buffer.c src/history.c src/clipboard.c src/editor.c src/editor_format.c
@@ -361,7 +362,7 @@ managed-settings: $(MANAGED_SETTINGS_TARGET)
 
 $(MANAGED_SETTINGS_TARGET): $(MANAGED_SETTINGS_SOURCES) $(MANAGED_SETTINGS_RUNTIME_SOURCES)
 	@mkdir -p build
-	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_MANAGED_OVERLAY=1 -m build/managed-settings.map -o $@ $(MANAGED_SETTINGS_SOURCES) $(MANAGED_SETTINGS_RUNTIME_SOURCES)
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_MANAGED_OVERLAY=1 -DS64_SETTINGS_CONFIG_ONLY=1 -m build/managed-settings.map -o $@ $(MANAGED_SETTINGS_SOURCES) $(MANAGED_SETTINGS_RUNTIME_SOURCES)
 	python3 ../tools/check_memory_headroom.py build/managed-settings.map --label managed-settings --min-headroom 1024
 
 publisher-companion-fit: $(PUBLISHER_COMPANION_FIT_TARGET)

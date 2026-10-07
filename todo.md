@@ -42,6 +42,15 @@ New handoff components are:
 The diagnostic executable Launcher -> managed Editor entry/short edit/CLEAN gate now preserves a real original SYS return context. Before launcher crt0 runs it captures stack, zero page, $01 and flags; a checksummed allocator-owned record binds this context to the exact ACTIVE journal. The editor validates it before readback revocation and restore/verify/CLEAN, runs cc65 destructors and returns through the original SYS frame. Firmware-1.1 hardware reached responsive BASIC, restored IRQ $EA31, executed PRINT 6*7 -> 42, and persisted CLEAN sequence 56/package 513. Host failure/integrity checks, both VICE probes and diagnostic package memory gates pass. Package 0x0201 carried those hardware-verified bytes; current package 0x0202 expands allocator capacity to 16 entries and now passes the same short hardware entry/edit/CLEAN/BASIC-return gate (CLEAN 58/package 514). Standalone preload targets remain diagnostic.
 
 Next work:
+The 2026-10-07 machine-dependent validation restored the runner by starting
+Ubuntu/WSL and verified two package-build failures at 3586256: Editor resident
+overflow (14 bytes) and managed Settings overflow (512 bytes). The scoped fixes
+preserve all memory guards and dirty-exit behavior. Full local host/cc65/VICE
+validation passes. Editor BSS ends at $8BFF; MODEL/FILE/RUNTIME/PUBLICATION have
+89/5/48/50 bytes spare. Managed Settings has 9150 bytes before $CC00. Preserve
+these measured limits when continuing the outstanding work below; real-C64U
+acceptance remains required.
+
 1. Finish physical USB/native keyboard and ordinary editing/file/menu acceptance of the current c64u-package. Preserve original-context/ACTIVE binding, exact manifests and stack/headroom gates; missing/corrupt context keeps a safe CLEAN park.
    - 2026-10-06 fresh-editor hardware observation: first typed characters can be invisible while the editor cursor advances, then appear on a later redraw. The append fast path now explicitly positions conio at the tracked editor cursor, and the UI probe deliberately perturbs conio's cursor before its first append. Real-C64U confirmation is still required.
    - 2026-10-06 responsiveness observation: intermittent multi-second typing stalls matched the synchronous durable recovery write path. The editor now polls input without changing blocking menu/help behavior and only runs `maybe_autosave()` after one full second with no keyboard/joystick/mouse event; continuous typing therefore cannot start SD recovery I/O between keystrokes. The existing 30-second durable cadence remains, with an already-due fresh recovery written on the first genuine pause. CI/VICE and real-C64U responsiveness/recovery acceptance remain required.

@@ -6,6 +6,12 @@ See64You is intentionally **C64 Ultimate-only** and requires a **16 MiB REU**. T
 
 ## 1. Platform contract
 
+The managed Editor's blocking exit-key reader lives in the MODEL overlay;
+resident code owns Save/Discard/Cancel actions and renders the prompt before
+switching overlays. Managed Settings links destination configuration validation
+only, excluding publishing URL builders and their unused document/buffer code.
+This preserves the existing overlay and software-stack boundaries.
+
 Initial supported baseline:
 
 - Commodore 64 Ultimate / compatible Ultimate platform exposing the required interfaces;

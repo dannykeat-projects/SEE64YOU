@@ -417,21 +417,17 @@ static unsigned char confirm_exit(void)
     if (!editor.dirty) return 1u;
 
     s64_ui_message("S SAVE  D DISCARD  STOP CANCEL");
-    for (;;) {
-        key = (unsigned char)cgetc();
-        if (key == 's' || key == 'S') {
-            save_document();
-            return editor.dirty ? 0u : 1u;
-        }
-        if (key == 'd' || key == 'D') {
-            clear_recovery_snapshot();
-            return 1u;
-        }
-        if (key == CH_STOP) {
-            s64_ui_render(&editor);
-            return 0u;
-        }
+    key = s64_ui_prompt_exit();
+    if (key == 's') {
+        save_document();
+        return editor.dirty ? 0u : 1u;
     }
+    if (key == 'd') {
+        clear_recovery_snapshot();
+        return 1u;
+    }
+    s64_ui_render(&editor);
+    return 0u;
 }
 
 static void handle_clipboard_result(unsigned char ok, const char* failure)

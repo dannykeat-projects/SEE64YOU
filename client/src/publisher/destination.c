@@ -8,6 +8,7 @@ static uint8_t type_valid(S64DestinationType type)
         || type == S64_DESTINATION_WORDPRESS;
 }
 
+#ifndef S64_SETTINGS_CONFIG_ONLY
 static uint8_t id_digits(const char* value)
 {
     uint16_t i = 0u;
@@ -22,6 +23,8 @@ static uint8_t id_digits(const char* value)
     }
     return 1u;
 }
+
+#endif
 
 static uint8_t has_forbidden_url_character(char value)
 {
@@ -61,6 +64,7 @@ static S64DestinationResult copy_base_url(
     return S64_DESTINATION_OK;
 }
 
+#ifndef S64_SETTINGS_CONFIG_ONLY
 static S64DestinationResult append_text(
     char* output,
     uint16_t capacity,
@@ -113,6 +117,8 @@ static const char* document_type_name(S64DocumentType type)
     if (type == S64_DOCUMENT_POST) return "post";
     return 0;
 }
+
+#endif
 
 void s64_destination_clear(S64PublishDestination* destination)
 {
@@ -168,6 +174,7 @@ const char* s64_destination_result_message(S64DestinationResult result)
     }
 }
 
+#ifndef S64_SETTINGS_CONFIG_ONLY
 S64DestinationResult s64_destination_connection_url(
     const S64PublishDestination* destination,
     char* output,
@@ -376,3 +383,5 @@ S64DestinationResult s64_destination_delete_url(
 
     return S64_DESTINATION_INVALID_ARGUMENT;
 }
+
+#endif

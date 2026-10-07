@@ -878,6 +878,7 @@ static void cancel_and_return(void)
     return_to_publisher();
 }
 
+#ifndef S64_MANAGED_OVERLAY
 static void service_load_request(void)
 {
     S64SettingsStoreResult result;
@@ -911,6 +912,8 @@ static void service_load_request(void)
     }
     return_to_publisher();
 }
+
+#endif
 
 int main(void)
 {
@@ -1064,4 +1067,5 @@ int main(void)
             cancel_and_return();
         }
     }
+    return 0;
 }

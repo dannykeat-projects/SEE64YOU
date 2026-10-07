@@ -51,6 +51,10 @@ echo "== Host charset tests =="
 TMP_BIN=$(mktemp)
 TMP_MODULE_DIR=""
 trap 'rm -f "$TMP_BIN"; if [ -n "$TMP_MODULE_DIR" ]; then rm -rf "$TMP_MODULE_DIR"; fi' EXIT
+echo "== Host exit prompt tests =="
+cc -std=c99 -Wall -Wextra -Werror -DCH_STOP=3 -Iclient/tests/launcher_stubs -Iclient/src \
+    client/tests/ui_exit_test.c client/src/ui_exit.c -o "$TMP_BIN"
+"$TMP_BIN"
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/charset_test.c client/src/charset.c -o "$TMP_BIN"
 "$TMP_BIN"
 

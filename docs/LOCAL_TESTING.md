@@ -42,6 +42,9 @@ Windows PowerShell:
 
 WSL/Linux:
 
+Use a Linux checkout with `core.autocrlf=false`; a Windows checkout with CRLF
+shell scripts cannot be executed directly by WSL `sh`.
+
 ~~~sh
 ./tools/validate.sh
 ~~~
@@ -49,6 +52,15 @@ WSL/Linux:
 During migration some scripts still build conventional-C64 artifacts/headroom checks. Those are temporary regression checks, not product acceptance criteria. Remove them as the C64U-only code paths replace the old implementation.
 
 Do not suppress genuine warnings/errors.
+
+On 2026-10-07, full Linux host/cc65/VICE validation passed after the verified
+3586256 Editor/managed-Settings fit failures were fixed. The extracted exit-key
+reader also passes host tests for both letter cases, STOP and ignored input.
+Measured package limits: Editor BSS ends at $8BFF; MODEL/FILE/RUNTIME/PUBLICATION
+use 15271/15355/15312/15310 of 15360 bytes. Managed Publisher resident headroom
+is 1474 bytes; managed Settings has 9150 bytes before $CC00 and the executable
+launcher has 1197. Existing diagnostic/pointer-conversion warnings remain visible.
+These are software gates, without new real-C64U acceptance.
 
 Focused editor overlay gates (installed cc65, Python, VICE 3.9 and Xvfb):
 

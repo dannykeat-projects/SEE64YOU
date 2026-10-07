@@ -21,7 +21,7 @@ from typing import Iterable
 ROOT = Path(__file__).resolve().parents[1]
 CLIENT = ROOT / "client"
 GROUPS: dict[str, tuple[str, ...]] = {
-    "MODEL": ("src/editor.c", "src/editor_format.c",
+    "MODEL": ("src/editor.c", "src/editor_format.c", "src/ui_exit.c",
               "src/platform/managed_editor_restore.c",
               "src/platform/application_state_editor_decode.c"),
     "FILE": (
