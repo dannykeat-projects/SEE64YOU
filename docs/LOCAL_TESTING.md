@@ -86,6 +86,21 @@ recovery files with exact readback; drive state and IRQ matched the baseline.
 This cleanup is not managed-exit acceptance. Exact-head CI for 3bed2ac passed
 (37594349406). Backups/evidence remain in ignored client/build/hardware-712f803/.
 
+The subsequent integrated diagnostic isolated config open returning
+S64_DOS_TARGET_ERROR, before REU transfer. A native firmware-1.1 probe confirmed
+that absent app-folder config returns `FILE DOESN'T EXIST`, which was not mapped
+to NOT_FOUND and therefore prevented the legacy fallback. The regression test
+fails before the fix and passes after exact text classification; FILE EXISTS and
+malformed/unknown numeric errors remain errors. The fixed native probe reports
+NOT_FOUND (4) for the absent app copy and OK for the root copy. Full local
+validation passes and all Editor overlay sizes/resident limits remain unchanged.
+Temporary integrated filename/status capture with an app-folder copy reached
+Publisher entry, then parked at `Managed entry failed. Restart launcher.0`;
+this diagnostic observation is not production-package or full-cycle acceptance.
+The interrupted diagnostic recovered to CLEAN 78; original files were restored
+exactly with unchanged drives/IRQ before the uninstrumented fixed-package test.
+Additional ignored evidence is in client/build/hardware-settings-diag/.
+
 Focused editor overlay gates (installed cc65, Python, VICE 3.9 and Xvfb):
 
 ~~~sh

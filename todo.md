@@ -58,14 +58,17 @@ aliases now preserve full record operations; ordinary and managed-workspace
 capsule/session/adoption host suites and full local validation pass; exact-head
 CI for cc563f4 passed. Real C64U recovered ACTIVE 69 to CLEAN 70, began ACTIVE
 71, entered the managed Editor and displayed the first TEST input immediately.
-Physical Ctrl+P failed with PUBLISHING SETTINGS UNAVAILABLE, including with the
-valid legacy config copied into the app folder. A native hardware diagnostic
-passed settings revoke, DOS open/334-byte transfer/close/readback and config
-validation. Next diagnose the integrated `s64_managed_editor_settings_prepare`
-runtime/overlay path before another full cycle test. Cleanup recovered to CLEAN
-72 and BASIC, restored original files exactly, and verified unchanged drives/IRQ.
-Full module cycles and managed exit remain unverified. Managed Settings now also
-depends on both record headers, preventing stale incremental PRGs; 3bed2ac CI passed.
+Integrated diagnostics isolated OPEN_FILE's target error. Native firmware 1.1
+reports a missing app-folder config as `FILE DOESN'T EXIST`; exact classification
+now maps it to NOT_FOUND so the existing legacy fallback can run. Regression and
+full local validation pass without changing overlay sizes or resident limits.
+The fixed native probe confirms NOT_FOUND/legacy-root OK. Finish uninstrumented
+package hardware acceptance, then diagnose the Publisher entry boundary if the
+diagnostic-only `Managed entry failed. Restart launcher.0` reproduces there.
+The interrupted diagnostic recovered to CLEAN 78, restored original files
+exactly and verified unchanged drives/IRQ. Full module cycles and managed exit
+remain unverified. Managed Settings depends on both record headers, preventing
+stale incremental PRGs; 3bed2ac CI passed.
 
 1. Finish physical USB/native keyboard and ordinary editing/file/menu acceptance of the current c64u-package. Preserve original-context/ACTIVE binding, exact manifests and stack/headroom gates; missing/corrupt context keeps a safe CLEAN park.
    - 2026-10-06 fresh-editor hardware observation: first typed characters can be invisible while the editor cursor advances, then appear on a later redraw. The append fast path now explicitly positions conio at the tracked editor cursor, and the UI probe deliberately perturbs conio's cursor before its first append. Real-C64U confirmation is still required.

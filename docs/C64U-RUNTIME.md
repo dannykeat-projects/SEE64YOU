@@ -14,6 +14,11 @@ This preserves the existing overlay and software-stack boundaries.
 Managed capsule and module-session scratch aliases retain their array extents:
 record transfer, clearing and readback use the complete 64-byte capsule,
 128-byte module session and 24-byte journal rather than a pointer's size.
+Ultimate-DOS missing-file classification accepts the exact filesystem text
+`FILE DOESN'T EXIST` emitted by firmware-1.1 OPEN_FILE as well as the existing
+numeric FILE_STAT status codes. This allows Editor preparation to try the legacy
+root config when the app-folder config is absent; other filesystem errors remain
+errors. Direct matching of the supported numeric pairs preserves resident fit.
 
 Initial supported baseline:
 

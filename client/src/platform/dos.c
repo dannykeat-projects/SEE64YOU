@@ -63,32 +63,26 @@ static uint8_t status_ok_or_empty(const char* status, uint16_t length)
             && status[1] == '0');
 }
 
-static uint8_t status_code(const char* status, uint16_t length)
-{
-    if (status == 0 || length < 2u
-        || status[0] < '0' || status[0] > '9'
-        || status[1] < '0' || status[1] > '9') {
-        return 0xffu;
-    }
-
-    /* Two decimal digits need only a byte; keep resident DOS code compact. */
-    return (uint8_t)(
-        (uint8_t)(status[0] - '0') * 10u
-        + (uint8_t)(status[1] - '0')
-    );
-}
-
 static S64DosResult map_status(const char* status, uint16_t length)
 {
-    uint8_t code;
-
     if (status_ok_or_empty(status, length)) {
         return S64_DOS_OK;
     }
 
-    code = status_code(status, length);
-    if (code == 1u || code == 82u || code == 88u) return S64_DOS_NOT_FOUND;
-    if (code == 85u) return S64_DOS_NO_FILE_OPEN;
+    if (status != 0) {
+        /* Match the few supported numeric codes directly; OPEN_FILE uses
+         * filesystem text, while FILE_STAT uses numeric DOS status. */
+        if (length >= 2u) {
+            if ((status[0] == '0' && status[1] == '1')
+                || (status[0] == '8'
+                    && (status[1] == '2' || status[1] == '8')))
+                return S64_DOS_NOT_FOUND;
+            if (status[0] == '8' && status[1] == '5')
+                return S64_DOS_NO_FILE_OPEN;
+        }
+        if (strcmp(status, "FILE DOESN'T EXIST") == 0)
+            return S64_DOS_NOT_FOUND;
+    }
 
     if (status != 0 && strstr(status, "ACCESS DENIED") != 0) {
         return S64_DOS_ACCESS_DENIED;

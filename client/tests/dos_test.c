@@ -281,6 +281,18 @@ int main(void)
     );
 
     mock_reset();
+    mock.status = "FILE DOESN'T EXIST";
+    require(
+        s64_dos_open_read(&dos, "missing.s64") == S64_DOS_NOT_FOUND,
+        "native OPEN_FILE missing-file text permits legacy fallback"
+    );
+
+    mock_reset();
+    mock.status = "FILE EXISTS";
+    require(s64_dos_open_write(&dos, "existing.s64") == S64_DOS_TARGET_ERROR,
+        "other filesystem errors do not become missing-file results");
+
+    mock_reset();
     mock.status = "87,ACCESS DENIED";
     require(
         s64_dos_open_write(&dos, "locked.s64") == S64_DOS_ACCESS_DENIED,
