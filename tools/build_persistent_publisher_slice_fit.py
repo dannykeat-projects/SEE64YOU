@@ -23,6 +23,7 @@ OUT = CLIENT / "build" / "persistent-publisher-slice-fit"
 EDITOR_GROUPS = editor_fit.GROUPS
 PUBLISHER_GROUPS: dict[str, tuple[str, ...]] = {
     "PCONTENT": (
+        "src/publisher/destination.c",
         "src/publisher/state.c",
     ),
     "PNETWORK": (
