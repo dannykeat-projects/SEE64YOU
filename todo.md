@@ -104,6 +104,20 @@ Acceptance gates before any production pivot:
      that the persistent Publisher will no longer own, so the migrated grouping
      should gain material headroom rather than merely preserve the current
      230-byte margin.
+
+   - Do not duplicate the live Editor document/body in Publisher. The persistent
+     owner already has authoritative `S64Editor`/`S64Document` state; expose
+     it through a narrow resident mode/context API and keep overlay pointers
+     call-scoped. Publisher's small remote/publish state may stay resident if
+     the measured Editor headroom comfortably permits it; request/response
+     scratch belongs in the mode workspace.
+   - Current Settings keeps three `S64SettingsExchange` records (about 334
+     bytes each) plus destination/key/diagnostic scratch. That layout must not
+     be copied into resident Editor BSS. The persistent Settings mode should use
+     one working record in the mode workspace; canonical/original/profile
+     records should be loaded/saved through the existing REU/settings storage
+     contracts as needed. Returning from Settings commits or discards that
+     working record before Publisher resumes.
 3. **State continuity:** resident and REU test state must survive 30 consecutive
    Editor -> Publisher -> Settings -> Publisher -> Editor cycles exactly.
 4. **Lifecycle simplicity:** one capture, one durable ACTIVE session and one
