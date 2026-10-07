@@ -72,6 +72,13 @@ if ($HostCc) {
         if ($LASTEXITCODE -ne 0) { throw "Host $Name test build failed" }
         & $Output
         if ($LASTEXITCODE -ne 0) { throw "Host $Name tests failed" }
+        if ($Name -in @("module_session", "transfer_capsule", "module_runtime")) {
+            Write-Host "== Host managed-workspace $Name tests =="
+            & $HostCc.Path -std=c99 -Wall -Wextra -DS64_MANAGED_OVERLAY=1 -include client/tests/managed_record_workspace.h -Iclient/src client/tests/managed_record_workspace.c @Sources -o $Output
+            if ($LASTEXITCODE -ne 0) { throw "Managed-workspace $Name test build failed" }
+            & $Output
+            if ($LASTEXITCODE -ne 0) { throw "Managed-workspace $Name tests failed" }
+        }
     }
 
     try {

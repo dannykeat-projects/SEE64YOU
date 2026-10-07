@@ -231,20 +231,32 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
+for managed_records in 0 1; do
+    set --
+    if [ "$managed_records" -eq 1 ]; then
+        set -- -DS64_MANAGED_OVERLAY=1 -include client/tests/managed_record_workspace.h client/tests/managed_record_workspace.c
+    fi
 echo "== Host shared module session tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src \
+cc "$@" -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/module_session_test.c client/src/platform/module_session.c client/src/platform/module_session_read.c client/src/platform/module_session_build.c \
     client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_write.c \
     client/src/platform/session_journal.c client/src/platform/session_journal_start.c client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
+done
 
+for managed_records in 0 1; do
+    set --
+    if [ "$managed_records" -eq 1 ]; then
+        set -- -DS64_MANAGED_OVERLAY=1 -include client/tests/managed_record_workspace.h client/tests/managed_record_workspace.c
+    fi
 echo "== Host transfer capsule tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src \
+cc "$@" -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/transfer_capsule_test.c client/src/platform/transfer_capsule.c client/src/platform/transfer_capsule_build.c client/src/platform/transfer_capsule_write.c \
     client/src/platform/module_session.c client/src/platform/module_session_read.c client/src/platform/module_session_build.c client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c \
     client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_write.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
     client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
+done
 
 echo "== Host one-shot module arrival tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
@@ -300,8 +312,13 @@ cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
     client/src/platform/module_transfer.c client/src/platform/session_journal.c client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+for managed_records in 0 1; do
+    set --
+    if [ "$managed_records" -eq 1 ]; then
+        set -- -DS64_MANAGED_OVERLAY=1 -include client/tests/managed_record_workspace.h client/tests/managed_record_workspace.c
+    fi
 echo "== Host destination module runtime tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src \
+cc "$@" -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/module_runtime_test.c client/src/platform/module_runtime.c client/src/platform/module_runtime_init.c client/src/platform/module_transition.c client/src/platform/module_transfer.c \
     client/src/platform/transfer_capsule.c client/src/platform/transfer_capsule_build.c client/src/platform/transfer_capsule_write.c client/src/platform/module_session.c client/src/platform/module_session_read.c client/src/platform/module_session_build.c \
     client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_write.c \
@@ -309,6 +326,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
     client/src/platform/system_state.c client/src/platform/system_state_start.c client/src/platform/turbo.c client/src/platform/turbo_capture.c \
     client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
+done
 
 echo "== Host Ultimate DOS tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \

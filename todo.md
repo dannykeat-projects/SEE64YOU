@@ -50,6 +50,13 @@ validation passes. Editor BSS ends at $8BFF; MODEL/FILE/RUNTIME/PUBLICATION have
 89/5/48/50 bytes spare. Managed Settings has 9150 bytes before $CC00. Preserve
 these measured limits when continuing the outstanding work below; real-C64U
 acceptance remains required.
+On 2026-10-07 the missing-REU guidance/exit gate passed with unchanged journal
+slots, restored original files and preserved drive state/IRQ. After enabling
+16 MiB, real hardware exposed managed Editor entry stage 4: pointer scratch
+aliases made `sizeof` transfer only two capsule/session bytes. Array-extent
+aliases now preserve full record operations; ordinary and managed-workspace
+capsule/session/adoption host suites pass. Repeat the full hardware cycle gate
+after exact-head validation; preserve the interrupted ACTIVE journal for recovery.
 
 1. Finish physical USB/native keyboard and ordinary editing/file/menu acceptance of the current c64u-package. Preserve original-context/ACTIVE binding, exact manifests and stack/headroom gates; missing/corrupt context keeps a safe CLEAN park.
    - 2026-10-06 fresh-editor hardware observation: first typed characters can be invisible while the editor cursor advances, then appear on a later redraw. The append fast path now explicitly positions conio at the tracked editor cursor, and the UI probe deliberately perturbs conio's cursor before its first append. Real-C64U confirmation is still required.

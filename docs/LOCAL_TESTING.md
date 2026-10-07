@@ -61,6 +61,11 @@ use 15271/15355/15312/15310 of 15360 bytes. Managed Publisher resident headroom
 is 1474 bytes; managed Settings has 9150 bytes before $CC00 and the executable
 launcher has 1197. Existing diagnostic/pointer-conversion warnings remain visible.
 These are software gates, without new real-C64U acceptance.
+The capsule, module-session and destination-runtime host suites now run both
+ordinary array storage and `S64_MANAGED_OVERLAY` workspace storage. The managed
+variant uses a shared test workspace and the production scratch aliases, so
+truncated transfers caused by pointer-sized `sizeof` cannot hide behind the
+ordinary array-backed host configuration.
 
 Focused editor overlay gates (installed cc65, Python, VICE 3.9 and Xvfb):
 

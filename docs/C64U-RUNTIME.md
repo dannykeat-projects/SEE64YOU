@@ -11,6 +11,9 @@ resident code owns Save/Discard/Cancel actions and renders the prompt before
 switching overlays. Managed Settings links destination configuration validation
 only, excluding publishing URL builders and their unused document/buffer code.
 This preserves the existing overlay and software-stack boundaries.
+Managed capsule and module-session scratch aliases retain their array extents:
+record transfer, clearing and readback use the complete 64-byte capsule,
+128-byte module session and 24-byte journal rather than a pointer's size.
 
 Initial supported baseline:
 

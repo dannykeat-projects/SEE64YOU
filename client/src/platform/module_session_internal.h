@@ -12,9 +12,10 @@
 #define S64_MODULE_SESSION_CHECKSUM_OFFSET (S64_MODULE_SESSION_WIRE_SIZE - 2u)
 
 #ifdef S64_MANAGED_OVERLAY
-#define s64_module_session_wire     (S64_BASIC_RETURN_WORKSPACE)
-#define s64_module_session_readback     (S64_BASIC_RETURN_WORKSPACE + S64_MODULE_SESSION_WIRE_SIZE)
-#define s64_module_session_journal_wire     (S64_BASIC_RETURN_WORKSPACE + 2u * S64_MODULE_SESSION_WIRE_SIZE)
+/* Keep sizeof equal to the complete record, rather than the pointer width. */
+#define s64_module_session_wire (*(uint8_t (*)[S64_MODULE_SESSION_WIRE_SIZE])S64_BASIC_RETURN_WORKSPACE)
+#define s64_module_session_readback (*(uint8_t (*)[S64_MODULE_SESSION_WIRE_SIZE])(S64_BASIC_RETURN_WORKSPACE + S64_MODULE_SESSION_WIRE_SIZE))
+#define s64_module_session_journal_wire (*(uint8_t (*)[S64_SESSION_JOURNAL_WIRE_SIZE])(S64_BASIC_RETURN_WORKSPACE + 2u * S64_MODULE_SESSION_WIRE_SIZE))
 #else
 extern uint8_t s64_module_session_wire[S64_MODULE_SESSION_WIRE_SIZE];
 extern uint8_t s64_module_session_readback[S64_MODULE_SESSION_WIRE_SIZE];
