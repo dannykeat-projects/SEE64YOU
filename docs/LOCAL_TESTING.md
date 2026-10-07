@@ -57,7 +57,7 @@ On 2026-10-07, full Linux host/cc65/VICE validation passed after the verified
 3586256 Editor/managed-Settings fit failures were fixed. The extracted exit-key
 reader also passes host tests for both letter cases, STOP and ignored input.
 Measured package limits: Editor BSS ends at $8BFF; MODEL/FILE/RUNTIME/PUBLICATION
-use 15271/15355/15312/15310 of 15360 bytes. Managed Publisher resident headroom
+use 15271/15355/15284/15310 of 15360 bytes after the record fix. Managed Publisher resident headroom
 is 1474 bytes; managed Settings has 9150 bytes before $CC00 and the executable
 launcher has 1197. Existing diagnostic/pointer-conversion warnings remain visible.
 These are software gates, without new real-C64U acceptance.
@@ -73,9 +73,18 @@ forcing a Settings rebuild; its target now tracks both affected record headers.
 Real C64U at 192.168.1.112 recovered interrupted ACTIVE 69 to CLEAN 70, started
 ACTIVE 71, entered the managed Editor and immediately displayed injected TEST.
 Turbo-control ownership was unavailable, so startup verification was slow.
-Full module cycles and managed exit remain pending. Physical Ctrl+P is required
-for the next gate because REST keyboard-buffer injection did not reliably carry
-the Ctrl modifier. Backups/evidence are in ignored client/build/hardware-712f803/.
+Physical Ctrl+P reached PREPARING PUBLISHER, then PUBLISHING SETTINGS UNAVAILABLE.
+Copying the valid legacy config into the app folder produced the same failure.
+A native-PETSCII hardware diagnostic passed revoke, app-folder chdir/open,
+334-byte REU transfer/close/readback, values and record validation (version 2,
+READY state 3). Diagnose the integrated preparation/runtime/overlay context next;
+neither config location nor invalid config explains this observation.
+Full module cycles and managed exit remain unverified. Cleanup used existing
+interrupted-session recovery code with no captured turbo setting to restore,
+wrote CLEAN 72, returned to BASIC, and restored all original package/config/
+recovery files with exact readback; drive state and IRQ matched the baseline.
+This cleanup is not managed-exit acceptance. Exact-head CI for 3bed2ac passed
+(37594349406). Backups/evidence remain in ignored client/build/hardware-712f803/.
 
 Focused editor overlay gates (installed cc65, Python, VICE 3.9 and Xvfb):
 

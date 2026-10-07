@@ -47,7 +47,7 @@ Ubuntu/WSL and verified two package-build failures at 3586256: Editor resident
 overflow (14 bytes) and managed Settings overflow (512 bytes). The scoped fixes
 preserve all memory guards and dirty-exit behavior. Full local host/cc65/VICE
 validation passes. Editor BSS ends at $8BFF; MODEL/FILE/RUNTIME/PUBLICATION have
-89/5/48/50 bytes spare. Managed Settings has 9150 bytes before $CC00. Preserve
+89/5/76/50 bytes spare. Managed Settings has 9150 bytes before $CC00. Preserve
 these measured limits when continuing the outstanding work below; real-C64U
 acceptance remains required.
 On 2026-10-07 the missing-REU guidance/exit gate passed with unchanged journal
@@ -58,10 +58,14 @@ aliases now preserve full record operations; ordinary and managed-workspace
 capsule/session/adoption host suites and full local validation pass; exact-head
 CI for cc563f4 passed. Real C64U recovered ACTIVE 69 to CLEAN 70, began ACTIVE
 71, entered the managed Editor and displayed the first TEST input immediately.
-The full cycle gate awaits a physical Ctrl+P press: this firmware's REST buffer
-injection did not preserve the Ctrl modifier. The disposable test remains in the
-Editor with original files backed up under ignored build output. Managed Settings
-now also depends on both record headers, preventing stale incremental PRGs.
+Physical Ctrl+P failed with PUBLISHING SETTINGS UNAVAILABLE, including with the
+valid legacy config copied into the app folder. A native hardware diagnostic
+passed settings revoke, DOS open/334-byte transfer/close/readback and config
+validation. Next diagnose the integrated `s64_managed_editor_settings_prepare`
+runtime/overlay path before another full cycle test. Cleanup recovered to CLEAN
+72 and BASIC, restored original files exactly, and verified unchanged drives/IRQ.
+Full module cycles and managed exit remain unverified. Managed Settings now also
+depends on both record headers, preventing stale incremental PRGs; 3bed2ac CI passed.
 
 1. Finish physical USB/native keyboard and ordinary editing/file/menu acceptance of the current c64u-package. Preserve original-context/ACTIVE binding, exact manifests and stack/headroom gates; missing/corrupt context keeps a safe CLEAN park.
    - 2026-10-06 fresh-editor hardware observation: first typed characters can be invisible while the editor cursor advances, then appear on a later redraw. The append fast path now explicitly positions conio at the tracked editor cursor, and the UI probe deliberately perturbs conio's cursor before its first append. Real-C64U confirmation is still required.
