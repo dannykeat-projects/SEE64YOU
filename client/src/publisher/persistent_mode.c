@@ -10,8 +10,7 @@ void s64_persistent_publisher_init(
     if (publisher == 0) return;
     memset(publisher, 0, sizeof(*publisher));
     publisher->document = document;
-    s64_destination_clear(&publisher->destination);
-    s64_publish_state_init(&publisher->publish_state);
+    publisher->publish_state.remote_type = S64_DOCUMENT_PAGE;
 }
 
 uint8_t s64_persistent_publisher_valid(
