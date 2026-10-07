@@ -427,7 +427,8 @@ int main(void)
             1u
         );
         require(direct_result == S64_STANDALONE_OK,
-            (uint8_t)(60u + (uint8_t)direct_result));
+            (uint8_t)(80u + (uint8_t)(fake_http_open_count * 10u)
+                + (uint8_t)direct_result));
 
         require(s64_probe_pruntime_ping(cycle)
             == (uint16_t)(cycle ^ 0xa55au), 40u);
