@@ -24,7 +24,8 @@ typedef struct {
 #define history_current ((unsigned char*)(S64_PERSISTENT_FIT_SCRATCH_BASE \
     + S64_HISTORY_TRANSFER_SIZE))
 typedef char S64PersistentFitHistoryScratchFits[
-    2u * S64_HISTORY_TRANSFER_SIZE <= S64_PERSISTENT_FIT_SCRATCH_CAPACITY ? 1 : -1
+    S64_PERSISTENT_FIT_SCRATCH_CAPACITY
+        - 2u * S64_HISTORY_TRANSFER_SIZE
 ];
 #else
 static unsigned char history_target[S64_HISTORY_TRANSFER_SIZE];
