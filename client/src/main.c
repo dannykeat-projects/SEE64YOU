@@ -28,7 +28,9 @@
 #include "platform/basic_return.h"
 #include "platform/package_version.h"
 static S64ModuleRuntime managed_runtime;
+#ifndef S64_PERSISTENT_RUNTIME_FIT
 static S64ManagedEditorState managed_application;
+#endif
 static void managed_entry_failed(uint8_t stage)
 {
     clrscr();
@@ -54,7 +56,7 @@ static char find_query[SEARCH_TEXT_CAPACITY];
 static unsigned char find_query_valid;
 static clock_t last_recovery_write;
 static unsigned char recovery_error_shown;
-#ifdef S64_MANAGED_OVERLAY
+#if defined(S64_MANAGED_OVERLAY) && !defined(S64_PERSISTENT_RUNTIME_FIT)
 static unsigned char restore_managed_application(void)
 {
     /* This synchronous scratch is outside the overlay slot and below the
@@ -136,6 +138,14 @@ static unsigned char restore_publisher_handoff(void)
 static void launch_publisher(void)
 {
 #ifdef S64_MANAGED_OVERLAY
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+    extern uint8_t s64_persistent_runtime_fit_publisher(void);
+    if (!s64_persistent_runtime_fit_publisher()) {
+        s64_ui_message("Persistent Publisher fit failed");
+        return;
+    }
+    s64_ui_render(&editor);
+#else
     unsigned char prepared;
 
     managed_application.document_replaced = local_document.document_replaced;
@@ -205,6 +215,7 @@ static void launch_publisher(void)
     clrscr();
     cputs("OPENING PUBLISHER...\r\n");
     s64_module_transfer_capsule_enter();
+#endif
 #else
     if (!s64_history_prepare_handoff(&editor.history)) {
         s64_ui_message("Publish handoff failed");
@@ -693,7 +704,7 @@ int main(void)
     unsigned char mouse_selecting = 0u;
 #ifdef S64_REU_BUFFER
     unsigned char restored_handoff;
-#ifdef S64_MANAGED_OVERLAY
+#if defined(S64_MANAGED_OVERLAY) && !defined(S64_PERSISTENT_RUNTIME_FIT)
     unsigned char managed_entry;
 #endif
 
@@ -715,10 +726,14 @@ int main(void)
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
     if (s64_dos_change_dir(&dos, S64_SD_ROOT_DIRECTORY) != S64_DOS_OK) managed_entry_failed(4u);
     if (!s64_managed_editor_adopt(&managed_runtime, &dos, S64_PACKAGE_VERSION)) managed_entry_failed(4u);
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+    restored_handoff = 0u;
+#else
     managed_entry = s64_managed_editor_state_prepare(&managed_runtime, S64_BASIC_RETURN_WORKSPACE);
     if (!managed_entry) managed_entry_failed(7u);
     restored_handoff = managed_entry == 2u;
     if (restored_handoff && !restore_managed_application()) managed_entry_failed(8u);
+#endif
     if (s64_module_runtime_resume_interactive(&managed_runtime)
             != S64_SYSTEM_OK) managed_entry_failed(5u);
     if (!restored_handoff) {
@@ -757,7 +772,7 @@ int main(void)
             maybe_autosave();
             continue;
         }
-#ifdef S64_MANAGED_OVERLAY
+#if defined(S64_MANAGED_OVERLAY) && !defined(S64_PERSISTENT_RUNTIME_FIT)
         /* Preserve the prepared snapshot only while live state is unchanged.
          * This also revokes resumed authority before the first user edit. */
         if ((managed_runtime.reu_control.state_flags & S64_REU_RUNTIME_STATE_APPLICATION_VALID)
