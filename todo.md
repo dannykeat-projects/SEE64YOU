@@ -151,6 +151,17 @@ package layout.
    the usual map/headroom checks. Real C64U testing is required only after the
    software spike passes these gates.
 
+Software fit result (GitHub-hosted cc65 2.19, exact head before this note):
+- synthetic persistent-owner diagnostic builds successfully;
+- real persistent Editor root builds with MODEL 14,883 / 15,360,
+  FILE 13,941 / 15,360, RUNTIME 14,972 / 15,360 and PUBLICATION 5 / 15,360;
+- resident Editor headroom is **3,346 bytes below $8C00**, comfortably above
+  the 1 KiB gate and far better than the production whole-PRG handoff build;
+- the software fit gate therefore **passes**. Proceed with the persistent
+  Editor-owned runtime architecture, while retaining the existing whole-PRG
+  path as fallback until real Publisher/Settings overlays and hardware cycles
+  are accepted.
+
 Decision rule:
 - If the diagnostic passes cleanly and the projected real asset layout has
   sensible headroom, pivot production incrementally to the persistent-runtime
