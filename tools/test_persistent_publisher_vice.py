@@ -80,6 +80,7 @@ extern uint16_t __fastcall__ s64_probe_editor(uint16_t);
 extern uint16_t __fastcall__ s64_probe_settings(uint16_t);
 extern uint16_t __fastcall__ s64_probe_pnetwork_ping(uint16_t);
 extern uint16_t __fastcall__ s64_probe_pruntime_ping(uint16_t);
+extern uint8_t s64_persistent_direct_trace;
 
 static S64ReuRuntimeControl control;
 static S64ReuAllocation assets[5];
@@ -427,8 +428,7 @@ int main(void)
             1u
         );
         require(direct_result == S64_STANDALONE_OK,
-            (uint8_t)(80u + (uint8_t)(fake_http_open_count * 10u)
-                + (uint8_t)direct_result));
+            (uint8_t)(120u + s64_persistent_direct_trace));
 
         require(s64_probe_pruntime_ping(cycle)
             == (uint16_t)(cycle ^ 0xa55au), 40u);
