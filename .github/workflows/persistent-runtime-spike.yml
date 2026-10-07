@@ -1,0 +1,45 @@
+name: Persistent runtime spike
+
+on:
+  push:
+    branches:
+      - feature/c64u-publisher-chain
+  workflow_dispatch:
+
+concurrency:
+  group: see64you-persistent-runtime-spike-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install cc65 toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cc65 make python3
+          command -v cl65 cc65 ca65 make python3
+          cl65 --version || true
+
+      - name: Build synthetic persistent-owner probe
+        run: python3 tools/test_persistent_runtime_vice.py --build-only
+
+      - name: Measure real persistent Editor root
+        run: python3 tools/build_persistent_editor_fit.py
+
+      - name: Publish persistent-runtime fit maps
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-persistent-runtime-fit
+          path: |
+            client/build/persistent-runtime-probe/persistent-runtime-probe.map
+            client/build/persistent-runtime-probe/persistent-runtime-probe.prg
+            client/build/persistent-editor-fit/persistent-editor-fit.map
+            client/build/persistent-editor-fit/persistent-editor-fit.prg
+          if-no-files-found: warn
+          retention-days: 14
