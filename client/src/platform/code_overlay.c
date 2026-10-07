@@ -10,7 +10,7 @@ typedef struct {
     uint16_t length;
     uint8_t bank;
 } S64CodeOverlayCache;
-static S64CodeOverlayCache overlay_caches[S64_CODE_OVERLAY_COUNT];
+static S64CodeOverlayCache overlay_caches[S64_CODE_OVERLAY_MAX_COUNT];
 static uint8_t overlay_count;
 static void* overlay_slot;
 static S64CodeOverlayReader overlay_reader;
@@ -27,8 +27,7 @@ uint8_t s64_code_overlay_configure(
     overlay_slot = 0;
     overlay_active = 0;
     overlay_count = 0;
-    if ((actual_count != 3u && actual_count != 4u)
-        || actual_count > S64_CODE_OVERLAY_COUNT) return 0;
+    if (actual_count == 0u || actual_count > S64_CODE_OVERLAY_MAX_COUNT) return 0;
     if (!control || !caches || !slot || !reader ||
         capacity != S64_CODE_OVERLAY_CAPACITY || !s64_reu_runtime_valid(control)) return 0;
 #ifdef __CC65__
