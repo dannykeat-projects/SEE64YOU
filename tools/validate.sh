@@ -606,6 +606,8 @@ if command -v cl65 >/dev/null 2>&1 \
 
     echo "== Persistent runtime overlay diagnostic fit =="
     python3 tools/test_persistent_runtime_vice.py --build-only
+    echo "== Real persistent Editor root fit =="
+    python3 tools/build_persistent_editor_fit.py
 
     if command -v x64sc >/dev/null 2>&1 \
         && command -v xvfb-run >/dev/null 2>&1 \
