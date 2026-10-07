@@ -18,13 +18,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install cc65 and VICE toolchain
+      - name: Install cc65 toolchain
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
           sudo apt-get update
-          sudo apt-get install -y cc65 make python3 curl xvfb vice
-          command -v cl65 cc65 ca65 make python3 curl xvfb-run x64sc
+          sudo apt-get install -y cc65 make python3 curl
+          command -v cl65 cc65 ca65 make python3 curl
           cl65 --version || true
-          x64sc -version
 
       - name: Build synthetic persistent-owner probe
         run: python3 tools/test_persistent_runtime_vice.py --build-only
@@ -34,6 +35,14 @@ jobs:
 
       - name: Measure real persistent Publisher slice
         run: python3 tools/build_persistent_publisher_slice_fit.py
+
+      - name: Install VICE toolchain
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get install -y xvfb vice
+          command -v xvfb-run x64sc
+          x64sc -version
 
       - name: Prepare pinned Open ROMs
         run: |
