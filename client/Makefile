@@ -360,7 +360,7 @@ $(SETTINGS_CHAIN_TARGET): $(SETTINGS_TARGET)
 .PHONY: managed-settings
 managed-settings: $(MANAGED_SETTINGS_TARGET)
 
-$(MANAGED_SETTINGS_TARGET): $(MANAGED_SETTINGS_SOURCES) $(MANAGED_SETTINGS_RUNTIME_SOURCES)
+$(MANAGED_SETTINGS_TARGET): $(MANAGED_SETTINGS_SOURCES) $(MANAGED_SETTINGS_RUNTIME_SOURCES) src/platform/transfer_capsule_internal.h src/platform/module_session_internal.h
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_MANAGED_OVERLAY=1 -DS64_SETTINGS_CONFIG_ONLY=1 -m build/managed-settings.map -o $@ $(MANAGED_SETTINGS_SOURCES) $(MANAGED_SETTINGS_RUNTIME_SOURCES)
 	python3 ../tools/check_memory_headroom.py build/managed-settings.map --label managed-settings --min-headroom 1024

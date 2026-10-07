@@ -67,6 +67,16 @@ variant uses a shared test workspace and the production scratch aliases, so
 truncated transfers caused by pointer-sized `sizeof` cannot hide behind the
 ordinary array-backed host configuration.
 
+On 2026-10-07, cc563f4 passed full local validation and exact-head CI run
+37592705316. All 14 package files matched the clean CI artifact by SHA256 after
+forcing a Settings rebuild; its target now tracks both affected record headers.
+Real C64U at 192.168.1.112 recovered interrupted ACTIVE 69 to CLEAN 70, started
+ACTIVE 71, entered the managed Editor and immediately displayed injected TEST.
+Turbo-control ownership was unavailable, so startup verification was slow.
+Full module cycles and managed exit remain pending. Physical Ctrl+P is required
+for the next gate because REST keyboard-buffer injection did not reliably carry
+the Ctrl modifier. Backups/evidence are in ignored client/build/hardware-712f803/.
+
 Focused editor overlay gates (installed cc65, Python, VICE 3.9 and Xvfb):
 
 ~~~sh

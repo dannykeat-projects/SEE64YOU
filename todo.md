@@ -55,8 +55,13 @@ slots, restored original files and preserved drive state/IRQ. After enabling
 16 MiB, real hardware exposed managed Editor entry stage 4: pointer scratch
 aliases made `sizeof` transfer only two capsule/session bytes. Array-extent
 aliases now preserve full record operations; ordinary and managed-workspace
-capsule/session/adoption host suites pass. Repeat the full hardware cycle gate
-after exact-head validation; preserve the interrupted ACTIVE journal for recovery.
+capsule/session/adoption host suites and full local validation pass; exact-head
+CI for cc563f4 passed. Real C64U recovered ACTIVE 69 to CLEAN 70, began ACTIVE
+71, entered the managed Editor and displayed the first TEST input immediately.
+The full cycle gate awaits a physical Ctrl+P press: this firmware's REST buffer
+injection did not preserve the Ctrl modifier. The disposable test remains in the
+Editor with original files backed up under ignored build output. Managed Settings
+now also depends on both record headers, preventing stale incremental PRGs.
 
 1. Finish physical USB/native keyboard and ordinary editing/file/menu acceptance of the current c64u-package. Preserve original-context/ACTIVE binding, exact manifests and stack/headroom gates; missing/corrupt context keeps a safe CLEAN park.
    - 2026-10-06 fresh-editor hardware observation: first typed characters can be invisible while the editor cursor advances, then appear on a later redraw. The append fast path now explicitly positions conio at the tracked editor cursor, and the UI probe deliberately perturbs conio's cursor before its first append. Real-C64U confirmation is still required.
