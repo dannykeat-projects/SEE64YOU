@@ -19,7 +19,7 @@
     (1024u - S64_BASIC_RETURN_WORKSPACE_SIZE)
 
 typedef char S64PersistentFitScratchPositive[
-    S64_PERSISTENT_FIT_SCRATCH_CAPACITY > 0u ? 1 : -1
+    S64_PERSISTENT_FIT_SCRATCH_CAPACITY
 ];
 
 #endif
