@@ -378,6 +378,7 @@ def build() -> Path:
         CLIENT / "src/platform/reu_dma.s",
         CLIENT / "src/platform/reu_runtime.c",
         CLIENT / "src/platform/reu_runtime_build.c",
+        CLIENT / "src/platform/reu_runtime_write.c",
         CLIENT / "src/platform/system_state.c",
         CLIENT / "src/platform/system_state_start.c",
         CLIENT / "src/platform/session_lifecycle.c",
