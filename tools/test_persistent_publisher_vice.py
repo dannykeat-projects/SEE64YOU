@@ -38,6 +38,14 @@ uint16_t __fastcall__ s64_overlay_settings_s64_probe_settings(uint16_t value)
 { return (uint16_t)(value + 0x0064u); }
 """
 
+PNETWORK_PING = r"""
+#include <stdint.h>
+#pragma code-name ("PNETWORK_CODE")
+#pragma rodata-name ("PNETWORK_RODATA")
+uint16_t __fastcall__ s64_overlay_pnetwork_s64_probe_pnetwork_ping(uint16_t value)
+{ return (uint16_t)(value ^ 0x5aa5u); }
+"""
+
 MAIN = r"""
 #include <stdint.h>
 #include <string.h>
@@ -60,6 +68,7 @@ extern const uint8_t settings_image[], settings_image_end[];
 
 extern uint16_t __fastcall__ s64_probe_editor(uint16_t);
 extern uint16_t __fastcall__ s64_probe_settings(uint16_t);
+extern uint16_t __fastcall__ s64_probe_pnetwork_ping(uint16_t);
 
 static S64ReuRuntimeControl control;
 static S64ReuAllocation assets[5];
@@ -180,7 +189,9 @@ int main(void)
         require(s64_publish_state_can_delete(
             &publisher.publish_state, &publisher.destination), 15u);
 
-        require(s64_direct_key_parse(key_hex, key), 16u);
+        require(s64_probe_pnetwork_ping(cycle)
+            == (uint16_t)(cycle ^ 0x5aa5u), 16u);
+        require(s64_direct_key_parse(key_hex, key), 17u);
         require(s64_direct_sign(
             key,
             "0123456789abcdef0123456789abcdef",
@@ -188,42 +199,42 @@ int main(void)
             "/api/save",
             body_digest,
             signature
-        ), 17u);
-        require(hex64(signature) && !strcmp(signature, expected_signature), 18u);
+        ), 18u);
+        require(hex64(signature) && !strcmp(signature, expected_signature), 19u);
 
         s64_settings_exchange_init(&settings);
-        require(s64_settings_exchange_validate(&settings), 19u);
-        require(s64_settings_exchange_store(&settings), 20u);
+        require(s64_settings_exchange_validate(&settings), 20u);
+        require(s64_settings_exchange_store(&settings), 21u);
         memset(&loaded, 0, sizeof(loaded));
-        require(s64_settings_exchange_load(&loaded), 21u);
-        require(!memcmp(&settings, &loaded, sizeof(settings)), 22u);
+        require(s64_settings_exchange_load(&loaded), 22u);
+        require(!memcmp(&settings, &loaded, sizeof(settings)), 23u);
 
         s64_persistent_publisher_mark_changed(&publisher, cycle == 1u);
         require(publisher.document_changed
-            && publisher.document_replaced == 1u, 23u);
+            && publisher.document_replaced == 1u, 24u);
 
         require(s64_code_overlay_namespace_activate(
-            &settings_namespace, &control, overlay_reader), 24u);
-        require(s64_probe_settings(cycle) == (uint16_t)(cycle + 0x64u), 25u);
+            &settings_namespace, &control, overlay_reader), 25u);
+        require(s64_probe_settings(cycle) == (uint16_t)(cycle + 0x64u), 26u);
 
         require(s64_code_overlay_namespace_activate(
-            &publisher_namespace, &control, overlay_reader), 26u);
+            &publisher_namespace, &control, overlay_reader), 27u);
         before = overlay_reads;
         require(s64_publish_state_can_delete(
-            &publisher.publish_state, &publisher.destination), 27u);
-        require(overlay_reads == (uint16_t)(before + 1u), 28u);
+            &publisher.publish_state, &publisher.destination), 28u);
+        require(overlay_reads == (uint16_t)(before + 1u), 29u);
         require(publisher.document_changed
-            && publisher.document_replaced == 1u, 29u);
+            && publisher.document_replaced == 1u, 30u);
 
         require(s64_code_overlay_namespace_activate(
-            &editor_namespace, &control, overlay_reader), 30u);
+            &editor_namespace, &control, overlay_reader), 31u);
         require(s64_probe_editor((uint16_t)(cycle + 100u))
-            == (uint16_t)((cycle + 100u) ^ 0x64a5u), 31u);
-        require(document.body == &body && document.type == S64_DOCUMENT_POST, 32u);
+            == (uint16_t)((cycle + 100u) ^ 0x64a5u), 32u);
+        require(document.body == &body && document.type == S64_DOCUMENT_POST, 33u);
     }
 
     s64_persistent_publisher_reset_change_flags(&publisher);
-    require(!publisher.document_changed && !publisher.document_replaced, 33u);
+    require(!publisher.document_changed && !publisher.document_replaced, 34u);
 
     *(volatile uint8_t*)0xc060 = 0x80u;
     *(volatile uint8_t*)0xc061 = 0xa5u;
@@ -325,6 +336,11 @@ def build() -> Path:
                 )
             )
             sources.append(generated_path)
+
+    pnetwork_ping = generated / "pnetwork_ping.c"
+    pnetwork_ping.write_text(PNETWORK_PING)
+    sources.append(pnetwork_ping)
+    grouped_names["PNETWORK"].append("s64_probe_pnetwork_ping")
 
     settings = generated / "settings.c"
     settings.write_text(SETTINGS)
