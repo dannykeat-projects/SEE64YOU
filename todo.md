@@ -44,6 +44,15 @@ need PRG-to-PRG crt0 replacement, destination lifecycle adoption, arrival
 markers, transfer capsules or reconstruction of application state that is
 already live in the owning runtime.
 
+Refined implementation boundary after source inventory: **retain the already
+hardware-proven Launcher -> managed Editor bootstrap and original BASIC-return
+path.** The persistent application runtime begins once Editor has adopted that
+ACTIVE session. Editor remains the lifecycle/system-state owner until final exit;
+Publisher and Settings become callable overlays beneath that owner. Do not try
+to keep the current launcher image resident below `$8C00` as part of this spike.
+This keeps startup/recovery unchanged and targets only the repeatedly failing
+Editor/Publisher/Settings ownership transfers.
+
 Build this first as a diagnostic target, tentatively
 `persistent-runtime-fit`. It must not replace `c64u-package` or change the
 production package while feasibility is unknown.
