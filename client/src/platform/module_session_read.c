@@ -2,7 +2,15 @@
 #include "platform/reu.h"
 #include <string.h>
 
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+#include "platform/persistent_fit_scratch.h"
+#define decoded (*(S64ModuleManifest*)S64_PERSISTENT_FIT_SCRATCH_BASE)
+typedef char S64PersistentFitModuleDecodeFits[
+    sizeof(S64ModuleManifest) <= S64_PERSISTENT_FIT_SCRATCH_CAPACITY ? 1 : -1
+];
+#else
 static S64ModuleManifest decoded;
+#endif
 
 static uint16_t get16(const uint8_t* in)
 { return (uint16_t)(in[0] | ((uint16_t)in[1] << 8)); }
