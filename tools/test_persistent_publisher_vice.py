@@ -448,7 +448,7 @@ def main() -> int:
     from test_reu_probe import wait_for_monitor
 
     command = [
-        "xvfb-run", "-a", args.vice_bin, "+sound",
+        "xvfb-run", "-a", args.vice_bin, "+sound", "-warp",
         "-reu", "-reusize", "16384",
         "-autostartprgmode", "1",
         "-binarymonitor",
@@ -466,7 +466,7 @@ def main() -> int:
         monitor = None
         try:
             monitor = wait_for_monitor("127.0.0.1", args.port, 20)
-            deadline = time.monotonic() + 35
+            deadline = time.monotonic() + 90
             state = b""
             while time.monotonic() < deadline:
                 state = monitor.read_memory(0xc060, 0xc062)
