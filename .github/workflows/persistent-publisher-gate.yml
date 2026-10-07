@@ -1,0 +1,51 @@
+name: Persistent Publisher gate
+
+on:
+  push:
+    branches:
+      - feature/c64u-publisher-chain
+  workflow_dispatch:
+
+concurrency:
+  group: see64you-persistent-publisher-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  publisher:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install cc65
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cc65 make python3 curl
+          command -v cl65 cc65 ca65 python3
+
+      - name: Compile persistent Publisher slice
+        run: python3 tools/build_persistent_publisher_slice_fit.py
+
+      - name: Compile persistent Publisher VICE gate
+        run: python3 tools/test_persistent_publisher_vice.py --build-only
+
+      - name: Install VICE
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get install -y xvfb vice
+          command -v xvfb-run x64sc
+
+      - name: Prepare pinned Open ROMs
+        run: |
+          mkdir -p /tmp/see64you-roms
+          base="https://raw.githubusercontent.com/MEGA65/open-roms/ad178dbe4d48cd6a317737a8e0e7e662f7e33d32/bin"
+          curl --fail --location --silent --show-error "$base/kernal_generic.rom" -o /tmp/see64you-roms/kernal.rom
+          curl --fail --location --silent --show-error "$base/basic_generic.rom" -o /tmp/see64you-roms/basic.rom
+          curl --fail --location --silent --show-error "$base/chargen_openroms.rom" -o /tmp/see64you-roms/chargen.rom
+
+      - name: Execute real persistent Publisher namespace
+        run: python3 tools/test_persistent_publisher_vice.py
