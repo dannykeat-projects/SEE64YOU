@@ -6,7 +6,7 @@
 #include "platform/persistent_fit_scratch.h"
 #define decoded (*(S64ModuleManifest*)S64_PERSISTENT_FIT_SCRATCH_BASE)
 typedef char S64PersistentFitModuleDecodeFits[
-    sizeof(S64ModuleManifest) <= S64_PERSISTENT_FIT_SCRATCH_CAPACITY ? 1 : -1
+    S64_PERSISTENT_FIT_SCRATCH_CAPACITY - (int)sizeof(S64ModuleManifest)
 ];
 #else
 static S64ModuleManifest decoded;
