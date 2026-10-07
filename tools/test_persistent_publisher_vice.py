@@ -46,6 +46,14 @@ uint16_t __fastcall__ s64_overlay_pnetwork_s64_probe_pnetwork_ping(uint16_t valu
 { return (uint16_t)(value ^ 0x5aa5u); }
 """
 
+PRUNTIME_PING = r"""
+#include <stdint.h>
+#pragma code-name ("PRUNTIME_CODE")
+#pragma rodata-name ("PRUNTIME_RODATA")
+uint16_t __fastcall__ s64_overlay_pruntime_s64_probe_pruntime_ping(uint16_t value)
+{ return (uint16_t)(value ^ 0xa55au); }
+"""
+
 MAIN = r"""
 #include <stdint.h>
 #include <string.h>
@@ -69,6 +77,7 @@ extern const uint8_t settings_image[], settings_image_end[];
 extern uint16_t __fastcall__ s64_probe_editor(uint16_t);
 extern uint16_t __fastcall__ s64_probe_settings(uint16_t);
 extern uint16_t __fastcall__ s64_probe_pnetwork_ping(uint16_t);
+extern uint16_t __fastcall__ s64_probe_pruntime_ping(uint16_t);
 
 static S64ReuRuntimeControl control;
 static S64ReuAllocation assets[5];
@@ -202,7 +211,12 @@ int main(void)
         ), 18u);
         require(hex64(signature) && !strcmp(signature, expected_signature), 19u);
 
+        require(s64_probe_pruntime_ping(cycle)
+            == (uint16_t)(cycle ^ 0xa55au), 40u);
         s64_settings_exchange_init(&settings);
+        require(settings.version == S64_SETTINGS_VERSION
+            && settings.state == S64_SETTINGS_STATE_READY
+            && settings.result == S64_SETTINGS_RESULT_OK, 41u);
         require(s64_settings_exchange_validate(&settings), 20u);
         require(s64_settings_exchange_store(&settings), 21u);
         memset(&loaded, 0, sizeof(loaded));
@@ -341,6 +355,11 @@ def build() -> Path:
     pnetwork_ping.write_text(PNETWORK_PING)
     sources.append(pnetwork_ping)
     grouped_names["PNETWORK"].append("s64_probe_pnetwork_ping")
+
+    pruntime_ping = generated / "pruntime_ping.c"
+    pruntime_ping.write_text(PRUNTIME_PING)
+    sources.append(pruntime_ping)
+    grouped_names["PRUNTIME"].append("s64_probe_pruntime_ping")
 
     settings = generated / "settings.c"
     settings.write_text(SETTINGS)
