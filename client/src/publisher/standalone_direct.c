@@ -63,6 +63,12 @@ typedef struct {
 } Reply;
 
 static uint16_t text_length;
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+uint8_t s64_persistent_direct_trace;
+#define S64_DIRECT_TRACE(value) (s64_persistent_direct_trace = (value))
+#else
+#define S64_DIRECT_TRACE(value) ((void)0)
+#endif
 
 int s64_direct_publisher_key(const char* hex)
 {
@@ -303,10 +309,13 @@ static S64StandaloneResult request(S64HttpTransport* transport, const char* url,
     const char* value;
     uint8_t i;
 
+    S64_DIRECT_TRACE(1u);
     if (!transport || !transport->execute) return S64_STANDALONE_INVALID_ARGUMENT;
     result = parse_url(url, allow_http);
     if (result != S64_STANDALONE_OK) return result;
+    S64_DIRECT_TRACE(2u);
     if (!key_ready) return S64_STANDALONE_AUTH_FAILED;
+    S64_DIRECT_TRACE(3u);
     query = strchr(uri, '?');
     if (!query || (uint16_t)(query - uri) + sizeof("?action=challenge") > 256u)
         return S64_STANDALONE_INVALID_ARGUMENT;
@@ -320,6 +329,7 @@ static S64StandaloneResult request(S64HttpTransport* transport, const char* url,
     }
 
     s64_sha256_final(&body_hash.sha, digest);
+    S64_DIRECT_TRACE(4u);
 
     /* Persistent mode reuses the body-hash area for challenge/header scratch. */
     memcpy(challenge_uri, uri, (uint16_t)(query - uri));
@@ -328,12 +338,14 @@ static S64StandaloneResult request(S64HttpTransport* transport, const char* url,
     s64_net_init(&network, transport->execute);
     result = exchange("GET", challenge_uri, 0, 0, 0, 0, 0, collect_text, 0);
     if (result != S64_STANDALONE_OK) goto cleanup;
+    S64_DIRECT_TRACE(5u);
 
     value = strstr(reply_text, "\"challenge\":\"");
     if (!value) {
         result = S64_STANDALONE_PROTOCOL_ERROR;
         goto cleanup;
     }
+    S64_DIRECT_TRACE(6u);
     value += 13;
     for (i = 0; i < 32u; ++i) {
         if (!((value[i] >= '0' && value[i] <= '9')
@@ -348,14 +360,17 @@ static S64StandaloneResult request(S64HttpTransport* transport, const char* url,
         goto cleanup;
     }
     challenge[32] = 0;
+    S64_DIRECT_TRACE(7u);
 
     i = (uint8_t)s64_direct_sign(direct_key, challenge, method, uri, digest, signature);
     if (!i) {
         result = S64_STANDALONE_PROTOCOL_ERROR;
         goto cleanup;
     }
+    S64_DIRECT_TRACE(8u);
 
     result = exchange(method, uri, challenge, signature, body_hash.length, writer, source, sink, context);
+    S64_DIRECT_TRACE(9u);
 
 cleanup:
     memset(signature, 0, sizeof(signature));
