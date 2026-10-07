@@ -2,20 +2,21 @@
 
 int s64_document_slug_valid(const char* slug)
 {
-    uint16_t i = 0u;
-    unsigned char c;
+    uint16_t i;
+    uint8_t expect_alnum = 1u;
 
     if (slug == 0 || slug[0] == '\0') return 0;
-    while (slug[i] != '\0') {
-        c = (unsigned char)slug[i];
-        if (i >= S64_DOCUMENT_SLUG_CAPACITY - 1u
-            || !((c >= 'a' && c <= 'z')
-                || (c >= 'A' && c <= 'Z')
-                || (c >= '0' && c <= '9')
-                || c == '-' || c == '_')) {
+
+    for (i = 0u; i < S64_DOCUMENT_SLUG_CAPACITY; ++i) {
+        if (slug[i] == '\0') return !expect_alnum;
+        if ((slug[i] >= 'a' && slug[i] <= 'z')
+            || (slug[i] >= '0' && slug[i] <= '9')) {
+            expect_alnum = 0u;
+        } else if (slug[i] == '-' && !expect_alnum) {
+            expect_alnum = 1u;
+        } else {
             return 0;
         }
-        ++i;
     }
-    return 1;
+    return 0;
 }
