@@ -171,6 +171,23 @@ Use `.github/workflows/persistent-runtime-spike.yml` for software-only spike
 validation while the self-hosted runner is unavailable. Real C64U hardware
 remains the final authority.
 
+First real Publisher migration slice also passes on GitHub-hosted VICE:
+- persistent Editor + Publisher resident headroom is **1,710 bytes** below
+  `$8C00`, still above the 1 KiB gate;
+- real Publisher slices measure PCONTENT 882 / 15,360, PNETWORK 4,337 / 15,360
+  and PRUNTIME 1,408 / 15,360 bytes;
+- the executable namespace gate switches Editor -> Publisher content -> real
+  SHA/HMAC auth -> real settings record code -> Settings -> Publisher -> Editor
+  while retaining the same resident owner/document state;
+- real direct-key parsing/signing and REU settings store/load round-trip pass;
+- the earlier apparent PNETWORK/PRUNTIME stalls were the 35-second cycle-accurate
+  VICE budget being consumed by cc65 SHA/HMAC, not a namespace fault. The gate
+  now uses VICE warp mode with a bounded 90-second ceiling.
+
+This is sufficient to continue the Publisher migration incrementally. Keep the
+whole-PRG production route intact until destination/network/UI responsibilities
+and then Settings are migrated and accepted.
+
 Decision rule:
 - If the diagnostic passes cleanly and the projected real asset layout has
   sensible headroom, pivot production incrementally to the persistent-runtime
