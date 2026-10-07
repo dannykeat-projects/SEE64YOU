@@ -16,7 +16,7 @@ CLIENT = ROOT / "client"
 OUT = CLIENT / "build" / "persistent-publisher-vice"
 
 GROUPS = {
-    "PCONTENT": ("src/publisher/state.c",),
+    "PCONTENT": ("src/publisher/destination.c", "src/publisher/state.c"),
     "PNETWORK": ("src/crypto/sha256.c", "src/publisher/direct_auth.c"),
     "PRUNTIME": ("src/publisher/settings_validate.c", "src/publisher/settings_exchange.c"),
 }
@@ -89,6 +89,7 @@ static uint16_t overlay_reads;
 static uint8_t key[32];
 static uint8_t body_digest[32];
 static char signature[65];
+static char url[S64_DESTINATION_URL_CAPACITY];
 static S64Buffer body;
 static S64Document document;
 static S64PersistentPublisher publisher;
@@ -189,9 +190,33 @@ int main(void)
         require(s64_code_overlay_namespace_activate(
             &publisher_namespace, &control, overlay_reader), 13u);
 
+        require(s64_destination_configure(
+            &publisher.destination,
+            S64_DESTINATION_STANDALONE,
+            "http://example.test/base/",
+            1u
+        ) == S64_DESTINATION_OK, 42u);
+        require(!strcmp(publisher.destination.base_url,
+            "http://example.test/base"), 43u);
+        require(s64_destination_open_url(
+            &publisher.destination,
+            S64_DOCUMENT_POST,
+            "entry-1",
+            url,
+            sizeof(url)
+        ) == S64_DESTINATION_OK, 44u);
+        require(!strcmp(url,
+            "http://example.test/base/api.php?action=get&type=post&slug=entry-1&format=s64"),
+            45u);
+
         s64_publish_state_init(&publisher.publish_state);
         s64_publish_state_set_connected(&publisher.publish_state, 1u);
-        publisher.destination.type = S64_DESTINATION_WORDPRESS;
+        require(s64_destination_configure(
+            &publisher.destination,
+            S64_DESTINATION_WORDPRESS,
+            "http://example.test/wp",
+            1u
+        ) == S64_DESTINATION_OK, 46u);
         require(s64_publish_state_bind_remote(
             &publisher.publish_state, &publisher.destination,
             S64_DOCUMENT_POST, "12345"), 14u);
