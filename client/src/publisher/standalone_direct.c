@@ -5,6 +5,16 @@
 #include "charset.h"
 #include "platform/network.h"
 
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+#include "publisher/persistent_services.h"
+#define s64_document_slug_valid s64_persistent_document_slug_valid
+#define s64_document_type_name s64_persistent_document_type_name
+#define s64_document_write_wire s64_persistent_document_write_wire
+#define s64_document_wire_reader_init s64_persistent_document_wire_reader_init
+#define s64_document_wire_reader_write s64_persistent_document_wire_reader_write
+#define s64_document_wire_reader_finish s64_persistent_document_wire_reader_finish
+#endif
+
 #include <stdio.h>
 #include <string.h>
 
