@@ -1,5 +1,6 @@
-#include "document.h"
 #include "publisher/persistent_services.h"
+
+#include <string.h>
 
 int s64_persistent_document_slug_valid(const char* slug)
 {
@@ -20,4 +21,59 @@ int s64_persistent_document_slug_valid(const char* slug)
         }
     }
     return 0;
+}
+
+const char* s64_persistent_document_type_name(S64DocumentType type)
+{
+    if (type == S64_DOCUMENT_PAGE) return "page";
+    if (type == S64_DOCUMENT_POST) return "post";
+    return 0;
+}
+
+/*
+ * Document streaming is the next shared-code migration slice. Keep these
+ * deterministic stubs so direct connection/auth can be exercised now without
+ * silently claiming save/open/delete document support.
+ */
+S64DocumentResult s64_persistent_document_write_wire(
+    const S64Document* document,
+    S64DocumentSink sink,
+    void* context
+)
+{
+    (void)document;
+    (void)sink;
+    (void)context;
+    return S64_DOCUMENT_INVALID_ARGUMENT;
+}
+
+void s64_persistent_document_wire_reader_init(
+    S64DocumentWireReader* reader,
+    S64Document* document
+)
+{
+    if (reader == 0) return;
+    memset(reader, 0, sizeof(*reader));
+    reader->document = document;
+    reader->result = S64_DOCUMENT_INVALID_ARGUMENT;
+}
+
+uint8_t s64_persistent_document_wire_reader_write(
+    const uint8_t* data,
+    uint16_t length,
+    void* context
+)
+{
+    (void)data;
+    (void)length;
+    (void)context;
+    return 0u;
+}
+
+S64DocumentResult s64_persistent_document_wire_reader_finish(
+    S64DocumentWireReader* reader
+)
+{
+    (void)reader;
+    return S64_DOCUMENT_INVALID_ARGUMENT;
 }
