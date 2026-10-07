@@ -30,6 +30,7 @@ PUBLISHER_GROUPS: dict[str, tuple[str, ...]] = {
         "src/platform/network.c",
         "src/crypto/sha256.c",
         "src/publisher/direct_auth.c",
+        "src/publisher/standalone_direct.c",
     ),
     "PRUNTIME": (
         "src/publisher/settings_validate.c",
