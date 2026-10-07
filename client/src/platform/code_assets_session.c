@@ -2,8 +2,10 @@
 #include "platform/reu.h"
 #include <string.h>
 
+#ifndef S64_PERSISTENT_RUNTIME_FIT
 uint8_t s64_code_assets_session_wire[S64_CODE_ASSET_SESSION_SIZE];
 uint8_t s64_code_assets_session_journal_wire[S64_SESSION_JOURNAL_WIRE_SIZE];
+#endif
 uint16_t s64_code_assets_session_checksum(const uint8_t* bytes)
 {
     uint16_t value = 0x64a5u;
