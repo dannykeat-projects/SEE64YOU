@@ -27,6 +27,7 @@ PUBLISHER_GROUPS: dict[str, tuple[str, ...]] = {
         "src/publisher/state.c",
     ),
     "PNETWORK": (
+        "src/platform/network.c",
         "src/crypto/sha256.c",
         "src/publisher/direct_auth.c",
     ),
