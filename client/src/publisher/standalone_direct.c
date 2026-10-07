@@ -85,6 +85,50 @@ static int equal_ci(const char* left, const char* right, uint8_t count)
     return 1;
 }
 
+static uint8_t append_text_bounded(
+    char* output, uint16_t capacity, uint16_t* length, const char* text)
+{
+    uint16_t i = 0u;
+    if (!output || !length || !text || !capacity) return 0u;
+    while (text[i] != 0) {
+        if (*length + 1u >= capacity) return 0u;
+        output[(*length)++] = text[i++];
+    }
+    output[*length] = 0;
+    return 1u;
+}
+
+static uint8_t append_u16_decimal(
+    char* output, uint16_t capacity, uint16_t* length, uint16_t value)
+{
+    char digits[5];
+    uint8_t count = 0u;
+    do {
+        digits[count++] = (char)('0' + (value % 10u));
+        value /= 10u;
+    } while (value != 0u);
+    while (count != 0u) {
+        char digit[2];
+        digit[0] = digits[--count];
+        digit[1] = 0;
+        if (!append_text_bounded(output, capacity, length, digit)) return 0u;
+    }
+    return 1u;
+}
+
+static uint8_t build_content_header(uint16_t body_length, uint8_t document_body)
+{
+    uint16_t length = 0u;
+    line[0] = 0;
+    return append_text_bounded(line, LINE_CAPACITY, &length, "Content-Type: ")
+        && append_text_bounded(
+            line, LINE_CAPACITY, &length,
+            document_body ? "application/x-see64you" : "application/json")
+        && append_text_bounded(line, LINE_CAPACITY, &length, "\r\nContent-Length: ")
+        && append_u16_decimal(line, LINE_CAPACITY, &length, body_length)
+        && append_text_bounded(line, LINE_CAPACITY, &length, "\r\n");
+}
+
 static S64StandaloneResult parse_url(const char* url, uint8_t allow_http)
 {
     const char* start;
@@ -214,10 +258,8 @@ static S64StandaloneResult exchange(const char* method, const char* path,
         || !send_text("\r\nX-See64You-Signature: ") || !send_text(signature)
         || !send_text("\r\n"))) goto cleanup;
     if (writer) {
-        sprintf(line, "Content-Type: %s\r\nContent-Length: %u\r\n",
-            writer == write_document ? "application/x-see64you" : "application/json",
-            (unsigned int)body_length);
-        if (!send_text(line)) goto cleanup;
+        if (!build_content_header(body_length, writer == write_document)
+            || !send_text(line)) goto cleanup;
     }
     if (!send_text("\r\n") || (writer && !writer(send_body, 0, source))) goto cleanup;
     while (idle < 512u) {
@@ -270,8 +312,6 @@ static S64StandaloneResult request(S64HttpTransport* transport, const char* url,
         return S64_STANDALONE_INVALID_ARGUMENT;
 
     if (test) strcpy(query, "?action=settings");
-    memcpy(challenge_uri, uri, (uint16_t)(query - uri));
-    strcpy(challenge_uri + (query - uri), "?action=challenge");
     body_hash.length = 0;
     s64_sha256_init(&body_hash.sha);
     if (writer && !writer(hash_body, &body_hash, source)) {
@@ -280,6 +320,10 @@ static S64StandaloneResult request(S64HttpTransport* transport, const char* url,
     }
 
     s64_sha256_final(&body_hash.sha, digest);
+
+    /* Persistent mode reuses the body-hash area for challenge/header scratch. */
+    memcpy(challenge_uri, uri, (uint16_t)(query - uri));
+    strcpy(challenge_uri + (query - uri), "?action=challenge");
 
     s64_net_init(&network, transport->execute);
     result = exchange("GET", challenge_uri, 0, 0, 0, 0, 0, collect_text, 0);
@@ -384,14 +428,23 @@ static int write_delete(S64DocumentSink sink, void* context, const void* source)
 {
     const DeleteBody* body = (const DeleteBody*)source;
     char json[112];
+    uint16_t length = 0u;
     uint16_t i;
     uint8_t ascii;
-    sprintf(json, "{\"type\":\"%s\",\"slug\":\"%s\"}", body->type, body->slug);
-    for (i = 0; json[i]; ++i) {
+
+    json[0] = 0;
+    if (!append_text_bounded(json, sizeof(json), &length, "{\"type\":\"")
+        || !append_text_bounded(json, sizeof(json), &length, body->type)
+        || !append_text_bounded(json, sizeof(json), &length, "\",\"slug\":\"")
+        || !append_text_bounded(json, sizeof(json), &length, body->slug)
+        || !append_text_bounded(json, sizeof(json), &length, "\"}")) {
+        return 0;
+    }
+    for (i = 0u; i < length; ++i) {
         if (!s64_charset_native_to_ascii((uint8_t)json[i], &ascii)) return 0;
         json[i] = (char)ascii;
     }
-    return sink((const uint8_t*)json, i, context);
+    return sink((const uint8_t*)json, length, context);
 }
 
 S64StandaloneResult s64_standalone_delete_document(S64HttpTransport* transport,
