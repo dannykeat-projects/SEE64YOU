@@ -15,16 +15,34 @@
 #define s64_document_wire_reader_finish s64_persistent_document_wire_reader_finish
 #endif
 
-#include <stdio.h>
 #include <string.h>
 
-/* One synchronous request at a time. Do not retain document payloads in RAM. */
-static uint8_t direct_key[32], key_ready;
-static char host[96], uri[256];
-#define line ((char*)&s64_publisher_workspace.bytes[0])
+#define HOST_CAPACITY 96u
+#define URI_CAPACITY 256u
 #define LINE_CAPACITY 192u
+#define REPLY_TEXT_CAPACITY 256u
+
+/* One synchronous request at a time. Do not retain document payloads in RAM. */
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+#define uri ((char*)&s64_publisher_workspace.bytes[0])
+#define line ((char*)&s64_publisher_workspace.bytes[256])
+/* Challenge path is consumed before this area becomes response-header scratch. */
+#define challenge_uri ((char*)&s64_publisher_workspace.bytes[256])
+#define host ((char*)&s64_publisher_workspace.bytes[512])
+#define reply_text ((char*)&s64_publisher_workspace.bytes[608])
+#define direct_key ((uint8_t*)&s64_publisher_workspace.bytes[864])
+typedef char S64PersistentDirectWorkspaceFits[
+    S64_PUBLISH_WORKSPACE_CAPACITY - 896u
+];
+#else
+static uint8_t direct_key[S64_HMAC_SHA256_KEY_SIZE];
+static char host[HOST_CAPACITY], uri[URI_CAPACITY];
+#define line ((char*)&s64_publisher_workspace.bytes[0])
 /* Challenge path is sent before the response header reuses this area. */
 #define challenge_uri ((char*)&s64_publisher_workspace.bytes[0])
+#define reply_text ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_AUX_OFFSET])
+#endif
+static uint8_t key_ready;
 static S64NetTransport network;
 static uint8_t socket_handle;
 static uint16_t status_code;
@@ -44,13 +62,11 @@ typedef struct {
     uint8_t headers_done, have_status, have_length, failed;
 } Reply;
 
-#define reply_text ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_AUX_OFFSET])
-#define REPLY_TEXT_CAPACITY 256u
 static uint16_t text_length;
 
 int s64_direct_publisher_key(const char* hex)
 {
-    memset(direct_key, 0, sizeof(direct_key));
+    memset(direct_key, 0, S64_HMAC_SHA256_KEY_SIZE);
     key_ready = (uint8_t)s64_direct_key_parse(hex, direct_key);
     return key_ready;
 }
@@ -82,7 +98,7 @@ static S64StandaloneResult parse_url(const char* url, uint8_t allow_http)
     path = strchr(start, '/');
     if (!path || path == start) return S64_STANDALONE_INVALID_ARGUMENT;
     length = (uint16_t)(path - start);
-    if (length >= sizeof(host) || strlen(path) >= sizeof(uri))
+    if (length >= HOST_CAPACITY || strlen(path) >= URI_CAPACITY)
         return S64_STANDALONE_INVALID_ARGUMENT;
     memcpy(host, start, length); host[length] = 0;
     /* Reject credentials, ports and request-line/header injection. Port 80 only. */
