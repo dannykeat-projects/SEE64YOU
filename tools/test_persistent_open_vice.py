@@ -253,6 +253,7 @@ int main(void)
     uint8_t ascii;
     uint8_t i;
     S64StandaloneResult result;
+    S64DocumentResult document_result;
 
     *(volatile uint8_t*)0xc061 = 0u;
     require(s64_reu_probe() && s64_reu_probe_banks() == 256u, 1u);
@@ -282,8 +283,10 @@ int main(void)
         && open_stage.body_length == 6u
         && open_stage.header_length != 0u, 7u);
 
-    require(s64_persistent_open_stage_commit(
-        &open_stage, &document) == S64_DOCUMENT_OK, 8u);
+    document_result = s64_persistent_open_stage_commit(
+        &open_stage, &document);
+    require(document_result == S64_DOCUMENT_OK,
+        (uint8_t)(80u + document_result));
     require(document.type == S64_DOCUMENT_POST
         && document.status == S64_DOCUMENT_PUBLISHED
         && document.order == -7
