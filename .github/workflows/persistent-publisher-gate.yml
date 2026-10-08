@@ -29,8 +29,10 @@ jobs:
       - name: Compile persistent Publisher slice
         run: python3 tools/build_persistent_publisher_slice_fit.py
 
-      - name: Compile persistent Publisher VICE gate
-        run: python3 tools/test_persistent_publisher_vice.py --build-only
+      - name: Compile persistent Publisher VICE gates
+        run: |
+          python3 tools/test_persistent_document_write_vice.py --build-only
+          python3 tools/test_persistent_publisher_vice.py --build-only
 
       - name: Install VICE
         env:
@@ -46,6 +48,9 @@ jobs:
           curl --fail --location --silent --show-error "$base/kernal_generic.rom" -o /tmp/see64you-roms/kernal.rom
           curl --fail --location --silent --show-error "$base/basic_generic.rom" -o /tmp/see64you-roms/basic.rom
           curl --fail --location --silent --show-error "$base/chargen_openroms.rom" -o /tmp/see64you-roms/chargen.rom
+
+      - name: Execute real persistent document writer
+        run: python3 tools/test_persistent_document_write_vice.py
 
       - name: Execute real persistent Publisher namespace
         run: python3 tools/test_persistent_publisher_vice.py
