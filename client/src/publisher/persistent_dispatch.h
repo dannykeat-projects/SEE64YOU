@@ -28,4 +28,11 @@ S64PersistentActionResult s64_persistent_publisher_save_direct(
     uint16_t url_capacity
 );
 
+S64PersistentActionResult s64_persistent_publisher_delete_direct(
+    S64PersistentPublisher* publisher,
+    S64HttpTransport* http,
+    char* url,
+    uint16_t url_capacity
+);
+
 #endif
