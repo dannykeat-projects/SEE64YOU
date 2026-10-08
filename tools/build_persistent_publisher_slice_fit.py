@@ -33,6 +33,7 @@ PUBLISHER_GROUPS: dict[str, tuple[str, ...]] = {
         "src/publisher/direct_auth.c",
         "src/publisher/standalone_direct.c",
         "diagnostics/persistent_document_write.c",
+        "diagnostics/persistent_document_read.c",
     ),
     "PRUNTIME": (
         "src/publisher/settings_validate.c",
