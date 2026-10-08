@@ -122,6 +122,21 @@ try {
         $markupV1RoundTrip['body'] === $markupV1Source,
         'Markup v1 source round trips exactly through wire format'
     );
+    $listSummaryWire = S64Wire::serializeListSummary([
+        ['slug' => 'first-page', 'title' => 'First Page'],
+        ['slug' => 'second-page', 'title' => 'Second Page'],
+    ], 1);
+    check(
+        $listSummaryWire === "SEE64YOU-LIST/1\nCount: 2\nSlug: second-page\nTitle: Second Page\n\n",
+        'compact list summary wire is exact'
+    );
+    check(
+        S64Wire::serializeListSummary([
+            ['slug' => 'first-page', 'title' => 'First Page'],
+        ], 1) === "SEE64YOU-LIST/1\nCount: 1\n\n",
+        'compact list summary wire marks end without document payload'
+    );
+
     $markupV1Rendered = s64_markup($markupV1RoundTrip['body']);
     check(str_contains($markupV1Rendered, '<h1>Heading one</h1>'), 'Markup v1 h1 renders');
     check(str_contains($markupV1Rendered, '<h2>Heading two</h2>'), 'Markup v1 h2 renders');
