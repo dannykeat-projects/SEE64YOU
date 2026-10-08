@@ -608,6 +608,8 @@ if command -v cl65 >/dev/null 2>&1 \
     python3 tools/test_persistent_runtime_vice.py --build-only
     echo "== Persistent document writer VICE diagnostic build =="
     python3 tools/test_persistent_document_write_vice.py --build-only
+    echo "== Persistent staged open VICE diagnostic build =="
+    python3 tools/test_persistent_open_vice.py --build-only
     echo "== Real persistent Editor root fit =="
     python3 tools/build_persistent_editor_fit.py
 
@@ -625,6 +627,8 @@ if command -v cl65 >/dev/null 2>&1 \
         python3 tools/test_persistent_runtime_vice.py
         echo "== VICE persistent document writer validation =="
         python3 tools/test_persistent_document_write_vice.py
+        echo "== VICE staged persistent open validation =="
+        python3 tools/test_persistent_open_vice.py
     else
         echo "SKIP REU VICE validation (x64sc/xvfb-run/python3/curl required)"
     fi
