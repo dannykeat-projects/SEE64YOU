@@ -117,6 +117,7 @@ const char* s64_overlay_pcontent_s64_standalone_result_message(
 """
 
 MAIN = r"""
+#include <conio.h>
 #include <stdint.h>
 #include <string.h>
 
