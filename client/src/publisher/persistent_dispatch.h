@@ -18,6 +18,7 @@ typedef enum {
     S64_PERSISTENT_ACTION_NOT_READY,
     S64_PERSISTENT_ACTION_URL_ERROR,
     S64_PERSISTENT_ACTION_NETWORK_ERROR,
+    S64_PERSISTENT_ACTION_PROTOCOL_ERROR,
     S64_PERSISTENT_ACTION_BIND_ERROR
 } S64PersistentActionResult;
 
@@ -31,6 +32,26 @@ S64PersistentActionResult s64_persistent_publisher_save_direct(
 S64PersistentActionResult s64_persistent_publisher_delete_direct(
     S64PersistentPublisher* publisher,
     S64HttpTransport* http,
+    char* url,
+    uint16_t url_capacity
+);
+
+S64PersistentActionResult s64_persistent_publisher_list_direct(
+    S64PersistentPublisher* publisher,
+    S64HttpTransport* http,
+    S64DocumentType type,
+    uint16_t index,
+    S64DocumentSummary* summary,
+    uint16_t* total_count,
+    char* url,
+    uint16_t url_capacity
+);
+
+S64PersistentActionResult s64_persistent_publisher_open_direct(
+    S64PersistentPublisher* publisher,
+    S64HttpTransport* http,
+    S64DocumentType type,
+    const char* slug,
     char* url,
     uint16_t url_capacity
 );
