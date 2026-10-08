@@ -421,9 +421,10 @@ int main(void)
         && publisher.document_changed, 13u);
     s64_persistent_publisher_reset_change_flags(&publisher);
     publisher.publish_state.remote_bound = 1u;
-    require(s64_persistent_publisher_key(&publisher, 'T') == S64_PUBLISH_UI_NONE
+    require(s64_persistent_publisher_key(&publisher, 'T')
+            == S64_PUBLISH_UI_TYPE_CHANGED
         && document.type == S64_DOCUMENT_PAGE
-        && !publisher.publish_state.remote_bound
+        && publisher.publish_state.remote_bound
         && publisher.document_changed, 14u);
     s64_persistent_publisher_reset_change_flags(&publisher);
     require(s64_persistent_publisher_key(&publisher, '3') == S64_PUBLISH_UI_SAVE
