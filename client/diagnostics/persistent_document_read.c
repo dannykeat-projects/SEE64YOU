@@ -78,7 +78,8 @@ static uint8_t parse_header(S64DocumentWireReader* reader)
     value = colon + 2;
 
     if (reader->line[0] == 'T' && name_length == 4u
-        && reader->line[1] == 'y') {
+        && reader->line[1] == 'y' && reader->line[2] == 'p'
+        && reader->line[3] == 'e') {
         bit = S64_WIRE_SEEN_TYPE;
         if (value[0] != 'p' || value[4] != 0) return 0u;
         if (value[1] == 'a' && value[2] == 'g' && value[3] == 'e') {
@@ -87,7 +88,8 @@ static uint8_t parse_header(S64DocumentWireReader* reader)
             reader->document->type = S64_DOCUMENT_POST;
         } else return 0u;
     } else if (reader->line[0] == 'S' && name_length == 4u
-        && reader->line[1] == 'l') {
+        && reader->line[1] == 'l' && reader->line[2] == 'u'
+        && reader->line[3] == 'g') {
         bit = S64_WIRE_SEEN_SLUG;
         if (!s64_persistent_document_slug_valid(value)
             || !copy_text(reader->document->slug,
@@ -95,14 +97,17 @@ static uint8_t parse_header(S64DocumentWireReader* reader)
             return 0u;
         }
     } else if (reader->line[0] == 'T' && name_length == 5u
-        && reader->line[1] == 'i') {
+        && reader->line[1] == 'i' && reader->line[2] == 't'
+        && reader->line[3] == 'l' && reader->line[4] == 'e') {
         bit = S64_WIRE_SEEN_TITLE;
         if (!*value || !copy_text(reader->document->title,
             S64_DOCUMENT_TITLE_CAPACITY, value)) {
             return 0u;
         }
     } else if (reader->line[0] == 'S' && name_length == 6u
-        && reader->line[1] == 't') {
+        && reader->line[1] == 't' && reader->line[2] == 'a'
+        && reader->line[3] == 't' && reader->line[4] == 'u'
+        && reader->line[5] == 's') {
         bit = S64_WIRE_SEEN_STATUS;
         if (value[0] == 'd' && value[1] == 'r' && value[2] == 'a'
             && value[3] == 'f' && value[4] == 't' && value[5] == 0) {
@@ -113,13 +118,17 @@ static uint8_t parse_header(S64DocumentWireReader* reader)
             && value[9] == 0) {
             reader->document->status = S64_DOCUMENT_PUBLISHED;
         } else return 0u;
-    } else if (reader->line[0] == 'D' && name_length == 4u) {
+    } else if (reader->line[0] == 'D' && name_length == 4u
+        && reader->line[1] == 'a' && reader->line[2] == 't'
+        && reader->line[3] == 'e') {
         bit = S64_WIRE_SEEN_DATE;
         if (!copy_text(reader->document->date,
             S64_DOCUMENT_DATE_CAPACITY, value)) {
             return 0u;
         }
-    } else if (reader->line[0] == 'O' && name_length == 5u) {
+    } else if (reader->line[0] == 'O' && name_length == 5u
+        && reader->line[1] == 'r' && reader->line[2] == 'd'
+        && reader->line[3] == 'e' && reader->line[4] == 'r') {
         bit = S64_WIRE_SEEN_ORDER;
         if (!parse_order(value, &reader->document->order)) return 0u;
     } else {
