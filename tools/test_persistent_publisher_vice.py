@@ -29,7 +29,6 @@ GROUPS = {
         "src/publisher/standalone_direct.c",
     ),
     "PRUNTIME": ("src/publisher/settings_validate.c", "src/publisher/settings_exchange.c"),
-    "PUI": ("src/publisher/persistent_ui.c",),
 }
 GROUP_IDS = {"EDITOR": 1, "PCONTENT": 1, "PNETWORK": 2, "PRUNTIME": 3, "PUI": 4, "SETTINGS": 1}
 
@@ -63,6 +62,36 @@ PRUNTIME_PING = r"""
 #pragma rodata-name ("PRUNTIME_RODATA")
 uint16_t __fastcall__ s64_overlay_pruntime_s64_probe_pruntime_ping(uint16_t value)
 { return (uint16_t)(value ^ 0xa55au); }
+"""
+
+PUI_COMMAND = r"""
+#include <stdint.h>
+#include "publisher/persistent_ui.h"
+#pragma code-name ("PUI_CODE")
+#pragma rodata-name ("PUI_RODATA")
+S64PersistentPublisherAction s64_overlay_pui_s64_persistent_publisher_key(
+    S64PersistentPublisher* publisher, uint8_t key)
+{
+    if (!publisher || !publisher->document) return S64_PUBLISH_UI_NONE;
+    if (key == '3') return S64_PUBLISH_UI_SAVE;
+    if (key == '6') return S64_PUBLISH_UI_LIST_PAGE;
+    if (key == 3u) return S64_PUBLISH_UI_RETURN_EDITOR;
+    if (key == '4') {
+        publisher->document->status =
+            publisher->document->status == S64_DOCUMENT_PUBLISHED
+                ? S64_DOCUMENT_DRAFT : S64_DOCUMENT_PUBLISHED;
+        publisher->document_changed = 1u;
+        return S64_PUBLISH_UI_NONE;
+    }
+    if (key == 't' || key == 'T') {
+        publisher->document->type =
+            publisher->document->type == S64_DOCUMENT_PAGE
+                ? S64_DOCUMENT_POST : S64_DOCUMENT_PAGE;
+        publisher->document_changed = 1u;
+        return S64_PUBLISH_UI_TYPE_CHANGED;
+    }
+    return S64_PUBLISH_UI_NONE;
+}
 """
 
 PNETWORK_WRITER = r"""
@@ -665,7 +694,7 @@ def build() -> Path:
         "PCONTENT": [],
         "PNETWORK": [],
         "PRUNTIME": [],
-        "PUI": [],
+        "PUI": ["s64_persistent_publisher_key"],
         "SETTINGS": ["s64_probe_settings"],
     }
     sources: list[Path] = []
@@ -725,6 +754,10 @@ def build() -> Path:
     pruntime_ping.write_text(PRUNTIME_PING)
     sources.append(pruntime_ping)
     grouped_names["PRUNTIME"].append("s64_probe_pruntime_ping")
+
+    pui_command = generated / "pui_command.c"
+    pui_command.write_text(PUI_COMMAND)
+    sources.append(pui_command)
 
     settings = generated / "settings.c"
     settings.write_text(SETTINGS)
