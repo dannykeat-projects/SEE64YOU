@@ -1,6 +1,10 @@
 #include "publisher/settings_store.h"
 #ifdef S64_PERSISTENT_RUNTIME_FIT
 #include "publisher/workspace.h"
+typedef char S64SettingsWorkspaceFits[
+    (S64_SETTINGS_WORK_VERIFY_OFFSET + sizeof(S64SettingsExchange)
+        <= S64_PUBLISH_WORKSPACE_CAPACITY) ? 1 : -1
+];
 #endif
 #include "charset.h"
 #include "platform/package_paths.h"
