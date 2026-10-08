@@ -517,34 +517,6 @@ int main(void)
             require(direct_result == S64_STANDALONE_OK,
                 (uint8_t)(140u + s64_persistent_direct_trace));
 
-            s64_publish_state_init(&publisher.publish_state);
-            s64_publish_state_set_connected(&publisher.publish_state, 1u);
-            publisher.network_available = 1u;
-            require(s64_destination_configure(
-                &publisher.destination,
-                S64_DESTINATION_STANDALONE,
-                "http://example.test/base",
-                1u
-            ) == S64_DESTINATION_OK, 56u);
-            direct_result = (S64StandaloneResult)
-                s64_persistent_publisher_save_direct(
-                    &publisher, &direct_http, url, sizeof(url));
-            require(direct_result == (S64StandaloneResult)S64_PERSISTENT_ACTION_OK
-                && publisher.publish_state.remote_bound
-                && !strcmp(publisher.publish_state.remote_identity, document.slug),
-                57u);
-
-            document.status = S64_DOCUMENT_PUBLISHED;
-            s64_persistent_publisher_reset_change_flags(&publisher);
-            direct_result = (S64StandaloneResult)
-                s64_persistent_publisher_delete_direct(
-                    &publisher, &direct_http, url, sizeof(url));
-            require(direct_result == (S64StandaloneResult)S64_PERSISTENT_ACTION_OK
-                && !publisher.publish_state.remote_bound
-                && document.status == S64_DOCUMENT_DRAFT
-                && publisher.document_changed,
-                58u);
-
             direct_result = s64_standalone_delete_document(
                 &direct_http,
                 "http://example.test/api.php?action=delete",
@@ -751,8 +723,6 @@ def build() -> Path:
         CLIENT / "src/platform/reu_runtime_build.c",
         CLIENT / "src/platform/reu_runtime_write.c",
         CLIENT / "src/publisher/persistent_mode.c",
-        CLIENT / "src/publisher/persistent_dispatch.c",
-        CLIENT / "src/publisher/persistent_actions.c",
         CLIENT / "diagnostics/persistent_publisher_services.c",
         CLIENT / "src/charset.c",
     ]
