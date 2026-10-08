@@ -82,11 +82,6 @@ int main(void)
     document.status = S64_DOCUMENT_DRAFT;
     s64_persistent_publisher_init(&publisher, &document);
     require(s64_persistent_publisher_valid(&publisher), 5u);
-    publisher.network_available = 1u;
-    strcpy(document.slug, "entry-1");
-    strcpy(document.title, "Persistent UI");
-    s64_persistent_publisher_render(&publisher, "UI READY");
-
     require(s64_persistent_publisher_key(&publisher, '4')
             == S64_PUBLISH_UI_NONE
         && document.status == S64_DOCUMENT_PUBLISHED
@@ -171,7 +166,6 @@ def build() -> Path:
         "-DS64_NATIVE_PETSCII=1",
         "-DS64_REU_BUFFER=1",
         "-DS64_PERSISTENT_RUNTIME_FIT=1",
-        "-DS64_PERSISTENT_UI_TRACE=1",
     ]
 
     source_path = "src/publisher/persistent_ui.c"
@@ -277,7 +271,7 @@ def main() -> int:
             deadline = time.monotonic() + 90
             state = b""
             while time.monotonic() < deadline:
-                state = monitor.read_memory(0xc060, 0xc064)
+                state = monitor.read_memory(0xc060, 0xc062)
                 if state[1] == 0xa5:
                     print(
                         "VICE persistent Publisher UI passed: real PUI overlay "
@@ -286,13 +280,11 @@ def main() -> int:
                     return 0
                 if state[1] == 0x5a:
                     raise fit.FitError(
-                        f"persistent UI VICE probe failed at step {state[2]} "
-                        f"(render_trace={state[4]})")
+                        f"persistent UI VICE probe failed at step {state[2]}")
                 monitor.resume()
                 time.sleep(0.03)
             raise fit.FitError(
-                f"persistent UI VICE probe timed out: {state.hex()} "
-                f"(render_trace={state[4] if len(state) > 4 else 0})")
+                f"persistent UI VICE probe timed out: {state.hex()}")
         finally:
             if monitor:
                 monitor.quit()
