@@ -4,6 +4,7 @@ declare(strict_types=1);
 final class S64Wire
 {
     public const MIME = 'application/x-see64you';
+    public const LIST_MIME = 'application/x-see64you-list';
 
     public static function parse(string $source): array
     {
@@ -76,6 +77,23 @@ final class S64Wire
         }
 
         return (int)$value;
+    }
+
+    public static function serializeListSummary(array $documents, int $offset): string
+    {
+        if ($offset < 0) {
+            throw new InvalidArgumentException('invalid_list_offset');
+        }
+
+        $line = static fn(mixed $value): string =>
+            str_replace(["\r", "\n"], ' ', (string)$value);
+
+        $source = "SEE64YOU-LIST/1\nCount: " . count($documents) . "\n";
+        if (isset($documents[$offset])) {
+            $source .= 'Slug: ' . $line($documents[$offset]['slug'] ?? '') . "\n"
+                . 'Title: ' . $line($documents[$offset]['title'] ?? '') . "\n";
+        }
+        return $source . "\n";
     }
 
     public static function serialize(array $document): string
