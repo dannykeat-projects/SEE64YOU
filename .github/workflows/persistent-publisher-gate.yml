@@ -32,6 +32,7 @@ jobs:
       - name: Compile persistent Publisher VICE gates
         run: |
           python3 tools/test_persistent_document_write_vice.py --build-only
+          python3 tools/test_persistent_open_vice.py --build-only
           python3 tools/test_persistent_publisher_vice.py --build-only
 
       - name: Install VICE
@@ -51,6 +52,9 @@ jobs:
 
       - name: Execute real persistent document writer
         run: python3 tools/test_persistent_document_write_vice.py
+
+      - name: Execute staged persistent direct open
+        run: python3 tools/test_persistent_open_vice.py
 
       - name: Execute real persistent Publisher namespace
         run: python3 tools/test_persistent_publisher_vice.py
