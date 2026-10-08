@@ -30,19 +30,20 @@
 #define challenge_uri ((char*)&s64_publisher_workspace.bytes[256])
 #define host ((char*)&s64_publisher_workspace.bytes[512])
 #define reply_text ((char*)&s64_publisher_workspace.bytes[608])
-#define direct_key ((uint8_t*)&s64_publisher_workspace.bytes[864])
 typedef char S64PersistentDirectWorkspaceFits[
-    S64_PUBLISH_WORKSPACE_CAPACITY - 896u
+    S64_PUBLISH_WORKSPACE_CAPACITY - 864u
 ];
 #else
-static uint8_t direct_key[S64_HMAC_SHA256_KEY_SIZE];
 static char host[HOST_CAPACITY], uri[URI_CAPACITY];
 #define line ((char*)&s64_publisher_workspace.bytes[0])
 /* Challenge path is sent before the response header reuses this area. */
 #define challenge_uri ((char*)&s64_publisher_workspace.bytes[0])
 #define reply_text ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_AUX_OFFSET])
 #endif
-static uint8_t key_ready;
+extern uint8_t s64_direct_key_bytes[S64_HMAC_SHA256_KEY_SIZE];
+extern uint8_t s64_direct_key_ready;
+#define direct_key s64_direct_key_bytes
+#define key_ready s64_direct_key_ready
 static S64NetTransport network;
 static uint8_t socket_handle;
 static uint16_t status_code;
@@ -69,13 +70,6 @@ uint8_t s64_persistent_direct_trace;
 #else
 #define S64_DIRECT_TRACE(value) ((void)0)
 #endif
-
-int s64_direct_publisher_key(const char* hex)
-{
-    memset(direct_key, 0, S64_HMAC_SHA256_KEY_SIZE);
-    key_ready = (uint8_t)s64_direct_key_parse(hex, direct_key);
-    return key_ready;
-}
 
 static int equal_ci(const char* left, const char* right, uint8_t count)
 {
