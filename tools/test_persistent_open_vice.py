@@ -17,6 +17,8 @@ OUT = CLIENT / "build" / "persistent-open-vice"
 
 GROUPS = {
     "PCONTENT": (
+        "src/publisher/destination.c",
+        "src/publisher/state.c",
         "src/publisher/direct_key.c",
         "src/publisher/direct_key_store.c",
         "diagnostics/persistent_document_read.c",
@@ -58,6 +60,8 @@ MAIN = r"""
 #include "platform/reu.h"
 #include "platform/reu_layout.h"
 #include "platform/reu_runtime.h"
+#include "publisher/persistent_dispatch.h"
+#include "publisher/persistent_mode.h"
 #include "publisher/standalone_direct.h"
 
 extern const uint8_t pcontent_image[], pcontent_image_end[];
@@ -69,6 +73,8 @@ static S64HttpTransport direct_http;
 static S64PersistentOpenStage open_stage;
 static S64Buffer body;
 static S64Document document;
+static S64PersistentPublisher publisher;
+static char action_url[S64_DESTINATION_URL_CAPACITY];
 static S64DocumentSummary summary;
 static uint16_t summary_total;
 static uint8_t fake_http_open_count;
@@ -273,21 +279,32 @@ int main(void)
 
     document.body = &body;
     s64_buffer_init(&body);
+    s64_persistent_publisher_init(&publisher, &document);
+    publisher.network_available = 1u;
+    require(s64_destination_configure(
+        &publisher.destination,
+        S64_DESTINATION_STANDALONE,
+        "http://example.test",
+        1u
+    ) == S64_DESTINATION_OK, 40u);
+    s64_publish_state_set_connected(&publisher.publish_state, 1u);
 
     require(s64_direct_publisher_key(key_hex), 5u);
     direct_http.execute = fake_http_uci;
 
     fake_http_mode = 0u;
     fake_http_open_count = 0u;
-    result = s64_persistent_standalone_list_stage(
+    require(s64_persistent_publisher_list_direct(
+        &publisher,
         &direct_http,
-        "http://example.test/api.php?action=list&type=post",
-        1u,
-        0u
-    );
-    require(result == S64_STANDALONE_OK && fake_http_open_count == 2u, 50u);
-    require(s64_persistent_list_summary_parse(
-        S64_DOCUMENT_POST, 0u, &summary, &summary_total), 51u);
+        S64_DOCUMENT_POST,
+        0u,
+        &summary,
+        &summary_total,
+        action_url,
+        sizeof(action_url)
+    ) == S64_PERSISTENT_ACTION_OK
+        && fake_http_open_count == 2u, 50u);
     require(summary_total == 2u
         && summary.type == S64_DOCUMENT_POST
         && !strcmp(summary.slug, "remote-1")
@@ -340,6 +357,28 @@ int main(void)
         require(s64_charset_native_to_ascii(opened_body[i], &ascii)
             && ascii == expected_body[i], 12u);
     }
+
+    s64_buffer_init(&body);
+    s64_persistent_publisher_reset_change_flags(&publisher);
+    s64_publish_state_clear_remote(&publisher.publish_state);
+    fake_http_mode = 1u;
+    fake_http_open_count = 0u;
+    require(s64_persistent_publisher_open_direct(
+        &publisher,
+        &direct_http,
+        S64_DOCUMENT_POST,
+        "remote-1",
+        action_url,
+        sizeof(action_url)
+    ) == S64_PERSISTENT_ACTION_OK
+        && fake_http_open_count == 2u
+        && publisher.publish_state.remote_bound
+        && !strcmp(publisher.publish_state.remote_identity, "remote-1")
+        && publisher.document_changed
+        && publisher.document_replaced
+        && document.type == S64_DOCUMENT_POST
+        && document.status == S64_DOCUMENT_PUBLISHED
+        && document.order == -7, 13u);
 
     *(volatile uint8_t*)0xc060 = 0x80u;
     *(volatile uint8_t*)0xc061 = 0xa5u;
@@ -451,6 +490,8 @@ def build() -> Path:
         CLIENT / "src/platform/reu_runtime_build.c",
         CLIENT / "src/platform/reu_runtime_write.c",
         CLIENT / "src/charset.c",
+        CLIENT / "src/publisher/persistent_mode.c",
+        CLIENT / "src/publisher/persistent_actions.c",
     ]
     sources.extend(resident)
 
