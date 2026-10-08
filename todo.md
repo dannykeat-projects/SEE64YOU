@@ -135,18 +135,18 @@ Current projection after source/package inspection:
   bootstrap, plus its module-session, initial transfer capsule and BASIC-return
   records: 4 allocations;
 - Editor code assets: 4 allocations;
-- current Publisher groups: 3 allocations;
-- Settings must be split: the current managed `S64CFG.PRG` artifact is 38,579
-  bytes and cannot be treated as one 15,360-byte asset; budget 2-3 Settings
-  assets until measured;
+- persistent Publisher groups: 4 allocations (PCONTENT, PNETWORK, PRUNTIME,
+  PUI);
+- persistent Settings has now been measured as exactly 2 assets: SUI **462 /
+  15,360** and SSTORE **4,267 / 15,360** bytes;
 - prefer one unified ACTIVE-bound code-asset/session record for all in-process
   modes, because there is now only one lifecycle owner.
 
-That projects to 14 allocations with two Settings assets or 15 with three,
-without increasing the 16-entry allocator. Separate per-mode asset-session
-records would consume the remaining margin unnecessarily and should not be the
-default persistent-runtime design. This is a projection, not yet a validated
-package layout.
+That now projects to **14 / 16 allocations**, leaving two allocator entries
+spare without increasing capacity. Separate per-mode asset-session records
+would consume that margin unnecessarily and should not be the default
+persistent-runtime design. The code-asset counts and overlay sizes are now
+measured; final production packaging is not yet migrated to this layout.
 7. **Validation:** add focused host tests, a repeatable VICE cycle/ABI test and
    the usual map/headroom checks. Real C64U testing is required only after the
    software spike passes these gates.
@@ -173,7 +173,7 @@ remains the final authority.
 
 The expanded real Publisher migration slice now passes on GitHub-hosted VICE:
 - persistent Editor alone retains **3,351 bytes** below `$8C00`;
-- persistent Editor + Publisher retains **1,433 bytes** below `$8C00`, still
+- persistent Editor + Publisher retains **1,340 bytes** below `$8C00`, still
   above the 1 KiB acceptance gate but close enough that resident BSS growth must
   remain deliberate;
 - real Publisher slices measure PCONTENT **10,392 / 15,360**, PNETWORK
@@ -188,6 +188,10 @@ The expanded real Publisher migration slice now passes on GitHub-hosted VICE:
   type-change intent and action routing. Type changes return an explicit
   `S64_PUBLISH_UI_TYPE_CHANGED` intent so resident orchestration can switch to
   PCONTENT and clear remote binding without a forbidden nested overlay call;
+- the resident Publisher dispatcher is deliberately tiny: it regains control
+  after PUI returns and performs the next overlay call sequentially. A larger
+  resident save/delete/list/open helper experiment overflowed the resident
+  boundary by 123 bytes and was removed rather than byte-squeezed;
 - screen rendering remains resident. A focused experiment moved the main
   conio renderer into PUI: `clrscr()` and `revers()` returned, but
   `gotoxy()` hung under the real overlay veneer (trace 31). That experiment
@@ -204,7 +208,7 @@ The expanded real Publisher migration slice now passes on GitHub-hosted VICE:
 - staged-open header buffering uses a bounded **64-byte resident scratch**. A
   $CB80 mode-workspace scratch was rejected after focused VICE showed that its
   contents did not survive this path reliably. The 64-byte resident cost keeps
-  current total headroom at 1,433 bytes and removes that unexplained dependency;
+  current total headroom at 1,340 bytes and removes that unexplained dependency;
 - the focused staged list/open VICE gate now passes an authenticated compact
   list-summary request, PCONTENT slug/title/count parsing, then authenticated
   document open, exact 101-byte raw-header REU staging, PCONTENT metadata commit,
@@ -229,6 +233,22 @@ The expanded real Publisher migration slice now passes on GitHub-hosted VICE:
 - Preview's cache/metadata stay in the existing $C800-$CBFF mode workspace in
   persistent mode; the staged-open receiver is the exception, using its
   measured 64-byte resident scratch after the workspace source proved unreliable;
+- persistent Settings now has a measured two-overlay split. SUI is **462 /
+  15,360** bytes and owns basic/advanced command interpretation plus simple
+  local key mutations. SSTORE is **4,267 / 15,360** bytes and owns the real
+  transactional settings store, exchange and validation logic;
+- focused VICE executes both real Settings assets: SUI passes basic/advanced
+  dispatch and local mutations; SSTORE passes transactional temp-write,
+  replacement, readback verification and exact reload;
+- persistent Settings working/profile/verification records use three aligned
+  slots in the disposable `$C800-$CBFF` mode workspace at offsets 0, 336 and
+  672. The old three-record resident model is not carried into the persistent
+  owner;
+- the remaining legacy `settings_main.c` compiles under persistent mode but
+  still measures CODE **4,825**, RODATA **2,174** and BSS **407** bytes. It
+  therefore cannot simply become resident inside the 1,340-byte Publisher
+  safety margin; its remaining UI/control responsibilities still need bounded
+  extraction or reuse of existing UI overlay services;
 - VICE uses warp mode with bounded execution so crypto-heavy failures remain
   quick and identifiable.
 
