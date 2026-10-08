@@ -173,6 +173,26 @@ publication transaction to cover IO_SAFE ordering, single generation advancement
 failures, cancellation and recovery-required mode/readback errors. Complete
 real-C64U acceptance of the multi-module cycle remains outstanding.
 
+### Persistent Publisher migration gates
+
+The software-only persistent Publisher slice is checked independently of the
+current production whole-PRG package:
+
+~~~sh
+python3 tools/build_persistent_publisher_slice_fit.py
+python3 tools/test_persistent_document_write_vice.py
+python3 tools/test_persistent_open_vice.py
+python3 tools/test_persistent_ui_vice.py
+python3 tools/test_persistent_publisher_vice.py
+~~~
+
+The fit requires all Publisher assets to remain within the 15 KiB execution
+slot and the resident owner to retain at least 1 KiB before `$8C00`. The focused
+PUI gate executes the real command overlay; the combined namespace gate uses a
+bounded fourth placeholder to avoid counting embedded preload images as product
+resident RAM. These are VICE/software gates only; real C64U remains required
+before retiring the production whole-PRG transition path.
+
 ## 3. Current C64U package build
 
 ~~~sh
