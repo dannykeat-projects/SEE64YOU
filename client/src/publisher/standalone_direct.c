@@ -26,7 +26,7 @@
 /* Challenge path is consumed before this area becomes response-header scratch. */
 #define challenge_uri ((char*)&s64_publisher_workspace.bytes[256])
 #define host ((char*)&s64_publisher_workspace.bytes[512])
-#define reply_text ((char*)&s64_publisher_workspace.bytes[608])
+#define reply_text ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_DIRECT_REPLY_OFFSET])
 typedef char S64PersistentDirectWorkspaceFits[
     S64_PUBLISH_WORKSPACE_CAPACITY - 864u
 ];
@@ -386,6 +386,30 @@ S64StandaloneResult s64_direct_publisher_test(S64HttpTransport* transport,
     return ack_result(request(transport, url, allow_http, "GET", 0, 0, collect_text, 0, 1));
 }
 
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+S64StandaloneResult s64_persistent_standalone_list_stage(
+    S64HttpTransport* transport,
+    const char* url,
+    uint8_t allow_http,
+    uint16_t index)
+{
+    uint16_t url_length = 0u;
+
+    if (!transport || !url) return S64_STANDALONE_INVALID_ARGUMENT;
+    reply_text[0] = 0;
+    if (!append_text_bounded(reply_text, REPLY_TEXT_CAPACITY, &url_length, url)
+        || !append_text_bounded(
+            reply_text, REPLY_TEXT_CAPACITY, &url_length,
+            "&format=summary&offset=")
+        || !append_u16_decimal(
+            reply_text, REPLY_TEXT_CAPACITY, &url_length, index)) {
+        return S64_STANDALONE_INVALID_ARGUMENT;
+    }
+    return request(
+        transport, reply_text, allow_http, "GET", 0, 0,
+        collect_text, 0, 0);
+}
+#else
 S64StandaloneResult s64_direct_list_summary(
     S64HttpTransport* transport,
     const char* url,
@@ -478,6 +502,7 @@ S64StandaloneResult s64_direct_list_summary(
     summary->title[value_length] = 0;
     return S64_STANDALONE_OK;
 }
+#endif
 
 #ifdef S64_PERSISTENT_RUNTIME_FIT
 S64StandaloneResult s64_persistent_standalone_open_stage(
