@@ -193,6 +193,20 @@ bounded fourth placeholder to avoid counting embedded preload images as product
 resident RAM. These are VICE/software gates only; real C64U remains required
 before retiring the production whole-PRG transition path.
 
+Persistent Settings software gates:
+
+~~~sh
+python3 tools/build_persistent_settings_slice_fit.py
+python3 tools/test_persistent_settings_ui_vice.py
+python3 tools/test_persistent_settings_store_vice.py
+~~~
+
+The Settings fit currently measures SUI at 462 bytes and SSTORE at 4,267 bytes.
+The SUI VICE gate executes real basic/advanced command dispatch; the SSTORE gate
+executes the real transactional save/readback/load path against bounded mock DOS.
+The fit also compiles `settings_main.c` under persistent mode and reports its
+remaining object segments so resident growth cannot be hidden.
+
 ## 3. Current C64U package build
 
 ~~~sh
