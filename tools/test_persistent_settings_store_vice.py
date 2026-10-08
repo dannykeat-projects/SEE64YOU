@@ -19,6 +19,8 @@ GROUP = (
     "src/publisher/settings_store.c",
     "src/publisher/settings_exchange.c",
     "src/publisher/settings_validate.c",
+    "src/publisher/destination.c",
+    "src/publisher/persistent_settings_control.c",
 )
 
 MAIN = r"""
@@ -30,6 +32,7 @@ MAIN = r"""
 #include "platform/reu.h"
 #include "platform/reu_runtime.h"
 #include "publisher/settings_store.h"
+#include "publisher/persistent_settings_control.h"
 
 extern const uint8_t sstore_image[], sstore_image_end[];
 
@@ -215,9 +218,20 @@ int main(void)
     strcpy(settings.base_url, "http://example.test");
     strcpy(settings.direct_key, key);
 
+    strcpy(settings.base_url, "http://example.test/");
+    require(s64_persistent_settings_validate_values(&settings)
+            == S64_SETTINGS_CONTROL_OK
+        && !strcmp(settings.base_url, "http://example.test"), 5u);
+
+    settings.destination_type = (uint8_t)S64_DESTINATION_STANDALONE;
+    strcpy(settings.base_url, "not a url");
+    require(s64_persistent_settings_validate_values(&settings)
+            == S64_SETTINGS_CONTROL_INVALID_DESTINATION, 6u);
+    strcpy(settings.base_url, "http://example.test");
+
     require(s64_settings_store_save(&dos, &settings)
-        == S64_SETTINGS_STORE_OK, 5u);
-    require(stored_length == sizeof(settings), 6u);
+        == S64_SETTINGS_STORE_OK, 9u);
+    require(stored_length == sizeof(settings), 8u);
 
     memset(&loaded, 0, sizeof(loaded));
     require(s64_settings_store_load(&dos, &loaded)
@@ -226,7 +240,7 @@ int main(void)
         && loaded.allow_insecure_http == 1u
         && !strcmp(loaded.base_url, "http://example.test")
         && !strcmp(loaded.direct_key, key)
-        && s64_settings_exchange_validate(&loaded), 8u);
+        && s64_settings_exchange_validate(&loaded), 10u);
 
     *(volatile uint8_t*)0xc060 = 0x80u;
     *(volatile uint8_t*)0xc061 = 0xa5u;
