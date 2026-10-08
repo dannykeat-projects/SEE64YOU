@@ -690,7 +690,7 @@ def main() -> int:
             deadline = time.monotonic() + 120
             state = b""
             while time.monotonic() < deadline:
-                state = monitor.read_memory(0xc060, 0xc062)
+                state = monitor.read_memory(0xc060, 0xc064)
                 if state[1] == 0xa5:
                     print(
                         "VICE real Publisher slice passed: Editor/Publisher/Settings "
@@ -700,7 +700,8 @@ def main() -> int:
                     return 0
                 if state[1] == 0x5a:
                     raise fit.FitError(
-                        f"persistent Publisher VICE probe failed at step {state[2]}"
+                        f"persistent Publisher VICE probe failed at step {state[2]} "
+                        f"(bad_byte=0x{state[3]:02x}, line_offset={state[4]})"
                     )
                 monitor.resume()
                 time.sleep(0.03)
