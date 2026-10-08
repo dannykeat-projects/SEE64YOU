@@ -23,7 +23,7 @@ extern void s64_resident_ui_put_at(uint8_t column, uint8_t row, const char* text
 #pragma code-name ("SUI_CODE")
 #pragma rodata-name ("SUI_RODATA")
 
-uint8_t s64_ui_bridge_probe(void)
+uint8_t s64_overlay_sui_s64_ui_bridge_probe(void)
 {
     s64_resident_ui_put_at(0u, 0u, " SETTINGS UI BRIDGE ");
     s64_resident_ui_put_at(2u, 3u, "READY");
