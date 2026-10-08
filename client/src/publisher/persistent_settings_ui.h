@@ -1,0 +1,30 @@
+#ifndef SEE64YOU_PUBLISHER_PERSISTENT_SETTINGS_UI_H
+#define SEE64YOU_PUBLISHER_PERSISTENT_SETTINGS_UI_H
+
+#include <stdint.h>
+
+#include "publisher/settings_exchange.h"
+
+typedef enum {
+    S64_SETTINGS_UI_NONE = 0,
+    S64_SETTINGS_UI_EDIT_SITE,
+    S64_SETTINGS_UI_IMPORT_DIRECT_KEY,
+    S64_SETTINGS_UI_REPLACE_DIRECT_KEY,
+    S64_SETTINGS_UI_CHECK,
+    S64_SETTINGS_UI_CHOOSE_DESTINATION,
+    S64_SETTINGS_UI_TOGGLE_HTTP,
+    S64_SETTINGS_UI_REPLACE_RELAY_KEY,
+    S64_SETTINGS_UI_LOAD_PROFILE,
+    S64_SETTINGS_UI_SAVE_PROFILE,
+    S64_SETTINGS_UI_DIAGNOSTICS,
+    S64_SETTINGS_UI_SAVE_RETURN,
+    S64_SETTINGS_UI_CANCEL_RETURN
+} S64PersistentSettingsAction;
+
+S64PersistentSettingsAction s64_persistent_settings_key(
+    S64SettingsExchange* settings,
+    uint8_t* advanced_view,
+    uint8_t key
+);
+
+#endif
