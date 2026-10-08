@@ -524,7 +524,7 @@ def main() -> int:
             deadline = time.monotonic() + 90
             state = b""
             while time.monotonic() < deadline:
-                state = monitor.read_memory(0xc060, 0xc062)
+                state = monitor.read_memory(0xc060, 0xc063)
                 if state[1] == 0xa5:
                     print(
                         "VICE staged persistent open passed: authenticated "
@@ -534,7 +534,8 @@ def main() -> int:
                     return 0
                 if state[1] == 0x5a:
                     raise fit.FitError(
-                        f"persistent open VICE probe failed at step {state[2]}"
+                        f"persistent open VICE probe failed at step {state[2]} "
+                        f"(mismatch_index={state[3]})"
                     )
                 monitor.resume()
                 time.sleep(0.03)
