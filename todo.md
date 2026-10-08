@@ -171,22 +171,33 @@ Use `.github/workflows/persistent-runtime-spike.yml` for software-only spike
 validation while the self-hosted runner is unavailable. Real C64U hardware
 remains the final authority.
 
-First real Publisher migration slice also passes on GitHub-hosted VICE:
-- persistent Editor + Publisher resident headroom is **1,710 bytes** below
-  `$8C00`, still above the 1 KiB gate;
-- real Publisher slices measure PCONTENT 882 / 15,360, PNETWORK 4,337 / 15,360
-  and PRUNTIME 1,408 / 15,360 bytes;
-- the executable namespace gate switches Editor -> Publisher content -> real
-  SHA/HMAC auth -> real settings record code -> Settings -> Publisher -> Editor
-  while retaining the same resident owner/document state;
-- real direct-key parsing/signing and REU settings store/load round-trip pass;
-- the earlier apparent PNETWORK/PRUNTIME stalls were the 35-second cycle-accurate
-  VICE budget being consumed by cc65 SHA/HMAC, not a namespace fault. The gate
-  now uses VICE warp mode with a bounded 90-second ceiling.
+The expanded real Publisher migration slice now passes on GitHub-hosted VICE:
+- persistent Editor alone retains **3,351 bytes** below `$8C00`;
+- persistent Editor + Publisher retains **1,488 bytes** below `$8C00`, still
+  above the 1 KiB acceptance gate but close enough that resident BSS growth must
+  remain deliberate;
+- real Publisher slices measure PCONTENT **3,793 / 15,360**, PNETWORK
+  **12,525 / 15,360** and PRUNTIME **1,408 / 15,360** bytes;
+- the 30-cycle persistent Editor/Publisher/Settings lifecycle gate still passes;
+- the real Publisher VICE gate switches namespaces, binds remote state, exercises
+  Network Target $03 open/write/read, parses the direct HTTP challenge, computes
+  SHA/HMAC authentication, accepts the authenticated acknowledgement, round-trips
+  REU settings state, visits Settings and returns to Editor under the same
+  resident owner;
+- the former direct-auth failure reported as step 124 was a VICE fixture bug:
+  cc65 translated C string response literals into PETSCII, so the fake wire
+  began with byte $C8 instead of ASCII $48 for `HTTP`. The fixture now emits
+  explicit raw ASCII byte arrays; production HTTP/parser code was restored
+  unchanged after diagnosis;
+- VICE uses warp mode with bounded execution so crypto-heavy failures remain
+  quick and identifiable.
 
 This is sufficient to continue the Publisher migration incrementally. Keep the
-whole-PRG production route intact until destination/network/UI responsibilities
-and then Settings are migrated and accepted.
+whole-PRG production route intact until remaining Publisher UI/document
+responsibilities and then Settings are migrated and accepted. The self-hosted
+full integration lane for this exact checkpoint may remain queued independently;
+GitHub-hosted persistent-runtime and Publisher gates are the current software
+evidence.
 
 Decision rule:
 - If the diagnostic passes cleanly and the projected real asset layout has
