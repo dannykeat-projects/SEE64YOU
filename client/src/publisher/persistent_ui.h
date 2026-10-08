@@ -16,7 +16,8 @@ typedef enum {
     S64_PUBLISH_UI_PREVIEW,
     S64_PUBLISH_UI_EXPORT_TEXT,
     S64_PUBLISH_UI_IMPORT_TEXT,
-    S64_PUBLISH_UI_RETURN_EDITOR
+    S64_PUBLISH_UI_RETURN_EDITOR,
+    S64_PUBLISH_UI_TYPE_CHANGED
 } S64PersistentPublisherAction;
 
 S64PersistentPublisherAction s64_persistent_publisher_key(
