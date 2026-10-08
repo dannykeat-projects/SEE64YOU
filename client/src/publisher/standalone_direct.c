@@ -87,8 +87,8 @@ static int equal_ci(const char* left, const char* right, uint8_t count)
             || !s64_charset_native_to_ascii((uint8_t)right[i], &b)) {
             return 0;
         }
-        if (a >= 'A' && a <= 'Z') a = (uint8_t)(a + ('a' - 'A'));
-        if (b >= 'A' && b <= 'Z') b = (uint8_t)(b + ('a' - 'A'));
+        if (a >= 0x41u && a <= 0x5Au) a = (uint8_t)(a + 0x20u);
+        if (b >= 0x41u && b <= 0x5Au) b = (uint8_t)(b + 0x20u);
         if (a != b) return 0;
     }
     return 1;
