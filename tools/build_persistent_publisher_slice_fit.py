@@ -30,6 +30,7 @@ PUBLISHER_GROUPS: dict[str, tuple[str, ...]] = {
         "src/publisher/direct_key.c",
         "src/publisher/direct_key_store.c",
         "diagnostics/persistent_document_read.c",
+        "diagnostics/persistent_list_summary.c",
     ),
     "PNETWORK": (
         "src/platform/network.c",
