@@ -182,11 +182,15 @@ static uint8_t read_reply(const uint8_t* data, uint16_t length, void* context)
     uint8_t native;
     const char* digit;
     while (i < length && !reply->headers_done) {
-        if (++reply->header_bytes > 4096u) goto fail;
+        if (++reply->header_bytes > 4096u) { S64_DIRECT_TRACE(30u); goto fail; }
         if (data[i] == 0x0du) { ++i; continue; }
         if (data[i] != 0x0au) {
-            if (reply->line_length + 1u >= LINE_CAPACITY
-                || !s64_charset_ascii_to_native(data[i++], &native)) goto fail;
+            if (reply->line_length + 1u >= LINE_CAPACITY) {
+                S64_DIRECT_TRACE(31u); goto fail;
+            }
+            if (!s64_charset_ascii_to_native(data[i++], &native)) {
+                S64_DIRECT_TRACE(32u); goto fail;
+            }
             line[reply->line_length++] = (char)native;
             continue;
         }
@@ -194,40 +198,53 @@ static uint8_t read_reply(const uint8_t* data, uint16_t length, void* context)
         line[reply->line_length] = 0;
         if (!reply->have_status) {
             if ((!equal_ci(line, "HTTP/1.1 ", 9) && !equal_ci(line, "HTTP/1.0 ", 9))
-                || reply->line_length < 12u) goto fail;
+                || reply->line_length < 12u) {
+                S64_DIRECT_TRACE(33u); goto fail;
+            }
             status_code = 0;
             for (amount = 9; amount < 12; ++amount) {
-                if (line[amount] < '0' || line[amount] > '9') goto fail;
+                if (line[amount] < '0' || line[amount] > '9') {
+                    S64_DIRECT_TRACE(34u); goto fail;
+                }
                 status_code = status_code * 10u + (uint8_t)(line[amount] - '0');
             }
             reply->have_status = 1;
         } else if (!reply->line_length) {
             reply->headers_done = 1;
         } else if (equal_ci(line, "Content-Length:", 15)) {
-            if (reply->have_length) goto fail;
+            if (reply->have_length) { S64_DIRECT_TRACE(35u); goto fail; }
             digit = line + 15;
             while (*digit == ' ') ++digit;
-            if (*digit < '0' || *digit > '9') goto fail;
+            if (*digit < '0' || *digit > '9') {
+                S64_DIRECT_TRACE(36u); goto fail;
+            }
             value = 0;
             while (*digit >= '0' && *digit <= '9') {
-                if (value > 6553u || (value == 6553u && *digit > '5')) goto fail;
+                if (value > 6553u || (value == 6553u && *digit > '5')) {
+                    S64_DIRECT_TRACE(37u); goto fail;
+                }
                 value = value * 10u + (uint8_t)(*digit++ - '0');
             }
-            if (*digit) goto fail;
+            if (*digit) { S64_DIRECT_TRACE(38u); goto fail; }
             reply->remaining = value; reply->have_length = 1;
         } else if (equal_ci(line, "Transfer-Encoding:", 18)) {
             /* HTTP/1.0 requests ask for a close-delimited/non-chunked response. */
+            S64_DIRECT_TRACE(39u);
             goto fail;
         }
         reply->line_length = 0;
     }
     amount = (uint16_t)(length - i);
     if (reply->headers_done && amount) {
-        if (reply->have_length && amount > reply->remaining) goto fail;
+        if (reply->have_length && amount > reply->remaining) {
+            S64_DIRECT_TRACE(40u); goto fail;
+        }
         if (reply->have_length) reply->remaining -= amount;
         /* Error pages never overwrite the caller's document buffer. */
         if (status_code >= 200u && status_code < 300u && reply->sink
-            && !reply->sink(data + i, amount, reply->context)) goto fail;
+            && !reply->sink(data + i, amount, reply->context)) {
+            S64_DIRECT_TRACE(41u); goto fail;
+        }
     }
     return 1;
 fail:
@@ -280,7 +297,7 @@ static S64StandaloneResult exchange(const char* method, const char* path,
         result = s64_net_read(&network, socket_handle, S64_NET_READ_MAX,
             read_reply, &reply, &received);
         if (reply.failed) {
-            S64_DIRECT_TRACE(14u);
+            if (s64_persistent_direct_trace == 13u) S64_DIRECT_TRACE(14u);
             outcome = S64_STANDALONE_PROTOCOL_ERROR;
             goto cleanup;
         }
