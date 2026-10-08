@@ -29,8 +29,9 @@ GROUPS = {
         "src/publisher/standalone_direct.c",
     ),
     "PRUNTIME": ("src/publisher/settings_validate.c", "src/publisher/settings_exchange.c"),
+    "PUI": ("src/publisher/persistent_ui.c",),
 }
-GROUP_IDS = {"EDITOR": 1, "PCONTENT": 1, "PNETWORK": 2, "PRUNTIME": 3, "SETTINGS": 1}
+GROUP_IDS = {"EDITOR": 1, "PCONTENT": 1, "PNETWORK": 2, "PRUNTIME": 3, "PUI": 4, "SETTINGS": 1}
 
 EDITOR = r"""
 #include <stdint.h>
@@ -130,12 +131,14 @@ MAIN = r"""
 #include "publisher/standalone_direct.h"
 #include "publisher/standalone_documents.h"
 #include "publisher/persistent_mode.h"
+#include "publisher/persistent_ui.h"
 #include "publisher/settings_exchange.h"
 
 extern const uint8_t editor_image[], editor_image_end[];
 extern const uint8_t pcontent_image[], pcontent_image_end[];
 extern const uint8_t pnetwork_image[], pnetwork_image_end[];
 extern const uint8_t pruntime_image[], pruntime_image_end[];
+extern const uint8_t pui_image[], pui_image_end[];
 extern const uint8_t settings_image[], settings_image_end[];
 
 extern uint16_t __fastcall__ s64_probe_editor(uint16_t);
@@ -145,7 +148,7 @@ extern uint16_t __fastcall__ s64_probe_pruntime_ping(uint16_t);
 extern uint8_t s64_persistent_direct_trace;
 
 static S64ReuRuntimeControl control;
-static S64ReuAllocation assets[5];
+static S64ReuAllocation assets[6];
 static S64CodeOverlayNamespace editor_namespace;
 static S64CodeOverlayNamespace publisher_namespace;
 static S64CodeOverlayNamespace settings_namespace;
@@ -389,14 +392,15 @@ int main(void)
     require(allocate_asset(1u, pcontent_image, pcontent_image_end, 0x62u), 3u);
     require(allocate_asset(2u, pnetwork_image, pnetwork_image_end, 0x63u), 4u);
     require(allocate_asset(3u, pruntime_image, pruntime_image_end, 0x64u), 5u);
-    require(allocate_asset(4u, settings_image, settings_image_end, 0x65u), 6u);
+    require(allocate_asset(4u, pui_image, pui_image_end, 0x65u), 6u);
+    require(allocate_asset(5u, settings_image, settings_image_end, 0x66u), 7u);
 
     require(s64_code_overlay_namespace_capture(
-        &editor_namespace, &control, &assets[0], 1u), 7u);
+        &editor_namespace, &control, &assets[0], 1u), 8u);
     require(s64_code_overlay_namespace_capture(
-        &publisher_namespace, &control, &assets[1], 3u), 8u);
+        &publisher_namespace, &control, &assets[1], 4u), 9u);
     require(s64_code_overlay_namespace_capture(
-        &settings_namespace, &control, &assets[4], 1u), 9u);
+        &settings_namespace, &control, &assets[5], 1u), 10u);
 
     memset(&body, 0, sizeof(body));
     memset(&document, 0, sizeof(document));
@@ -408,7 +412,24 @@ int main(void)
     document.date[0] = 0;
     document.order = 7;
     s64_persistent_publisher_init(&publisher, &document);
-    require(s64_persistent_publisher_valid(&publisher), 10u);
+    require(s64_persistent_publisher_valid(&publisher), 11u);
+
+    require(s64_code_overlay_namespace_activate(
+        &publisher_namespace, &control, overlay_reader), 12u);
+    require(s64_persistent_publisher_key(&publisher, '4') == S64_PUBLISH_UI_NONE
+        && document.status == S64_DOCUMENT_PUBLISHED
+        && publisher.document_changed, 13u);
+    s64_persistent_publisher_reset_change_flags(&publisher);
+    publisher.publish_state.remote_bound = 1u;
+    require(s64_persistent_publisher_key(&publisher, 'T') == S64_PUBLISH_UI_NONE
+        && document.type == S64_DOCUMENT_PAGE
+        && !publisher.publish_state.remote_bound
+        && publisher.document_changed, 14u);
+    s64_persistent_publisher_reset_change_flags(&publisher);
+    require(s64_persistent_publisher_key(&publisher, '3') == S64_PUBLISH_UI_SAVE
+        && s64_persistent_publisher_key(&publisher, '6') == S64_PUBLISH_UI_LIST_PAGE
+        && s64_persistent_publisher_key(&publisher, CH_STOP)
+            == S64_PUBLISH_UI_RETURN_EDITOR, 15u);
 
     memset(body_digest, 0, sizeof(body_digest));
 
@@ -574,7 +595,7 @@ int main(void)
 
 
 def config_text() -> str:
-    groups = ("EDITOR", "PCONTENT", "PNETWORK", "PRUNTIME", "SETTINGS")
+    groups = ("EDITOR", "PCONTENT", "PNETWORK", "PRUNTIME", "PUI", "SETTINGS")
     memory = "\n".join(
         f'    {g}: file = "build/persistent-publisher-vice/{g.lower()}.bin", '
         'start = $8C00, size = $3C00;'
@@ -642,6 +663,7 @@ def build() -> Path:
         "PCONTENT": [],
         "PNETWORK": [],
         "PRUNTIME": [],
+        "PUI": [],
         "SETTINGS": ["s64_probe_settings"],
     }
     sources: list[Path] = []
@@ -740,7 +762,7 @@ def build() -> Path:
     blob_obj = objects_dir / "blobs.o"
     prg = OUT / "persistent-publisher-vice.prg"
     map_path = OUT / "persistent-publisher-vice.map"
-    group_order = ("editor", "pcontent", "pnetwork", "pruntime", "settings")
+    group_order = ("editor", "pcontent", "pnetwork", "pruntime", "pui", "settings")
 
     for initial in (True, False, False):
         lines = ['.segment "RODATA"']
