@@ -74,6 +74,10 @@ uint8_t s64_persistent_settings_screen(
     screen_line(screen, 17u, "5 DISABLE DIRECT KEY", 0);
     screen_line(screen, 18u, "6 REPLACE RELAY KEY", 0);
     screen_line(screen, 19u, "7 DISABLE RELAY KEY", 0);
+    screen_line(screen, 20u, "8 LOAD PROFILE", 0);
+    screen_line(screen, 21u, "9 SAVE PROFILE", 0);
+    screen_line(screen, 22u, "D DIAGNOSTICS", 0);
+    screen_line(screen, 23u, "S SAVE  B BASIC  STOP CANCEL", 0);
     return 1u;
 }
 
