@@ -184,7 +184,7 @@ static void render(void)
     cputs("5  DELETE REMOTE");
     gotoxy(0u, 17u);
 #ifdef S64_DIRECT_PUBLISHER
-    cputs("6 OPEN PAGE / 7 POST BY SLUG");
+    cputs("6 OPEN PAGE / 7 OPEN POST");
 #else
     cputs("6 OPEN PAGE  7 OPEN POST");
 #endif
@@ -819,7 +819,21 @@ static void list_open_remote(S64DocumentType type)
         unsigned char key;
 
         for (;;) {
-            S64StandaloneResult result = s64_direct_list_summary(
+            S64StandaloneResult result;
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+            result = s64_persistent_standalone_list_stage(
+                &http,
+                WORK_URL,
+                destination.allow_insecure_http,
+                index
+            );
+            if (result == S64_STANDALONE_OK
+                && !s64_persistent_list_summary_parse(
+                    type, index, summary, &total)) {
+                result = S64_STANDALONE_PROTOCOL_ERROR;
+            }
+#else
+            result = s64_direct_list_summary(
                 &http,
                 WORK_URL,
                 destination.allow_insecure_http,
@@ -828,6 +842,7 @@ static void list_open_remote(S64DocumentType type)
                 summary,
                 &total
             );
+#endif
             if (result != S64_STANDALONE_OK) {
                 set_status(s64_standalone_result_message(result));
                 return;
@@ -928,13 +943,35 @@ static void list_open_remote(S64DocumentType type)
     document_changed = 1u;
 
     if (destination.type == S64_DESTINATION_STANDALONE) {
-        S64StandaloneResult result = s64_standalone_open_document(
+        S64StandaloneResult result;
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+        S64PersistentOpenStage stage;
+        S64DocumentResult document_result;
+
+        result = s64_persistent_standalone_open_stage(
+            &http,
+            WORK_URL,
+            destination.allow_insecure_http,
+            &stage
+        );
+        if (result == S64_STANDALONE_OK) {
+            document_result = s64_persistent_open_stage_commit(
+                &stage, &document);
+            if (document_result == S64_DOCUMENT_SINK_ERROR) {
+                result = S64_STANDALONE_RESPONSE_TOO_LARGE;
+            } else if (document_result != S64_DOCUMENT_OK) {
+                result = S64_STANDALONE_PROTOCOL_ERROR;
+            }
+        }
+#else
+        result = s64_standalone_open_document(
             &http,
             WORK_URL,
             destination.allow_insecure_http,
             STANDALONE_SESSION,
             &document
         );
+#endif
         if (result != S64_STANDALONE_OK) {
             set_status(s64_standalone_result_message(result));
             return;
