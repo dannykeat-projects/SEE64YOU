@@ -109,7 +109,16 @@ def build() -> Path:
         for path in paths:
             names.extend(fit.public_s64_definitions(
                 (CLIENT / path).read_text(encoding="utf-8")))
-        grouped_names[group] = list(dict.fromkeys(names))
+        names = list(dict.fromkeys(names))
+        if group == "SSTORE":
+            names = [name for name in names if name not in {
+                "s64_destination_connection_url",
+                "s64_destination_list_url",
+                "s64_destination_open_url",
+                "s64_destination_save_url",
+                "s64_destination_delete_url",
+            }]
+        grouped_names[group] = names
         for path in paths:
             out = generated / f"{group.lower()}_{Path(path).stem}.c"
             out.write_text(fit.generated_translation_unit(
