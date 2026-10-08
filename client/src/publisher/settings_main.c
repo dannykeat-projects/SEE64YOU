@@ -105,7 +105,11 @@ static S64PublishDestination checked_destination;
 static S64Dos dos;
 static S64UciCapabilities capabilities;
 static char status_text[SCREEN_COLUMNS + 1u];
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+#define relay_replacement (profile_settings.direct_key)
+#else
 static char relay_replacement[S64_RELAY_KEY_CAPACITY];
+#endif
 static char key_diag_open[S64_KEY_DIAG_STATUS_CAPACITY];
 static char key_diag_read[S64_KEY_DIAG_STATUS_CAPACITY];
 static char key_diag_close[S64_KEY_DIAG_STATUS_CAPACITY];
@@ -799,32 +803,54 @@ static void show_system_diagnostics(void)
 
 static void import_direct_key(void)
 {
-    S64SettingsStoreResult result;
-
     if (!capabilities.dos_target) {
         set_status("Settings storage unavailable");
         return;
     }
 
-    memset(relay_replacement, 0, sizeof(relay_replacement));
-    result = s64_settings_import_direct_key(&dos, relay_replacement);
-    if (result == S64_SETTINGS_STORE_NOT_FOUND) {
-        set_status("SEE64KEY.TXT not found");
-    } else if (result == S64_SETTINGS_STORE_INVALID) {
-        set_status("SEE64KEY.TXT key invalid");
-    } else if (result != S64_SETTINGS_STORE_OK) {
-        diagnose_direct_key_io();
-        show_direct_key_diagnostics();
-        set_status("Direct key import failed");
-    } else {
-        memcpy(
-            settings.direct_key,
-            relay_replacement,
-            sizeof(settings.direct_key)
-        );
-        set_status("Direct key imported; S to save");
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+    {
+        S64PersistentSettingsKeyImportResult result =
+            s64_persistent_settings_import_direct_key(
+                &dos, &settings, relay_replacement);
+
+        if (result == S64_SETTINGS_KEY_IMPORT_OK) {
+            set_status("Direct key imported; S to save");
+        } else if (result == S64_SETTINGS_KEY_IMPORT_NOT_FOUND) {
+            set_status("SEE64KEY.TXT not found");
+        } else if (result == S64_SETTINGS_KEY_IMPORT_INVALID) {
+            set_status("SEE64KEY.TXT key invalid");
+        } else {
+            diagnose_direct_key_io();
+            show_direct_key_diagnostics();
+            set_status("Direct key import failed");
+        }
     }
-    memset(relay_replacement, 0, sizeof(relay_replacement));
+#else
+    {
+        S64SettingsStoreResult result;
+
+        memset(relay_replacement, 0, sizeof(relay_replacement));
+        result = s64_settings_import_direct_key(&dos, relay_replacement);
+        if (result == S64_SETTINGS_STORE_NOT_FOUND) {
+            set_status("SEE64KEY.TXT not found");
+        } else if (result == S64_SETTINGS_STORE_INVALID) {
+            set_status("SEE64KEY.TXT key invalid");
+        } else if (result != S64_SETTINGS_STORE_OK) {
+            diagnose_direct_key_io();
+            show_direct_key_diagnostics();
+            set_status("Direct key import failed");
+        } else {
+            memcpy(
+                settings.direct_key,
+                relay_replacement,
+                sizeof(settings.direct_key)
+            );
+            set_status("Direct key imported; S to save");
+        }
+        memset(relay_replacement, 0, sizeof(relay_replacement));
+    }
+#endif
 }
 
 static void return_to_publisher(void)
