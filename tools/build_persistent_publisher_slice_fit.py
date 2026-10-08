@@ -26,6 +26,7 @@ PUBLISHER_GROUPS: dict[str, tuple[str, ...]] = {
         "src/publisher/destination.c",
         "src/publisher/state.c",
         "src/publisher/preview.c",
+        "diagnostics/persistent_result_message.c",
     ),
     "PNETWORK": (
         "src/platform/network.c",
