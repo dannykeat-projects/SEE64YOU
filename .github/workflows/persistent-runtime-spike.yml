@@ -28,7 +28,9 @@ jobs:
           cl65 --version || true
 
       - name: Build synthetic persistent-owner probe
-        run: python3 tools/test_persistent_runtime_vice.py --build-only
+        run: |
+          python3 tools/test_persistent_runtime_vice.py --build-only
+          python3 tools/test_persistent_settings_ui_vice.py --build-only
 
       - name: Measure real persistent Editor root
         run: python3 tools/build_persistent_editor_fit.py
@@ -58,6 +60,9 @@ jobs:
       - name: Run real persistent Publisher namespace VICE gate
         run: python3 tools/test_persistent_publisher_vice.py
 
+      - name: Run real persistent Settings UI VICE gate
+        run: python3 tools/test_persistent_settings_ui_vice.py
+
       - name: Publish persistent-runtime fit maps
         if: always()
         uses: actions/upload-artifact@v4
@@ -72,5 +77,7 @@ jobs:
             client/build/persistent-publisher-slice-fit/persistent-publisher-slice-fit.prg
             client/build/persistent-publisher-vice/persistent-publisher-vice.map
             client/build/persistent-publisher-vice/persistent-publisher-vice.prg
+            client/build/persistent-settings-ui-vice/persistent-settings-ui-vice.map
+            client/build/persistent-settings-ui-vice/persistent-settings-ui-vice.prg
           if-no-files-found: warn
           retention-days: 14
