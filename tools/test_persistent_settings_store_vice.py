@@ -242,6 +242,30 @@ int main(void)
         && !strcmp(loaded.direct_key, key)
         && s64_settings_exchange_validate(&loaded), 10u);
 
+    settings.state = S64_SETTINGS_STATE_READY;
+    settings.result = S64_SETTINGS_RESULT_OK;
+    require(s64_settings_exchange_store(&settings), 11u);
+
+    strcpy(settings.base_url, "http://changed.test");
+    settings.state = S64_SETTINGS_STATE_EDIT_REQUEST;
+    settings.checksum = 0u;
+    require(s64_persistent_settings_restore_original(&settings)
+            == S64_SETTINGS_COMMIT_OK
+        && !strcmp(settings.base_url, "http://example.test")
+        && settings.state == S64_SETTINGS_STATE_READY, 12u);
+
+    strcpy(settings.base_url, "http://changed.test");
+    settings.state = S64_SETTINGS_STATE_EDIT_REQUEST;
+    settings.checksum = 0u;
+    require(s64_persistent_settings_commit(&dos, &settings)
+            == S64_SETTINGS_COMMIT_OK
+        && settings.state == S64_SETTINGS_STATE_READY, 13u);
+
+    memset(&loaded, 0, sizeof(loaded));
+    require(s64_settings_store_load(&dos, &loaded)
+            == S64_SETTINGS_STORE_OK
+        && !strcmp(loaded.base_url, "http://changed.test"), 14u);
+
     *(volatile uint8_t*)0xc060 = 0x80u;
     *(volatile uint8_t*)0xc061 = 0xa5u;
     *(volatile uint8_t*)0xc062 = 0u;
