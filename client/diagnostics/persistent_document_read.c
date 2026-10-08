@@ -158,14 +158,14 @@ static uint8_t parse_staged_header(
                 amount)) return 0u;
 
         for (i = 0u; i < amount; ++i) {
-            if (!s64_charset_ascii_to_native(read_chunk[i], &native)) return 0u;
-            if (native == '\n') {
+            if (read_chunk[i] == 0x0au) {
                 if (!finish_line(&reader)) return 0u;
-            } else {
-                if (reader.line_length + 1u >= S64_DOCUMENT_WIRE_LINE_CAPACITY)
-                    return 0u;
-                reader.line[reader.line_length++] = (char)native;
+                continue;
             }
+            if (!s64_charset_ascii_to_native(read_chunk[i], &native)) return 0u;
+            if (reader.line_length + 1u >= S64_DOCUMENT_WIRE_LINE_CAPACITY)
+                return 0u;
+            reader.line[reader.line_length++] = (char)native;
         }
         offset = (uint16_t)(offset + amount);
     }
