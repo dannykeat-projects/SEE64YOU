@@ -173,14 +173,15 @@ remains the final authority.
 
 The expanded real Publisher migration slice now passes on GitHub-hosted VICE:
 - persistent Editor alone retains **3,351 bytes** below `$8C00`;
-- persistent Editor + Publisher retains **1,401 bytes** below `$8C00`, still
+- persistent Editor + Publisher retains **1,435 bytes** below `$8C00`, still
   above the 1 KiB acceptance gate but close enough that resident BSS growth must
   remain deliberate;
-- real Publisher slices measure PCONTENT **9,476 / 15,360**, PNETWORK
-  **14,402 / 15,360** and PRUNTIME **1,408 / 15,360** bytes. PCONTENT contains
-  remote/publish state, Preview, direct-key setup and the staged-open finalizer.
-  PNETWORK contains Network Target $03, SHA/HMAC, direct HTTP, the real document
-  writer and the staged-open receiver, leaving **958 bytes** in that slot;
+- real Publisher slices measure PCONTENT **10,392 / 15,360**, PNETWORK
+  **14,397 / 15,360** and PRUNTIME **1,408 / 15,360** bytes. PCONTENT contains
+  remote/publish state, Preview, direct-key setup, the staged-open finalizer and
+  compact remote-list parsing. PNETWORK contains Network Target $03, SHA/HMAC,
+  direct HTTP, the real document writer, staged-open receiver and bounded
+  remote-list fetch, leaving **963 bytes** in that slot;
 - direct-key parsing/setup is separated from signing/transport. The 32-byte live
   key remains resident while setup code lives in PCONTENT, keeping request-time
   signing in PNETWORK without duplicating key parsing there;
@@ -194,10 +195,11 @@ The expanded real Publisher migration slice now passes on GitHub-hosted VICE:
   $CB80 mode-workspace scratch was rejected after focused VICE showed that its
   contents did not survive this path reliably. The 64-byte resident cost keeps
   total headroom at 1,401 bytes and removes that unexplained dependency;
-- the focused staged-open VICE gate now passes authenticated challenge/HMAC,
-  Network-$03 reception, exact 101-byte raw-header REU staging, PCONTENT metadata
-  commit, signed Order/status/date/title/slug checks and exact PETSCII body
-  conversion. It adds no allocator entry;
+- the focused staged list/open VICE gate now passes an authenticated compact
+  list-summary request, PCONTENT slug/title/count parsing, then authenticated
+  document open, exact 101-byte raw-header REU staging, PCONTENT metadata commit,
+  signed Order/status/date/title/slug checks and exact PETSCII body conversion.
+  It adds no allocator entry;
 - the 30-cycle persistent Editor/Publisher/Settings lifecycle gate still passes;
 - the real Publisher VICE gate switches namespaces, binds remote state, exercises
   Network Target $03 open/write/read, parses the direct HTTP challenge, computes
@@ -369,7 +371,7 @@ Do not merge/deploy merely because diagnostic validation passes.
 
 ## P1 — Finish editor/storage/publishing acceptance
 
-- [ ] Add remote list browsing to the direct Network $03 publisher; direct open currently accepts a typed page/post slug.
+- [x] Add remote list browsing to the direct Network $03 publisher. It now uses bounded authenticated summary requests with constant RAM use; real-C64U CRUD acceptance remains below.
 - [ ] Complete real-C64U Standalone CRUD acceptance for pages/posts: list/open, create/update, draft/publish/unpublish and delete with exact canonical round-trip.
 - [ ] Complete local New/Open/Save/Save As hardware acceptance, including overwrite, exact reopen and failure/cancel cleanup.
 - [ ] Close recovery/autosave hardware acceptance, including REU fast state plus durable SD recovery.
