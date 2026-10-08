@@ -20,6 +20,14 @@ Read docs/C64U-RUNTIME.md before platform/runtime work.
 8. Keep canonical content recoverable from ordinary files.
 9. Prefer small, measured solutions over speculative abstractions.
 
+## MVP-first execution
+
+The ordered acceptance plan in todo.md governs current work. Finish the persistent-runtime MVP and demonstrate its complete user workflow on real hardware before expanding features or performing broad cleanup. Keep one live queue; do not create competing plans.
+
+Retain the proven Launcher → Editor bootstrap and BASIC-return path. Within the candidate application, Editor owns one runtime/lifecycle while Publisher and Settings are callable cached overlays. Keep the whole-PRG fallback until replacement hardware acceptance; remove only proven-unused dependencies afterward.
+
+Use existing services and small explicit boundaries. Do not weaken memory/integrity/restore guards, add speculative abstractions, rewrite persisted formats or undertake another architecture pivot merely to fit deferred scope. Report user-visible progress and exact validation scope.
+
 ## C64U runtime rules
 
 - 40x25 text mode remains the baseline application UI.
@@ -29,7 +37,7 @@ Read docs/C64U-RUNTIME.md before platform/runtime work.
 - Keep only small hot buffers and currently executing code in conventional C64 RAM when REU-backed storage is more appropriate.
 - Prefer Ultimate-DOS and native UCI transfers over IEC/KERNAL file loading.
 - Use Ultimate-DOS targets $01 and $02 intentionally as independent filesystem contexts when that simplifies state.
-- Normal application modules should be validated and cached in REU, then launched through a tiny overwrite-safe transfer path.
+- Validate and cache executable assets in REU. Preserve the trusted initial Launcher → Editor transfer; persistent candidate mode switches call overlays under the same owner rather than restarting whole PRGs.
 - Do not resurrect the $C800-$CBFF resident-loader reservation as a production constraint unless later evidence makes it necessary.
 - Capability-probe hardware features. Do not enable a feature solely because a firmware version is expected to have it.
 - Real C64U hardware is the final authority for UCI, DMA/REU, turbo, USB-keyboard and timing behaviour.

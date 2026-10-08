@@ -4,13 +4,27 @@ See64You is a **C64 Ultimate-native** editor and publishing environment. It reta
 
 Ordinary-C64 compatibility is retired as a product requirement.
 
+## Current migration boundary
+
+The supported build target still packages whole-PRG managed handoffs. The chosen
+MVP candidate retains Launcher → Editor startup and original BASIC return, then
+keeps one Editor-owned cc65 runtime, ACTIVE lifecycle and system snapshot alive.
+Publisher and Settings become callable cached code overlays beneath that owner.
+Do not reconstruct already-live application state on each mode change.
+
+Candidate integration and hardware acceptance remain pending. Retain the fallback
+until the complete workflow passes; shared bootstrap dependencies are not dead
+code. The ordered work is only in ../todo.md; C64U-RUNTIME.md owns detailed
+contracts. Whole-PRG transfer descriptions below describe the retained package,
+not a mandate to reproduce those transfers in the persistent candidate.
+
 ## Architectural principles
 
 - Canonical source text belongs to the editor, not a backend.
 - The editor remains useful without network access.
 - The C64 Ultimate's 16 MiB REU is shared application memory, not an optional enhancement.
 - UCI/Ultimate-DOS/Network/DMA/turbo facilities are platform services.
-- Editor, Publisher and Settings remain separate executable modules where overlays keep the design simpler.
+- Keep Editor, Publisher and Settings modular through code overlays with one persistent application owner in the MVP candidate.
 - To the user those modules must behave like one application.
 - Temporary hardware changes are centrally owned and restored.
 - More available hardware does not remove the requirement to stream, bound and validate data carefully.

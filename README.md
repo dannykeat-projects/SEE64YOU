@@ -6,6 +6,19 @@ See64You is a C64 Ultimate-native text editor and lightweight web publishing env
 
 See64You is **not** an original-C64 compatibility project. Ordinary-C64 memory limits, IEC loading speed and 64 KiB-only operation no longer constrain product architecture.
 
+## Current priority: usable MVP
+
+The complete current application is not yet accepted end to end on hardware.
+The immediate goal is write → save/reopen → publish → remote reopen/update →
+safe exit on C64 Ultimate with one Standalone site. Existing Basic Settings and
+manual one-time prerequisites are sufficient; optional backends, expanded setup,
+large-document redesign and UI enhancements are deferred.
+
+See [todo.md](todo.md) for the only live work queue, continuation instructions,
+acceptance gates and cleanup order. Prove the replacement on hardware before
+removing fallback machinery. Goals below are product direction, not claims that
+every capability is complete.
+
 ## Product goals
 
 - A fast, predictable editor with familiar desktop editing behaviour.
@@ -54,7 +67,7 @@ SEE64YOU launcher/supervisor
         +-- Recovery / diagnostics
 ~~~
 
-Editor, Publisher and Settings are separate executable overlays sharing canonical state through REU. At startup the launcher will validate the package and preload normal modules into REU using Ultimate-DOS. Transitions then use a very small overwrite-safe transfer stub rather than KERNAL LOAD or software IEC.
+The current package still uses managed whole-PRG handoffs. The persistent-runtime candidate retains the trusted Launcher → Editor bootstrap, then keeps Editor as the single runtime/lifecycle owner while Publisher and Settings execute as cached code overlays. It is not yet the accepted product package. Detailed ownership and migration boundaries are in docs/C64U-RUNTIME.md.
 
 The previous $C800-$CBFF resident-loader design and conventional-C64 memory-headroom constraints are retired as the production direction. The successful resident-loader probe remains useful evidence that replacement loading and cc65 startup work on real firmware 1.1.
 

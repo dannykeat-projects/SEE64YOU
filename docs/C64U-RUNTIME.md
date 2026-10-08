@@ -4,6 +4,56 @@ This document is the authoritative hardware/resource/state-management plan for S
 
 See64You is intentionally **C64 Ultimate-only** and requires a **16 MiB REU**. The application should exploit useful Ultimate facilities aggressively while remaining disciplined about resource ownership, restoration and failure handling.
 
+## MVP ownership and migration decision (2026-10-08)
+
+The persistent candidate keeps the proven Launcher → managed Editor bootstrap
+and original BASIC-return path. Once adopted, Editor owns one cc65 runtime,
+ACTIVE lifecycle, system snapshot and canonical live document until final exit.
+Publisher and Settings run as cached code overlays. Normal mode changes do not
+start another crt0, adopt another lifecycle or serialize live editor state merely
+to reconstruct it in a replacement PRG. Startup provenance and exit restoration
+remain required.
+
+The current c64u-package still uses whole-PRG handoffs; candidate integration,
+packaging and full hardware acceptance are pending. Whole-PRG contracts/evidence
+below remain relevant to that fallback and bootstrap. Do not remove shared
+module/session/capsule/BASIC-return helpers by name: prove each surviving
+dependency before deleting obsolete inter-mode paths.
+
+Reuse allocator, overlay selector, auth/wire codecs, settings store, recovery and
+system-state services. Return to resident orchestration before switching overlays.
+Pointers into replaceable assets must not outlive the owning asset; consume or
+copy screen data before replacement. Keep one canonical document rather than
+a Publisher copy. Keep mode workspace lifetimes explicit.
+
+Require at least 1 KiB resident headroom in the complete integrated build, retain
+the existing stack and 15,360-byte overlay guards, and stay within 16 allocator
+entries. Last recorded partial Editor + Publisher fit had 1,340 bytes resident
+margin, PNETWORK 14,397/15,360 and a 14/16 production allocation projection.
+These measurements do not certify the remaining Settings/UI/package integration.
+Do not weaken guards or byte-squeeze deferred features into the release.
+
+Recorded software evidence includes a 30-cycle persistent lifecycle gate and
+focused real-code tests for authentication/save/delete, writer/Preview, list/open,
+Publisher UI and Settings slices. Some combined-harness responsibilities remain
+placeholders; this is not proof of complete product integration. Earlier hardware
+upload/reopen and Editor entry/return evidence belongs to those earlier builds.
+The full persistent candidate workflow still needs real C64U acceptance.
+
+The fallback hardware diagnosis before reassessment is code e5ffd0f/checkpoint
+6ccf818: initial entry works, but whole-PRG Publisher application-state loading/
+validation remains a blocker. Preserve the fallback until replacement acceptance;
+do not treat it as a working end-to-end product.
+
+Normal config remains /sd/SEE64YOU/SEE64YOU.CFG with existing verified legacy
+migration/fallback; recovery journals stay at SD root. No new journal/data-format
+migration is part of MVP. Failed/cancelled remote open must preserve user source,
+including failures after REU staging begins; successful-open tests alone do not
+establish that property.
+
+Implementation, validation and retirement tasks live only in ../todo.md.
+Superseded troubleshooting remains in Git history.
+
 ## 1. Platform contract
 
 The managed Editor's blocking exit-key reader lives in the MODEL overlay;
