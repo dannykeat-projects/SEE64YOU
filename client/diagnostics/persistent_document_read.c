@@ -7,16 +7,14 @@
 #include <string.h>
 
 #define S64_WIRE_PHASE_VERSION 0u
-#define S64_WIRE_PHASE_HEADERS 1u
-#define S64_WIRE_PHASE_BODY 2u
-
-#define S64_WIRE_SEEN_TYPE   0x01u
-#define S64_WIRE_SEEN_SLUG   0x02u
-#define S64_WIRE_SEEN_TITLE  0x04u
-#define S64_WIRE_SEEN_STATUS 0x08u
-#define S64_WIRE_SEEN_DATE   0x10u
-#define S64_WIRE_SEEN_ORDER  0x20u
-#define S64_WIRE_SEEN_REQUIRED 0x3fu
+#define S64_WIRE_PHASE_TYPE 1u
+#define S64_WIRE_PHASE_SLUG 2u
+#define S64_WIRE_PHASE_TITLE 3u
+#define S64_WIRE_PHASE_STATUS 4u
+#define S64_WIRE_PHASE_DATE 5u
+#define S64_WIRE_PHASE_ORDER 6u
+#define S64_WIRE_PHASE_EXTRA 7u
+#define S64_WIRE_PHASE_BODY 8u
 
 static uint8_t copy_text(char* output, uint16_t capacity, const char* text)
 {
@@ -65,95 +63,87 @@ static uint8_t parse_order(const char* text, int32_t* output)
     return 1u;
 }
 
-static uint8_t parse_header(S64DocumentWireReader* reader)
+static uint8_t has_prefix(
+    const char* line, const char* prefix, uint8_t length)
 {
-    char* colon;
-    const char* value;
-    uint8_t bit = 0u;
-    uint8_t name_length;
-
-    colon = strchr(reader->line, ':');
-    if (!colon || colon[1] != ' ') return 0u;
-    name_length = (uint8_t)(colon - reader->line);
-    value = colon + 2;
-
-    if (reader->line[0] == 'T' && name_length == 4u
-        && reader->line[1] == 'y' && reader->line[2] == 'p'
-        && reader->line[3] == 'e') {
-        bit = S64_WIRE_SEEN_TYPE;
-        if (value[0] != 'p' || value[4] != 0) return 0u;
-        if (value[1] == 'a' && value[2] == 'g' && value[3] == 'e') {
-            reader->document->type = S64_DOCUMENT_PAGE;
-        } else if (value[1] == 'o' && value[2] == 's' && value[3] == 't') {
-            reader->document->type = S64_DOCUMENT_POST;
-        } else return 0u;
-    } else if (reader->line[0] == 'S' && name_length == 4u
-        && reader->line[1] == 'l' && reader->line[2] == 'u'
-        && reader->line[3] == 'g') {
-        bit = S64_WIRE_SEEN_SLUG;
-        if (!s64_persistent_document_slug_valid(value)
-            || !copy_text(reader->document->slug,
-                S64_DOCUMENT_SLUG_CAPACITY, value)) {
-            return 0u;
-        }
-    } else if (reader->line[0] == 'T' && name_length == 5u
-        && reader->line[1] == 'i' && reader->line[2] == 't'
-        && reader->line[3] == 'l' && reader->line[4] == 'e') {
-        bit = S64_WIRE_SEEN_TITLE;
-        if (!*value || !copy_text(reader->document->title,
-            S64_DOCUMENT_TITLE_CAPACITY, value)) {
-            return 0u;
-        }
-    } else if (reader->line[0] == 'S' && name_length == 6u
-        && reader->line[1] == 't' && reader->line[2] == 'a'
-        && reader->line[3] == 't' && reader->line[4] == 'u'
-        && reader->line[5] == 's') {
-        bit = S64_WIRE_SEEN_STATUS;
-        if (value[0] == 'd' && value[1] == 'r' && value[2] == 'a'
-            && value[3] == 'f' && value[4] == 't' && value[5] == 0) {
-            reader->document->status = S64_DOCUMENT_DRAFT;
-        } else if (value[0] == 'p' && value[1] == 'u' && value[2] == 'b'
-            && value[3] == 'l' && value[4] == 'i' && value[5] == 's'
-            && value[6] == 'h' && value[7] == 'e' && value[8] == 'd'
-            && value[9] == 0) {
-            reader->document->status = S64_DOCUMENT_PUBLISHED;
-        } else return 0u;
-    } else if (reader->line[0] == 'D' && name_length == 4u
-        && reader->line[1] == 'a' && reader->line[2] == 't'
-        && reader->line[3] == 'e') {
-        bit = S64_WIRE_SEEN_DATE;
-        if (!copy_text(reader->document->date,
-            S64_DOCUMENT_DATE_CAPACITY, value)) {
-            return 0u;
-        }
-    } else if (reader->line[0] == 'O' && name_length == 5u
-        && reader->line[1] == 'r' && reader->line[2] == 'd'
-        && reader->line[3] == 'e' && reader->line[4] == 'r') {
-        bit = S64_WIRE_SEEN_ORDER;
-        if (!parse_order(value, &reader->document->order)) return 0u;
-    } else {
-        return 1u;
-    }
-
-    if (reader->seen & bit) return 0u;
-    reader->seen = (uint8_t)(reader->seen | bit);
-    return 1u;
+    return !strncmp(line, prefix, length);
 }
 
 static uint8_t finish_line(S64DocumentWireReader* reader)
 {
+    const char* value;
+
     reader->line[reader->line_length] = 0;
 
-    if (reader->phase == S64_WIRE_PHASE_VERSION) {
-        if (strcmp(reader->line, "SEE64YOU/1")) return 0u;
-        reader->phase = S64_WIRE_PHASE_HEADERS;
-    } else if (reader->phase == S64_WIRE_PHASE_HEADERS) {
-        if (!reader->line_length) {
-            if (reader->seen != S64_WIRE_SEEN_REQUIRED) return 0u;
-            reader->phase = S64_WIRE_PHASE_BODY;
-        } else if (!parse_header(reader)) {
+    switch (reader->phase) {
+        case S64_WIRE_PHASE_VERSION:
+            if (strcmp(reader->line, "SEE64YOU/1")) return 0u;
+            reader->phase = S64_WIRE_PHASE_TYPE;
+            break;
+
+        case S64_WIRE_PHASE_TYPE:
+            if (!has_prefix(reader->line, "Type: ", 6u)) return 0u;
+            value = reader->line + 6;
+            if (!strcmp(value, "page")) reader->document->type = S64_DOCUMENT_PAGE;
+            else if (!strcmp(value, "post")) reader->document->type = S64_DOCUMENT_POST;
+            else return 0u;
+            reader->phase = S64_WIRE_PHASE_SLUG;
+            break;
+
+        case S64_WIRE_PHASE_SLUG:
+            if (!has_prefix(reader->line, "Slug: ", 6u)) return 0u;
+            value = reader->line + 6;
+            if (!s64_persistent_document_slug_valid(value)
+                || !copy_text(reader->document->slug,
+                    S64_DOCUMENT_SLUG_CAPACITY, value)) return 0u;
+            reader->phase = S64_WIRE_PHASE_TITLE;
+            break;
+
+        case S64_WIRE_PHASE_TITLE:
+            if (!has_prefix(reader->line, "Title: ", 7u)) return 0u;
+            value = reader->line + 7;
+            if (!*value || !copy_text(reader->document->title,
+                S64_DOCUMENT_TITLE_CAPACITY, value)) return 0u;
+            reader->phase = S64_WIRE_PHASE_STATUS;
+            break;
+
+        case S64_WIRE_PHASE_STATUS:
+            if (!has_prefix(reader->line, "Status: ", 8u)) return 0u;
+            value = reader->line + 8;
+            if (!strcmp(value, "draft")) reader->document->status = S64_DOCUMENT_DRAFT;
+            else if (!strcmp(value, "published")) {
+                reader->document->status = S64_DOCUMENT_PUBLISHED;
+            } else return 0u;
+            reader->phase = S64_WIRE_PHASE_DATE;
+            break;
+
+        case S64_WIRE_PHASE_DATE:
+            if (!has_prefix(reader->line, "Date: ", 6u)) return 0u;
+            value = reader->line + 6;
+            if (!copy_text(reader->document->date,
+                S64_DOCUMENT_DATE_CAPACITY, value)) return 0u;
+            reader->phase = S64_WIRE_PHASE_ORDER;
+            break;
+
+        case S64_WIRE_PHASE_ORDER:
+            if (!has_prefix(reader->line, "Order: ", 7u)
+                || !parse_order(reader->line + 7, &reader->document->order)) {
+                return 0u;
+            }
+            reader->phase = S64_WIRE_PHASE_EXTRA;
+            break;
+
+        case S64_WIRE_PHASE_EXTRA:
+            if (!reader->line_length) {
+                reader->phase = S64_WIRE_PHASE_BODY;
+            } else {
+                char* colon = strchr(reader->line, ':');
+                if (!colon || colon[1] != ' ') return 0u;
+            }
+            break;
+
+        default:
             return 0u;
-        }
     }
 
     reader->line_length = 0u;
