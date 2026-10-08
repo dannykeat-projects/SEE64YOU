@@ -73,6 +73,7 @@ MAIN = r"""
 #include "platform/reu_runtime.h"
 #include "publisher/direct_auth.h"
 #include "publisher/standalone_direct.h"
+#include "publisher/standalone_documents.h"
 #include "publisher/persistent_mode.h"
 #include "publisher/settings_exchange.h"
 
@@ -344,8 +345,14 @@ int main(void)
 
     memset(&body, 0, sizeof(body));
     memset(&document, 0, sizeof(document));
+    s64_buffer_init(&body);
     document.body = &body;
     document.type = S64_DOCUMENT_POST;
+    strcpy(document.slug, "entry-1");
+    strcpy(document.title, "Persistent test");
+    document.status = S64_DOCUMENT_DRAFT;
+    document.date[0] = 0;
+    document.order = 7;
     s64_persistent_publisher_init(&publisher, &document);
     require(s64_persistent_publisher_valid(&publisher), 10u);
 
@@ -441,6 +448,27 @@ int main(void)
             );
             require(direct_result == S64_STANDALONE_OK,
                 (uint8_t)(120u + s64_persistent_direct_trace));
+
+            direct_result = s64_standalone_save_document(
+                &direct_http,
+                "http://example.test/api.php?action=save",
+                1u,
+                0,
+                &document
+            );
+            require(direct_result == S64_STANDALONE_OK,
+                (uint8_t)(140u + s64_persistent_direct_trace));
+
+            direct_result = s64_standalone_delete_document(
+                &direct_http,
+                "http://example.test/api.php?action=delete",
+                1u,
+                0,
+                document.type,
+                document.slug
+            );
+            require(direct_result == S64_STANDALONE_OK,
+                (uint8_t)(160u + s64_persistent_direct_trace));
         }
 
         require(s64_probe_pruntime_ping(cycle)
