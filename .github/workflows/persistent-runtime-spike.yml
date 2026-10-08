@@ -38,6 +38,9 @@ jobs:
       - name: Measure real persistent Publisher slice
         run: python3 tools/build_persistent_publisher_slice_fit.py
 
+      - name: Measure real persistent Settings slice
+        run: python3 tools/build_persistent_settings_slice_fit.py
+
       - name: Install VICE toolchain
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -75,6 +78,8 @@ jobs:
             client/build/persistent-editor-fit/persistent-editor-fit.prg
             client/build/persistent-publisher-slice-fit/persistent-publisher-slice-fit.map
             client/build/persistent-publisher-slice-fit/persistent-publisher-slice-fit.prg
+            client/build/persistent-settings-slice-fit/persistent-settings-slice-fit.map
+            client/build/persistent-settings-slice-fit/persistent-settings-slice-fit.prg
             client/build/persistent-publisher-vice/persistent-publisher-vice.map
             client/build/persistent-publisher-vice/persistent-publisher-vice.prg
             client/build/persistent-settings-ui-vice/persistent-settings-ui-vice.map
