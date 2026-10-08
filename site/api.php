@@ -53,6 +53,15 @@ function respond_wire(array $document, int $status = 200): never
     exit;
 }
 
+function respond_list_summary(array $documents, int $offset): never
+{
+    http_response_code(200);
+    header('Content-Type: ' . S64Wire::LIST_MIME . '; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo S64Wire::serializeListSummary($documents, $offset);
+    exit;
+}
+
 function backup_documents(S64Documents $documents, string $type): array
 {
     $result = [];
@@ -179,8 +188,20 @@ try {
     }
 
     if ($action === 'list') {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+            respond(['ok' => false, 'error' => 'method_not_allowed'], 405);
+        }
+
         $type = (string)($_GET['type'] ?? '');
         $listed = $documents->list($type, false);
+        if (strtolower((string)($_GET['format'] ?? '')) === 'summary') {
+            $offsetText = (string)($_GET['offset'] ?? '0');
+            if (!preg_match('/^\\d{1,5}$/', $offsetText)
+                || (int)$offsetText > 65535) {
+                respond(['ok' => false, 'error' => 'invalid_offset'], 400);
+            }
+            respond_list_summary($listed, (int)$offsetText);
+        }
         respond([
             'ok' => true,
             'count' => count($listed),
