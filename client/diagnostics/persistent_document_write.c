@@ -25,18 +25,6 @@ static uint8_t header_text_valid(
     return 0u;
 }
 
-static uint8_t native_text_valid(const char* text)
-{
-    uint8_t ascii;
-
-    if (text == 0) return 0u;
-    while (*text != '\0') {
-        if (!s64_charset_native_to_ascii((uint8_t)*text, &ascii)) return 0u;
-        ++text;
-    }
-    return 1u;
-}
-
 static uint8_t emit(
     S64DocumentSink sink,
     void* context,
@@ -112,10 +100,7 @@ S64DocumentResult s64_persistent_document_write_wire(
     if (type == 0 || status == 0
         || !s64_persistent_document_slug_valid(document->slug)
         || !header_text_valid(document->title, S64_DOCUMENT_TITLE_CAPACITY, 0u)
-        || !header_text_valid(document->date, S64_DOCUMENT_DATE_CAPACITY, 1u)
-        || !native_text_valid(document->slug)
-        || !native_text_valid(document->title)
-        || !native_text_valid(document->date)) {
+        || !header_text_valid(document->date, S64_DOCUMENT_DATE_CAPACITY, 1u)) {
         return S64_DOCUMENT_INVALID_METADATA;
     }
 
