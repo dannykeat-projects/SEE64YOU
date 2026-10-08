@@ -386,6 +386,99 @@ S64StandaloneResult s64_direct_publisher_test(S64HttpTransport* transport,
     return ack_result(request(transport, url, allow_http, "GET", 0, 0, collect_text, 0, 1));
 }
 
+S64StandaloneResult s64_direct_list_summary(
+    S64HttpTransport* transport,
+    const char* url,
+    uint8_t allow_http,
+    S64DocumentType type,
+    uint16_t index,
+    S64DocumentSummary* summary,
+    uint16_t* total_count)
+{
+    static const char prefix[] = "SEE64YOU-LIST/1\nCount: ";
+    static const char slug_prefix[] = "Slug: ";
+    static const char title_prefix[] = "Title: ";
+    S64StandaloneResult result;
+    uint16_t url_length = 0u;
+    uint16_t count = 0u;
+    uint16_t value_length;
+    char* cursor;
+    char* end;
+
+    if (!transport || !url || !summary || !total_count
+        || !s64_document_type_name(type)) {
+        return S64_STANDALONE_INVALID_ARGUMENT;
+    }
+
+    reply_text[0] = 0;
+    if (!append_text_bounded(reply_text, REPLY_TEXT_CAPACITY, &url_length, url)
+        || !append_text_bounded(
+            reply_text, REPLY_TEXT_CAPACITY, &url_length,
+            "&format=summary&offset=")
+        || !append_u16_decimal(
+            reply_text, REPLY_TEXT_CAPACITY, &url_length, index)) {
+        return S64_STANDALONE_INVALID_ARGUMENT;
+    }
+
+    result = request(
+        transport, reply_text, allow_http, "GET", 0, 0,
+        collect_text, 0, 0);
+    if (result != S64_STANDALONE_OK) return result;
+
+    cursor = reply_text;
+    if (strncmp(cursor, prefix, sizeof(prefix) - 1u) != 0)
+        return S64_STANDALONE_PROTOCOL_ERROR;
+    cursor += sizeof(prefix) - 1u;
+    if (*cursor < '0' || *cursor > '9')
+        return S64_STANDALONE_PROTOCOL_ERROR;
+    while (*cursor >= '0' && *cursor <= '9') {
+        uint8_t digit = (uint8_t)(*cursor++ - '0');
+        if (count > 6553u || (count == 6553u && digit > 5u))
+            return S64_STANDALONE_PROTOCOL_ERROR;
+        count = (uint16_t)(count * 10u + digit);
+    }
+    if (*cursor++ != '\n') return S64_STANDALONE_PROTOCOL_ERROR;
+    *total_count = count;
+
+    memset(summary, 0, sizeof(*summary));
+    summary->type = type;
+    summary->status = S64_DOCUMENT_DRAFT;
+
+    if (index >= count) {
+        return (*cursor == '\n' && cursor[1] == 0)
+            ? S64_STANDALONE_OK
+            : S64_STANDALONE_PROTOCOL_ERROR;
+    }
+
+    if (strncmp(cursor, slug_prefix, sizeof(slug_prefix) - 1u) != 0)
+        return S64_STANDALONE_PROTOCOL_ERROR;
+    cursor += sizeof(slug_prefix) - 1u;
+    end = strchr(cursor, '\n');
+    if (!end) return S64_STANDALONE_PROTOCOL_ERROR;
+    value_length = (uint16_t)(end - cursor);
+    if (!value_length || value_length >= sizeof(summary->slug))
+        return S64_STANDALONE_PROTOCOL_ERROR;
+    memcpy(summary->slug, cursor, value_length);
+    summary->slug[value_length] = 0;
+    if (!s64_document_slug_valid(summary->slug))
+        return S64_STANDALONE_PROTOCOL_ERROR;
+
+    cursor = end + 1;
+    if (strncmp(cursor, title_prefix, sizeof(title_prefix) - 1u) != 0)
+        return S64_STANDALONE_PROTOCOL_ERROR;
+    cursor += sizeof(title_prefix) - 1u;
+    end = strchr(cursor, '\n');
+    if (!end) return S64_STANDALONE_PROTOCOL_ERROR;
+    value_length = (uint16_t)(end - cursor);
+    if (!value_length || value_length >= sizeof(summary->title)
+        || end[1] != '\n' || end[2] != 0) {
+        return S64_STANDALONE_PROTOCOL_ERROR;
+    }
+    memcpy(summary->title, cursor, value_length);
+    summary->title[value_length] = 0;
+    return S64_STANDALONE_OK;
+}
+
 #ifdef S64_PERSISTENT_RUNTIME_FIT
 S64StandaloneResult s64_persistent_standalone_open_stage(
     S64HttpTransport* transport,
