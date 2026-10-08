@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "platform/dos.h"
 #include "publisher/settings_exchange.h"
 
 typedef enum {
@@ -14,6 +15,28 @@ typedef enum {
 
 S64PersistentSettingsControlResult s64_persistent_settings_validate_values(
     S64SettingsExchange* settings
+);
+
+typedef enum {
+    S64_SETTINGS_PROFILE_OK = 0,
+    S64_SETTINGS_PROFILE_INVALID_ARGUMENT,
+    S64_SETTINGS_PROFILE_NOT_FOUND,
+    S64_SETTINGS_PROFILE_INVALID,
+    S64_SETTINGS_PROFILE_IO_ERROR
+} S64PersistentSettingsProfileResult;
+
+S64PersistentSettingsProfileResult s64_persistent_settings_profile_load(
+    S64Dos* dos,
+    uint8_t slot,
+    S64SettingsExchange* settings,
+    S64SettingsExchange* scratch
+);
+
+S64PersistentSettingsProfileResult s64_persistent_settings_profile_save(
+    S64Dos* dos,
+    uint8_t slot,
+    const S64SettingsExchange* settings,
+    S64SettingsExchange* scratch
 );
 
 #endif
