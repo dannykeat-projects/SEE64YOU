@@ -20,16 +20,11 @@
 
 static uint8_t copy_text(char* output, uint16_t capacity, const char* text)
 {
-    uint16_t length = 0u;
+    uint16_t length;
 
     if (!output || !text || !capacity) return 0u;
-    while (text[length]) {
-        if (text[length] == '\r' || text[length] == '\n'
-            || length + 1u >= capacity) {
-            return 0u;
-        }
-        ++length;
-    }
+    length = (uint16_t)strlen(text);
+    if (length >= capacity) return 0u;
     memcpy(output, text, length + 1u);
     return 1u;
 }
