@@ -1,29 +1,23 @@
 #include "publisher/persistent_settings_render.h"
 
 #include <conio.h>
+#include <string.h>
 
 #define S64_SETTINGS_SCREEN_COLUMNS 40u
 #define S64_SETTINGS_STATUS_ROW 24u
 
-static void put_line(
-    uint8_t row,
-    const char* label,
-    const char* value)
+static void put_value(uint8_t row, const char* label, const char* value)
 {
-    uint8_t column = 0u;
+    uint8_t column;
 
-    gotoxy(0u, row);
-    if (label) {
-        while (*label && column < S64_SETTINGS_SCREEN_COLUMNS) {
-            cputc((uint8_t)*label++);
-            ++column;
-        }
-    }
-    if (value) {
-        while (*value && column < S64_SETTINGS_SCREEN_COLUMNS) {
-            cputc((uint8_t)*value++);
-            ++column;
-        }
+    cputsxy(0u, row, label);
+    if (!value) return;
+
+    column = (uint8_t)strlen(label);
+    gotoxy(column, row);
+    while (*value && column < S64_SETTINGS_SCREEN_COLUMNS) {
+        cputc((uint8_t)*value++);
+        ++column;
     }
 }
 
@@ -32,18 +26,15 @@ void s64_persistent_settings_render_screen(
 {
     uint8_t index;
 
-    if (!screen || !screen->title
-        || screen->line_count > S64_SETTINGS_SCREEN_MAX_LINES) {
-        return;
-    }
+    if (!screen || !screen->title) return;
 
     clrscr();
     revers(1u);
-    put_line(0u, screen->title, 0);
+    cputsxy(0u, 0u, screen->title);
     revers(0u);
 
     for (index = 0u; index < screen->line_count; ++index) {
-        put_line(
+        put_value(
             screen->lines[index].row,
             screen->lines[index].label,
             screen->lines[index].value
@@ -51,6 +42,6 @@ void s64_persistent_settings_render_screen(
     }
 
     revers(1u);
-    put_line(S64_SETTINGS_STATUS_ROW, screen->status, 0);
+    if (screen->status) cputsxy(0u, S64_SETTINGS_STATUS_ROW, screen->status);
     revers(0u);
 }
