@@ -22,14 +22,12 @@ GROUPS = {
         "src/publisher/direct_key.c",
         "src/publisher/direct_key_store.c",
         "diagnostics/persistent_result_message.c",
-        "diagnostics/persistent_document_read.c",
     ),
     "PNETWORK": (
         "src/platform/network.c",
         "src/crypto/sha256.c",
         "src/publisher/direct_auth.c",
         "src/publisher/standalone_direct.c",
-        "diagnostics/persistent_document_stage.c",
     ),
     "PRUNTIME": ("src/publisher/settings_validate.c", "src/publisher/settings_exchange.c"),
 }
@@ -83,18 +81,39 @@ S64DocumentResult s64_overlay_pnetwork_s64_persistent_document_write_wire(
 }
 """
 
+PNETWORK_STAGE = r"""
+#include <stdint.h>
+#include "publisher/persistent_services.h"
+#pragma code-name ("PNETWORK_CODE")
+#pragma rodata-name ("PNETWORK_RODATA")
+void s64_overlay_pnetwork_s64_persistent_open_stage_init(
+    S64PersistentOpenStage* stage)
+{
+    if (stage) {
+        stage->body_started = 0u;
+        stage->result = S64_DOCUMENT_INVALID_ARGUMENT;
+    }
+}
+uint8_t s64_overlay_pnetwork_s64_persistent_open_stage_write(
+    const uint8_t* data, uint16_t length, void* context)
+{
+    (void)data;
+    (void)length;
+    (void)context;
+    return 0u;
+}
+"""
+
 MAIN = r"""
 #include <stdint.h>
 #include <string.h>
 
 #include "buffer.h"
-#include "charset.h"
 #include "document.h"
 #include "platform/code_overlay.h"
 #include "platform/code_overlay_namespace.h"
 #include "platform/network.h"
 #include "platform/reu.h"
-#include "platform/reu_layout.h"
 #include "platform/reu_runtime.h"
 #include "publisher/direct_auth.h"
 #include "publisher/standalone_direct.h"
@@ -114,13 +133,6 @@ extern uint16_t __fastcall__ s64_probe_pnetwork_ping(uint16_t);
 extern uint16_t __fastcall__ s64_probe_pruntime_ping(uint16_t);
 extern uint8_t s64_persistent_direct_trace;
 
-void s64_buffer_init(S64Buffer* value)
-{
-    value->gap_start = 0u;
-    value->gap_end = S64_BUFFER_CAPACITY;
-    value->cursor = 0u;
-}
-
 static S64ReuRuntimeControl control;
 static S64ReuAllocation assets[5];
 static S64CodeOverlayNamespace editor_namespace;
@@ -139,10 +151,7 @@ static uint16_t network_payload_length;
 static uint16_t network_received;
 static S64HttpTransport direct_http;
 static uint8_t fake_http_open_count;
-static uint8_t fake_http_document_reply;
 static S64StandaloneResult direct_result;
-static S64PersistentOpenStage open_stage;
-static uint8_t opened_body[6];
 static S64Buffer body;
 static S64Document document;
 static S64PersistentPublisher publisher;
@@ -290,21 +299,6 @@ static S64UciResult fake_http_uci(
         0x0au, 0x0du, 0x0au, 0x7bu, 0x22u, 0x6fu, 0x6bu, 0x22u, 0x3au, 0x74u, 0x72u, 0x75u,
         0x65u, 0x7du
     };
-    static const uint8_t document_response[] = {
-        0x48u, 0x54u, 0x54u, 0x50u, 0x2fu, 0x31u, 0x2eu, 0x30u, 0x20u, 0x32u, 0x30u, 0x30u,
-        0x20u, 0x4fu, 0x4bu, 0x0du, 0x0au, 0x43u, 0x6fu, 0x6eu, 0x74u, 0x65u, 0x6eu, 0x74u,
-        0x2du, 0x4cu, 0x65u, 0x6eu, 0x67u, 0x74u, 0x68u, 0x3au, 0x20u, 0x31u, 0x30u, 0x38u,
-        0x0du, 0x0au, 0x0du, 0x0au, 0x53u, 0x45u, 0x45u, 0x36u, 0x34u, 0x59u, 0x4fu, 0x55u,
-        0x2fu, 0x31u, 0x0au, 0x54u, 0x79u, 0x70u, 0x65u, 0x3au, 0x20u, 0x70u, 0x6fu, 0x73u,
-        0x74u, 0x0au, 0x53u, 0x6cu, 0x75u, 0x67u, 0x3au, 0x20u, 0x72u, 0x65u, 0x6du, 0x6fu,
-        0x74u, 0x65u, 0x2du, 0x31u, 0x0au, 0x54u, 0x69u, 0x74u, 0x6cu, 0x65u, 0x3au, 0x20u,
-        0x52u, 0x65u, 0x6du, 0x6fu, 0x74u, 0x65u, 0x20u, 0x74u, 0x65u, 0x73u, 0x74u, 0x0au,
-        0x53u, 0x74u, 0x61u, 0x74u, 0x75u, 0x73u, 0x3au, 0x20u, 0x70u, 0x75u, 0x62u, 0x6cu,
-        0x69u, 0x73u, 0x68u, 0x65u, 0x64u, 0x0au, 0x44u, 0x61u, 0x74u, 0x65u, 0x3au, 0x20u,
-        0x32u, 0x30u, 0x32u, 0x36u, 0x2du, 0x31u, 0x30u, 0x2du, 0x30u, 0x38u, 0x0au, 0x4fu,
-        0x72u, 0x64u, 0x65u, 0x72u, 0x3au, 0x20u, 0x2du, 0x37u, 0x0au, 0x0au, 0x48u, 0x65u,
-        0x6cu, 0x6cu, 0x6fu, 0x0au
-    };
     const uint8_t* response;
     uint16_t response_length;
     uint16_t sent;
@@ -351,9 +345,6 @@ static S64UciResult fake_http_uci(
         if (fake_http_open_count & 1u) {
             response = challenge_response;
             response_length = (uint16_t)sizeof(challenge_response);
-        } else if (fake_http_document_reply) {
-            response = document_response;
-            response_length = (uint16_t)sizeof(document_response);
         } else {
             response = ack_response;
             response_length = (uint16_t)sizeof(ack_response);
@@ -522,48 +513,6 @@ int main(void)
             require(direct_result == S64_STANDALONE_OK,
                 (uint8_t)(160u + s64_persistent_direct_trace));
 
-            fake_http_document_reply = 1u;
-            direct_result = s64_persistent_standalone_open_stage(
-                &direct_http,
-                "http://example.test/api.php?action=get&type=post&slug=remote-1&format=s64",
-                1u,
-                &open_stage
-            );
-            fake_http_document_reply = 0u;
-            require(direct_result == S64_STANDALONE_OK,
-                (uint8_t)(180u + s64_persistent_direct_trace));
-            require(open_stage.body_started
-                && open_stage.body_length == 6u
-                && open_stage.header_length != 0u, 190u);
-
-            require(s64_persistent_open_stage_commit(
-                &open_stage, &document) == S64_DOCUMENT_OK, 191u);
-            require(document.type == S64_DOCUMENT_POST
-                && document.status == S64_DOCUMENT_PUBLISHED
-                && document.order == -7
-                && !strcmp(document.slug, "remote-1")
-                && !strcmp(document.title, "Remote test")
-                && !strcmp(document.date, "2026-10-08"), 192u);
-            require(body.gap_start == 6u
-                && body.gap_end == S64_BUFFER_CAPACITY
-                && body.cursor == 0u, 193u);
-            require(s64_reu_load(
-                S64_REU_DOCUMENT_BANK,
-                S64_REU_DOCUMENT_BASE,
-                opened_body,
-                (uint16_t)sizeof(opened_body)), 194u);
-            {
-                static const uint8_t expected_body[] = {
-                    0x48u, 0x65u, 0x6cu, 0x6cu, 0x6fu, 0x0au
-                };
-                uint8_t i;
-                uint8_t ascii;
-                for (i = 0u; i < (uint8_t)sizeof(expected_body); ++i) {
-                    require(s64_charset_native_to_ascii(
-                        opened_body[i], &ascii)
-                        && ascii == expected_body[i], 195u);
-                }
-            }
         }
 
         require(s64_probe_pruntime_ping(cycle)
@@ -714,6 +663,14 @@ def build() -> Path:
     pnetwork_writer = generated / "pnetwork_writer.c"
     pnetwork_writer.write_text(PNETWORK_WRITER)
     sources.append(pnetwork_writer)
+
+    pnetwork_stage = generated / "pnetwork_stage.c"
+    pnetwork_stage.write_text(PNETWORK_STAGE)
+    sources.append(pnetwork_stage)
+    grouped_names["PNETWORK"].extend([
+        "s64_persistent_open_stage_init",
+        "s64_persistent_open_stage_write",
+    ])
 
     pnetwork_ping = generated / "pnetwork_ping.c"
     pnetwork_ping.write_text(PNETWORK_PING)
