@@ -21,12 +21,14 @@ GROUPS = {
         "src/publisher/state.c",
         "src/publisher/direct_key.c",
         "src/publisher/direct_key_store.c",
+        "diagnostics/persistent_result_message.c",
     ),
     "PNETWORK": (
         "src/platform/network.c",
         "src/crypto/sha256.c",
         "src/publisher/direct_auth.c",
         "src/publisher/standalone_direct.c",
+        "diagnostics/persistent_document_stage.c",
     ),
     "PRUNTIME": ("src/publisher/settings_validate.c", "src/publisher/settings_exchange.c"),
 }
