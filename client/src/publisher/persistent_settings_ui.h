@@ -5,6 +5,21 @@
 
 #include "publisher/settings_exchange.h"
 
+#define S64_SETTINGS_SCREEN_MAX_LINES 14u
+
+typedef struct {
+    uint8_t row;
+    const char* label;
+    const char* value;
+} S64PersistentSettingsScreenLine;
+
+typedef struct {
+    const char* title;
+    uint8_t line_count;
+    S64PersistentSettingsScreenLine lines[S64_SETTINGS_SCREEN_MAX_LINES];
+    const char* status;
+} S64PersistentSettingsScreen;
+
 typedef enum {
     S64_SETTINGS_UI_NONE = 0,
     S64_SETTINGS_UI_EDIT_SITE,
@@ -25,6 +40,13 @@ S64PersistentSettingsAction s64_persistent_settings_key(
     S64SettingsExchange* settings,
     uint8_t* advanced_view,
     uint8_t key
+);
+
+uint8_t s64_persistent_settings_screen(
+    const S64SettingsExchange* settings,
+    uint8_t advanced_view,
+    const char* status,
+    S64PersistentSettingsScreen* screen
 );
 
 #endif
