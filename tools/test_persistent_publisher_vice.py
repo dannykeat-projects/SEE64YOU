@@ -22,7 +22,6 @@ GROUPS = {
         "src/crypto/sha256.c",
         "src/publisher/direct_auth.c",
         "src/publisher/standalone_direct.c",
-        "diagnostics/persistent_document_write.c",
     ),
     "PRUNTIME": ("src/publisher/settings_validate.c", "src/publisher/settings_exchange.c"),
 }
@@ -60,6 +59,22 @@ uint16_t __fastcall__ s64_overlay_pruntime_s64_probe_pruntime_ping(uint16_t valu
 { return (uint16_t)(value ^ 0xa55au); }
 """
 
+PNETWORK_WRITER = r"""
+#include <stdint.h>
+#include "document.h"
+#pragma code-name ("PNETWORK_CODE")
+#pragma rodata-name ("PNETWORK_RODATA")
+S64DocumentResult s64_overlay_pnetwork_s64_persistent_document_write_wire(
+    const S64Document* document, S64DocumentSink sink, void* context)
+{
+    static const uint8_t body[] = { 0x54u, 0x45u, 0x53u, 0x54u };
+    (void)document;
+    if (!sink || !sink(body, (uint16_t)sizeof(body), context))
+        return S64_DOCUMENT_SINK_ERROR;
+    return S64_DOCUMENT_OK;
+}
+"""
+
 MAIN = r"""
 #include <stdint.h>
 #include <string.h>
@@ -88,30 +103,6 @@ extern uint16_t __fastcall__ s64_probe_settings(uint16_t);
 extern uint16_t __fastcall__ s64_probe_pnetwork_ping(uint16_t);
 extern uint16_t __fastcall__ s64_probe_pruntime_ping(uint16_t);
 extern uint8_t s64_persistent_direct_trace;
-
-/* The persistent product fit links the real REU buffer implementation. This
- * executable gate only needs an empty document body for write-side HTTP
- * coverage, so keep the harness resident footprint bounded with the three
- * buffer operations exercised by that case. */
-void s64_buffer_init(S64Buffer* value)
-{
-    value->gap_start = 0u;
-    value->gap_end = S64_BUFFER_CAPACITY;
-    value->cursor = 0u;
-}
-
-unsigned int s64_buffer_length(const S64Buffer* value)
-{
-    return (unsigned int)(S64_BUFFER_CAPACITY
-        - (value->gap_end - value->gap_start));
-}
-
-unsigned char s64_buffer_char_at(const S64Buffer* value, unsigned int index)
-{
-    (void)value;
-    (void)index;
-    return 0u;
-}
 
 static S64ReuRuntimeControl control;
 static S64ReuAllocation assets[5];
@@ -369,7 +360,6 @@ int main(void)
 
     memset(&body, 0, sizeof(body));
     memset(&document, 0, sizeof(document));
-    s64_buffer_init(&body);
     document.body = &body;
     document.type = S64_DOCUMENT_POST;
     strcpy(document.slug, "entry-1");
@@ -621,6 +611,8 @@ def build() -> Path:
 
     for group, paths in GROUPS.items():
         names: list[str] = []
+        if group == "PNETWORK":
+            names.append("s64_persistent_document_write_wire")
         for path in paths:
             names.extend(fit.public_s64_definitions(
                 (CLIENT / path).read_text(encoding="utf-8")
@@ -634,6 +626,10 @@ def build() -> Path:
                 )
             )
             sources.append(generated_path)
+
+    pnetwork_writer = generated / "pnetwork_writer.c"
+    pnetwork_writer.write_text(PNETWORK_WRITER)
+    sources.append(pnetwork_writer)
 
     pnetwork_ping = generated / "pnetwork_ping.c"
     pnetwork_ping.write_text(PNETWORK_PING)
