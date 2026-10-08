@@ -89,6 +89,30 @@ extern uint16_t __fastcall__ s64_probe_pnetwork_ping(uint16_t);
 extern uint16_t __fastcall__ s64_probe_pruntime_ping(uint16_t);
 extern uint8_t s64_persistent_direct_trace;
 
+/* The persistent product fit links the real REU buffer implementation. This
+ * executable gate only needs an empty document body for write-side HTTP
+ * coverage, so keep the harness resident footprint bounded with the three
+ * buffer operations exercised by that case. */
+void s64_buffer_init(S64Buffer* value)
+{
+    value->gap_start = 0u;
+    value->gap_end = S64_BUFFER_CAPACITY;
+    value->cursor = 0u;
+}
+
+unsigned int s64_buffer_length(const S64Buffer* value)
+{
+    return (unsigned int)(S64_BUFFER_CAPACITY
+        - (value->gap_end - value->gap_start));
+}
+
+unsigned char s64_buffer_char_at(const S64Buffer* value, unsigned int index)
+{
+    (void)value;
+    (void)index;
+    return 0u;
+}
+
 static S64ReuRuntimeControl control;
 static S64ReuAllocation assets[5];
 static S64CodeOverlayNamespace editor_namespace;
@@ -637,7 +661,6 @@ def build() -> Path:
         CLIENT / "src/platform/reu_runtime.c",
         CLIENT / "src/platform/reu_runtime_build.c",
         CLIENT / "src/platform/reu_runtime_write.c",
-        CLIENT / "src/buffer_reu.c",
         CLIENT / "src/publisher/persistent_mode.c",
         CLIENT / "diagnostics/persistent_publisher_services.c",
         CLIENT / "src/charset.c",
