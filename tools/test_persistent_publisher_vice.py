@@ -30,7 +30,7 @@ GROUPS = {
     ),
     "PRUNTIME": ("src/publisher/settings_validate.c", "src/publisher/settings_exchange.c"),
 }
-GROUP_IDS = {"EDITOR": 1, "PCONTENT": 1, "PNETWORK": 2, "PRUNTIME": 3, "PUI": 4, "SETTINGS": 1}
+GROUP_IDS = {"EDITOR": 1, "PCONTENT": 1, "PNETWORK": 2, "PRUNTIME": 3, "SETTINGS": 1}
 
 EDITOR = r"""
 #include <stdint.h>
@@ -62,36 +62,6 @@ PRUNTIME_PING = r"""
 #pragma rodata-name ("PRUNTIME_RODATA")
 uint16_t __fastcall__ s64_overlay_pruntime_s64_probe_pruntime_ping(uint16_t value)
 { return (uint16_t)(value ^ 0xa55au); }
-"""
-
-PUI_COMMAND = r"""
-#include <stdint.h>
-#include "publisher/persistent_ui.h"
-#pragma code-name ("PUI_CODE")
-#pragma rodata-name ("PUI_RODATA")
-S64PersistentPublisherAction s64_overlay_pui_s64_persistent_publisher_key(
-    S64PersistentPublisher* publisher, uint8_t key)
-{
-    if (!publisher || !publisher->document) return S64_PUBLISH_UI_NONE;
-    if (key == '3') return S64_PUBLISH_UI_SAVE;
-    if (key == '6') return S64_PUBLISH_UI_LIST_PAGE;
-    if (key == 3u) return S64_PUBLISH_UI_RETURN_EDITOR;
-    if (key == '4') {
-        publisher->document->status =
-            publisher->document->status == S64_DOCUMENT_PUBLISHED
-                ? S64_DOCUMENT_DRAFT : S64_DOCUMENT_PUBLISHED;
-        publisher->document_changed = 1u;
-        return S64_PUBLISH_UI_NONE;
-    }
-    if (key == 't' || key == 'T') {
-        publisher->document->type =
-            publisher->document->type == S64_DOCUMENT_PAGE
-                ? S64_DOCUMENT_POST : S64_DOCUMENT_PAGE;
-        publisher->document_changed = 1u;
-        return S64_PUBLISH_UI_TYPE_CHANGED;
-    }
-    return S64_PUBLISH_UI_NONE;
-}
 """
 
 PNETWORK_WRITER = r"""
@@ -444,24 +414,6 @@ int main(void)
     s64_persistent_publisher_init(&publisher, &document);
     require(s64_persistent_publisher_valid(&publisher), 11u);
 
-    require(s64_code_overlay_namespace_activate(
-        &publisher_namespace, &control, overlay_reader), 12u);
-    require(s64_persistent_publisher_key(&publisher, '4') == S64_PUBLISH_UI_NONE
-        && document.status == S64_DOCUMENT_PUBLISHED
-        && publisher.document_changed, 13u);
-    s64_persistent_publisher_reset_change_flags(&publisher);
-    publisher.publish_state.remote_bound = 1u;
-    require(s64_persistent_publisher_key(&publisher, 'T')
-            == S64_PUBLISH_UI_TYPE_CHANGED
-        && document.type == S64_DOCUMENT_PAGE
-        && publisher.publish_state.remote_bound
-        && publisher.document_changed, 14u);
-    s64_persistent_publisher_reset_change_flags(&publisher);
-    require(s64_persistent_publisher_key(&publisher, '3') == S64_PUBLISH_UI_SAVE
-        && s64_persistent_publisher_key(&publisher, '6') == S64_PUBLISH_UI_LIST_PAGE
-        && s64_persistent_publisher_key(&publisher, CH_STOP)
-            == S64_PUBLISH_UI_RETURN_EDITOR, 15u);
-
     memset(body_digest, 0, sizeof(body_digest));
 
     for (cycle = 1u; cycle <= 8u; ++cycle) {
@@ -626,7 +578,7 @@ int main(void)
 
 
 def config_text() -> str:
-    groups = ("EDITOR", "PCONTENT", "PNETWORK", "PRUNTIME", "PUI", "SETTINGS")
+    groups = ("EDITOR", "PCONTENT", "PNETWORK", "PRUNTIME", "SETTINGS")
     memory = "\n".join(
         f'    {g}: file = "build/persistent-publisher-vice/{g.lower()}.bin", '
         'start = $8C00, size = $3C00;'
@@ -694,7 +646,6 @@ def build() -> Path:
         "PCONTENT": [],
         "PNETWORK": [],
         "PRUNTIME": [],
-        "PUI": ["s64_persistent_publisher_key"],
         "SETTINGS": ["s64_probe_settings"],
     }
     sources: list[Path] = []
@@ -755,10 +706,6 @@ def build() -> Path:
     sources.append(pruntime_ping)
     grouped_names["PRUNTIME"].append("s64_probe_pruntime_ping")
 
-    pui_command = generated / "pui_command.c"
-    pui_command.write_text(PUI_COMMAND)
-    sources.append(pui_command)
-
     settings = generated / "settings.c"
     settings.write_text(SETTINGS)
     sources.append(settings)
@@ -797,7 +744,7 @@ def build() -> Path:
     blob_obj = objects_dir / "blobs.o"
     prg = OUT / "persistent-publisher-vice.prg"
     map_path = OUT / "persistent-publisher-vice.map"
-    group_order = ("editor", "pcontent", "pnetwork", "pruntime", "pui", "settings")
+    group_order = ("editor", "pcontent", "pnetwork", "pruntime", "settings")
 
     for initial in (True, False, False):
         lines = ['.segment "RODATA"']
@@ -808,6 +755,12 @@ def build() -> Path:
                 ".byte 0" if initial else f'.incbin "{OUT.as_posix()}/{group}.bin"',
                 f"_{group}_image_end:",
             ]
+        lines += [
+            ".export _pui_image, _pui_image_end",
+            "_pui_image:",
+            ".byte $60",
+            "_pui_image_end:",
+        ]
         blobs.write_text("\n".join(lines) + "\n")
         fit.run(["cl65", *flags, "-c", "-o", str(blob_obj), str(blobs)], cwd=CLIENT)
         fit.run(
