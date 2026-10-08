@@ -31,6 +31,7 @@ jobs:
         run: |
           python3 tools/test_persistent_runtime_vice.py --build-only
           python3 tools/test_persistent_settings_ui_vice.py --build-only
+          python3 tools/test_persistent_settings_store_vice.py --build-only
 
       - name: Measure real persistent Editor root
         run: python3 tools/build_persistent_editor_fit.py
@@ -66,6 +67,9 @@ jobs:
       - name: Run real persistent Settings UI VICE gate
         run: python3 tools/test_persistent_settings_ui_vice.py
 
+      - name: Run real persistent Settings storage VICE gate
+        run: python3 tools/test_persistent_settings_store_vice.py
+
       - name: Publish persistent-runtime fit maps
         if: always()
         uses: actions/upload-artifact@v4
@@ -84,5 +88,7 @@ jobs:
             client/build/persistent-publisher-vice/persistent-publisher-vice.prg
             client/build/persistent-settings-ui-vice/persistent-settings-ui-vice.map
             client/build/persistent-settings-ui-vice/persistent-settings-ui-vice.prg
+            client/build/persistent-settings-store-vice/persistent-settings-store-vice.map
+            client/build/persistent-settings-store-vice/persistent-settings-store-vice.prg
           if-no-files-found: warn
           retention-days: 14
