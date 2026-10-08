@@ -252,8 +252,10 @@ static S64StandaloneResult exchange(const char* method, const char* path,
     S64NetResult result;
     S64StandaloneResult outcome = S64_STANDALONE_TRANSPORT_ERROR;
     uint16_t idle = 0, received;
+    S64_DIRECT_TRACE(10u);
     if (s64_net_open_tcp(&network, host, 80u, &socket_handle) != S64_NET_OK)
         return outcome;
+    S64_DIRECT_TRACE(11u);
     memset(&reply, 0, sizeof(reply));
     reply.sink = sink; reply.context = context;
     status_code = 0; text_length = 0; reply_text[0] = 0;
@@ -268,19 +270,33 @@ static S64StandaloneResult exchange(const char* method, const char* path,
             || !send_text(line)) goto cleanup;
     }
     if (!send_text("\r\n") || (writer && !writer(send_body, 0, source))) goto cleanup;
+    S64_DIRECT_TRACE(12u);
     while (idle < 512u) {
         received = 0;
+        S64_DIRECT_TRACE(13u);
         result = s64_net_read(&network, socket_handle, S64_NET_READ_MAX,
             read_reply, &reply, &received);
-        if (reply.failed) { outcome = S64_STANDALONE_PROTOCOL_ERROR; goto cleanup; }
-        if (result != S64_NET_OK && result != S64_NET_NO_DATA && result != S64_NET_CLOSED)
+        if (reply.failed) {
+            S64_DIRECT_TRACE(14u);
+            outcome = S64_STANDALONE_PROTOCOL_ERROR;
             goto cleanup;
+        }
+        if (result != S64_NET_OK && result != S64_NET_NO_DATA && result != S64_NET_CLOSED) {
+            S64_DIRECT_TRACE(15u);
+            goto cleanup;
+        }
+        S64_DIRECT_TRACE(16u);
         if (received) idle = 0; else ++idle;
         if (reply.headers_done && reply.have_length && !reply.remaining) break;
         if (result == S64_NET_CLOSED) break;
     }
     if (!reply.headers_done || (reply.have_length && reply.remaining)
-        || idle == 512u) { outcome = S64_STANDALONE_PROTOCOL_ERROR; goto cleanup; }
+        || idle == 512u) {
+        S64_DIRECT_TRACE(17u);
+        outcome = S64_STANDALONE_PROTOCOL_ERROR;
+        goto cleanup;
+    }
+    S64_DIRECT_TRACE(18u);
     if (status_code == 401u) outcome = S64_STANDALONE_AUTH_FAILED;
     else if (status_code >= 200u && status_code < 300u) outcome = S64_STANDALONE_OK;
     else outcome = S64_STANDALONE_SERVER_ERROR;
