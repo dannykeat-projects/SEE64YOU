@@ -83,7 +83,8 @@ int main(void)
     require(screen.line_count == 11u
         && screen.title
         && screen.lines[0].row == 3u
-        && screen.lines[0].value == settings.base_url, 6u);
+        && !strcmp(screen.lines[0].text,
+            "Website: http://example.test"), 6u);
     s64_persistent_settings_render_screen(&screen);
 
     require(s64_persistent_settings_screen(
