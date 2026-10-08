@@ -141,6 +141,7 @@ def build() -> Path:
             "src/platform/basic_return_stub.s",
             "src/platform/crc32.c",
             "src/publisher/persistent_mode.c",
+            "src/publisher/persistent_dispatch.c",
             "diagnostics/persistent_publisher_services.c",
             "diagnostics/persistent_runtime_fit_mode.c",
             *[source for group in PUBLISHER_GROUPS.values() for source in group],
