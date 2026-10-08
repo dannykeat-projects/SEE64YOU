@@ -36,17 +36,5 @@ S64DocumentResult s64_persistent_document_write_wire(
     S64DocumentSink sink,
     void* context
 );
-void s64_persistent_document_wire_reader_init(
-    S64DocumentWireReader* reader,
-    S64Document* document
-);
-uint8_t s64_persistent_document_wire_reader_write(
-    const uint8_t* data,
-    uint16_t length,
-    void* context
-);
-S64DocumentResult s64_persistent_document_wire_reader_finish(
-    S64DocumentWireReader* reader
-);
 
 #endif
