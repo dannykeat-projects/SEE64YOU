@@ -1,4 +1,7 @@
 #include "publisher/settings_store.h"
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+#include "publisher/workspace.h"
+#endif
 #include "charset.h"
 #include "platform/package_paths.h"
 
@@ -257,7 +260,11 @@ static S64SettingsStoreResult save_named(
     S64DosResult result;
     S64SettingsStoreResult verified_result;
     /* Fixed scratch avoids consuming the helper software stack. */
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+#define verified (*(S64SettingsExchange*)&s64_publisher_workspace.bytes[S64_SETTINGS_WORK_VERIFY_OFFSET])
+#else
     static S64SettingsExchange verified;
+#endif
 
     if (dos == 0 || path == 0 || filename == 0 || settings == 0) {
         return S64_SETTINGS_STORE_INVALID;
@@ -318,6 +325,9 @@ static S64SettingsStoreResult save_named(
         return S64_SETTINGS_STORE_VERIFY_ERROR;
     }
     memset(&verified, 0, sizeof(verified));
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+#undef verified
+#endif
     return S64_SETTINGS_STORE_OK;
 }
 
