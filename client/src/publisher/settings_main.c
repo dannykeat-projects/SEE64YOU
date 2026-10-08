@@ -15,6 +15,7 @@
 #include "publisher/settings_store.h"
 #ifdef S64_PERSISTENT_RUNTIME_FIT
 #include "publisher/workspace.h"
+#include "publisher/persistent_settings_control.h"
 #endif
 #ifdef S64_MANAGED_OVERLAY
 #include "platform/module_arrival.h"
@@ -98,7 +99,9 @@ static S64SettingsExchange settings;
 static S64SettingsExchange original_settings;
 static S64SettingsExchange profile_settings;
 #endif
+#ifndef S64_PERSISTENT_RUNTIME_FIT
 static S64PublishDestination checked_destination;
+#endif
 static S64Dos dos;
 static S64UciCapabilities capabilities;
 static char status_text[SCREEN_COLUMNS + 1u];
@@ -451,6 +454,20 @@ static void choose_destination(void)
 
 static uint8_t validate_values(S64SettingsExchange* target)
 {
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+    S64PersistentSettingsControlResult result;
+
+    result = s64_persistent_settings_validate_values(target);
+    if (result == S64_SETTINGS_CONTROL_OK) return 1u;
+    if (result == S64_SETTINGS_CONTROL_INVALID_DESTINATION) {
+        set_status("Publishing destination invalid");
+    } else if (result == S64_SETTINGS_CONTROL_INVALID_VALUES) {
+        set_status("Publishing key invalid");
+    } else {
+        set_status("Settings validation failed");
+    }
+    return 0u;
+#else
     S64DestinationResult result;
 
     if (target == 0) return 0u;
@@ -481,6 +498,7 @@ static uint8_t validate_values(S64SettingsExchange* target)
         return 0u;
     }
     return 1u;
+#endif
 }
 
 static uint8_t validate_settings(void)
