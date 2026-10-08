@@ -126,3 +126,45 @@ S64PersistentSettingsKeyImportResult s64_persistent_settings_import_direct_key(
     memset(scratch, 0, 65u);
     return S64_SETTINGS_KEY_IMPORT_OK;
 }
+
+S64PersistentSettingsCommitResult s64_persistent_settings_commit(
+    S64Dos* dos,
+    S64SettingsExchange* settings)
+{
+    S64SettingsStoreResult result;
+
+    if (!dos || !settings) return S64_SETTINGS_COMMIT_INVALID;
+    if (s64_persistent_settings_validate_values(settings)
+            != S64_SETTINGS_CONTROL_OK) {
+        return S64_SETTINGS_COMMIT_INVALID;
+    }
+
+    settings->state = S64_SETTINGS_STATE_READY;
+    settings->result = S64_SETTINGS_RESULT_OK;
+    result = s64_settings_store_save(dos, settings);
+    if (result == S64_SETTINGS_STORE_VERIFY_ERROR) {
+        settings->result = S64_SETTINGS_RESULT_IO_ERROR;
+        return S64_SETTINGS_COMMIT_VERIFY_ERROR;
+    }
+    if (result != S64_SETTINGS_STORE_OK) {
+        settings->result = S64_SETTINGS_RESULT_IO_ERROR;
+        return S64_SETTINGS_COMMIT_STORE_ERROR;
+    }
+    if (!s64_settings_exchange_store(settings)) {
+        return S64_SETTINGS_COMMIT_EXCHANGE_ERROR;
+    }
+    return S64_SETTINGS_COMMIT_OK;
+}
+
+S64PersistentSettingsCommitResult s64_persistent_settings_restore_original(
+    S64SettingsExchange* settings)
+{
+    if (!settings) return S64_SETTINGS_COMMIT_INVALID;
+    if (!s64_settings_exchange_load(settings)) {
+        return S64_SETTINGS_COMMIT_EXCHANGE_ERROR;
+    }
+    settings->state = S64_SETTINGS_STATE_READY;
+    return s64_settings_exchange_store(settings)
+        ? S64_SETTINGS_COMMIT_OK
+        : S64_SETTINGS_COMMIT_EXCHANGE_ERROR;
+}
