@@ -473,6 +473,7 @@ S64StandaloneResult s64_standalone_delete_document(S64HttpTransport* transport,
     return ack_result(request(transport, url, allow_http, "POST", write_delete, &body, collect_text, 0, 0));
 }
 
+#ifndef S64_PERSISTENT_RUNTIME_FIT
 const char* s64_standalone_result_message(S64StandaloneResult result)
 {
     switch (result) {
@@ -486,3 +487,4 @@ const char* s64_standalone_result_message(S64StandaloneResult result)
         default: return "Unexpected server reply";
     }
 }
+#endif
