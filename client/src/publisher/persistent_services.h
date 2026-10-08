@@ -29,6 +29,13 @@ S64DocumentResult s64_persistent_open_stage_commit(
     S64Document* document
 );
 
+uint8_t s64_persistent_list_summary_parse(
+    S64DocumentType type,
+    uint16_t index,
+    S64DocumentSummary* summary,
+    uint16_t* total_count
+);
+
 int s64_persistent_document_slug_valid(const char* slug);
 const char* s64_persistent_document_type_name(S64DocumentType type);
 S64DocumentResult s64_persistent_document_write_wire(
