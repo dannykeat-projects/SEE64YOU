@@ -326,6 +326,23 @@ if ($HostCc) {
             "client/tests/launcher_code_assets_test.c",
             "client/src/launcher/code_assets_runtime.c"
         )
+        Invoke-CTest "persistent_open_preservation" @(
+            "-Werror", "-DS64_REU_BUFFER=1",
+            "client/tests/persistent_open_preservation_test.c",
+            "client/src/buffer_reu.c",
+            "client/src/history_reu.c",
+            "client/src/editor.c",
+            "client/src/clipboard.c",
+            "client/src/charset.c",
+            "client/src/publisher/workspace.c",
+            "client/diagnostics/persistent_document_stage.c",
+            "client/diagnostics/persistent_document_read.c",
+            "client/diagnostics/persistent_open_prepare.c",
+            "client/diagnostics/persistent_publisher_services.c",
+            "client/src/platform/reu_runtime.c",
+            "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_write.c"
+        )
         Invoke-CTest "application_state" @(
             "-Werror", "-ffunction-sections", "-Wl,--gc-sections", "-DS64_REU_BUFFER=1",
             "client/tests/application_state_test.c",

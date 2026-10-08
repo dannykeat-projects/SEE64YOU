@@ -51,6 +51,43 @@ migration is part of MVP. Failed/cancelled remote open must preserve user source
 including failures after REU staging begins; successful-open tests alone do not
 establish that property.
 
+The host-tested preservation patch isolates remote-open data in one reusable
+allocator-owned `S64_REU_OWNER_PUBLISHER` allocation, tagged `0x4f`. Its 126,976
+bytes hold a 4,096-byte header area, the existing 61,440-byte body capacity and a
+61,440-byte rollback copy of the original physical gap buffer. No fixed bank is
+reserved, no wire format changes, and the 16-entry limit remains unchanged. This
+adds one entry to the previous 14-entry projection; complete-package fit is still
+unverified. The append-only allocator retains this scratch for the ACTIVE session
+and reuses it rather than allocating on each open/cancel.
+
+Resident orchestration calls `s64_persistent_open_stage_init(stage, control)` with
+the live owner's allocator before entering the network overlay. Preparation lives
+in PCONTENT; it uses resident allocator helpers and returns before PNETWORK runs.
+Like `s64_reu_runtime_allocate`, preparation updates the live control only. Any
+required control publication remains an owner/lifecycle responsibility in the
+correct namespace; do not call an Editor RUNTIME veneer from Publisher PCONTENT.
+The transport authorizes commit with `stage_finish` only after a successful complete
+request. A cancelled or failed request must not commit the stage.
+
+PCONTENT parses metadata separately and converts only staged body bytes. It then
+copies and readback-verifies the original physical document buffer before writing
+live bytes. Replacement writes are also readback-verified. A failed replacement
+restores and verifies the backup without changing live metadata or Editor controls.
+History and clipboard are never staging storage. Successful commit updates the
+buffer and metadata; the owner must then apply existing history/dirty-state and
+binding semantics. The stage is consumed and cannot be committed/converted twice.
+
+If rollback fails, `recovery_required` stays set and the original backup remains
+reserved. Stop editing and keep the stage; `stage_restore` can retry restoration.
+Never reinitialize the stage or reuse its scratch until recovery succeeds. This
+is synchronous REU rollback, not durable power-loss recovery; do not restart and
+claim the source is safe. The legacy diagnostic caller stops on this condition;
+the future persistent owner must handle the same explicit result.
+
+Host failure-path coverage passes, but cc65 fit/VICE validation of the patch is
+pending. The Editor Publish placeholder, disconnected Settings/Publisher slices
+and Settings-screen timeout still block a complete persistent product package.
+
 Implementation, validation and retirement tasks live only in ../todo.md.
 Superseded troubleshooting remains in Git history.
 

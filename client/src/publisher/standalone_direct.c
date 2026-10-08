@@ -513,15 +513,19 @@ S64StandaloneResult s64_persistent_standalone_open_stage(
 {
     S64StandaloneResult result;
 
-    if (!stage) return S64_STANDALONE_INVALID_ARGUMENT;
-    s64_persistent_open_stage_init(stage);
+    if (!stage || !stage->address || stage->complete
+        || stage->result != S64_DOCUMENT_OK || stage->recovery_required)
+        return S64_STANDALONE_INVALID_ARGUMENT;
     result = request(
         transport, url, allow_http, "GET", 0, 0,
         s64_persistent_open_stage_write, stage, 0);
     if (stage->result == S64_DOCUMENT_SINK_ERROR)
         return S64_STANDALONE_RESPONSE_TOO_LARGE;
-    if (result != S64_STANDALONE_OK) return result;
-    return stage->body_started
+    if (result != S64_STANDALONE_OK) {
+        stage->result = S64_DOCUMENT_SINK_ERROR;
+        return result;
+    }
+    return s64_persistent_open_stage_finish(stage)
         ? S64_STANDALONE_OK
         : S64_STANDALONE_PROTOCOL_ERROR;
 }

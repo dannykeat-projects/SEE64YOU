@@ -20,6 +20,7 @@ GROUPS = {
         "src/publisher/direct_key.c",
         "src/publisher/direct_key_store.c",
         "diagnostics/persistent_document_read.c",
+        "diagnostics/persistent_open_prepare.c",
         "diagnostics/persistent_list_summary.c",
     ),
     "PNETWORK": (
@@ -295,6 +296,7 @@ int main(void)
 
     fake_http_mode = 1u;
     fake_http_open_count = 0u;
+    require(s64_persistent_open_stage_init(&open_stage, &control), 53u);
     result = s64_persistent_standalone_open_stage(
         &direct_http,
         "http://example.test/api.php?action=get&type=post&slug=remote-1&format=s64",
@@ -307,8 +309,8 @@ int main(void)
         && open_stage.body_length == 6u
         && open_stage.header_length == (uint16_t)sizeof(expected_header), 7u);
     require(s64_reu_load(
-        S64_REU_HISTORY_PAYLOAD_BANK,
-        S64_REU_HISTORY_PAYLOAD_BASE,
+        (uint8_t)(open_stage.address >> 16),
+        (uint16_t)open_stage.address,
         staged_header,
         (uint16_t)sizeof(staged_header)), 70u);
     for (i = 0u; i < (uint8_t)sizeof(expected_header); ++i) {

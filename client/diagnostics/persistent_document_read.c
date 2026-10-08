@@ -10,6 +10,7 @@
 
 #define S64_STAGE_READ_CHUNK 96u
 #define read_chunk ((uint8_t*)&s64_publisher_workspace.bytes[0])
+#define verify_chunk ((uint8_t*)&s64_publisher_workspace.bytes[S64_STAGE_READ_CHUNK])
 
 #define S64_WIRE_PHASE_VERSION 0u
 #define S64_WIRE_PHASE_HEADERS 1u
@@ -21,18 +22,6 @@
 #define S64_WIRE_SEEN_DATE   0x10u
 #define S64_WIRE_SEEN_ORDER  0x20u
 #define S64_WIRE_SEEN_REQUIRED 0x3fu
-
-static void reset_document(S64Document* document)
-{
-    if (!document || !document->body) return;
-    s64_buffer_init(document->body);
-    document->type = S64_DOCUMENT_PAGE;
-    document->slug[0] = 0;
-    document->title[0] = 0;
-    document->status = S64_DOCUMENT_DRAFT;
-    document->date[0] = 0;
-    document->order = 0;
-}
 
 static uint8_t copy_text(char* output, uint16_t capacity, const char* text)
 {
@@ -152,8 +141,8 @@ static uint8_t parse_staged_header(
         amount = (uint16_t)(stage->header_length - offset);
         if (amount > S64_STAGE_READ_CHUNK) amount = S64_STAGE_READ_CHUNK;
         if (!s64_reu_load(
-                S64_REU_HISTORY_PAYLOAD_BANK,
-                (uint16_t)(S64_REU_HISTORY_PAYLOAD_BASE + offset),
+                (uint8_t)((stage->address + offset) >> 16),
+                (uint16_t)(stage->address + offset),
                 read_chunk,
                 amount)) return 0u;
 
@@ -185,8 +174,8 @@ static uint8_t convert_body(const S64PersistentOpenStage* stage)
         amount = (uint16_t)(stage->body_length - offset);
         if (amount > S64_STAGE_READ_CHUNK) amount = S64_STAGE_READ_CHUNK;
         if (!s64_reu_load(
-                S64_REU_DOCUMENT_BANK,
-                (uint16_t)(S64_REU_DOCUMENT_BASE + offset),
+                (uint8_t)((stage->address + S64_OPEN_BODY_OFFSET + offset) >> 16),
+                (uint16_t)(stage->address + S64_OPEN_BODY_OFFSET + offset),
                 read_chunk,
                 amount)) return 0u;
 
@@ -196,38 +185,94 @@ static uint8_t convert_body(const S64PersistentOpenStage* stage)
         }
 
         if (!s64_reu_store(
-                S64_REU_DOCUMENT_BANK,
-                (uint16_t)(S64_REU_DOCUMENT_BASE + offset),
+                (uint8_t)((stage->address + S64_OPEN_BODY_OFFSET + offset) >> 16),
+                (uint16_t)(stage->address + S64_OPEN_BODY_OFFSET + offset),
                 read_chunk,
-                amount)) return 0u;
+                amount)
+            || !s64_reu_load(
+                (uint8_t)((stage->address + S64_OPEN_BODY_OFFSET + offset) >> 16),
+                (uint16_t)(stage->address + S64_OPEN_BODY_OFFSET + offset),
+                verify_chunk, amount)
+            || memcmp(read_chunk, verify_chunk, amount)) return 0u;
         offset = (uint16_t)(offset + amount);
     }
     return 1u;
 }
 
+/* Readback matters: the hardware DMA wrapper cannot report a bus failure. */
+static uint8_t copy_verified(uint32_t source, uint32_t target, uint16_t length)
+{
+    uint16_t amount;
+
+    while (length) {
+        amount = length > S64_STAGE_READ_CHUNK ? S64_STAGE_READ_CHUNK : length;
+        if (!s64_reu_load((uint8_t)(source >> 16), (uint16_t)source,
+                read_chunk, amount)
+            || !s64_reu_store((uint8_t)(target >> 16), (uint16_t)target,
+                read_chunk, amount)
+            || !s64_reu_load((uint8_t)(target >> 16), (uint16_t)target,
+                verify_chunk, amount)
+            || memcmp(read_chunk, verify_chunk, amount)) return 0u;
+        source += amount;
+        target += amount;
+        length = (uint16_t)(length - amount);
+    }
+    return 1u;
+}
+
+uint8_t s64_persistent_open_stage_restore(S64PersistentOpenStage* stage)
+{
+    if (!stage || !stage->recovery_required) return 0u;
+    if (!copy_verified(stage->address + S64_OPEN_BACKUP_OFFSET,
+            S64_REU_DOCUMENT_BASE, S64_REU_DOCUMENT_CAPACITY)) return 0u;
+    stage->recovery_required = 0u;
+    return 1u;
+}
+
 S64DocumentResult s64_persistent_open_stage_commit(
-    const S64PersistentOpenStage* stage,
+    S64PersistentOpenStage* stage,
     S64Document* document)
 {
+    S64Document candidate;
+
     if (!stage || !document || !document->body)
         return S64_DOCUMENT_INVALID_ARGUMENT;
-
-    reset_document(document);
-    if (stage->result != S64_DOCUMENT_OK || !stage->body_started
-        || !parse_staged_header(stage, document)) {
-        reset_document(document);
-        return stage->result == S64_DOCUMENT_SINK_ERROR
-            ? S64_DOCUMENT_SINK_ERROR
-            : S64_DOCUMENT_INVALID_METADATA;
-    }
-
-    if (!convert_body(stage)) {
-        reset_document(document);
+    if (stage->recovery_required || stage->result != S64_DOCUMENT_OK)
         return S64_DOCUMENT_SINK_ERROR;
-    }
+    if (stage->complete != 1u || !stage->body_started
+        || stage->address < S64_REU_RUNTIME_HEAP_START
+        || stage->address > S64_REU_RUNTIME_HEAP_END - S64_OPEN_STORAGE_SIZE
+        || stage->header_length > S64_OPEN_BODY_OFFSET
+        || stage->body_length > S64_REU_DOCUMENT_CAPACITY)
+        return S64_DOCUMENT_INVALID_METADATA;
 
+    /* A stage is single-use: partial conversion must not be retried as ASCII. */
+    stage->complete = 2u;
+    stage->result = S64_DOCUMENT_INVALID_METADATA;
+    memset(&candidate, 0, sizeof(candidate));
+    candidate.body = document->body;
+    if (!parse_staged_header(stage, &candidate)) return stage->result;
+
+    stage->result = S64_DOCUMENT_SINK_ERROR;
+    if (!convert_body(stage)
+        || !copy_verified(S64_REU_DOCUMENT_BASE,
+            stage->address + S64_OPEN_BACKUP_OFFSET, S64_REU_DOCUMENT_CAPACITY))
+        return stage->result;
+
+    /* Keep the original physical gap-buffer layout until replacement verifies.
+     * No Editor controls, history or metadata have changed at this point. */
+    stage->recovery_required = 1u;
+    if (!copy_verified(stage->address + S64_OPEN_BODY_OFFSET,
+            S64_REU_DOCUMENT_BASE, stage->body_length)) {
+        (void)s64_persistent_open_stage_restore(stage);
+        return stage->result;
+    }
+    stage->recovery_required = 0u;
+    s64_buffer_init(document->body);
     document->body->gap_start = stage->body_length;
     document->body->gap_end = S64_BUFFER_CAPACITY;
     document->body->cursor = 0u;
+    *document = candidate;
+    stage->result = S64_DOCUMENT_OK;
     return S64_DOCUMENT_OK;
 }

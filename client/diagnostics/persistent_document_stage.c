@@ -14,8 +14,8 @@ static uint8_t flush_header(S64PersistentOpenStage* stage)
         return 0u;
     }
     if (!s64_reu_store(
-            S64_REU_HISTORY_PAYLOAD_BANK,
-            (uint16_t)(S64_REU_HISTORY_PAYLOAD_BASE + stage->header_length),
+            (uint8_t)((stage->address + stage->header_length) >> 16),
+            (uint16_t)(stage->address + stage->header_length),
             stage_chunk,
             stage->header_chunk_length)) {
         stage->result = S64_DOCUMENT_SINK_ERROR;
@@ -46,8 +46,8 @@ static uint8_t store_body(
         return 0u;
     }
     if (length && !s64_reu_store(
-            S64_REU_DOCUMENT_BANK,
-            (uint16_t)(S64_REU_DOCUMENT_BASE + stage->body_length),
+            (uint8_t)((stage->address + S64_OPEN_BODY_OFFSET + stage->body_length) >> 16),
+            (uint16_t)(stage->address + S64_OPEN_BODY_OFFSET + stage->body_length),
             data,
             length)) {
         stage->result = S64_DOCUMENT_SINK_ERROR;
@@ -57,15 +57,13 @@ static uint8_t store_body(
     return 1u;
 }
 
-void s64_persistent_open_stage_init(S64PersistentOpenStage* stage)
+uint8_t s64_persistent_open_stage_finish(S64PersistentOpenStage* stage)
 {
-    if (!stage) return;
-    stage->header_length = 0u;
-    stage->body_length = 0u;
-    stage->header_chunk_length = 0u;
-    stage->line_empty = 1u;
-    stage->body_started = 0u;
-    stage->result = S64_DOCUMENT_OK;
+    if (!stage || stage->complete || stage->result != S64_DOCUMENT_OK
+        || !stage->body_started)
+        return 0u;
+    stage->complete = 1u;
+    return 1u;
 }
 
 uint8_t s64_persistent_open_stage_write(
@@ -77,7 +75,8 @@ uint8_t s64_persistent_open_stage_write(
     uint16_t i = 0u;
     uint8_t byte;
 
-    if (!stage || (length && !data) || stage->result != S64_DOCUMENT_OK) {
+    if (!stage || (length && !data) || stage->result != S64_DOCUMENT_OK
+        || !stage->address || stage->complete || stage->recovery_required) {
         return 0u;
     }
 

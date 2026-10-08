@@ -85,14 +85,13 @@ PNETWORK_STAGE = r"""
 #include "publisher/persistent_services.h"
 #pragma code-name ("PNETWORK_CODE")
 #pragma rodata-name ("PNETWORK_RODATA")
-void s64_overlay_pnetwork_s64_persistent_open_stage_init(
+uint8_t s64_overlay_pnetwork_s64_persistent_open_stage_finish(
     S64PersistentOpenStage* stage)
 {
-    if (stage) {
-        stage->body_started = 0u;
-        stage->result = S64_DOCUMENT_INVALID_ARGUMENT;
-    }
+    (void)stage;
+    return 0u;
 }
+
 uint8_t s64_overlay_pnetwork_s64_persistent_open_stage_write(
     const uint8_t* data, uint16_t length, void* context)
 {
@@ -687,7 +686,7 @@ def build() -> Path:
     pnetwork_stage.write_text(PNETWORK_STAGE)
     sources.append(pnetwork_stage)
     grouped_names["PNETWORK"].extend([
-        "s64_persistent_open_stage_init",
+        "s64_persistent_open_stage_finish",
         "s64_persistent_open_stage_write",
     ])
 

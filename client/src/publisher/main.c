@@ -939,8 +939,10 @@ static void list_open_remote(S64DocumentType type)
         return;
     }
 
+#ifndef S64_PERSISTENT_RUNTIME_FIT
     document_replaced = 1u;
     document_changed = 1u;
+#endif
 
     if (destination.type == S64_DESTINATION_STANDALONE) {
         S64StandaloneResult result;
@@ -948,6 +950,16 @@ static void list_open_remote(S64DocumentType type)
         S64PersistentOpenStage stage;
         S64DocumentResult document_result;
 
+#ifdef S64_MANAGED_OVERLAY
+        if (!s64_persistent_open_stage_init(&stage, &managed_runtime.reu_control)) {
+            set_status("Remote open storage unavailable");
+            return;
+        }
+#else
+        /* This diagnostic path needs the persistent owner's allocator. */
+        set_status("Remote open requires managed owner");
+        return;
+#endif
         result = s64_persistent_standalone_open_stage(
             &http,
             WORK_URL,
@@ -957,6 +969,12 @@ static void list_open_remote(S64DocumentType type)
         if (result == S64_STANDALONE_OK) {
             document_result = s64_persistent_open_stage_commit(
                 &stage, &document);
+            if (stage.recovery_required) {
+                /* Do not resume editing or overwrite the retained backup. */
+                clrscr();
+                cputs("Restore failed. Stop; REU backup retained.");
+                for (;;) { }
+            }
             if (document_result == S64_DOCUMENT_SINK_ERROR) {
                 result = S64_STANDALONE_RESPONSE_TOO_LARGE;
             } else if (document_result != S64_DOCUMENT_OK) {
@@ -995,6 +1013,10 @@ static void list_open_remote(S64DocumentType type)
 #endif
     }
 
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+    document_replaced = 1u;
+    document_changed = 1u;
+#endif
     if (!s64_publish_state_bind_remote(
             &publish_state,
             &destination,

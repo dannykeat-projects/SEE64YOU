@@ -23,7 +23,24 @@ The 2026-10-08 documentation change adopts the reviewed plan; it does not valida
 - Fallback reference: code `e5ffd0f`, checkpoint `6ccf818`. It is not an end-to-end working MVP: hardware isolated whole-PRG Publisher application-state loading/validation failure. Keep fallback/tests until replacement acceptance; do not resume that separate debugging track by default.
 - Config is authoritative at `/sd/SEE64YOU/SEE64YOU.CFG`, with existing verified legacy-root migration/fallback. Journals remain at SD root. Do not relocate journals during MVP work.
 
-**Active blocker:** finish wiring and packaging the real persistent Publisher/Settings path, then prove it on hardware. Next action: trace Editor Publish → dispatcher → real services → Settings save/cancel → Editor, identify missing connections, and implement the smallest missing essential path.
+**Active blocker:** finish wiring and packaging the real persistent Publisher/Settings path, then prove it on hardware. Next action: validate the preservation handover with cc65/VICE and confirm fit before wiring the real Publisher/Settings loop.
+
+2026-10-09 prerequisite audit of `9609a657c80926047d4b7b7ebe7df1525fd6fa77`
+(verified draft PR #61 head): Editor Publish still calls the success-only
+`persistent_runtime_fit_mode.c` placeholder. No complete persistent candidate is
+packaged. A new host regression using real Editor/buffer/history/staging code
+reproduces source and undo-payload overwrite during an incomplete remote-open
+receive, without any commit. See LOCAL_TESTING.md for the command and gate scope.
+Hardware acceptance is blocked; no SD files or machine settings were touched.
+
+2026-10-09 preservation implementation (handover; C64 validation pending): isolated allocator
+scratch plus verified backup/rollback makes the expanded host regression pass.
+The supplied audit files were preserved and extended. Nearby REU buffer/history/
+clipboard gates pass; required host validation now includes the regression in both
+validators. No complete package or new measured fit exists. Next: run cc65 Publisher
+fit and staged-open/Publisher/lifecycle VICE gates, review the new wrapper/stack
+cost, then resolve integration and the separate Settings-screen timeout. See the
+canonical runtime contract and testing commands for exact scope. No merge, deployment or hardware testing is part of this handover.
 
 ## MVP scope and non-negotiable acceptance
 
@@ -33,7 +50,7 @@ One supported C64U baseline, one Standalone PHP site/destination, existing page/
 - Website/key import/authentication test/save works; settings reload after cold restart; networking is optional for offline editing.
 - New/Open/Save/Save As round-trip canonical content exactly. Core navigation, punctuation, deletion, clipboard and undo/redo work with USB and native C64 keyboards. Preserve existing editing features.
 - Publish, list/open and update preserve source/metadata. The first demonstration may use a page; release acceptance covers existing pages/posts. Validate any exposed draft/status/delete actions without expanding their UI.
-- Failed/cancelled network or storage operations do not silently lose current source. Specifically test remote-open failure after staging begins; staging reuses document/history REU regions.
+- Failed/cancelled network or storage operations do not silently lose current source. Specifically test remote-open failure after staging begins; the original staging path reused document/history REU regions.
 - Publisher/Settings return preserves editor state; dirty exit supports Save/Discard/Cancel; temporary machine state restores/verifies before CLEAN and responsive BASIC return.
 - Existing autosave/recovery must not corrupt saved source or interrupt continuous typing.
 - Preserve authentication, explicit plaintext-HTTP consent, transactional writes, bounds/integrity/provenance checks and current persisted formats. Never silently downgrade HTTPS.
@@ -41,6 +58,7 @@ One supported C64U baseline, one Standalone PHP site/destination, existing page/
 ## M1 — Complete one MVP candidate (first implementation priority)
 
 - [ ] Trace actual runtime/build paths and list the smallest remaining Publisher/Settings integration gaps. Reuse existing implementations; do not duplicate serializers, document models, stores or auth.
+- [ ] Fix destructive remote-open staging before hardware: The baseline `persistent_document_stage.c` wrote response headers into live undo payload storage and body bytes into the live document. Preserve both until a complete validated replacement is ready; cover incomplete receive, cancellation, malformed response and DMA failure. Host fix and expanded `persistent_open_preservation_test.c` now pass locally and are wired into both validators; keep this item open until cc65/VICE validation and fit checks pass.
 - [ ] Finish essential website/key/test/save/cancel Settings and real Publisher document actions. Defer profiles/advanced expansion. Keep resident orchestration small; return to it before switching overlays and respect pointer lifetimes.
 - [ ] Move production-needed services out of `client/diagnostics/persistent_*` only as they enter the product; have tests and product link the same implementation. Keep fixtures/mock responses separate.
 - [ ] Build a complete candidate with actual UI/services/assets, correct preload and byte-matched manifests. Retain fallback until M2; maintain one active feature roadmap.

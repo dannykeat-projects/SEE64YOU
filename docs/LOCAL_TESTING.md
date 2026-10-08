@@ -4,6 +4,69 @@ This file contains the **current** reproducible validation path for the C64 Ulti
 
 The authoritative outstanding-work queue is todo.md.
 
+## Persistent candidate prerequisite gate
+
+Stop before hardware if any required preservation/integration gate fails. Run
+these commands in a Linux checkout with cc65, VICE/Xvfb and the documented pinned
+ROM fixtures at `/tmp/see64you-roms`:
+
+~~~sh
+mkdir -p client/build
+cc -std=c99 -Wall -Wextra -Werror -DS64_REU_BUFFER=1 -Iclient/src \
+    client/tests/persistent_open_preservation_test.c client/src/buffer_reu.c \
+    client/src/history_reu.c client/src/editor.c client/src/clipboard.c \
+    client/src/charset.c client/src/publisher/workspace.c \
+    client/diagnostics/persistent_document_stage.c \
+    client/diagnostics/persistent_document_read.c \
+    client/diagnostics/persistent_open_prepare.c \
+    client/diagnostics/persistent_publisher_services.c \
+    client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c \
+    client/src/platform/reu_runtime_write.c -o client/build/persistent-open-preservation-test
+client/build/persistent-open-preservation-test
+python3 tools/build_persistent_editor_fit.py
+python3 tools/build_persistent_publisher_slice_fit.py
+python3 tools/build_persistent_settings_slice_fit.py
+python3 tools/test_persistent_runtime_vice.py
+python3 tools/test_persistent_settings_screen_vice.py
+~~~
+
+The preservation regression links real Editor, buffer/history, staging, metadata
+reader, conversion and allocator code against a 16 MiB REU mock. It is now included
+in both general validators. It covers incomplete/cancelled receive, bad metadata,
+invalid conversion, header/body limits, allocation failure, injected DMA failures,
+verified rollback (including failure/retry), full-capacity bank crossing, clipboard
+and control preservation, original undo/redo, and repeated successful replacement.
+The owner applies its existing history/dirty-state replacement hook only on success.
+This host gate does not exercise network delivery, overlay execution or hardware.
+
+2026-10-09 preservation handover (based on the head below; C64 validation pending): the
+expanded host regression and nearby REU buffer/history/clipboard tests pass with
+GCC warnings treated as errors. The shell validator and edited Python helpers pass
+syntax checks. cc65/VICE, PowerShell execution, complete-candidate fit, CI and
+hardware have not been validated for this patch. The old measurements below are
+baseline evidence only. Rerun the changed Publisher fit and staged-open/Publisher
+VICE gates as well as the required lifecycle gate before acceptance. Do not weaken
+fit guards if the new wrappers or services exceed the remaining margin.
+
+On 2026-10-09, production code head
+`9609a657c80926047d4b7b7ebe7df1525fd6fa77` plus this regression was tested in an
+isolated Linux copy using installed cc65 and VICE 3.9. Host REU buffer/history
+checks passed. Preservation failed: both source and undo payload were overwritten
+before commit. Editor, Publisher and Settings slice fit commands passed; Editor
+margin was 3351 bytes, Editor + Publisher margin 1074 bytes, PNETWORK
+14397/15360 bytes, SUI 2443/15360 and SSTORE 5966/15360. These separate layouts do
+not measure a complete application. The existing 30-cycle VICE lifecycle gate
+passed with one owner and one CLEAN; its mode assets are diagnostic fixtures.
+The local Settings-screen VICE rerun also failed after its 90-second deadline
+with `persistent Settings screen timed out: 060000`, matching current-head CI.
+
+Current-head GitHub integration validation was queued when inspected. Its
+persistent-runtime workflow failed on `persistent Settings screen timed out:
+060000`; Publisher component CI passed. Neither certifies a complete package.
+Full candidate validation, package checksum and all real-C64U acceptance remain
+blocked by integration/preservation prerequisites. No hardware/firmware was tested
+and no hardware SD files or settings were changed by this audit.
+
 `python3 tools/test_module_transfer_vice.py` verifies cc65 IRQ teardown on both
 generic and capsule transfer entries. It installs a real cc65 interruptor,
 records the prior/installed vectors, then checks the original vector at the
