@@ -300,7 +300,10 @@ int main(void)
         S64_REU_HISTORY_PAYLOAD_BASE,
         staged_header,
         (uint16_t)sizeof(staged_header)), 70u);
-    require(!memcmp(staged_header, expected_header, sizeof(expected_header)), 71u);
+    for (i = 0u; i < (uint8_t)sizeof(expected_header); ++i) {
+        require(staged_header[i] == expected_header[i],
+            (uint8_t)(100u + i));
+    }
 
     document_result = s64_persistent_open_stage_commit(
         &open_stage, &document);
