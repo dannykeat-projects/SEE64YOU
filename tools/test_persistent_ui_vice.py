@@ -25,12 +25,14 @@ MAIN = r"""
 #include "platform/reu.h"
 #include "platform/reu_runtime.h"
 #include "publisher/persistent_mode.h"
+#include "publisher/persistent_dispatch.h"
 #include "publisher/persistent_ui.h"
 
 extern const uint8_t pui_image[], pui_image_end[];
+extern const uint8_t pcontent_image[], pcontent_image_end[];
 
 static S64ReuRuntimeControl control;
-static S64ReuAllocation asset;
+static S64ReuAllocation assets[2];
 static S64Buffer body;
 static S64Document document;
 static S64PersistentPublisher publisher;
@@ -59,21 +61,35 @@ int main(void)
     require(s64_reu_probe() && s64_reu_probe_banks() == 256u, 1u);
 
     s64_reu_runtime_init(&control, 0x0202u, 0x66778899UL);
+
     require(s64_reu_runtime_allocate(
         &control, S64_REU_OWNER_MODULE,
-        (uint16_t)(pui_image_end - pui_image), 256u, &asset), 2u);
+        (uint16_t)(pui_image_end - pui_image), 256u, &assets[0]), 2u);
     slot = (uint8_t)(control.allocation_count - 1u);
-    asset.flags = 0x71u;
-    control.allocations[slot].flags = asset.flags;
+    assets[0].flags = 0x71u;
+    control.allocations[slot].flags = assets[0].flags;
     require(s64_reu_store(
-        (uint8_t)(asset.address >> 16),
-        (uint16_t)asset.address,
+        (uint8_t)(assets[0].address >> 16),
+        (uint16_t)assets[0].address,
         pui_image,
         (uint16_t)(pui_image_end - pui_image)), 3u);
+
+    require(s64_reu_runtime_allocate(
+        &control, S64_REU_OWNER_MODULE,
+        (uint16_t)(pcontent_image_end - pcontent_image), 256u, &assets[1]), 4u);
+    slot = (uint8_t)(control.allocation_count - 1u);
+    assets[1].flags = 0x72u;
+    control.allocations[slot].flags = assets[1].flags;
+    require(s64_reu_store(
+        (uint8_t)(assets[1].address >> 16),
+        (uint16_t)assets[1].address,
+        pcontent_image,
+        (uint16_t)(pcontent_image_end - pcontent_image)), 5u);
+
     require(s64_code_overlay_configure(
-        &control, &asset, 1u,
+        &control, assets, 2u,
         (void*)S64_CODE_OVERLAY_ADDRESS,
-        S64_CODE_OVERLAY_CAPACITY, overlay_reader), 4u);
+        S64_CODE_OVERLAY_CAPACITY, overlay_reader), 6u);
 
     memset(&body, 0, sizeof(body));
     memset(&document, 0, sizeof(document));
@@ -89,10 +105,12 @@ int main(void)
 
     s64_persistent_publisher_reset_change_flags(&publisher);
     publisher.publish_state.remote_bound = 1u;
-    require(s64_persistent_publisher_key(&publisher, 'T')
-            == S64_PUBLISH_UI_TYPE_CHANGED
+    strcpy(publisher.publish_state.remote_identity, "entry-1");
+    require(s64_persistent_publisher_dispatch_key(&publisher, 'T')
+            == S64_PUBLISH_UI_NONE
         && document.type == S64_DOCUMENT_PAGE
-        && publisher.publish_state.remote_bound
+        && !publisher.publish_state.remote_bound
+        && publisher.publish_state.remote_identity[0] == 0
         && publisher.document_changed, 7u);
 
     s64_persistent_publisher_reset_change_flags(&publisher);
@@ -129,6 +147,7 @@ MEMORY {
     MAIN: file = %O, define = yes, start = __HEADER_LAST__, size = __HIMEM__ - __HEADER_LAST__;
     BSS: file = "", start = __ONCE_RUN__, size = $8C00 - __ONCE_RUN__;
     PUI: file = "build/persistent-ui-vice/pui.bin", start = $8C00, size = $3C00;
+    PCONTENT: file = "build/persistent-ui-vice/pcontent.bin", start = $8C00, size = $3C00;
 }
 SEGMENTS {
     ZEROPAGE: load = ZP, type = zp;
@@ -144,6 +163,8 @@ SEGMENTS {
     BSS: load = BSS, type = bss, define = yes;
     PUI_CODE: load = PUI, type = ro, define = yes;
     PUI_RODATA: load = PUI, type = ro, define = yes;
+    PCONTENT_CODE: load = PCONTENT, type = ro, define = yes;
+    PCONTENT_RODATA: load = PCONTENT, type = ro, define = yes;
 }
 FEATURES {
     CONDES: type = constructor, label = __CONSTRUCTOR_TABLE__, count = __CONSTRUCTOR_COUNT__, segment = ONCE;
@@ -168,18 +189,28 @@ def build() -> Path:
         "-DS64_PERSISTENT_RUNTIME_FIT=1",
     ]
 
-    source_path = "src/publisher/persistent_ui.c"
-    names = fit.public_s64_definitions(
-        (CLIENT / source_path).read_text(encoding="utf-8"))
+    ui_source = "src/publisher/persistent_ui.c"
+    ui_names = fit.public_s64_definitions(
+        (CLIENT / ui_source).read_text(encoding="utf-8"))
     generated_ui = generated / "pui.c"
     generated_ui.write_text(
         fit.generated_translation_unit(
-            "PUI", source_path, names, generated, CLIENT, bridges={}))
+            "PUI", ui_source, ui_names, generated, CLIENT, bridges={}))
+
+    content_source = "src/publisher/state.c"
+    content_names = fit.public_s64_definitions(
+        (CLIENT / content_source).read_text(encoding="utf-8"))
+    generated_content = generated / "pcontent.c"
+    generated_content.write_text(
+        fit.generated_translation_unit(
+            "PCONTENT", content_source, content_names, generated, CLIENT, bridges={}))
+
     main = generated / "main.c"
     main.write_text(MAIN)
 
     sources = [
         generated_ui,
+        generated_content,
         main,
         CLIENT / "src/platform/code_overlay.c",
         CLIENT / "src/platform/reu.c",
@@ -188,12 +219,15 @@ def build() -> Path:
         CLIENT / "src/platform/reu_runtime_build.c",
         CLIENT / "src/platform/reu_runtime_write.c",
         CLIENT / "src/publisher/persistent_mode.c",
+        CLIENT / "src/publisher/persistent_dispatch.c",
+        CLIENT / "diagnostics/persistent_publisher_services.c",
     ]
 
     wrappers = generated / "wrappers.s"
     wrappers.write_text(
         fit.assembler_wrappers(
-            {"PUI": names}, group_ids={"PUI": 1}, bridges={}))
+            {"PUI": ui_names, "PCONTENT": content_names},
+            group_ids={"PUI": 1, "PCONTENT": 2}, bridges={}))
     sources.append(wrappers)
 
     objects: list[Path] = []
@@ -215,6 +249,11 @@ def build() -> Path:
             + ('.byte 0\n' if initial
                else f'.incbin "{OUT.as_posix()}/pui.bin"\n')
             + '_pui_image_end:\n'
+            + '.export _pcontent_image, _pcontent_image_end\n'
+            + '_pcontent_image:\n'
+            + ('.byte 0\n' if initial
+               else f'.incbin "{OUT.as_posix()}/pcontent.bin"\n')
+            + '_pcontent_image_end:\n'
         )
         fit.run(["cl65", *flags, "-c", "-o", str(blob_obj), str(blobs)], cwd=CLIENT)
         fit.run(
@@ -224,9 +263,13 @@ def build() -> Path:
         )
 
     size = (OUT / "pui.bin").stat().st_size
+    content_size = (OUT / "pcontent.bin").stat().st_size
     if not size or size > fit.OVERLAY_LIMIT:
         raise fit.FitError(f"PUI asset size invalid: {size}")
+    if not content_size or content_size > fit.OVERLAY_LIMIT:
+        raise fit.FitError(f"PCONTENT action asset size invalid: {content_size}")
     print(f"PUI focused asset: {size} / {fit.OVERLAY_LIMIT}")
+    print(f"PCONTENT focused action asset: {content_size} / {fit.OVERLAY_LIMIT}")
     end = fit.bss_end(map_path)
     print(f"Persistent UI VICE probe BSS ends at 0x{end:04X}")
     if end >= fit.RESIDENT_BSS_LIMIT:
@@ -274,8 +317,8 @@ def main() -> int:
                 state = monitor.read_memory(0xc060, 0xc062)
                 if state[1] == 0xa5:
                     print(
-                        "VICE persistent Publisher UI passed: real PUI overlay "
-                        "dispatch, status/type mutation and action routing"
+                        "VICE persistent Publisher UI passed: real PUI dispatch, resident "
+                        "orchestration and sequential PCONTENT remote-state update"
                     )
                     return 0
                 if state[1] == 0x5a:
