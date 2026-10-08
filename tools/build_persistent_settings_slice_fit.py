@@ -130,6 +130,7 @@ def build() -> Path:
     sources.append(main)
 
     sources.extend([
+        CLIENT / "src/publisher/persistent_settings_mode.c",
         CLIENT / "src/platform/code_overlay.c",
         CLIENT / "src/platform/reu.c",
         CLIENT / "src/platform/reu_dma.s",
