@@ -92,6 +92,15 @@ static void end_save_trace(const char* stage, uint8_t result);
 #define S64_KEY_DIAG_READ 0x04u
 
 #ifdef S64_PERSISTENT_RUNTIME_FIT
+typedef struct {
+    char open[S64_KEY_DIAG_STATUS_CAPACITY];
+    char read[S64_KEY_DIAG_STATUS_CAPACITY];
+    char close[S64_KEY_DIAG_STATUS_CAPACITY];
+    uint16_t bytes;
+} S64PersistentKeyDiagScratch;
+#endif
+
+#ifdef S64_PERSISTENT_RUNTIME_FIT
 #define settings (*(S64SettingsExchange*)&s64_publisher_workspace.bytes[S64_SETTINGS_WORK_RECORD_OFFSET])
 #define profile_settings (*(S64SettingsExchange*)&s64_publisher_workspace.bytes[S64_SETTINGS_WORK_SCRATCH_OFFSET])
 #else
@@ -110,10 +119,18 @@ static char status_text[SCREEN_COLUMNS + 1u];
 #else
 static char relay_replacement[S64_RELAY_KEY_CAPACITY];
 #endif
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+#define key_diag_scratch (*(S64PersistentKeyDiagScratch*)&s64_publisher_workspace.bytes[S64_SETTINGS_WORK_SCRATCH_OFFSET])
+#define key_diag_open (key_diag_scratch.open)
+#define key_diag_read (key_diag_scratch.read)
+#define key_diag_close (key_diag_scratch.close)
+#define key_diag_bytes (key_diag_scratch.bytes)
+#else
 static char key_diag_open[S64_KEY_DIAG_STATUS_CAPACITY];
 static char key_diag_read[S64_KEY_DIAG_STATUS_CAPACITY];
 static char key_diag_close[S64_KEY_DIAG_STATUS_CAPACITY];
 static uint16_t key_diag_bytes;
+#endif
 static uint8_t advanced_view;
 
 static uint8_t validate_settings(void);
