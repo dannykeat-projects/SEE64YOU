@@ -89,31 +89,6 @@ const char* s64_persistent_document_type_name(S64DocumentType type)
     return type == S64_DOCUMENT_POST ? "post" : 0;
 }
 
-void s64_persistent_document_wire_reader_init(
-    S64DocumentWireReader* reader, S64Document* value)
-{
-    if (!reader) return;
-    memset(reader, 0, sizeof(*reader));
-    reader->document = value;
-    reader->result = S64_DOCUMENT_INVALID_ARGUMENT;
-}
-
-uint8_t s64_persistent_document_wire_reader_write(
-    const uint8_t* data, uint16_t length, void* context)
-{
-    (void)data;
-    (void)length;
-    (void)context;
-    return 0u;
-}
-
-S64DocumentResult s64_persistent_document_wire_reader_finish(
-    S64DocumentWireReader* reader)
-{
-    (void)reader;
-    return S64_DOCUMENT_INVALID_ARGUMENT;
-}
-
 static uint8_t overlay_reader(
     uint8_t bank, uint16_t offset, void* target, uint16_t length)
 {
@@ -409,7 +384,11 @@ def build() -> Path:
             ))
         if group == "PNETWORK":
             names = [name for name in names
-                     if name != "s64_standalone_result_message"]
+                     if name not in (
+                         "s64_standalone_result_message",
+                         "s64_standalone_open_document",
+                         "s64_direct_list_summary",
+                     )]
         grouped_names[group] = list(dict.fromkeys(names))
         for path in paths:
             generated_path = generated / f"{group.lower()}_{Path(path).stem}.c"
