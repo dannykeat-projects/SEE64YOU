@@ -1,13 +1,29 @@
 #include "publisher/preview.h"
+#include "publisher/workspace.h"
 
 #include <string.h>
 
 #define S64_PREVIEW_CACHE_SIZE 64u
 
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+typedef struct {
+    uint8_t cache[S64_PREVIEW_CACHE_SIZE];
+    unsigned int cache_start;
+    unsigned int cache_count;
+    const S64Buffer* cache_buffer;
+} S64PersistentPreviewCache;
+
+#define preview_cache (*(S64PersistentPreviewCache*)&s64_publisher_workspace.bytes[0])
+#define cache (preview_cache.cache)
+#define cache_start (preview_cache.cache_start)
+#define cache_count (preview_cache.cache_count)
+#define cache_buffer (preview_cache.cache_buffer)
+#else
 static uint8_t cache[S64_PREVIEW_CACHE_SIZE];
 static unsigned int cache_start;
 static unsigned int cache_count;
 static const S64Buffer* cache_buffer;
+#endif
 
 static uint8_t read_char(
     const S64Buffer* buffer,
