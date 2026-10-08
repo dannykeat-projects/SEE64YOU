@@ -295,6 +295,7 @@ int main(void)
         && open_stage.body_started
         && open_stage.body_length == 6u
         && open_stage.header_length == (uint16_t)sizeof(expected_header), 7u);
+    require(*(volatile uint8_t*)0xcb80u == expected_header[0], 72u);
     require(s64_reu_load(
         S64_REU_HISTORY_PAYLOAD_BANK,
         S64_REU_HISTORY_PAYLOAD_BASE,
