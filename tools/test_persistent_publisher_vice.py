@@ -17,7 +17,13 @@ OUT = CLIENT / "build" / "persistent-publisher-vice"
 
 GROUPS = {
     "PCONTENT": ("src/publisher/destination.c", "src/publisher/state.c"),
-    "PNETWORK": ("src/platform/network.c", "src/crypto/sha256.c", "src/publisher/direct_auth.c", "src/publisher/standalone_direct.c"),
+    "PNETWORK": (
+        "src/platform/network.c",
+        "src/crypto/sha256.c",
+        "src/publisher/direct_auth.c",
+        "src/publisher/standalone_direct.c",
+        "diagnostics/persistent_document_write.c",
+    ),
     "PRUNTIME": ("src/publisher/settings_validate.c", "src/publisher/settings_exchange.c"),
 }
 GROUP_IDS = {"EDITOR": 1, "PCONTENT": 1, "PNETWORK": 2, "PRUNTIME": 3, "SETTINGS": 1}
