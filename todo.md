@@ -204,7 +204,7 @@ The expanded real Publisher migration slice now passes on GitHub-hosted VICE:
 - staged-open header buffering uses a bounded **64-byte resident scratch**. A
   $CB80 mode-workspace scratch was rejected after focused VICE showed that its
   contents did not survive this path reliably. The 64-byte resident cost keeps
-  total headroom at 1,401 bytes and removes that unexplained dependency;
+  current total headroom at 1,433 bytes and removes that unexplained dependency;
 - the focused staged list/open VICE gate now passes an authenticated compact
   list-summary request, PCONTENT slug/title/count parsing, then authenticated
   document open, exact 101-byte raw-header REU staging, PCONTENT metadata commit,
