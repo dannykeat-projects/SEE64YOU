@@ -13,6 +13,9 @@
 #include "publisher/destination.h"
 #include "publisher/settings_exchange.h"
 #include "publisher/settings_store.h"
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+#include "publisher/workspace.h"
+#endif
 #ifdef S64_MANAGED_OVERLAY
 #include "platform/module_arrival.h"
 #include "platform/module_runtime.h"
@@ -87,9 +90,14 @@ static void end_save_trace(const char* stage, uint8_t result);
 #define S64_KEY_DIAG_CLOSE 0x03u
 #define S64_KEY_DIAG_READ 0x04u
 
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+#define settings (*(S64SettingsExchange*)&s64_publisher_workspace.bytes[S64_SETTINGS_WORK_RECORD_OFFSET])
+#define profile_settings (*(S64SettingsExchange*)&s64_publisher_workspace.bytes[S64_SETTINGS_WORK_SCRATCH_OFFSET])
+#else
 static S64SettingsExchange settings;
 static S64SettingsExchange original_settings;
 static S64SettingsExchange profile_settings;
+#endif
 static S64PublishDestination checked_destination;
 static S64Dos dos;
 static S64UciCapabilities capabilities;
@@ -858,7 +866,14 @@ static void save_and_return(void)
 
 static void cancel_and_return(void)
 {
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+    if (!s64_settings_exchange_load(&settings)) {
+        set_status("Cannot restore original settings");
+        return;
+    }
+#else
     settings = original_settings;
+#endif
     settings.state = S64_SETTINGS_STATE_READY;
 #ifdef S64_MANAGED_OVERLAY
     if (!s64_settings_session_publish(
@@ -984,7 +999,9 @@ int main(void)
 #endif
 
     s64_uci_probe_capabilities(&capabilities);
+#ifndef S64_PERSISTENT_RUNTIME_FIT
     original_settings = settings;
+#endif
     advanced_view = 0u;
     status_text[0] = '\0';
     for (;;) {
