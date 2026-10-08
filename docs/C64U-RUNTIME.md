@@ -211,6 +211,27 @@ Allocator clients include:
 
 The allocator must expose free space and ownership for diagnostics.
 
+### Persistent Publisher overlay split
+
+The persistent-runtime migration uses the existing 15 KiB executable slot with
+four Publisher overlay IDs, which is the platform maximum: PCONTENT, PNETWORK,
+PRUNTIME and PUI. The fourth PUI overlay is intentionally narrow. It interprets
+keys, applies local document status/type changes and returns action intents to
+resident orchestration. Operations that require another Publisher overlay are
+sequenced by resident code after PUI returns; overlays must not call each other.
+
+The current measured PUI command asset is 305 bytes. A focused VICE gate executes
+the real asset through the overlay veneer. The combined Publisher namespace gate
+uses a one-byte fourth placeholder because embedding another complete REU preload
+image in that diagnostic executable artificially consumes its conventional-RAM
+fixture budget; product fit separately measures the real asset.
+
+Keep conio screen rendering resident. A focused overlay experiment established
+that `clrscr()` and `revers()` return from PUI but `gotoxy()` hangs through
+the overlay execution path. The experiment was reverted. Do not add custom
+rendering indirection merely to move this small resident UI responsibility into
+an overlay unless later hardware evidence changes that conclusion.
+
 ## 9. Memory-pressure policy
 
 Reclaim in roughly this order:
