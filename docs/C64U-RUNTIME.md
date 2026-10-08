@@ -232,6 +232,34 @@ the overlay execution path. The experiment was reverted. Do not add custom
 rendering indirection merely to move this small resident UI responsibility into
 an overlay unless later hardware evidence changes that conclusion.
 
+### Persistent Settings overlay split
+
+The persistent Settings migration now has a measured two-asset layout. SUI is
+462 bytes and owns only command interpretation, basic/advanced view state and
+simple local key mutations. SSTORE is 4,267 bytes and contains the real
+transactional settings store, exchange and validation logic. Both fit the
+15,360-byte executable slot with large margins, and focused VICE gates execute
+the real assets. SSTORE's gate performs a temp-file save, replacement,
+readback verification and exact reload.
+
+Settings does not retain its legacy three `S64SettingsExchange` globals in the
+persistent owner. The disposable `$C800-$CBFF` mode workspace contains three
+aligned records at offsets 0, 336 and 672 for the working record, reusable
+profile scratch and save/readback verification respectively. Cancel restores
+the canonical REU settings record rather than keeping a permanent duplicate
+original record in resident BSS.
+
+The legacy interactive `settings_main.c` now compiles with these persistent
+workspace aliases, but its remaining object footprint is still 4,825 bytes of
+CODE, 2,174 bytes of RODATA and 407 bytes of BSS. It must therefore be
+decomposed further or reuse existing UI overlay services; it must not simply be
+added to the resident root.
+
+With four Editor assets, four Publisher assets and two measured Settings assets,
+the persistent production projection is 14 of the allocator's 16 entries after
+retaining the four bootstrap/session/capsule/BASIC-return allocations. Keep the
+two-entry margin rather than creating redundant per-mode session records.
+
 ## 9. Memory-pressure policy
 
 Reclaim in roughly this order:
