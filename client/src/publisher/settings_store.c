@@ -327,16 +327,13 @@ static S64SettingsStoreResult save_named(
         return S64_SETTINGS_STORE_IO_ERROR;
     }
 
-    verified_result = load_named(dos, path, filename, &verified);
+    verified_result = load_named(dos, path, filename, verified);
     if (verified_result != S64_SETTINGS_STORE_OK
-        || memcmp(settings, &verified, sizeof(verified)) != 0) {
-        memset(&verified, 0, sizeof(verified));
+        || memcmp(settings, verified, sizeof(*verified)) != 0) {
+        memset(verified, 0, sizeof(*verified));
         return S64_SETTINGS_STORE_VERIFY_ERROR;
     }
-    memset(&verified, 0, sizeof(verified));
-#ifdef S64_PERSISTENT_RUNTIME_FIT
-#undef verified
-#endif
+    memset(verified, 0, sizeof(*verified));
     return S64_SETTINGS_STORE_OK;
 }
 
