@@ -20,6 +20,7 @@ GROUPS = {
         "src/publisher/direct_key.c",
         "src/publisher/direct_key_store.c",
         "diagnostics/persistent_document_read.c",
+        "diagnostics/persistent_list_summary.c",
     ),
     "PNETWORK": (
         "src/platform/network.c",
@@ -68,7 +69,10 @@ static S64HttpTransport direct_http;
 static S64PersistentOpenStage open_stage;
 static S64Buffer body;
 static S64Document document;
+static S64DocumentSummary summary;
+static uint16_t summary_total;
 static uint8_t fake_http_open_count;
+static uint8_t fake_http_mode;
 static uint8_t opened_body[6];
 static uint8_t staged_header[101];
 
@@ -140,6 +144,17 @@ static S64UciResult fake_http_uci(
         0x33u, 0x34u, 0x35u, 0x36u, 0x37u, 0x38u, 0x39u, 0x61u, 0x62u, 0x63u, 0x64u, 0x65u,
         0x66u, 0x22u, 0x7du
     };
+    static const uint8_t list_response[] = {
+        0x48u, 0x54u, 0x54u, 0x50u, 0x2fu, 0x31u, 0x2eu, 0x30u, 0x20u, 0x32u, 0x30u, 0x30u,
+        0x20u, 0x4fu, 0x4bu, 0x0du, 0x0au, 0x43u, 0x6fu, 0x6eu, 0x74u, 0x65u, 0x6eu, 0x74u,
+        0x2du, 0x4cu, 0x65u, 0x6eu, 0x67u, 0x74u, 0x68u, 0x3au, 0x20u, 0x36u, 0x30u, 0x0du,
+        0x0au, 0x0du, 0x0au,
+        0x53u, 0x45u, 0x45u, 0x36u, 0x34u, 0x59u, 0x4fu, 0x55u, 0x2du, 0x4cu, 0x49u, 0x53u,
+        0x54u, 0x2fu, 0x31u, 0x0au, 0x43u, 0x6fu, 0x75u, 0x6eu, 0x74u, 0x3au, 0x20u, 0x32u,
+        0x0au, 0x53u, 0x6cu, 0x75u, 0x67u, 0x3au, 0x20u, 0x72u, 0x65u, 0x6du, 0x6fu, 0x74u,
+        0x65u, 0x2du, 0x31u, 0x0au, 0x54u, 0x69u, 0x74u, 0x6cu, 0x65u, 0x3au, 0x20u, 0x52u,
+        0x65u, 0x6du, 0x6fu, 0x74u, 0x65u, 0x20u, 0x74u, 0x65u, 0x73u, 0x74u, 0x0au, 0x0au
+    };
     static const uint8_t document_response[] = {
         0x48u, 0x54u, 0x54u, 0x50u, 0x2fu, 0x31u, 0x2eu, 0x30u, 0x20u, 0x32u, 0x30u, 0x30u,
         0x20u, 0x4fu, 0x4bu, 0x0du, 0x0au, 0x43u, 0x6fu, 0x6eu, 0x74u, 0x65u, 0x6eu, 0x74u,
@@ -201,6 +216,9 @@ static S64UciResult fake_http_uci(
         if (fake_http_open_count & 1u) {
             response = challenge_response;
             response_length = (uint16_t)sizeof(challenge_response);
+        } else if (fake_http_mode == 0u) {
+            response = list_response;
+            response_length = (uint16_t)sizeof(list_response);
         } else {
             response = document_response;
             response_length = (uint16_t)sizeof(document_response);
@@ -257,8 +275,26 @@ int main(void)
     s64_buffer_init(&body);
 
     require(s64_direct_publisher_key(key_hex), 5u);
-    fake_http_open_count = 0u;
     direct_http.execute = fake_http_uci;
+
+    fake_http_mode = 0u;
+    fake_http_open_count = 0u;
+    result = s64_persistent_standalone_list_stage(
+        &direct_http,
+        "http://example.test/api.php?action=list&type=post",
+        1u,
+        0u
+    );
+    require(result == S64_STANDALONE_OK && fake_http_open_count == 2u, 50u);
+    require(s64_persistent_list_summary_parse(
+        S64_DOCUMENT_POST, 0u, &summary, &summary_total), 51u);
+    require(summary_total == 2u
+        && summary.type == S64_DOCUMENT_POST
+        && !strcmp(summary.slug, "remote-1")
+        && !strcmp(summary.title, "Remote test"), 52u);
+
+    fake_http_mode = 1u;
+    fake_http_open_count = 0u;
     result = s64_persistent_standalone_open_stage(
         &direct_http,
         "http://example.test/api.php?action=get&type=post&slug=remote-1&format=s64",
