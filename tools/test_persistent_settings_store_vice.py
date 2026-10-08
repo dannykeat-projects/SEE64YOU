@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CLIENT = ROOT / "client"
 OUT = CLIENT / "build" / "persistent-settings-store-vice"
 
+SUI_SOURCE = "src/publisher/persistent_settings_ui.c"
+
 GROUP = (
     "src/publisher/settings_store.c",
     "src/publisher/settings_exchange.c",
@@ -33,11 +35,13 @@ MAIN = r"""
 #include "platform/reu_runtime.h"
 #include "publisher/settings_store.h"
 #include "publisher/persistent_settings_control.h"
+#include "publisher/persistent_settings_mode.h"
 
+extern const uint8_t sui_image[], sui_image_end[];
 extern const uint8_t sstore_image[], sstore_image_end[];
 
 static S64ReuRuntimeControl control;
-static S64ReuAllocation asset;
+static S64ReuAllocation assets[2];
 static uint8_t stored[512];
 static uint8_t temporary[512];
 static uint16_t stored_length;
@@ -51,6 +55,8 @@ static S64Dos dos;
 static S64SettingsExchange settings;
 static S64SettingsExchange loaded;
 static uint8_t asset_slot;
+static uint8_t advanced_view;
+static S64PersistentSettingsCommitResult transaction_result;
 
 static uint8_t overlay_reader(
     uint8_t bank, uint16_t offset, void* target, uint16_t length)
@@ -193,20 +199,33 @@ int main(void)
     s64_reu_runtime_init(&control, 0x0202u, 0x8899aabbu);
     require(s64_reu_runtime_allocate(
         &control, S64_REU_OWNER_MODULE,
-        (uint16_t)(sstore_image_end - sstore_image),
-        256u, &asset), 2u);
+        (uint16_t)(sui_image_end - sui_image),
+        256u, &assets[0]), 2u);
     asset_slot = (uint8_t)(control.allocation_count - 1u);
-    asset.flags = 0x74u;
-    control.allocations[asset_slot].flags = asset.flags;
+    assets[0].flags = 0x73u;
+    control.allocations[asset_slot].flags = assets[0].flags;
     require(s64_reu_store(
-        (uint8_t)(asset.address >> 16),
-        (uint16_t)asset.address,
+        (uint8_t)(assets[0].address >> 16),
+        (uint16_t)assets[0].address,
+        sui_image,
+        (uint16_t)(sui_image_end - sui_image)), 3u);
+
+    require(s64_reu_runtime_allocate(
+        &control, S64_REU_OWNER_MODULE,
+        (uint16_t)(sstore_image_end - sstore_image),
+        256u, &assets[1]), 4u);
+    asset_slot = (uint8_t)(control.allocation_count - 1u);
+    assets[1].flags = 0x74u;
+    control.allocations[asset_slot].flags = assets[1].flags;
+    require(s64_reu_store(
+        (uint8_t)(assets[1].address >> 16),
+        (uint16_t)assets[1].address,
         sstore_image,
-        (uint16_t)(sstore_image_end - sstore_image)), 3u);
+        (uint16_t)(sstore_image_end - sstore_image)), 5u);
     require(s64_code_overlay_configure(
-        &control, &asset, 1u,
+        &control, assets, 2u,
         (void*)S64_CODE_OVERLAY_ADDRESS,
-        S64_CODE_OVERLAY_CAPACITY, overlay_reader), 4u);
+        S64_CODE_OVERLAY_CAPACITY, overlay_reader), 6u);
 
     memset(&dos, 0, sizeof(dos));
     dos.execute = mock_execute;
@@ -266,6 +285,29 @@ int main(void)
             == S64_SETTINGS_STORE_OK
         && !strcmp(loaded.base_url, "http://changed.test"), 14u);
 
+    advanced_view = 0u;
+    strcpy(settings.base_url, "http://dispatch-save.test");
+    settings.state = S64_SETTINGS_STATE_EDIT_REQUEST;
+    settings.checksum = 0u;
+    require(s64_persistent_settings_dispatch_key(
+                &settings, &dos, &advanced_view, 'S', &transaction_result)
+            == S64_SETTINGS_UI_SAVE_RETURN
+        && transaction_result == S64_SETTINGS_COMMIT_OK
+        && settings.state == S64_SETTINGS_STATE_READY, 15u);
+
+    strcpy(settings.base_url, "http://dispatch-original.test");
+    settings.state = S64_SETTINGS_STATE_READY;
+    settings.result = S64_SETTINGS_RESULT_OK;
+    require(s64_settings_exchange_store(&settings), 16u);
+    strcpy(settings.base_url, "http://discard.test");
+    settings.state = S64_SETTINGS_STATE_EDIT_REQUEST;
+    settings.checksum = 0u;
+    require(s64_persistent_settings_dispatch_key(
+                &settings, &dos, &advanced_view, 3u, &transaction_result)
+            == S64_SETTINGS_UI_CANCEL_RETURN
+        && transaction_result == S64_SETTINGS_COMMIT_OK
+        && !strcmp(settings.base_url, "http://dispatch-original.test"), 17u);
+
     *(volatile uint8_t*)0xc060 = 0x80u;
     *(volatile uint8_t*)0xc061 = 0xa5u;
     *(volatile uint8_t*)0xc062 = 0u;
@@ -287,6 +329,7 @@ MEMORY {
     HEADER: file = %O, define = yes, start = %S, size = $000D;
     MAIN: file = %O, define = yes, start = __HEADER_LAST__, size = __HIMEM__ - __HEADER_LAST__;
     BSS: file = "", start = __ONCE_RUN__, size = $8C00 - __ONCE_RUN__;
+    SUI: file = "build/persistent-settings-store-vice/sui.bin", start = $8C00, size = $3C00;
     SSTORE: file = "build/persistent-settings-store-vice/sstore.bin", start = $8C00, size = $3C00;
 }
 SEGMENTS {
@@ -301,6 +344,8 @@ SEGMENTS {
     INIT: load = MAIN, type = rw;
     ONCE: load = MAIN, type = ro, define = yes;
     BSS: load = BSS, type = bss, define = yes;
+    SUI_CODE: load = SUI, type = ro, define = yes;
+    SUI_RODATA: load = SUI, type = ro, define = yes;
     SSTORE_CODE: load = SSTORE, type = ro, define = yes;
     SSTORE_RODATA: load = SSTORE, type = ro, define = yes;
 }
@@ -328,8 +373,14 @@ def build() -> Path:
         "-DS64_SETTINGS_CONFIG_ONLY=1",
     ]
 
+    sui_names = fit.public_s64_definitions(
+        (CLIENT / SUI_SOURCE).read_text(encoding="utf-8"))
+    generated_sui = generated / "sui_persistent_settings_ui.c"
+    generated_sui.write_text(fit.generated_translation_unit(
+        "SUI", SUI_SOURCE, sui_names, generated, CLIENT, bridges={}))
+
     names: list[str] = []
-    sources: list[Path] = []
+    sources: list[Path] = [generated_sui]
     for source_path in GROUP:
         names.extend(fit.public_s64_definitions(
             (CLIENT / source_path).read_text(encoding="utf-8")))
@@ -353,6 +404,7 @@ def build() -> Path:
     main.write_text(MAIN)
     sources.append(main)
     sources.extend([
+        CLIENT / "src/publisher/persistent_settings_mode.c",
         CLIENT / "src/platform/code_overlay.c",
         CLIENT / "src/platform/reu.c",
         CLIENT / "src/platform/reu_dma.s",
@@ -365,7 +417,8 @@ def build() -> Path:
     wrappers = generated / "wrappers.s"
     wrappers.write_text(
         fit.assembler_wrappers(
-            {"SSTORE": names}, group_ids={"SSTORE": 1}, bridges={}))
+            {"SUI": sui_names, "SSTORE": names},
+            group_ids={"SUI": 1, "SSTORE": 2}, bridges={}))
     sources.append(wrappers)
 
     objects: list[Path] = []
@@ -382,8 +435,13 @@ def build() -> Path:
     for initial in (True, False, False):
         blobs.write_text(
             '.segment "RODATA"\n'
-            '.export _sstore_image, _sstore_image_end\n'
-            '_sstore_image:\n'
+            '.export _sui_image, _sui_image_end\n'
+            '_sui_image:\n'
+            + ('.byte 0\n' if initial
+               else f'.incbin "{OUT.as_posix()}/sui.bin"\n')
+            + '_sui_image_end:\n'
+            + '.export _sstore_image, _sstore_image_end\n'
+            + '_sstore_image:\n'
             + ('.byte 0\n' if initial
                else f'.incbin "{OUT.as_posix()}/sstore.bin"\n')
             + '_sstore_image_end:\n'
@@ -395,9 +453,13 @@ def build() -> Path:
             cwd=CLIENT,
         )
 
+    sui_size = (OUT / "sui.bin").stat().st_size
     size = (OUT / "sstore.bin").stat().st_size
+    if not sui_size or sui_size > fit.OVERLAY_LIMIT:
+        raise fit.FitError(f"SUI asset size invalid: {sui_size}")
     if not size or size > fit.OVERLAY_LIMIT:
         raise fit.FitError(f"SSTORE asset size invalid: {size}")
+    print(f"SUI focused dispatcher asset: {sui_size} / {fit.OVERLAY_LIMIT}")
     print(f"SSTORE focused asset: {size} / {fit.OVERLAY_LIMIT}")
     end = fit.bss_end(map_path)
     print(f"Persistent Settings storage VICE probe BSS ends at 0x{end:04X}")
@@ -446,8 +508,8 @@ def main() -> int:
                 state = monitor.read_memory(0xc060, 0xc062)
                 if state[1] == 0xa5:
                     print(
-                        "VICE persistent Settings storage passed: real SSTORE "
-                        "transactional save, readback verification and exact load"
+                        "VICE persistent Settings mode passed: real SUI -> resident -> SSTORE "
+                        "save/cancel plus transactional storage and exact reload"
                     )
                     return 0
                 if state[1] == 0x5a:
