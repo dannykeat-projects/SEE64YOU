@@ -6,17 +6,20 @@
 #include "publisher/settings_exchange.h"
 
 #define S64_SETTINGS_SCREEN_MAX_LINES 18u
+#define S64_SETTINGS_SCREEN_DYNAMIC_LINES 5u
+#define S64_SETTINGS_SCREEN_COLUMNS 40u
 
 typedef struct {
     uint8_t row;
-    const char* label;
-    const char* value;
+    const char* text;
 } S64PersistentSettingsScreenLine;
 
 typedef struct {
     const char* title;
     uint8_t line_count;
+    uint8_t dynamic_count;
     S64PersistentSettingsScreenLine lines[S64_SETTINGS_SCREEN_MAX_LINES];
+    char dynamic[S64_SETTINGS_SCREEN_DYNAMIC_LINES][S64_SETTINGS_SCREEN_COLUMNS + 1u];
     const char* status;
 } S64PersistentSettingsScreen;
 
