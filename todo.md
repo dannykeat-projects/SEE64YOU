@@ -173,15 +173,25 @@ remains the final authority.
 
 The expanded real Publisher migration slice now passes on GitHub-hosted VICE:
 - persistent Editor alone retains **3,351 bytes** below `$8C00`;
-- persistent Editor + Publisher retains **1,435 bytes** below `$8C00`, still
+- persistent Editor + Publisher retains **1,433 bytes** below `$8C00`, still
   above the 1 KiB acceptance gate but close enough that resident BSS growth must
   remain deliberate;
 - real Publisher slices measure PCONTENT **10,392 / 15,360**, PNETWORK
-  **14,397 / 15,360** and PRUNTIME **1,408 / 15,360** bytes. PCONTENT contains
+  **14,397 / 15,360**, PRUNTIME **1,408 / 15,360** and PUI **305 / 15,360**
+  bytes. PUI is the fourth and final Publisher overlay slot and owns command
+  decoding plus local status/type mutations. PCONTENT contains
   remote/publish state, Preview, direct-key setup, the staged-open finalizer and
   compact remote-list parsing. PNETWORK contains Network Target $03, SHA/HMAC,
   direct HTTP, the real document writer, staged-open receiver and bounded
   remote-list fetch, leaving **963 bytes** in that slot;
+- the focused real-PUI VICE gate passes overlay entry, status toggling,
+  type-change intent and action routing. Type changes return an explicit
+  `S64_PUBLISH_UI_TYPE_CHANGED` intent so resident orchestration can switch to
+  PCONTENT and clear remote binding without a forbidden nested overlay call;
+- screen rendering remains resident. A focused experiment moved the main
+  conio renderer into PUI: `clrscr()` and `revers()` returned, but
+  `gotoxy()` hung under the real overlay veneer (trace 31). That experiment
+  was reverted rather than adding special rendering machinery;
 - direct-key parsing/setup is separated from signing/transport. The 32-byte live
   key remains resident while setup code lives in PCONTENT, keeping request-time
   signing in PNETWORK without duplicating key parsing there;
@@ -210,10 +220,12 @@ The expanded real Publisher migration slice now passes on GitHub-hosted VICE:
   cc65 translated C string response literals into PETSCII, so the fake wire
   began with byte $C8 instead of ASCII $48 for `HTTP`. The fixture emits
   explicit raw ASCII byte arrays; production HTTP parsing was not weakened;
-- the combined executable VICE harness uses bounded stubs for responsibilities
-  that have their own focused real-code gates, so embedded REU preload images do
-  not masquerade as product resident RAM. Separate focused gates execute the
-  real document writer and real staged-open path;
+- the combined executable VICE harness uses bounded stubs/placeholders for
+  responsibilities that have their own focused real-code gates, so embedded REU
+  preload images do not masquerade as product resident RAM. It now exercises a
+  four-entry Publisher namespace with a one-byte placeholder fourth asset, while
+  separate focused gates execute the real document writer, staged list/open path
+  and real PUI overlay;
 - Preview's cache/metadata stay in the existing $C800-$CBFF mode workspace in
   persistent mode; the staged-open receiver is the exception, using its
   measured 64-byte resident scratch after the workspace source proved unreliable;
