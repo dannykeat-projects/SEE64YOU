@@ -660,7 +660,11 @@ def build() -> Path:
             ))
         if group == "PNETWORK":
             names = [name for name in names
-                     if name != "s64_standalone_result_message"]
+                     if name not in (
+                         "s64_standalone_result_message",
+                         "s64_standalone_open_document",
+                         "s64_direct_list_summary",
+                     )]
         grouped_names[group] = list(dict.fromkeys(names))
         for path in paths:
             generated_path = generated / f"{group.lower()}_{Path(path).stem}.c"
