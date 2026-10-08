@@ -389,6 +389,29 @@ S64StandaloneResult s64_direct_publisher_test(S64HttpTransport* transport,
     return ack_result(request(transport, url, allow_http, "GET", 0, 0, collect_text, 0, 1));
 }
 
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+S64StandaloneResult s64_persistent_standalone_open_stage(
+    S64HttpTransport* transport,
+    const char* url,
+    uint8_t allow_http,
+    S64PersistentOpenStage* stage)
+{
+    S64StandaloneResult result;
+
+    if (!stage) return S64_STANDALONE_INVALID_ARGUMENT;
+    s64_persistent_open_stage_init(stage);
+    result = request(
+        transport, url, allow_http, "GET", 0, 0,
+        s64_persistent_open_stage_write, stage, 0);
+    if (stage->result == S64_DOCUMENT_SINK_ERROR)
+        return S64_STANDALONE_RESPONSE_TOO_LARGE;
+    if (result != S64_STANDALONE_OK) return result;
+    return stage->body_started
+        ? S64_STANDALONE_OK
+        : S64_STANDALONE_PROTOCOL_ERROR;
+}
+#endif
+
 S64StandaloneResult s64_standalone_save_document(S64HttpTransport* transport,
     const char* url, uint8_t allow_http, const S64StandaloneSession* session,
     const S64Document* document)
