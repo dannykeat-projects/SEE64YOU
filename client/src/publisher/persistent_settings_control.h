@@ -53,4 +53,21 @@ S64PersistentSettingsKeyImportResult s64_persistent_settings_import_direct_key(
     char scratch[65]
 );
 
+typedef enum {
+    S64_SETTINGS_COMMIT_OK = 0,
+    S64_SETTINGS_COMMIT_INVALID,
+    S64_SETTINGS_COMMIT_STORE_ERROR,
+    S64_SETTINGS_COMMIT_VERIFY_ERROR,
+    S64_SETTINGS_COMMIT_EXCHANGE_ERROR
+} S64PersistentSettingsCommitResult;
+
+S64PersistentSettingsCommitResult s64_persistent_settings_commit(
+    S64Dos* dos,
+    S64SettingsExchange* settings
+);
+
+S64PersistentSettingsCommitResult s64_persistent_settings_restore_original(
+    S64SettingsExchange* settings
+);
+
 #endif
