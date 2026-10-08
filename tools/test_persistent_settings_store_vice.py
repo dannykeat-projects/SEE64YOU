@@ -309,7 +309,16 @@ def build() -> Path:
     for source_path in GROUP:
         names.extend(fit.public_s64_definitions(
             (CLIENT / source_path).read_text(encoding="utf-8")))
-    names = list(dict.fromkeys(names))
+    names = [
+        name for name in dict.fromkeys(names)
+        if name not in {
+            "s64_destination_connection_url",
+            "s64_destination_list_url",
+            "s64_destination_open_url",
+            "s64_destination_save_url",
+            "s64_destination_delete_url",
+        }
+    ]
     for source_path in GROUP:
         out = generated / f"sstore_{Path(source_path).stem}.c"
         out.write_text(fit.generated_translation_unit(
