@@ -29,6 +29,7 @@ PUBLISHER_GROUPS: dict[str, tuple[str, ...]] = {
         "diagnostics/persistent_result_message.c",
         "src/publisher/direct_key.c",
         "src/publisher/direct_key_store.c",
+        "diagnostics/persistent_document_read.c",
     ),
     "PNETWORK": (
         "src/platform/network.c",
@@ -36,7 +37,7 @@ PUBLISHER_GROUPS: dict[str, tuple[str, ...]] = {
         "src/publisher/direct_auth.c",
         "src/publisher/standalone_direct.c",
         "diagnostics/persistent_document_write.c",
-        "diagnostics/persistent_document_read.c",
+        "diagnostics/persistent_document_stage.c",
     ),
     "PRUNTIME": (
         "src/publisher/settings_validate.c",
