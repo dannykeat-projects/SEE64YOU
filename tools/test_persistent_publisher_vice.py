@@ -16,7 +16,12 @@ CLIENT = ROOT / "client"
 OUT = CLIENT / "build" / "persistent-publisher-vice"
 
 GROUPS = {
-    "PCONTENT": ("src/publisher/destination.c", "src/publisher/state.c"),
+    "PCONTENT": (
+        "src/publisher/destination.c",
+        "src/publisher/state.c",
+        "src/publisher/direct_key.c",
+        "src/publisher/direct_key_store.c",
+    ),
     "PNETWORK": (
         "src/platform/network.c",
         "src/crypto/sha256.c",
