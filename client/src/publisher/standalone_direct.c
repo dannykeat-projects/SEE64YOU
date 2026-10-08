@@ -297,7 +297,6 @@ static S64StandaloneResult exchange(const char* method, const char* path,
         result = s64_net_read(&network, socket_handle, S64_NET_READ_MAX,
             read_reply, &reply, &received);
         if (reply.failed) {
-            if (s64_persistent_direct_trace == 13u) S64_DIRECT_TRACE(14u);
             outcome = S64_STANDALONE_PROTOCOL_ERROR;
             goto cleanup;
         }
