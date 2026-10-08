@@ -66,13 +66,8 @@ static uint16_t text_length;
 #ifdef S64_PERSISTENT_RUNTIME_FIT
 uint8_t s64_persistent_direct_trace;
 #define S64_DIRECT_TRACE(value) (s64_persistent_direct_trace = (value))
-#define S64_DIRECT_BAD_BYTE(value, offset) do { \
-    *(volatile uint8_t*)0xc063 = (value); \
-    *(volatile uint8_t*)0xc064 = (uint8_t)(offset); \
-} while (0)
 #else
 #define S64_DIRECT_TRACE(value) ((void)0)
-#define S64_DIRECT_BAD_BYTE(value, offset) ((void)0)
 #endif
 
 int s64_direct_publisher_key(const char* hex)
@@ -85,15 +80,12 @@ int s64_direct_publisher_key(const char* hex)
 static int equal_ci(const char* left, const char* right, uint8_t count)
 {
     uint8_t i;
-    uint8_t a, b;
+    char a, b;
     for (i = 0; i < count; ++i) {
-        if (!left[i] || !right[i]
-            || !s64_charset_native_to_ascii((uint8_t)left[i], &a)
-            || !s64_charset_native_to_ascii((uint8_t)right[i], &b)) {
-            return 0;
-        }
-        if (a >= 0x41u && a <= 0x5Au) a = (uint8_t)(a + 0x20u);
-        if (b >= 0x41u && b <= 0x5Au) b = (uint8_t)(b + 0x20u);
+        a = left[i]; b = right[i];
+        if (!a || !b) return 0;
+        if (a >= 'A' && a <= 'Z') a += 'a' - 'A';
+        if (b >= 'A' && b <= 'Z') b += 'a' - 'A';
         if (a != b) return 0;
     }
     return 1;
@@ -187,17 +179,11 @@ static uint8_t read_reply(const uint8_t* data, uint16_t length, void* context)
     uint8_t native;
     const char* digit;
     while (i < length && !reply->headers_done) {
-        if (++reply->header_bytes > 4096u) { S64_DIRECT_TRACE(30u); goto fail; }
+        if (++reply->header_bytes > 4096u) goto fail;
         if (data[i] == 0x0du) { ++i; continue; }
         if (data[i] != 0x0au) {
-            if (reply->line_length + 1u >= LINE_CAPACITY) {
-                S64_DIRECT_TRACE(31u); goto fail;
-            }
-            if (!s64_charset_ascii_to_native(data[i], &native)) {
-                S64_DIRECT_BAD_BYTE(data[i], reply->line_length);
-                S64_DIRECT_TRACE(32u); goto fail;
-            }
-            ++i;
+            if (reply->line_length + 1u >= LINE_CAPACITY
+                || !s64_charset_ascii_to_native(data[i++], &native)) goto fail;
             line[reply->line_length++] = (char)native;
             continue;
         }
@@ -205,53 +191,40 @@ static uint8_t read_reply(const uint8_t* data, uint16_t length, void* context)
         line[reply->line_length] = 0;
         if (!reply->have_status) {
             if ((!equal_ci(line, "HTTP/1.1 ", 9) && !equal_ci(line, "HTTP/1.0 ", 9))
-                || reply->line_length < 12u) {
-                S64_DIRECT_TRACE(33u); goto fail;
-            }
+                || reply->line_length < 12u) goto fail;
             status_code = 0;
             for (amount = 9; amount < 12; ++amount) {
-                if (line[amount] < '0' || line[amount] > '9') {
-                    S64_DIRECT_TRACE(34u); goto fail;
-                }
+                if (line[amount] < '0' || line[amount] > '9') goto fail;
                 status_code = status_code * 10u + (uint8_t)(line[amount] - '0');
             }
             reply->have_status = 1;
         } else if (!reply->line_length) {
             reply->headers_done = 1;
         } else if (equal_ci(line, "Content-Length:", 15)) {
-            if (reply->have_length) { S64_DIRECT_TRACE(35u); goto fail; }
+            if (reply->have_length) goto fail;
             digit = line + 15;
             while (*digit == ' ') ++digit;
-            if (*digit < '0' || *digit > '9') {
-                S64_DIRECT_TRACE(36u); goto fail;
-            }
+            if (*digit < '0' || *digit > '9') goto fail;
             value = 0;
             while (*digit >= '0' && *digit <= '9') {
-                if (value > 6553u || (value == 6553u && *digit > '5')) {
-                    S64_DIRECT_TRACE(37u); goto fail;
-                }
+                if (value > 6553u || (value == 6553u && *digit > '5')) goto fail;
                 value = value * 10u + (uint8_t)(*digit++ - '0');
             }
-            if (*digit) { S64_DIRECT_TRACE(38u); goto fail; }
+            if (*digit) goto fail;
             reply->remaining = value; reply->have_length = 1;
         } else if (equal_ci(line, "Transfer-Encoding:", 18)) {
             /* HTTP/1.0 requests ask for a close-delimited/non-chunked response. */
-            S64_DIRECT_TRACE(39u);
             goto fail;
         }
         reply->line_length = 0;
     }
     amount = (uint16_t)(length - i);
     if (reply->headers_done && amount) {
-        if (reply->have_length && amount > reply->remaining) {
-            S64_DIRECT_TRACE(40u); goto fail;
-        }
+        if (reply->have_length && amount > reply->remaining) goto fail;
         if (reply->have_length) reply->remaining -= amount;
         /* Error pages never overwrite the caller's document buffer. */
         if (status_code >= 200u && status_code < 300u && reply->sink
-            && !reply->sink(data + i, amount, reply->context)) {
-            S64_DIRECT_TRACE(41u); goto fail;
-        }
+            && !reply->sink(data + i, amount, reply->context)) goto fail;
     }
     return 1;
 fail:
@@ -279,10 +252,8 @@ static S64StandaloneResult exchange(const char* method, const char* path,
     S64NetResult result;
     S64StandaloneResult outcome = S64_STANDALONE_TRANSPORT_ERROR;
     uint16_t idle = 0, received;
-    S64_DIRECT_TRACE(10u);
     if (s64_net_open_tcp(&network, host, 80u, &socket_handle) != S64_NET_OK)
         return outcome;
-    S64_DIRECT_TRACE(11u);
     memset(&reply, 0, sizeof(reply));
     reply.sink = sink; reply.context = context;
     status_code = 0; text_length = 0; reply_text[0] = 0;
@@ -297,32 +268,19 @@ static S64StandaloneResult exchange(const char* method, const char* path,
             || !send_text(line)) goto cleanup;
     }
     if (!send_text("\r\n") || (writer && !writer(send_body, 0, source))) goto cleanup;
-    S64_DIRECT_TRACE(12u);
     while (idle < 512u) {
         received = 0;
-        S64_DIRECT_TRACE(13u);
         result = s64_net_read(&network, socket_handle, S64_NET_READ_MAX,
             read_reply, &reply, &received);
-        if (reply.failed) {
-            outcome = S64_STANDALONE_PROTOCOL_ERROR;
+        if (reply.failed) { outcome = S64_STANDALONE_PROTOCOL_ERROR; goto cleanup; }
+        if (result != S64_NET_OK && result != S64_NET_NO_DATA && result != S64_NET_CLOSED)
             goto cleanup;
-        }
-        if (result != S64_NET_OK && result != S64_NET_NO_DATA && result != S64_NET_CLOSED) {
-            S64_DIRECT_TRACE(15u);
-            goto cleanup;
-        }
-        S64_DIRECT_TRACE(16u);
         if (received) idle = 0; else ++idle;
         if (reply.headers_done && reply.have_length && !reply.remaining) break;
         if (result == S64_NET_CLOSED) break;
     }
     if (!reply.headers_done || (reply.have_length && reply.remaining)
-        || idle == 512u) {
-        S64_DIRECT_TRACE(17u);
-        outcome = S64_STANDALONE_PROTOCOL_ERROR;
-        goto cleanup;
-    }
-    S64_DIRECT_TRACE(18u);
+        || idle == 512u) { outcome = S64_STANDALONE_PROTOCOL_ERROR; goto cleanup; }
     if (status_code == 401u) outcome = S64_STANDALONE_AUTH_FAILED;
     else if (status_code >= 200u && status_code < 300u) outcome = S64_STANDALONE_OK;
     else outcome = S64_STANDALONE_SERVER_ERROR;
