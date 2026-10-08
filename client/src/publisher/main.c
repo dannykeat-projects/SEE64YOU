@@ -799,15 +799,6 @@ static void list_open_remote(S64DocumentType type)
         return;
     }
 
-#ifdef S64_DIRECT_PUBLISHER
-    WORK_SELECTION[0] = '\0';
-    if (!prompt_text("REMOTE SLUG: ", WORK_SELECTION,
-            (unsigned char)S64_DOCUMENT_SLUG_CAPACITY, 0u)
-        || !s64_document_slug_valid(WORK_SELECTION)) {
-        set_status("Invalid slug or cancelled");
-        return;
-    }
-#else
     url_result = s64_destination_list_url(
         &destination,
         type,
@@ -819,6 +810,56 @@ static void list_open_remote(S64DocumentType type)
         return;
     }
 
+#ifdef S64_DIRECT_PUBLISHER
+    {
+        S64DocumentSummary* summary =
+            (S64DocumentSummary*)&s64_publisher_workspace.bytes[256];
+        uint16_t index = 0u;
+        uint16_t total = 0u;
+        unsigned char key;
+
+        for (;;) {
+            S64StandaloneResult result = s64_direct_list_summary(
+                &http,
+                WORK_URL,
+                destination.allow_insecure_http,
+                type,
+                index,
+                summary,
+                &total
+            );
+            if (result != S64_STANDALONE_OK) {
+                set_status(s64_standalone_result_message(result));
+                return;
+            }
+            if (total == 0u) {
+                set_status("No remote documents");
+                return;
+            }
+            if (index >= total) {
+                set_status("No document selected");
+                return;
+            }
+
+            clrscr();
+            print_value(2u, "Title: ", summary->title);
+            print_value(3u, "Remote: ", summary->slug);
+            gotoxy(0u, 5u);
+            cputs("O=OPEN  OTHER=NEXT  STOP=CANCEL");
+            key = (unsigned char)cgetc();
+
+            if (key == CH_STOP) {
+                set_status("Remote open cancelled");
+                return;
+            }
+            if (key == 'o' || key == 'O' || key == CH_ENTER) {
+                strcpy(WORK_SELECTION, summary->slug);
+                break;
+            }
+            ++index;
+        }
+    }
+#else
     selected_state = 0u;
     if (destination.type == S64_DESTINATION_STANDALONE) {
         S64StandaloneResult result = s64_standalone_list_documents(
