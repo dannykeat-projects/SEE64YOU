@@ -5,7 +5,7 @@
 
 #include "publisher/settings_exchange.h"
 
-#define S64_SETTINGS_SCREEN_MAX_LINES 14u
+#define S64_SETTINGS_SCREEN_MAX_LINES 18u
 
 typedef struct {
     uint8_t row;
