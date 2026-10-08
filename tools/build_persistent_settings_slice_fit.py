@@ -20,6 +20,8 @@ GROUPS = {
         "src/publisher/settings_store.c",
         "src/publisher/settings_exchange.c",
         "src/publisher/settings_validate.c",
+        "src/publisher/destination.c",
+        "src/publisher/persistent_settings_control.c",
     ),
 }
 GROUP_IDS = {"SUI": 1, "SSTORE": 2}
