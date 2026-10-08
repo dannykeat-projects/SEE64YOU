@@ -2,6 +2,12 @@
 
 #include <conio.h>
 
+#ifdef S64_PERSISTENT_UI_TRACE
+#define S64_UI_TRACE(value) (*(volatile uint8_t*)0xc064u = (uint8_t)(value))
+#else
+#define S64_UI_TRACE(value) ((void)0)
+#endif
+
 #define SCREEN_COLUMNS 40u
 #define STATUS_ROW 23u
 
@@ -38,8 +44,10 @@ void s64_persistent_publisher_render(
     const char* state_name;
     uint8_t i = 0u;
 
+    S64_UI_TRACE(1u);
     if (!publisher || !s64_persistent_publisher_valid(publisher)) return;
     document = publisher->document;
+    S64_UI_TRACE(2u);
 
     destination_name = publisher->destination.type == S64_DESTINATION_STANDALONE
         ? "Standalone"
@@ -50,10 +58,12 @@ void s64_persistent_publisher_render(
         ? "published" : "draft";
 
     clrscr();
+    S64_UI_TRACE(3u);
     revers(1);
     gotoxy(0u, 0u);
     cputs(" SEE64YOU PUBLISHER                    ");
     revers(0);
+    S64_UI_TRACE(4u);
 
     print_value(2u, "Title: ", document->title[0] ? document->title : "(untitled)");
     print_value(3u, "Slug:  ", document->slug[0] ? document->slug : "(unset)");
@@ -67,6 +77,7 @@ void s64_persistent_publisher_render(
     print_value(10u, "Remote: ",
         publisher->publish_state.remote_bound
             ? publisher->publish_state.remote_identity : "(new document)");
+    S64_UI_TRACE(5u);
 
     gotoxy(0u, 12u); cputs("1  PUBLISHING SETTINGS");
     gotoxy(0u, 13u); cputs("2  TEST DIRECT KEY");
@@ -78,6 +89,7 @@ void s64_persistent_publisher_render(
     gotoxy(0u, 19u); cputs("9 EXPORT TXT  0 IMPORT TXT");
     gotoxy(0u, 20u); cputs("T TOGGLE PAGE / POST");
     gotoxy(0u, 21u); cputs("RUN/STOP  RETURN TO EDITOR");
+    S64_UI_TRACE(6u);
 
     clear_row(STATUS_ROW);
     gotoxy(0u, STATUS_ROW);
@@ -89,6 +101,7 @@ void s64_persistent_publisher_render(
         }
     }
     revers(0);
+    S64_UI_TRACE(7u);
 }
 
 S64PersistentPublisherAction s64_persistent_publisher_key(
