@@ -2,6 +2,7 @@
 """Measure the first two persistent Settings overlays."""
 from __future__ import annotations
 
+import re
 import shlex
 import sys
 from pathlib import Path
@@ -153,6 +154,24 @@ def build() -> Path:
         cwd=CLIENT,
     )
     print("Persistent settings_main.c compile passed")
+    dump = fit.run(["od65", "--dump-segments", str(settings_main_obj)], cwd=CLIENT).stdout
+    segment_sizes: dict[str, int] = {}
+    current = None
+    for line in dump.splitlines():
+        match = re.match(r'\s*Name:\s*"([^"]+)"', line)
+        if match:
+            current = match.group(1)
+            continue
+        match = re.match(r'\s*Size:\s*(0x[0-9A-Fa-f]+|[0-9]+)', line)
+        if match and current:
+            segment_sizes[current] = int(match.group(1), 0)
+            current = None
+    interesting = ("CODE", "RODATA", "DATA", "BSS")
+    if segment_sizes:
+        print("Persistent settings_main.c object segments: " + ", ".join(
+            f"{name}={segment_sizes.get(name, 0)}" for name in interesting))
+    else:
+        print("Persistent settings_main.c object segment sizes unavailable")
 
     for group in ("SUI", "SSTORE"):
         size = (OUT / f"{group.lower()}.bin").stat().st_size
