@@ -301,8 +301,10 @@ int main(void)
         staged_header,
         (uint16_t)sizeof(staged_header)), 70u);
     for (i = 0u; i < (uint8_t)sizeof(expected_header); ++i) {
-        require(staged_header[i] == expected_header[i],
-            (uint8_t)(100u + i));
+        if (staged_header[i] != expected_header[i]) {
+            *(volatile uint8_t*)0xc063 = i;
+            require(0u, staged_header[i] ? staged_header[i] : 0xffu);
+        }
     }
 
     document_result = s64_persistent_open_stage_commit(
