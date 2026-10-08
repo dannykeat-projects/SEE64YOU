@@ -534,6 +534,17 @@ int main(void)
                 && !strcmp(publisher.publish_state.remote_identity, document.slug),
                 57u);
 
+            document.status = S64_DOCUMENT_PUBLISHED;
+            s64_persistent_publisher_reset_change_flags(&publisher);
+            direct_result = (S64StandaloneResult)
+                s64_persistent_publisher_delete_direct(
+                    &publisher, &direct_http, url, sizeof(url));
+            require(direct_result == (S64StandaloneResult)S64_PERSISTENT_ACTION_OK
+                && !publisher.publish_state.remote_bound
+                && document.status == S64_DOCUMENT_DRAFT
+                && publisher.document_changed,
+                58u);
+
             direct_result = s64_standalone_delete_document(
                 &direct_http,
                 "http://example.test/api.php?action=delete",
