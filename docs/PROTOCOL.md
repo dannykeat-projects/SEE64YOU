@@ -117,6 +117,23 @@ GET api.php?action=list&type=post
 
 Protected. Returns count plus document metadata.
 
+For the constrained direct C64U browser, an additive bounded summary form is available:
+
+~~~text
+GET api.php?action=list&type=page&format=summary&offset=0
+~~~
+
+The response is ASCII text using `application/x-see64you-list`:
+
+~~~text
+SEE64YOU-LIST/1
+Count: 2
+Slug: example-page
+Title: Example Page
+
+~~~
+
+`Count` is always present. `Slug` and `Title` are present only when `offset` is within the list. This lets the direct Network $03 client browse one item at a time with constant RAM use and without a general-purpose JSON parser.
 ### Get
 
 GET api.php?action=get&type=post&slug=hello-world
