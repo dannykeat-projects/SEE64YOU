@@ -80,12 +80,15 @@ int s64_direct_publisher_key(const char* hex)
 static int equal_ci(const char* left, const char* right, uint8_t count)
 {
     uint8_t i;
-    char a, b;
+    uint8_t a, b;
     for (i = 0; i < count; ++i) {
-        a = left[i]; b = right[i];
-        if (!a || !b) return 0;
-        if (a >= 'A' && a <= 'Z') a += 'a' - 'A';
-        if (b >= 'A' && b <= 'Z') b += 'a' - 'A';
+        if (!left[i] || !right[i]
+            || !s64_charset_native_to_ascii((uint8_t)left[i], &a)
+            || !s64_charset_native_to_ascii((uint8_t)right[i], &b)) {
+            return 0;
+        }
+        if (a >= 'A' && a <= 'Z') a = (uint8_t)(a + ('a' - 'A'));
+        if (b >= 'A' && b <= 'Z') b = (uint8_t)(b + ('a' - 'A'));
         if (a != b) return 0;
     }
     return 1;
