@@ -39,4 +39,18 @@ S64PersistentSettingsProfileResult s64_persistent_settings_profile_save(
     S64SettingsExchange* scratch
 );
 
+typedef enum {
+    S64_SETTINGS_KEY_IMPORT_OK = 0,
+    S64_SETTINGS_KEY_IMPORT_INVALID_ARGUMENT,
+    S64_SETTINGS_KEY_IMPORT_NOT_FOUND,
+    S64_SETTINGS_KEY_IMPORT_INVALID,
+    S64_SETTINGS_KEY_IMPORT_IO_ERROR
+} S64PersistentSettingsKeyImportResult;
+
+S64PersistentSettingsKeyImportResult s64_persistent_settings_import_direct_key(
+    S64Dos* dos,
+    S64SettingsExchange* settings,
+    char scratch[65]
+);
+
 #endif
