@@ -870,6 +870,7 @@ static void import_direct_key(void)
 #endif
 }
 
+#ifndef S64_PERSISTENT_RUNTIME_FIT
 static void return_to_publisher(void)
 {
 #ifdef S64_MANAGED_OVERLAY
@@ -902,8 +903,33 @@ static void return_to_publisher(void)
 #endif
 }
 
+#endif
+
 static void save_and_return(void)
 {
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+    S64PersistentSettingsCommitResult result =
+        s64_persistent_settings_commit(&dos, &settings);
+
+    if (result == S64_SETTINGS_COMMIT_INVALID) {
+        set_status("Settings are invalid");
+        return;
+    }
+    if (result == S64_SETTINGS_COMMIT_VERIFY_ERROR) {
+        set_status("SAVE FAILED - READBACK INVALID");
+        return;
+    }
+    if (result == S64_SETTINGS_COMMIT_STORE_ERROR) {
+        set_status("SAVE FAILED - SETTINGS NOT WRITTEN");
+        return;
+    }
+    if (result == S64_SETTINGS_COMMIT_EXCHANGE_ERROR) {
+        set_status("Cannot preserve settings");
+        return;
+    }
+
+    set_status("Saved SEE64YOU/SEE64YOU.CFG");
+#else
     S64SettingsStoreResult result;
 #ifdef S64_SETTINGS_SAVE_TRACE
     begin_save_trace(&dos, &settings);
@@ -962,15 +988,21 @@ static void save_and_return(void)
 #else
     return_to_publisher();
 #endif
+#endif
 }
 
 static void cancel_and_return(void)
 {
 #ifdef S64_PERSISTENT_RUNTIME_FIT
-    if (!s64_settings_exchange_load(&settings)) {
+    if (s64_persistent_settings_restore_original(&settings)
+            != S64_SETTINGS_COMMIT_OK) {
         set_status("Cannot restore original settings");
-        return;
+    } else {
+        set_status("Settings changes cancelled");
     }
+#else
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+    /* unreachable: kept out of the persistent root above */
 #else
     settings = original_settings;
 #endif
@@ -991,9 +1023,10 @@ static void cancel_and_return(void)
     }
 #endif
     return_to_publisher();
+#endif
 }
 
-#ifndef S64_MANAGED_OVERLAY
+#if !defined(S64_MANAGED_OVERLAY) && !defined(S64_PERSISTENT_RUNTIME_FIT)
 static void service_load_request(void)
 {
     S64SettingsStoreResult result;
@@ -1076,9 +1109,11 @@ int main(void)
 
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
     have_exchange = s64_settings_exchange_load(&settings) ? 1u : 0u;
+#ifndef S64_PERSISTENT_RUNTIME_FIT
     if (have_exchange && settings.state == S64_SETTINGS_STATE_LOAD_REQUEST) {
         service_load_request();
     }
+#endif
 
     if (!have_exchange) {
         s64_settings_exchange_init(&settings);
