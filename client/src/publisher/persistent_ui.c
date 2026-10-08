@@ -60,8 +60,11 @@ void s64_persistent_publisher_render(
     clrscr();
     S64_UI_TRACE(3u);
     revers(1);
+    S64_UI_TRACE(31u);
     gotoxy(0u, 0u);
+    S64_UI_TRACE(32u);
     cputs(" SEE64YOU PUBLISHER                    ");
+    S64_UI_TRACE(33u);
     revers(0);
     S64_UI_TRACE(4u);
 
