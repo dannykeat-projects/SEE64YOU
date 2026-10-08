@@ -25,6 +25,11 @@
 #define S64_PUBLISH_WORK_DIRECT_REPLY_OFFSET 608u
 #define S64_PUBLISH_WORK_RELAY_OFFSET 449u
 
+/* Settings reuses the same disposable 1 KiB mode workspace while Publisher is
+ * inactive. Two 334-byte exchange records fit without resident BSS. */
+#define S64_SETTINGS_WORK_RECORD_OFFSET 0u
+#define S64_SETTINGS_WORK_VERIFY_OFFSET 384u
+
 typedef union {
     void* align_pointer;
     unsigned long align_long;
