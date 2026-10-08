@@ -35,7 +35,6 @@ static uint8_t parse_order(const char* text, int32_t* output)
     uint8_t digits = 0u;
     uint8_t digit;
     uint32_t value = 0u;
-    uint32_t limit;
 
     if (!text || !output) return 0u;
     if (*text == '-') {
@@ -45,22 +44,23 @@ static uint8_t parse_order(const char* text, int32_t* output)
         ++text;
     }
 
-    limit = negative ? 2147483648UL : 2147483647UL;
     while (*text >= '0' && *text <= '9') {
         digit = (uint8_t)(*text - '0');
-        if (value > (limit - digit) / 10u) return 0u;
+        if (value > 214748364UL
+            || (value == 214748364UL
+                && digit > (uint8_t)(negative ? 8u : 7u))) {
+            return 0u;
+        }
         value = value * 10u + digit;
         ++digits;
         ++text;
     }
     if (!digits || *text) return 0u;
 
-    if (negative) {
-        *output = value == 2147483648UL
-            ? (int32_t)INT32_MIN
-            : -(int32_t)value;
+    if (negative && value == 2147483648UL) {
+        *output = (int32_t)INT32_MIN;
     } else {
-        *output = (int32_t)value;
+        *output = negative ? -(int32_t)value : (int32_t)value;
     }
     return 1u;
 }
