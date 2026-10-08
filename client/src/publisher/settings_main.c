@@ -530,7 +530,6 @@ static uint8_t choose_profile_slot(void)
 
 static void load_profile(void)
 {
-    S64SettingsStoreResult result;
     uint8_t slot;
 
     if (!capabilities.dos_target) {
@@ -544,38 +543,58 @@ static void load_profile(void)
         return;
     }
 
-    result = s64_settings_profile_load(&dos, slot, &profile_settings);
-    if (result == S64_SETTINGS_STORE_NOT_FOUND) {
-        set_status("Profile slot is empty");
-        return;
-    }
-    if (result == S64_SETTINGS_STORE_INVALID) {
-        set_status("Profile data invalid");
-        return;
-    }
-    if (result != S64_SETTINGS_STORE_OK) {
-        set_status("Profile load failed");
-        return;
-    }
-    if (!validate_values(&profile_settings)) {
-        return;
-    }
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+    {
+        S64PersistentSettingsProfileResult result =
+            s64_persistent_settings_profile_load(
+                &dos, slot, &settings, &profile_settings);
 
-    settings = profile_settings;
-    settings.state = S64_SETTINGS_STATE_EDIT_REQUEST;
-    set_status("Profile loaded; S to use");
+        if (result == S64_SETTINGS_PROFILE_OK) {
+            set_status("Profile loaded; S to use");
+        } else if (result == S64_SETTINGS_PROFILE_NOT_FOUND) {
+            set_status("Profile slot is empty");
+        } else if (result == S64_SETTINGS_PROFILE_INVALID) {
+            set_status("Profile data invalid");
+        } else {
+            set_status("Profile load failed");
+        }
+    }
+#else
+    {
+        S64SettingsStoreResult result;
+
+        result = s64_settings_profile_load(&dos, slot, &profile_settings);
+        if (result == S64_SETTINGS_STORE_NOT_FOUND) {
+            set_status("Profile slot is empty");
+            return;
+        }
+        if (result == S64_SETTINGS_STORE_INVALID) {
+            set_status("Profile data invalid");
+            return;
+        }
+        if (result != S64_SETTINGS_STORE_OK) {
+            set_status("Profile load failed");
+            return;
+        }
+        if (!validate_values(&profile_settings)) {
+            return;
+        }
+
+        settings = profile_settings;
+        settings.state = S64_SETTINGS_STATE_EDIT_REQUEST;
+        set_status("Profile loaded; S to use");
+    }
+#endif
 }
 
 static void save_profile(void)
 {
-    S64SettingsStoreResult result;
     uint8_t slot;
 
     if (!capabilities.dos_target) {
         set_status("Settings storage unavailable");
         return;
     }
-    if (!validate_settings()) return;
 
     slot = choose_profile_slot();
     if (slot == 0xffu) {
@@ -583,15 +602,35 @@ static void save_profile(void)
         return;
     }
 
-    profile_settings = settings;
-    result = s64_settings_profile_save(&dos, slot, &profile_settings);
-    if (result == S64_SETTINGS_STORE_OK) {
-        set_status("Profile saved");
-    } else {
-        set_status("Profile save failed");
-    }
-}
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+    {
+        S64PersistentSettingsProfileResult result =
+            s64_persistent_settings_profile_save(
+                &dos, slot, &settings, &profile_settings);
 
+        if (result == S64_SETTINGS_PROFILE_OK) {
+            set_status("Profile saved");
+        } else if (result == S64_SETTINGS_PROFILE_INVALID) {
+            set_status("Settings are invalid");
+        } else {
+            set_status("Profile save failed");
+        }
+    }
+#else
+    {
+        S64SettingsStoreResult result;
+
+        if (!validate_settings()) return;
+        profile_settings = settings;
+        result = s64_settings_profile_save(&dos, slot, &profile_settings);
+        if (result == S64_SETTINGS_STORE_OK) {
+            set_status("Profile saved");
+        } else {
+            set_status("Profile save failed");
+        }
+    }
+#endif
+}
 
 
 static uint8_t diag_count_bytes(
