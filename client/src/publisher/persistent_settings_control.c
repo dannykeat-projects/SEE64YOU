@@ -1,6 +1,7 @@
 #include "publisher/persistent_settings_control.h"
 
 #include "publisher/destination.h"
+#include "publisher/settings_store.h"
 
 #include <string.h>
 
@@ -35,4 +36,63 @@ S64PersistentSettingsControlResult s64_persistent_settings_validate_values(
     return s64_settings_exchange_values_valid(settings)
         ? S64_SETTINGS_CONTROL_OK
         : S64_SETTINGS_CONTROL_INVALID_VALUES;
+}
+
+static S64PersistentSettingsProfileResult map_profile_result(
+    S64SettingsStoreResult result)
+{
+    if (result == S64_SETTINGS_STORE_OK) return S64_SETTINGS_PROFILE_OK;
+    if (result == S64_SETTINGS_STORE_NOT_FOUND)
+        return S64_SETTINGS_PROFILE_NOT_FOUND;
+    if (result == S64_SETTINGS_STORE_INVALID)
+        return S64_SETTINGS_PROFILE_INVALID;
+    return S64_SETTINGS_PROFILE_IO_ERROR;
+}
+
+S64PersistentSettingsProfileResult s64_persistent_settings_profile_load(
+    S64Dos* dos,
+    uint8_t slot,
+    S64SettingsExchange* settings,
+    S64SettingsExchange* scratch)
+{
+    S64SettingsStoreResult store_result;
+
+    if (!dos || !settings || !scratch || slot >= S64_SETTINGS_PROFILE_COUNT) {
+        return S64_SETTINGS_PROFILE_INVALID_ARGUMENT;
+    }
+
+    store_result = s64_settings_profile_load(dos, slot, scratch);
+    if (store_result != S64_SETTINGS_STORE_OK) {
+        return map_profile_result(store_result);
+    }
+    if (s64_persistent_settings_validate_values(scratch)
+            != S64_SETTINGS_CONTROL_OK) {
+        return S64_SETTINGS_PROFILE_INVALID;
+    }
+
+    memcpy(settings, scratch, sizeof(*settings));
+    settings->state = S64_SETTINGS_STATE_EDIT_REQUEST;
+    return S64_SETTINGS_PROFILE_OK;
+}
+
+S64PersistentSettingsProfileResult s64_persistent_settings_profile_save(
+    S64Dos* dos,
+    uint8_t slot,
+    const S64SettingsExchange* settings,
+    S64SettingsExchange* scratch)
+{
+    S64SettingsStoreResult store_result;
+
+    if (!dos || !settings || !scratch || slot >= S64_SETTINGS_PROFILE_COUNT) {
+        return S64_SETTINGS_PROFILE_INVALID_ARGUMENT;
+    }
+
+    memcpy(scratch, settings, sizeof(*scratch));
+    if (s64_persistent_settings_validate_values(scratch)
+            != S64_SETTINGS_CONTROL_OK) {
+        return S64_SETTINGS_PROFILE_INVALID;
+    }
+
+    store_result = s64_settings_profile_save(dos, slot, scratch);
+    return map_profile_result(store_result);
 }
