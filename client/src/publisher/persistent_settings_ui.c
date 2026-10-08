@@ -66,7 +66,7 @@ uint8_t s64_persistent_settings_screen(
             settings->direct_key[0] ? "configured" : "not set");
         screen_value(screen, 7u, "Publishing: ",
             settings->destination_type == (uint8_t)S64_DESTINATION_NONE
-                ? "not configured" : destination);
+                ? (const char*)"not configured" : destination);
         screen_line(screen, 11u, "1 WEBSITE");
         screen_line(screen, 12u, "2 IMPORT SEE64KEY.TXT");
         screen_line(screen, 13u, "3 TYPE / REPLACE KEY");
