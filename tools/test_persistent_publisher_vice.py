@@ -231,18 +231,23 @@ static S64UciResult fake_network_uci(
 static S64UciResult fake_http_uci(
     const S64UciCommandPart* parts, uint8_t part_count, S64UciReply* reply)
 {
-    static const uint8_t challenge_response[] =
-        "\x48\x54\x54\x50\x2f\x31\x2e\x30\x20\x32\x30\x30\x20\x4f\x4b"
-        "\x0d\x0a\x43\x6f\x6e\x74\x65\x6e\x74\x2d\x4c\x65\x6e\x67\x74"
-        "\x68\x3a\x20\x34\x38\x0d\x0a\x0d\x0a\x7b\x22\x63\x68\x61\x6c"
-        "\x6c\x65\x6e\x67\x65\x22\x3a\x22\x30\x31\x32\x33\x34\x35\x36"
-        "\x37\x38\x39\x61\x62\x63\x64\x65\x66\x30\x31\x32\x33\x34\x35"
-        "\x36\x37\x38\x39\x61\x62\x63\x64\x65\x66\x22\x7d";
-    static const uint8_t ack_response[] =
-        "\x48\x54\x54\x50\x2f\x31\x2e\x30\x20\x32\x30\x30\x20\x4f\x4b"
-        "\x0d\x0a\x43\x6f\x6e\x74\x65\x6e\x74\x2d\x4c\x65\x6e\x67\x74"
-        "\x68\x3a\x20\x31\x31\x0d\x0a\x0d\x0a\x7b\x22\x6f\x6b\x22\x3a"
-        "\x74\x72\x75\x65\x7d";
+    static const uint8_t challenge_response[] = {
+        0x48u, 0x54u, 0x54u, 0x50u, 0x2fu, 0x31u, 0x2eu, 0x30u, 0x20u, 0x32u, 0x30u, 0x30u,
+        0x20u, 0x4fu, 0x4bu, 0x0du, 0x0au, 0x43u, 0x6fu, 0x6eu, 0x74u, 0x65u, 0x6eu, 0x74u,
+        0x2du, 0x4cu, 0x65u, 0x6eu, 0x67u, 0x74u, 0x68u, 0x3au, 0x20u, 0x34u, 0x38u, 0x0du,
+        0x0au, 0x0du, 0x0au, 0x7bu, 0x22u, 0x63u, 0x68u, 0x61u, 0x6cu, 0x6cu, 0x65u, 0x6eu,
+        0x67u, 0x65u, 0x22u, 0x3au, 0x22u, 0x30u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u,
+        0x37u, 0x38u, 0x39u, 0x61u, 0x62u, 0x63u, 0x64u, 0x65u, 0x66u, 0x30u, 0x31u, 0x32u,
+        0x33u, 0x34u, 0x35u, 0x36u, 0x37u, 0x38u, 0x39u, 0x61u, 0x62u, 0x63u, 0x64u, 0x65u,
+        0x66u, 0x22u, 0x7du
+    };
+    static const uint8_t ack_response[] = {
+        0x48u, 0x54u, 0x54u, 0x50u, 0x2fu, 0x31u, 0x2eu, 0x30u, 0x20u, 0x32u, 0x30u, 0x30u,
+        0x20u, 0x4fu, 0x4bu, 0x0du, 0x0au, 0x43u, 0x6fu, 0x6eu, 0x74u, 0x65u, 0x6eu, 0x74u,
+        0x2du, 0x4cu, 0x65u, 0x6eu, 0x67u, 0x74u, 0x68u, 0x3au, 0x20u, 0x31u, 0x31u, 0x0du,
+        0x0au, 0x0du, 0x0au, 0x7bu, 0x22u, 0x6fu, 0x6bu, 0x22u, 0x3au, 0x74u, 0x72u, 0x75u,
+        0x65u, 0x7du
+    };
     const uint8_t* response;
     uint16_t response_length;
     uint16_t sent;
@@ -288,10 +293,10 @@ static S64UciResult fake_http_uci(
         if (!reply->data_sink) return S64_UCI_PROTOCOL_ERROR;
         if (fake_http_open_count & 1u) {
             response = challenge_response;
-            response_length = (uint16_t)(sizeof(challenge_response) - 1u);
+            response_length = (uint16_t)sizeof(challenge_response);
         } else {
             response = ack_response;
-            response_length = (uint16_t)(sizeof(ack_response) - 1u);
+            response_length = (uint16_t)sizeof(ack_response);
         }
         count[0] = (uint8_t)response_length;
         count[1] = (uint8_t)(response_length >> 8);
@@ -690,7 +695,7 @@ def main() -> int:
             deadline = time.monotonic() + 120
             state = b""
             while time.monotonic() < deadline:
-                state = monitor.read_memory(0xc060, 0xc064)
+                state = monitor.read_memory(0xc060, 0xc062)
                 if state[1] == 0xa5:
                     print(
                         "VICE real Publisher slice passed: Editor/Publisher/Settings "
@@ -700,8 +705,7 @@ def main() -> int:
                     return 0
                 if state[1] == 0x5a:
                     raise fit.FitError(
-                        f"persistent Publisher VICE probe failed at step {state[2]} "
-                        f"(bad_byte=0x{state[3]:02x}, line_offset={state[4]})"
+                        f"persistent Publisher VICE probe failed at step {state[2]}"
                     )
                 monitor.resume()
                 time.sleep(0.03)
