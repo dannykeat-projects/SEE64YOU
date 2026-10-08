@@ -53,7 +53,7 @@ jobs:
       - name: Execute real persistent document writer
         run: python3 tools/test_persistent_document_write_vice.py
 
-      - name: Execute staged persistent direct open
+      - name: Execute staged persistent direct list/open
         run: python3 tools/test_persistent_open_vice.py
 
       - name: Execute real persistent Publisher namespace
