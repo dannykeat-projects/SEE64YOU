@@ -2,10 +2,8 @@
 
 #include "platform/reu.h"
 #include "platform/reu_layout.h"
-#include "publisher/workspace.h"
-
-#define S64_STAGE_CHUNK_CAPACITY 128u
-#define stage_chunk ((uint8_t*)&s64_publisher_workspace.bytes[896])
+#define S64_STAGE_CHUNK_CAPACITY 64u
+static uint8_t stage_chunk[S64_STAGE_CHUNK_CAPACITY];
 
 static uint8_t flush_header(S64PersistentOpenStage* stage)
 {
