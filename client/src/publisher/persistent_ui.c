@@ -37,8 +37,8 @@ S64PersistentPublisherAction s64_persistent_publisher_key(
         document->type = document->type == S64_DOCUMENT_PAGE
             ? S64_DOCUMENT_POST
             : S64_DOCUMENT_PAGE;
-        s64_publish_state_clear_remote(&publisher->publish_state);
         s64_persistent_publisher_mark_changed(publisher, 0u);
+        return S64_PUBLISH_UI_TYPE_CHANGED;
     }
 
     return S64_PUBLISH_UI_NONE;
