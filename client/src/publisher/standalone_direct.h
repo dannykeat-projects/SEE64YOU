@@ -10,6 +10,14 @@
 int s64_direct_publisher_key(const char* hex);
 S64StandaloneResult s64_direct_publisher_test(S64HttpTransport* transport,
     const char* url, uint8_t allow_http);
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+S64StandaloneResult s64_persistent_standalone_list_stage(
+    S64HttpTransport* transport,
+    const char* url,
+    uint8_t allow_http,
+    uint16_t index
+);
+#else
 S64StandaloneResult s64_direct_list_summary(
     S64HttpTransport* transport,
     const char* url,
@@ -19,6 +27,7 @@ S64StandaloneResult s64_direct_list_summary(
     S64DocumentSummary* summary,
     uint16_t* total_count
 );
+#endif
 #ifdef S64_PERSISTENT_RUNTIME_FIT
 S64StandaloneResult s64_persistent_standalone_open_stage(
     S64HttpTransport* transport,
