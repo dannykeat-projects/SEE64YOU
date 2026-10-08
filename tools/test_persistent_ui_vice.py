@@ -82,6 +82,10 @@ int main(void)
     document.status = S64_DOCUMENT_DRAFT;
     s64_persistent_publisher_init(&publisher, &document);
     require(s64_persistent_publisher_valid(&publisher), 5u);
+    publisher.network_available = 1u;
+    strcpy(document.slug, "entry-1");
+    strcpy(document.title, "Persistent UI");
+    s64_persistent_publisher_render(&publisher, "UI READY");
 
     require(s64_persistent_publisher_key(&publisher, '4')
             == S64_PUBLISH_UI_NONE
