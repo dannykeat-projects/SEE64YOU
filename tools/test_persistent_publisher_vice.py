@@ -21,7 +21,6 @@ GROUPS = {
         "src/publisher/state.c",
         "src/publisher/direct_key.c",
         "src/publisher/direct_key_store.c",
-        "diagnostics/persistent_result_message.c",
     ),
     "PNETWORK": (
         "src/platform/network.c",
@@ -101,6 +100,18 @@ uint8_t s64_overlay_pnetwork_s64_persistent_open_stage_write(
     (void)length;
     (void)context;
     return 0u;
+}
+"""
+
+PCONTENT_RESULT = r"""
+#include "publisher/standalone.h"
+#pragma code-name ("PCONTENT_CODE")
+#pragma rodata-name ("PCONTENT_RODATA")
+const char* s64_overlay_pcontent_s64_standalone_result_message(
+    S64StandaloneResult result)
+{
+    (void)result;
+    return "OK";
 }
 """
 
@@ -671,6 +682,11 @@ def build() -> Path:
         "s64_persistent_open_stage_init",
         "s64_persistent_open_stage_write",
     ])
+
+    pcontent_result = generated / "pcontent_result.c"
+    pcontent_result.write_text(PCONTENT_RESULT)
+    sources.append(pcontent_result)
+    grouped_names["PCONTENT"].append("s64_standalone_result_message")
 
     pnetwork_ping = generated / "pnetwork_ping.c"
     pnetwork_ping.write_text(PNETWORK_PING)
