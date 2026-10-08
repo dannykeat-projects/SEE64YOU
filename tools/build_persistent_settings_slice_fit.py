@@ -146,6 +146,14 @@ def build() -> Path:
         cwd=CLIENT,
     )
 
+    settings_main_obj = objects_dir / "settings_main_persistent_compile.o"
+    fit.run(
+        ["cl65", *flags, "-c", "-o", str(settings_main_obj),
+         "src/publisher/settings_main.c"],
+        cwd=CLIENT,
+    )
+    print("Persistent settings_main.c compile passed")
+
     for group in ("SUI", "SSTORE"):
         size = (OUT / f"{group.lower()}.bin").stat().st_size
         if not size or size > fit.OVERLAY_LIMIT:
