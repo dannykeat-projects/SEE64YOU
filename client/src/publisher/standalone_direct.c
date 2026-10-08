@@ -66,8 +66,13 @@ static uint16_t text_length;
 #ifdef S64_PERSISTENT_RUNTIME_FIT
 uint8_t s64_persistent_direct_trace;
 #define S64_DIRECT_TRACE(value) (s64_persistent_direct_trace = (value))
+#define S64_DIRECT_BAD_BYTE(value, offset) do { \
+    *(volatile uint8_t*)0xc063 = (value); \
+    *(volatile uint8_t*)0xc064 = (uint8_t)(offset); \
+} while (0)
 #else
 #define S64_DIRECT_TRACE(value) ((void)0)
+#define S64_DIRECT_BAD_BYTE(value, offset) ((void)0)
 #endif
 
 int s64_direct_publisher_key(const char* hex)
@@ -188,9 +193,11 @@ static uint8_t read_reply(const uint8_t* data, uint16_t length, void* context)
             if (reply->line_length + 1u >= LINE_CAPACITY) {
                 S64_DIRECT_TRACE(31u); goto fail;
             }
-            if (!s64_charset_ascii_to_native(data[i++], &native)) {
+            if (!s64_charset_ascii_to_native(data[i], &native)) {
+                S64_DIRECT_BAD_BYTE(data[i], reply->line_length);
                 S64_DIRECT_TRACE(32u); goto fail;
             }
+            ++i;
             line[reply->line_length++] = (char)native;
             continue;
         }
