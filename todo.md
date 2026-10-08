@@ -173,13 +173,31 @@ remains the final authority.
 
 The expanded real Publisher migration slice now passes on GitHub-hosted VICE:
 - persistent Editor alone retains **3,351 bytes** below `$8C00`;
-- persistent Editor + Publisher retains **1,498 bytes** below `$8C00`, still
+- persistent Editor + Publisher retains **1,401 bytes** below `$8C00`, still
   above the 1 KiB acceptance gate but close enough that resident BSS growth must
   remain deliberate;
-- real Publisher slices measure PCONTENT **6,523 / 15,360**, PNETWORK
-  **14,179 / 15,360** and PRUNTIME **1,408 / 15,360** bytes. PCONTENT now also
-  includes the real Preview renderer. PNETWORK includes the real streaming
-  document writer, leaving **1,181 bytes** in that slot;
+- real Publisher slices measure PCONTENT **9,476 / 15,360**, PNETWORK
+  **14,402 / 15,360** and PRUNTIME **1,408 / 15,360** bytes. PCONTENT contains
+  remote/publish state, Preview, direct-key setup and the staged-open finalizer.
+  PNETWORK contains Network Target $03, SHA/HMAC, direct HTTP, the real document
+  writer and the staged-open receiver, leaving **958 bytes** in that slot;
+- direct-key parsing/setup is separated from signing/transport. The 32-byte live
+  key remains resident while setup code lives in PCONTENT, keeping request-time
+  signing in PNETWORK without duplicating key parsing there;
+- authenticated remote open now uses a deliberate two-phase path because nested
+  overlay calls are forbidden. PNETWORK authenticates and streams the canonical
+  response into existing REU storage: headers temporarily borrow the history
+  payload region and the raw body goes directly to the document region.
+  PCONTENT then validates required metadata, converts the body ASCII -> native
+  PETSCII in place and commits the live `S64Document`;
+- staged-open header buffering uses a bounded **64-byte resident scratch**. A
+  $CB80 mode-workspace scratch was rejected after focused VICE showed that its
+  contents did not survive this path reliably. The 64-byte resident cost keeps
+  total headroom at 1,401 bytes and removes that unexplained dependency;
+- the focused staged-open VICE gate now passes authenticated challenge/HMAC,
+  Network-$03 reception, exact 101-byte raw-header REU staging, PCONTENT metadata
+  commit, signed Order/status/date/title/slug checks and exact PETSCII body
+  conversion. It adds no allocator entry;
 - the 30-cycle persistent Editor/Publisher/Settings lifecycle gate still passes;
 - the real Publisher VICE gate switches namespaces, binds remote state, exercises
   Network Target $03 open/write/read, parses the direct HTTP challenge, computes
@@ -188,19 +206,15 @@ The expanded real Publisher migration slice now passes on GitHub-hosted VICE:
   the same resident owner;
 - the former direct-auth failure reported as step 124 was a VICE fixture bug:
   cc65 translated C string response literals into PETSCII, so the fake wire
-  began with byte $C8 instead of ASCII $48 for `HTTP`. The fixture now emits
-  explicit raw ASCII byte arrays; production HTTP/parser code was restored
-  unchanged after diagnosis;
-- the executable VICE harness uses a tiny deterministic write-side document
-  fixture so its embedded REU preload images do not consume product resident
-  RAM. A separate focused VICE gate executes the real streaming writer under
-  PETSCII and verifies exact ASCII wire bytes. The product fit also compiles and
-  measures that real writer; this avoids treating harness preload storage as
-  persistent-runtime BSS;
-- Preview's 64-byte cache and metadata move into the existing $C800-$CBFF mode
-  workspace only in persistent mode. That keeps resident headroom at **1,498
-  bytes** rather than dropping to 1,428 bytes while retaining the full Preview
-  renderer in PCONTENT;
+  began with byte $C8 instead of ASCII $48 for `HTTP`. The fixture emits
+  explicit raw ASCII byte arrays; production HTTP parsing was not weakened;
+- the combined executable VICE harness uses bounded stubs for responsibilities
+  that have their own focused real-code gates, so embedded REU preload images do
+  not masquerade as product resident RAM. Separate focused gates execute the
+  real document writer and real staged-open path;
+- Preview's cache/metadata stay in the existing $C800-$CBFF mode workspace in
+  persistent mode; the staged-open receiver is the exception, using its
+  measured 64-byte resident scratch after the workspace source proved unreliable;
 - VICE uses warp mode with bounded execution so crypto-heavy failures remain
   quick and identifiable.
 
