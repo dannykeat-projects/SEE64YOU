@@ -301,6 +301,7 @@ def build() -> Path:
         "-DS64_NATIVE_PETSCII=1",
         "-DS64_REU_BUFFER=1",
         "-DS64_PERSISTENT_RUNTIME_FIT=1",
+        "-DS64_SETTINGS_CONFIG_ONLY=1",
     ]
 
     names: list[str] = []
