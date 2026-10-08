@@ -173,22 +173,29 @@ remains the final authority.
 
 The expanded real Publisher migration slice now passes on GitHub-hosted VICE:
 - persistent Editor alone retains **3,351 bytes** below `$8C00`;
-- persistent Editor + Publisher retains **1,488 bytes** below `$8C00`, still
+- persistent Editor + Publisher retains **1,498 bytes** below `$8C00`, still
   above the 1 KiB acceptance gate but close enough that resident BSS growth must
   remain deliberate;
 - real Publisher slices measure PCONTENT **3,793 / 15,360**, PNETWORK
-  **12,525 / 15,360** and PRUNTIME **1,408 / 15,360** bytes;
+  **14,179 / 15,360** and PRUNTIME **1,408 / 15,360** bytes. PNETWORK now
+  includes the real streaming document writer, leaving **1,181 bytes** in that
+  slot;
 - the 30-cycle persistent Editor/Publisher/Settings lifecycle gate still passes;
 - the real Publisher VICE gate switches namespaces, binds remote state, exercises
   Network Target $03 open/write/read, parses the direct HTTP challenge, computes
-  SHA/HMAC authentication, accepts the authenticated acknowledgement, round-trips
-  REU settings state, visits Settings and returns to Editor under the same
-  resident owner;
+  SHA/HMAC authentication, accepts authenticated test/save/delete operations,
+  round-trips REU settings state, visits Settings and returns to Editor under
+  the same resident owner;
 - the former direct-auth failure reported as step 124 was a VICE fixture bug:
   cc65 translated C string response literals into PETSCII, so the fake wire
   began with byte $C8 instead of ASCII $48 for `HTTP`. The fixture now emits
   explicit raw ASCII byte arrays; production HTTP/parser code was restored
   unchanged after diagnosis;
+- the executable VICE harness uses a tiny deterministic write-side document
+  fixture so its embedded REU preload images do not consume product resident
+  RAM. The separate product fit still compiles and measures the real streaming
+  writer; this avoids treating harness preload storage as persistent-runtime
+  BSS;
 - VICE uses warp mode with bounded execution so crypto-heavy failures remain
   quick and identifiable.
 
