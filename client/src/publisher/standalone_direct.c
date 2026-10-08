@@ -10,9 +10,6 @@
 #define s64_document_slug_valid s64_persistent_document_slug_valid
 #define s64_document_type_name s64_persistent_document_type_name
 #define s64_document_write_wire s64_persistent_document_write_wire
-#define s64_document_wire_reader_init s64_persistent_document_wire_reader_init
-#define s64_document_wire_reader_write s64_persistent_document_wire_reader_write
-#define s64_document_wire_reader_finish s64_persistent_document_wire_reader_finish
 #endif
 
 #include <string.h>
@@ -422,6 +419,7 @@ S64StandaloneResult s64_standalone_save_document(S64HttpTransport* transport,
     return ack_result(result);
 }
 
+#ifndef S64_PERSISTENT_RUNTIME_FIT
 typedef struct {
     S64DocumentWireReader reader;
     S64Document* document;
@@ -454,6 +452,8 @@ S64StandaloneResult s64_standalone_open_document(S64HttpTransport* transport,
         return S64_STANDALONE_PROTOCOL_ERROR;
     return result;
 }
+
+#endif
 
 typedef struct { const char* type; const char* slug; } DeleteBody;
 static int write_delete(S64DocumentSink sink, void* context, const void* source)
