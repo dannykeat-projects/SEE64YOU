@@ -96,3 +96,33 @@ S64PersistentSettingsProfileResult s64_persistent_settings_profile_save(
     store_result = s64_settings_profile_save(dos, slot, scratch);
     return map_profile_result(store_result);
 }
+
+S64PersistentSettingsKeyImportResult s64_persistent_settings_import_direct_key(
+    S64Dos* dos,
+    S64SettingsExchange* settings,
+    char scratch[65])
+{
+    S64SettingsStoreResult result;
+
+    if (!dos || !settings || !scratch) {
+        return S64_SETTINGS_KEY_IMPORT_INVALID_ARGUMENT;
+    }
+
+    memset(scratch, 0, 65u);
+    result = s64_settings_import_direct_key(dos, scratch);
+    if (result == S64_SETTINGS_STORE_NOT_FOUND) {
+        return S64_SETTINGS_KEY_IMPORT_NOT_FOUND;
+    }
+    if (result == S64_SETTINGS_STORE_INVALID) {
+        memset(scratch, 0, 65u);
+        return S64_SETTINGS_KEY_IMPORT_INVALID;
+    }
+    if (result != S64_SETTINGS_STORE_OK) {
+        memset(scratch, 0, 65u);
+        return S64_SETTINGS_KEY_IMPORT_IO_ERROR;
+    }
+
+    memcpy(settings->direct_key, scratch, sizeof(settings->direct_key));
+    memset(scratch, 0, 65u);
+    return S64_SETTINGS_KEY_IMPORT_OK;
+}
