@@ -25,9 +25,4 @@ S64PersistentPublisherAction s64_persistent_publisher_key(
     uint8_t key
 );
 
-void s64_persistent_publisher_render(
-    const S64PersistentPublisher* publisher,
-    const char* status
-);
-
 #endif
