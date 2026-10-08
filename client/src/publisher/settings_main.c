@@ -16,6 +16,8 @@
 #ifdef S64_PERSISTENT_RUNTIME_FIT
 #include "publisher/workspace.h"
 #include "publisher/persistent_settings_control.h"
+#include "publisher/persistent_settings_render.h"
+#include "publisher/persistent_settings_ui.h"
 #endif
 #ifdef S64_MANAGED_OVERLAY
 #include "platform/module_arrival.h"
@@ -103,6 +105,7 @@ typedef struct {
 #ifdef S64_PERSISTENT_RUNTIME_FIT
 #define settings (*(S64SettingsExchange*)&s64_publisher_workspace.bytes[S64_SETTINGS_WORK_RECORD_OFFSET])
 #define profile_settings (*(S64SettingsExchange*)&s64_publisher_workspace.bytes[S64_SETTINGS_WORK_SCRATCH_OFFSET])
+#define settings_screen (*(S64PersistentSettingsScreen*)&s64_publisher_workspace.bytes[S64_SETTINGS_WORK_SCRATCH_OFFSET])
 #else
 static S64SettingsExchange settings;
 static S64SettingsExchange original_settings;
@@ -209,6 +212,7 @@ static void set_status(const char* text)
     status_text[i] = '\0';
 }
 
+#ifndef S64_PERSISTENT_RUNTIME_FIT
 static const char* destination_name(void)
 {
     if (settings.destination_type == (uint8_t)S64_DESTINATION_STANDALONE) return "Standalone";
@@ -292,10 +296,25 @@ static void render_advanced(void)
     revers(1); cputs(status_text); revers(0);
 }
 
+#endif
+
 static void render(void)
 {
+#ifdef S64_PERSISTENT_RUNTIME_FIT
+    if (!s64_persistent_settings_screen(
+            &settings,
+            advanced_view,
+            status_text,
+            &settings_screen
+        )) {
+        set_status("Settings screen unavailable");
+        return;
+    }
+    s64_persistent_settings_render_screen(&settings_screen);
+#else
     if (advanced_view) render_advanced();
     else render_basic();
+#endif
 }
 
 static uint8_t printable(unsigned char key)
