@@ -44,6 +44,10 @@ static uint16_t read_length;
 static uint16_t read_offset;
 static uint8_t read_open;
 static uint8_t write_open;
+static S64Dos dos;
+static S64SettingsExchange settings;
+static S64SettingsExchange loaded;
+static uint8_t asset_slot;
 
 static uint8_t overlay_reader(
     uint8_t bank, uint16_t offset, void* target, uint16_t length)
@@ -180,11 +184,6 @@ int main(void)
     static const char key[] =
         "0123456789abcdef0123456789abcdef"
         "0123456789abcdef0123456789abcdef";
-    S64Dos dos;
-    S64SettingsExchange settings;
-    S64SettingsExchange loaded;
-    uint8_t slot;
-
     *(volatile uint8_t*)0xc061 = 0u;
     require(s64_reu_probe() && s64_reu_probe_banks() == 256u, 1u);
 
@@ -193,9 +192,9 @@ int main(void)
         &control, S64_REU_OWNER_MODULE,
         (uint16_t)(sstore_image_end - sstore_image),
         256u, &asset), 2u);
-    slot = (uint8_t)(control.allocation_count - 1u);
+    asset_slot = (uint8_t)(control.allocation_count - 1u);
     asset.flags = 0x74u;
-    control.allocations[slot].flags = asset.flags;
+    control.allocations[asset_slot].flags = asset.flags;
     require(s64_reu_store(
         (uint8_t)(asset.address >> 16),
         (uint16_t)asset.address,
