@@ -3,7 +3,7 @@
 #include <conio.h>
 
 #define SCREEN_COLUMNS 40u
-#define STATUS_ROW 24u
+#define STATUS_ROW 23u
 
 static void clear_row(uint8_t row)
 {
