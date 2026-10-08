@@ -259,11 +259,20 @@ static S64SettingsStoreResult save_named(
 {
     S64DosResult result;
     S64SettingsStoreResult verified_result;
-    /* Fixed scratch avoids consuming the helper software stack. */
+    S64SettingsExchange* verified;
+#ifndef S64_PERSISTENT_RUNTIME_FIT
+    static S64SettingsExchange verified_storage;
+#endif
+
 #ifdef S64_PERSISTENT_RUNTIME_FIT
-#define verified (*(S64SettingsExchange*)&s64_publisher_workspace.bytes[S64_SETTINGS_WORK_VERIFY_OFFSET])
+    if (S64_SETTINGS_WORK_VERIFY_OFFSET + sizeof(S64SettingsExchange)
+            > S64_PUBLISH_WORKSPACE_CAPACITY) {
+        return S64_SETTINGS_STORE_INVALID;
+    }
+    verified = (S64SettingsExchange*)
+        &s64_publisher_workspace.bytes[S64_SETTINGS_WORK_VERIFY_OFFSET];
 #else
-    static S64SettingsExchange verified;
+    verified = &verified_storage;
 #endif
 
     if (dos == 0 || path == 0 || filename == 0 || settings == 0) {
