@@ -44,6 +44,9 @@ PUBLISHER_GROUPS: dict[str, tuple[str, ...]] = {
         "src/publisher/settings_validate.c",
         "src/publisher/settings_exchange.c",
     ),
+    "PUI": (
+        "src/publisher/persistent_ui.c",
+    ),
 }
 GROUPS = {**EDITOR_GROUPS, **PUBLISHER_GROUPS}
 GROUP_IDS = {
@@ -54,6 +57,7 @@ GROUP_IDS = {
     "PCONTENT": 1,
     "PNETWORK": 2,
     "PRUNTIME": 3,
+    "PUI": 4,
 }
 BRIDGES = dict(editor_fit.BRIDGES)
 
@@ -67,6 +71,7 @@ def config_text() -> str:
         ("PCONTENT", "pcontent.bin"),
         ("PNETWORK", "pnetwork.bin"),
         ("PRUNTIME", "pruntime.bin"),
+        ("PUI", "pui.bin"),
     ]
     memory_lines = "\n".join(
         f'    {name}: file = "build/persistent-publisher-slice-fit/{filename}", '
