@@ -129,7 +129,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src client/tests/sha256_test.c client/src/cry
 "$TMP_BIN"
 
 echo "== Host direct C64U auth signing tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/direct_auth_test.c client/src/publisher/direct_auth.c client/src/crypto/sha256.c client/src/charset.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/direct_auth_test.c client/src/publisher/direct_key.c client/src/publisher/direct_auth.c client/src/crypto/sha256.c client/src/charset.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host C64U platform requirement tests =="
@@ -442,7 +442,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_list_open_test.c 
 "$TMP_BIN"
 
 echo "== Host firmware-1.1 direct publisher tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_direct_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/network.c client/src/crypto/sha256.c client/src/publisher/direct_auth.c client/src/publisher/workspace.c client/src/publisher/standalone_direct.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_direct_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/network.c client/src/crypto/sha256.c client/src/publisher/direct_key.c client/src/publisher/direct_key_store.c client/src/publisher/direct_auth.c client/src/publisher/workspace.c client/src/publisher/standalone_direct.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host WordPress publisher auth tests =="
