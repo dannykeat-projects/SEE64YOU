@@ -39,17 +39,22 @@ ZIP below does not contain this fix.
 The user's wait/stall feedback reproduced an unchanged status during synchronous
 authentication/publishing. Independent Publisher now renders Connecting... or
 Publishing... before those calls; final success/error messages remain unchanged.
-These are activity messages, not a percent estimate. The package/manifests/guards
-and packaged VICE smoke pass after this addition; Publisher has 1,234 B spare.
-Real-hardware message visibility remains pending on the refreshed candidate.
+These are activity messages, not a percent estimate. The initial `95622c1` version
+failed on hardware: set_status overwrote the prepared URL because WORK_STATUS and
+WORK_URL alias the same workspace. Do not use that ZIP. Working messages now draw
+directly on the status row without touching scratch. The complete package, both
+manifests, unchanged guards and packaged VICE smoke pass; Publisher has 1,213 B
+spare. On the refreshed real C64U, REST-injected key checks captured CONNECTING...
+and PUBLISHING... before successful authentication/publishing. Exact local source/
+metadata and remote body remained `Cycle 1. MVP hardware round trip.`; executed
+BASIC input, IRQ and clock checks passed after Publisher exit.
 
-Current software-tested archive: ignored
-`client/build/SEE64YOU-independent-mvp-95622c1.zip`, source
-`95622c1a50304e580ddc122fcd47e8a319fbae33`, SHA-256
-`51de74b05d717bae6b33f6ed22634e69e9f977032bbbedc9a6ed09197fed7132`.
-It contains the cleared Editor return and Publisher working messages. The adjacent
-receipt records per-file hashes; update hardware outcomes after the pending
-Publisher check. Original SD backups remain retained while this candidate is staged.
+Latest archive: ignored
+`client/build/SEE64YOU-independent-mvp-working-messages-fixed-20261010.zip`.
+The adjacent receipt records committed source, ZIP/per-file hashes and exact
+hardware-package parity. It includes the clean Editor return and corrected
+working messages. Original SD backups remain retained while this candidate is
+staged for remaining manual cycle acceptance.
 
 ## Bounded MVP hardware continuation (2026-10-10)
 

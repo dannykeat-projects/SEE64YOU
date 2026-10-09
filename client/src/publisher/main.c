@@ -653,8 +653,8 @@ static void save_remote_document(void)
         S64StandaloneResult result;
 
 #ifdef S64_INDEPENDENT_PUBLISHER
-        set_status("Publishing...");
-        render();
+        /* WORK_STATUS aliases the prepared WORK_URL: draw without scratch. */
+        print_value(STATUS_ROW, "", "Publishing...");
 #endif
         result = s64_standalone_save_document(
             &http,
@@ -1380,8 +1380,7 @@ static void connect_destination(void)
 
 #ifdef S64_DIRECT_PUBLISHER
 #ifdef S64_INDEPENDENT_PUBLISHER
-        set_status("Connecting...");
-        render();
+        print_value(STATUS_ROW, "", "Connecting...");
 #endif
         result = s64_direct_publisher_test(&http, WORK_URL,
             destination.allow_insecure_http);
