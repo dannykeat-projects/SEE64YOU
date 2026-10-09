@@ -2,6 +2,7 @@
 #define SEE64YOU_STANDALONE_DIRECT_H
 
 #include "standalone.h"
+#include "document.h"
 #ifdef S64_PERSISTENT_RUNTIME_FIT
 #include "publisher/persistent_services.h"
 #endif
