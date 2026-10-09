@@ -10,8 +10,14 @@
 #ifndef S64_BASIC_RETURN_WORKSPACE
 #define S64_BASIC_RETURN_WORKSPACE ((uint8_t*)0xc800u)
 #endif
+#define S64_BASIC_RETURN_SNAPSHOT (S64_BASIC_RETURN_WORKSPACE + S64_BASIC_RETURN_WORKSPACE_SIZE)
+#if S64_BASIC_RETURN_WORKSPACE_SIZE + S64_BASIC_RETURN_RECORD_SIZE > 1024u
+#error BASIC return scratch exceeds the existing overlay/stack gap
+#endif
 
-/* Temporary workspace occupies only the existing overlay/stack gap. Producer
+/* Workspace and preserved snapshot use 963 bytes of the existing 1 KiB
+ * overlay/stack gap. Capsule/session teardown may reuse the workspace, but
+ * must not touch the snapshot. Producer
  * must enter through basic_return_capture.s before stock cc65 startup. */
 uint8_t s64_basic_return_reserve(S64ReuRuntimeControl* control);
 uint8_t s64_basic_return_publish(const S64ReuRuntimeControl* control,

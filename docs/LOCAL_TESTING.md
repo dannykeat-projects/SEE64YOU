@@ -4,6 +4,61 @@ This file contains the **current** reproducible validation path for the C64 Ulti
 
 The authoritative outstanding-work queue is todo.md.
 
+## Bounded hardware result (2026-10-09)
+
+C64 Ultimate, firmware **1.1.0**, FPGA **122**, core **1.49**, 16 MiB REU.
+Baseline commit `b91269802e275fb526ccf459dc6662b8252721b5` failed Editor
+clean exit after a successful local save: teardown overwrote the validated
+original BASIC context. The narrow snapshot-preservation fix was tested in the
+complete ten-file package `SEE64YOU-independent-exit-fix.zip`, SHA-256
+`d9cefa0ea1010adaeeea191f9b9bca637b15d9b87d9effe49f1fd347f033b8ea`.
+Its source identity is that baseline plus the `basic_return.h`,
+`managed_editor_exit.c` and corresponding host-regression changes; final committed
+identity is recorded in the ignored package receipt. No unrelated local edits
+were included in the isolated build.
+
+- **Passed:** complete cc65 package, both manifests and unchanged memory guards;
+  runtime overlay 15,309/15,360 B, Editor resident margin 584 B, Publisher
+  headroom 1,380 B, Settings 17,632 B and launcher 1,197 B. The host regression
+  first failed against the old teardown and passes with the fix. Original-context
+  VICE return and actual packaged launcher/Publisher/Settings startup/exit pass.
+  Existing failed-open preservation and 30-cycle lifecycle tests passed before
+  this change; the latter is a fixture, not three real application cycles.
+- **Passed on hardware:** launch, edit, local `.s64` save, dirty-exit Cancel then
+  Save, validated CLEAN and return without reset. After clearing staging debris,
+  BASIC `PRINT 6*7` produces 42 and READY. Publisher independently loads that
+  file, authenticates and cancels local open while retaining the loaded source.
+- **Failed:** Publisher remote listing reports `Unexpected server reply`.
+  A read-only authenticated request to the live site's
+  `/api.php?action=list&type=page&format=summary&offset=0` returns HTTP 200 JSON
+  (230 bytes), whereas the candidate requires the compact `SEE64YOU-LIST/1`
+  response implemented in this branch. This is a backend compatibility blocker.
+- **Blocked:** publish/browser/update/download workflow and three complete
+  cycles. Stop hardware testing until a matching backend is authorized and
+  available. No remote document was written, and no merge/deployment occurred.
+- **Unverified:** Editor reopen, Settings independent hardware/cold persistence,
+  offline editing, dirty Discard, broader failed/cancelled operation preservation
+  and USB/native physical shortcut acceptance. REST reset is not a cold restart.
+- **Passed restoration:** exact original SD config/recovery/journal hashes;
+  candidate and disposable source removed; drives and IRQ unchanged, clock
+  advancing and responsive BASIC. C64/cartridge and U64 persistent config match
+  the user's newly enabled turbo baseline, not the earlier disabled baseline.
+
+Known limitation: screen-RAM return staging leaves binary debris that can affect
+the next BASIC input line. Clear the screen before the response check; do not
+claim a clean display. Startup took several minutes with turbo disabled, so
+record the register-control setting and elapsed time in the next acceptance run.
+Evidence/backups remain in ignored `client/build/hardware-independent-b912698/`
+and `client/build/hardware-independent-exit-fix/`.
+
+Resume checklist after the backend prerequisite passes: back up SD/config and
+capture current machine settings; install the exact checksummed package; Editor
+save/reopen → BASIC; Publisher load/auth/publish → browser → remote download to
+a new `.s64` → BASIC; Editor edit and Publisher update. Repeat three times,
+exercise failed/cancelled operations and Save/Discard/Cancel, verify Settings
+after a physical cold restart and offline Editor use, then restore SD/settings
+and require CLEAN plus responsive BASIC. Use only disposable remote content.
+
 ## Current independent file-based MVP gate (2026-10-09)
 
 Build the three *user-facing* independent applications (Editor via its established launcher and private code overlays; Publisher and Settings as standalone PRGs):

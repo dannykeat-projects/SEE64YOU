@@ -14,6 +14,14 @@ canonical `/sd/SEE64YOU/SEE64YOU.CFG` (with existing fallback/migration).
 No document, undo, clipboard, Editor runtime, active lifecycle or REU cache is
 transferred between programs. Private in-program code overlays are acceptable.
 
+Editor clean exit preserves the validated 321-byte original BASIC context at
+`$CA82..$CBC2` while capsule/session teardown reuses `$C800` workspace. Together
+the 642-byte workspace and snapshot occupy 963 bytes of the existing 1 KiB gap
+before the `$CC00` stack reservation; a compile-time guard enforces that bound.
+Execute the preserved context only after revocation, restoration and durable
+CLEAN succeed. A hardware-reproduced scratch alias caused the previous context
+to be zeroed before return; the host exit regression now models that teardown.
+
 A combined candidate is built from the existing Editor launcher and internal
 Editor overlays plus two independently launched Publisher/Settings PRGs.
 The launcher temporarily verifies and preloads all three manifest binaries,

@@ -25,9 +25,12 @@ uint8_t s64_reu_runtime_store_verified(const S64ReuRuntimeControl* c)
 uint8_t s64_basic_return_revoke(const S64ReuRuntimeControl* c, uint8_t* w)
 { (void)c; assert(w == S64_BASIC_RETURN_WORKSPACE && reads == 1 && applications == 1); ++revokes; return stage != 3; }
 S64SessionLifecycleResult s64_managed_editor_end(S64ModuleRuntime* r)
-{ assert(revokes == 1 && !r->reu_control.state_flags); ++ends; return stage == 4 ? S64_SESSION_LIFECYCLE_RESTORE_FAILED : S64_SESSION_LIFECYCLE_OK; }
+{ assert(revokes == 1 && !r->reu_control.state_flags); ++ends;
+  /* Real capsule/session teardown aliases the first 280 workspace bytes. */
+  memset(S64_BASIC_RETURN_WORKSPACE, 0, 280);
+  return stage == 4 ? S64_SESSION_LIFECYCLE_RESTORE_FAILED : S64_SESSION_LIFECYCLE_OK; }
 void s64_basic_return_execute(const uint8_t* w)
-{ assert(w == S64_BASIC_RETURN_WORKSPACE && ends == 1 && stage == 0);
+{ assert(w == S64_BASIC_RETURN_SNAPSHOT && ends == 1 && stage == 0);
   assert(!memcmp(w, snapshot, sizeof(snapshot)));
   ++executes; longjmp(arrival, 1); }
 int main(void)

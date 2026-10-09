@@ -6,7 +6,7 @@
 
 Editor saves/reopens canonical `.s64` source on SD and exits to BASIC. Publisher launches afresh, selects a local `.s64`, publishes/updates, and downloads remote content to a new `.s64`; it then exits to BASIC. Settings launches independently, loads/validates/saves `/sd/SEE64YOU/SEE64YOU.CFG` and exits to BASIC. No document, history, clipboard or session transfer between programs. C64 Ultimate-only with 16 MiB REU, Ultimate-DOS $01 and network $03 for direct publishing. Preserve direct challenge/HMAC auth, explicit plaintext HTTP consent, filesystem safety and machine restoration.
 
-## M1 — Three-program software candidate (implemented, hardware unverified)
+## M1 — Three-program software candidate (implemented, partial hardware validation)
 
 - [x] Inspect the baseline and reject bare Editor-only linking after its 1,161-byte conventional-RAM overflow; preserve the tested Editor launcher and private code overlays.
 - [x] Publisher independent startup, manual local `.s64` filename load under `/sd/`, direct validated on-disk settings load, existing authenticated network services, and BASIC exit. No Editor REU handoff.
@@ -18,6 +18,8 @@ Editor saves/reopens canonical `.s64` source on SD and exits to BASIC. Publisher
 - [x] Rebuild exact checkpoint `0b2ad99ebd9419c13d3b1ea62542c8a701834863` locally with cc65; both manifests and all binary guards pass. Publisher has 1,380 B free, Settings 17,632 B, launcher 1,197 B; Editor resident slot margin 584 B. File/config/direct-network host tests, backend tests and failed-open preservation pass. See LOCAL_TESTING for emulator scope and package receipt.
 - [x] Actual-package absent-UCI startup/exit smoke passes in VICE 3.9 with standard ROMs from the user's local VICE installation. Publisher's missing-source/DOS/network guards and Settings' failed-save/cancel path pass, followed by an executed BASIC POKE for each program. Pinned Open ROMs remain unsuitable for this conio smoke. Existing return/IRQ/30-swap/30-cycle fixture passes are separate evidence; full UCI file/network integration still needs hardware.
 - [ ] Confirm full live Editor → Publisher → site → local download → Editor reopening on the physical C64U; real UCI and file operations, interrupted I/O, Settings cold persistence, startup/exit and UI remain unverified. This is the next acceptance boundary.
+- [x] Reproduce and fix Editor exit corruption: capsule/session teardown reused the validated BASIC-context scratch. Preserve the 321-byte context beyond that scratch; regression, complete package/manifest/fit and packaged VICE smoke pass. Real C64U Editor edit/local save/dirty Save exit now writes CLEAN and returns to responsive BASIC without reset.
+- [ ] Resolve the acceptance backend mismatch before resuming hardware: live authenticated `action=list&type=page&format=summary&offset=0` returns JSON, while this candidate requires `SEE64YOU-LIST/1`. No deployment is authorized. Use an explicitly approved matching test backend or obtain separate deployment authorization; do not change the client to hide this mismatch.
 
 **Current constraint:** Editor's existing launcher still verifies/caches Publisher and Settings PRG entries as part of the legacy three-module manifest even though those binaries are launched separately. No live application state transfers. Do not rewrite launcher/cache machinery merely to save that preload before acceptance; remove it in M3 if unused. The package is an MVP **candidate**, not a release.
 ## M2 — Bounded hardware acceptance
@@ -25,6 +27,16 @@ Editor saves/reopens canonical `.s64` source on SD and exits to BASIC. Publisher
 - [ ] On backed-up SD and 16 MiB REU C64U: Editor create/save `TESTPAGE.s64` → BASIC; Publisher launch/open/publish → BASIC; Publisher remote open/save NEW `FETCHED.s64` → BASIC; Editor reopen/edit → BASIC; Publisher update.
 - [ ] Verify browser rendering, exact source/metadata, Settings cold persistence and cancel behaviour, network/storage failure preservation, responsive BASIC, IRQ/drives/temporary machine settings, and three complete manual cycles.
 - [ ] Record firmware, tested package hash, precise outcomes and known limitations in canonical docs. Dan performs ordinary 40×25 visual and keyboard acceptance.
+
+2026-10-09 bounded run: C64 Ultimate firmware 1.1.0 / FPGA 122 / core 1.49,
+16 MiB REU. Publisher local load, authentication and cancelled local-open
+preservation passed. Remote listing failed on the live backend mismatch;
+publish/update/download, three cycles, Settings cold persistence, reopen,
+physical keyboard and broader failure cases remain unverified. Hardware stopped
+before any remote write. Original SD files/journals/recovery were restored with
+exact hashes; drives/IRQ/clock and persistent settings checked. Preserve the
+user's newly enabled turbo baseline. BASIC screen staging debris still requires
+a clear-screen before typing. See LOCAL_TESTING for the tested package identity.
 
 ## M3 — Cleanup and delivery AFTER M2
 
