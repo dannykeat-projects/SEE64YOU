@@ -30,7 +30,7 @@ acceptance remain gated by the matching backend and hardware checklist below.
 
 Relevant host checks also passed for REU buffer/history/clipboard, editor and
 document codecs, local documents, disk settings, direct auth/network, platform
-preflight, system-state/turbo/journals/recovery, launcher/preload/return guards,
+requirements, system-state/turbo/journals/recovery, launcher/preload/return guards,
 manifest/extent/overlay helpers, and standalone PHP/HTTP API. The existing
 `direct_auth.c` signedness warning remains visible. Obsolete managed/persistent
 full builds were not used as an MVP gate.
@@ -44,6 +44,16 @@ cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
   -o /tmp/s64-local-test
 /tmp/s64-local-test
 ~~~
+
+Testable archive: ignored `client/build/SEE64YOU-independent-e32c61b.zip`,
+source commit `e32c61b049c51ab02bd5869cd717d3668b1fdcd7`. A fresh Git-archive
+build reproduces all ten tested package files byte-for-byte. ZIP SHA-256:
+`aeec911ae9e2767d8450a420f5f314b6b02ae806c69dbad07521465193b8e271`.
+Per-file hashes/source identity are in the adjacent
+`SEE64YOU-independent-e32c61b-receipt.json`. Only package files are included;
+config, ROMs and unrelated working-tree changes are excluded. The existing
+persistent-runtime workflows remain red and are separate from these passing
+independent-package gates. No merge, deployment or hardware run occurred.
 
 ## Bounded hardware result (2026-10-09)
 
