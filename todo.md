@@ -33,6 +33,14 @@ Editor saves/reopens canonical `.s64` source on SD and exits to BASIC. Publisher
 - [x] 2026-10-10 file wait feedback and BASIC string-memory fix: show Loading/Saving before file operations without corrupting Publisher scratch. Reproduce invalid STREND above MEMSIZ after large-PRG exit; reclaim only that invalid workspace. All three packaged programs pass executed BASIC string PRINT in VICE and real C64U; valid equality workspace stays unchanged. Package/manifests/guards pass: Publisher 1,098 B spare, Settings 17,488 B, launcher 1,141 B, Editor resident margin 473 B. Existing turbo/REU integrity path was measured; a CRC trial showed no improvement and was discarded. Physical file-message observation remains pending.
 
 **Current constraint:** Editor's existing launcher still verifies/caches Publisher and Settings PRG entries as part of the legacy three-module manifest even though those binaries are launched separately. No live application state transfers. Do not rewrite launcher/cache machinery merely to save that preload before acceptance; remove it in M3 if unused. The package is an MVP **candidate**, not a release.
+
+2026-10-10 bounded session closed: a773871 file-feedback package, SHA-256
+1ac8f6bba353deafbcf4b8eb992b4b67e4dcd22ef9616c0307c115b4aea5d06d.
+All ten files matched hardware; newest valid CLEAN 100 and live turbo 0 passed.
+Original SD files restored with exact hashes; drives/IRQ/clock/BASIC and enabled
+REU/turbo baseline passed. Candidate is no longer staged. Second download
+S6T03.S64 is captured locally for the next guided edit/update; do not restart
+the restored=true staging helper without preparing a new backed-up session.
 ## M2 — Bounded hardware acceptance
 
 2026-10-10 continuation: independent Settings save/relaunch/cancel, Editor

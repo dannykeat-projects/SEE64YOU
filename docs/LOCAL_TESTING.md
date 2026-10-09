@@ -49,6 +49,14 @@ and the remaining repeatability checks are outstanding. Original SD backups
 are retained in client/build/hardware-mvp-manual-9d438e4/; restore them at the
 end of the bounded session and retain the user's enabled REU/turbo prerequisites.
 
+Session closed on source a773871. ZIP SHA-256:
+1ac8f6bba353deafbcf4b8eb992b4b67e4dcd22ef9616c0307c115b4aea5d06d.
+All ten package files matched the final hardware candidate. Newest valid CLEAN
+100 and CPU-executed turbo 0 passed before restoring original SD files with
+exact hashes. Drives/IRQ/clock, responsive BASIC and enabled prerequisite
+configuration passed after restoration. Test downloads and backups remain
+captured locally; the candidate is no longer installed on the SD card.
+
 ## Editor return-screen cleanup follow-up (2026-10-10)
 
 The user physically reopened `S6T01.S64` on the C64U keyboard, added `Cycle 1. `
@@ -94,7 +102,7 @@ and PUBLISHING... before successful authentication/publishing. Exact local sourc
 metadata and remote body remained `Cycle 1. MVP hardware round trip.`; executed
 BASIC input, IRQ and clock checks passed after Publisher exit.
 
-Latest archive: ignored
+Earlier archive (superseded by the file-feedback archive above): ignored
 `client/build/SEE64YOU-independent-mvp-working-messages-fixed-20261010.zip`.
 The adjacent receipt records committed source, ZIP/per-file hashes and exact
 hardware-package parity. It includes the clean Editor return and corrected
@@ -111,8 +119,8 @@ hardware round trip.` and unchanged metadata. The clean BASIC screen, executed
 input, CLEAN 92 (older ACTIVE 91) and live turbo 0 passed. A fresh Publisher then
 physically loaded/authenticated/updated that file and exited. Exact backend body,
 public HTTP 200 HTML, unchanged local metadata and executed BASIC/IRQ/clock pass.
-This completes one guided manual full round trip. The second pass is awaiting
-physical download to new S6T03.S64; three-cycle and broader keyboard acceptance
+This completes one guided manual full round trip. The second physical download
+to new S6T03.S64 passed; its Editor edit/update and three-cycle acceptance
 remain pending. Program launches are REST-assisted; the application steps were
 performed on the user's physical C64U keyboard.
 
