@@ -28,8 +28,13 @@ teardown host tests pass. `python3 tools/test_basic_return_vice.py` passes with
 the pinned Open ROMs and `--rom-dir client/build/private-vice-roms` with compatible
 local C64 ROMs. Actual-package absent-UCI startup/refusal/executed BASIC tests
 also pass. Evidence: ignored `client/build/validation-screen-clear/` and
-`client/build/hardware-mvp-manual-9d438e4/`. Hardware acceptance of the cleared
-exit remains pending; the earlier ZIP below does not contain this fix.
+`client/build/hardware-mvp-manual-9d438e4/`. The user subsequently pressed
+RUN/STOP on the C64U keyboard and confirmed clean BASIC/PRINT output. Screen
+readback shows READY and `PRINT 6*7` -> `42`, with no staging debris. The newest
+journal is valid CLEAN 90 (older ACTIVE 89). CPU-executed live $D031 reads before
+launch and after exit both equal 0, matching the captured journal turbo byte;
+this proves parity at the tested baseline, not every speed setting. The earlier
+ZIP below does not contain this fix.
 
 The user's wait/stall feedback reproduced an unchanged status during synchronous
 authentication/publishing. Independent Publisher now renders Connecting... or
@@ -37,6 +42,14 @@ Publishing... before those calls; final success/error messages remain unchanged.
 These are activity messages, not a percent estimate. The package/manifests/guards
 and packaged VICE smoke pass after this addition; Publisher has 1,234 B spare.
 Real-hardware message visibility remains pending on the refreshed candidate.
+
+Current software-tested archive: ignored
+`client/build/SEE64YOU-independent-mvp-95622c1.zip`, source
+`95622c1a50304e580ddc122fcd47e8a319fbae33`, SHA-256
+`51de74b05d717bae6b33f6ed22634e69e9f977032bbbedc9a6ed09197fed7132`.
+It contains the cleared Editor return and Publisher working messages. The adjacent
+receipt records per-file hashes; update hardware outcomes after the pending
+Publisher check. Original SD backups remain retained while this candidate is staged.
 
 ## Bounded MVP hardware continuation (2026-10-10)
 
