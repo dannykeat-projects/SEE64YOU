@@ -212,7 +212,11 @@ static void render(void)
     cputs("9 EXPORT TXT  0 IMPORT TXT");
 #endif
 #ifdef S64_DIRECT_PUBLISHER
+#ifdef S64_INDEPENDENT_PUBLISHER
+    gotoxy(0u, 19u);
+#else
     gotoxy(0u, 20u);
+#endif
     cputs("T TOGGLE PAGE / POST");
 #endif
 #ifdef S64_INDEPENDENT_PUBLISHER
