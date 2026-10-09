@@ -39,7 +39,75 @@ invalid/missing settings, file errors and network failure preservation.
 Compare canonical source/metadata and record display, IRQ, drives, REU, journals
 and temporary machine setting restoration. No deployed-site write or hardware
 acceptance is claimed from these host/cc65 gates.
+
+### Local exact-checkpoint validation (2026-10-09)
+
+A clean Git archive of `0b2ad99ebd9419c13d3b1ea62542c8a701834863`
+was built in Ubuntu WSL with installed cc65 and VICE 3.9. Earlier unrelated
+local allocator/managed-test work was preserved in a Git stash and reapplied
+outside this clean build. Both generated manifests validate; Publisher has
+**1,380 B**, Settings **17,632 B**, launcher **1,197 B** spare. Editor resident
+BSS ends at `$89B8`, leaving **584 B** before its `$8C00` overlay slot.
+
+Local archive: `client/build/SEE64YOU-independent-0b2ad99.zip` (ten package files).
+SHA-256: `0129b4cbe22b79f46a60a64109dcf129123b8422941307764d0548c4e81e7a56`.
+This is a software candidate for the checkpoint above, not hardware acceptance.
+
+Passed: local document and disk-settings host tests (`-Werror`), direct-network
+host test under the repository warning policy, standalone PHP backend tests,
+failed-open source/undo preservation regression, VICE original BASIC-return
+capsule, generic/capsule IRQ teardown, 30-swap overlay ABI and 30-cycle
+persistent lifecycle fixtures. The direct-network compiler emits an existing
+signedness warning in `direct_auth.c`; no warnings were hidden.
+
+**Blocked:** actual-package startup/exit with pinned Open ROMs. The launcher
+stalls after its first title; Publisher/Settings also fail to reach their menus.
+An independent minimal cc65 program reproduces the fixture problem: it prints
+`HELLO` and stalls at the newline before `WORLD`, with no SEE64YOU code linked:
+
+~~~c
+#include <conio.h>
+int main(void) { clrscr(); cputs("HELLO\r\nWORLD"); cgetc(); return 0; }
+~~~
+
+Build this with `cl65 -t c64 -o hello.prg hello.c` and autostart it with the same
+pinned ROMs to reproduce. Do not change production startup based on this result.
+With a compatible locally supplied ROM set, run the new actual-binary smoke:
+
+~~~sh
+make -C client independent-package
+python3 tools/test_independent_programs_vice.py --rom-dir /path/to/c64-roms
+~~~
+
+The directory must contain `kernal.rom`, `basic.rom`, `chargen.rom`. The smoke
+uses the actual packaged launcher, Publisher and Settings, 16 MiB REU, absent-UCI
+guidance/offline menus, keyboard exit and a BASIC POKE after exit. It does not
+emulate Ultimate-DOS or Network Target. Full file/network workflow, cold settings
+persistence and real machine restoration remain **unverified**. No C64U hardware,
+firmware, SD content or hardware settings were touched in this session.
+
+Do not begin the full hardware acceptance while the required startup smoke is
+blocked. After that gate is resolved, use a disposable SD or exact backups of
+`/sd/SEE64YOU/`, root config fallbacks and existing session journals; record the
+machine's firmware, REU/turbo/IRQ/drive baseline and package SHA-256. Then:
+
+1. Settings: load, cancel, save test configuration, cold restart and reload.
+2. Offline Editor: launch, edit, save/reopen a disposable `.s64`; exercise dirty
+   Save/Discard/Cancel, then exit to responsive BASIC.
+3. Publisher: load that file, test dedicated key, publish and verify browser
+   display; download remote source to a new `.s64`, reopen/edit in Editor and
+   publish an update. Repeat the complete workflow three times.
+4. Test missing/malformed files, cancelled prompts, existing download destination,
+   interrupted storage and network failure; compare original disk source and
+   confirm no partial content can be published. Verify startup/exit restoration.
+5. Restore original files/config/journals and settings, verify hashes/readback,
+   and confirm responsive BASIC. Record each gate and exact hardware/firmware.
+
 ## Persistent candidate prerequisite gate
+
+The following section records superseded persistent diagnostics. Its successful
+fixtures do not certify the independent MVP; do not repair its full managed link
+targets as part of independent acceptance.
 
 Stop before hardware if any required preservation/integration gate fails. Run
 these commands in a Linux checkout with cc65, VICE/Xvfb and the documented pinned
