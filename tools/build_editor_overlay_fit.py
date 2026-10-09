@@ -489,7 +489,7 @@ def compile_overlay_layout(
 
 def compile_editor_overlay_fit(
     client: Path, output_dir: Path, *, make: str = "make", cl65: str | None = None,
-    od65: str = "od65",
+    od65: str = "od65", independent_editor: bool = False,
 ) -> None:
     expected_output = (client / "build" / "editor-overlay-fit").resolve()
     if output_dir.resolve() != expected_output:
@@ -531,6 +531,8 @@ def compile_editor_overlay_fit(
     if "-DS64_REU_BUFFER=1" not in flags:
         flags.append("-DS64_REU_BUFFER=1")
     flags.append("-DS64_MANAGED_OVERLAY=1")
+    if independent_editor:
+        flags.append("-DS64_INDEPENDENT_EDITOR=1")
     program = compile_overlay_layout(
         client, output_dir, sources, GROUPS, GROUP_IDS, BRIDGES,
         client / "cfg" / "editor-overlay-fit.cfg", flags,
@@ -554,11 +556,14 @@ def main() -> int:
     parser.add_argument("--make", default="make")
     parser.add_argument("--cl65")
     parser.add_argument("--od65", default="od65")
+    parser.add_argument("--independent-editor", action="store_true",
+                        help="Build Editor with file-based Publisher guidance, no inter-program handoff")
     args = parser.parse_args()
     try:
         compile_editor_overlay_fit(
             args.client.resolve(), args.output_dir.resolve(),
             make=args.make, cl65=args.cl65, od65=args.od65,
+            independent_editor=args.independent_editor,
         )
     except FitError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
