@@ -56,6 +56,13 @@ hardware-package parity. It includes the clean Editor return and corrected
 working messages. Original SD backups remain retained while this candidate is
 staged for remaining manual cycle acceptance.
 
+The user next physically connected a fresh corrected Publisher, browsed/opened
+the page and downloaded to new `S6T02.S64`, then returned to BASIC. Exact SD
+readback validates canonical source, body `Cycle 1. MVP hardware round trip.`,
+title/slug/status/order and unchanged original local source. Executed BASIC input
+and IRQ/clock pass; the pre-next-Editor CPU turbo read is 0. Physical reopening/
+edit/save of this download and the remaining complete manual cycles are pending.
+
 ## Bounded MVP hardware continuation (2026-10-10)
 
 On C64U firmware 1.1.0 / FPGA 122 / core 1.49 with 16 MiB REU and the user's
