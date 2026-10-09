@@ -10,8 +10,10 @@ The user physically reopened `S6T01.S64` on the C64U keyboard, added `Cycle 1. `
 and used dirty-exit Save. Exact source/metadata, responsive BASIC, IRQ/clock,
 valid newest CLEAN and a CPU-executed `PEEK(53297)` result of 0 passed. The user
 reported garbled screen text, reproduced in the captured screen: original return
-context and stub bytes were left in screen RAM. Publisher manual cycle 1 is
-pending; this is not a completed manual round trip.
+context and stub bytes were left in screen RAM. Physical Publisher load/auth/
+publish/BASIC steps then passed, with exact backend body `Cycle 1. MVP hardware
+round trip.` and unchanged local metadata. This is an edit/update segment, not
+three complete download/reopen cycles.
 
 The return stub now executes transiently at cassette-buffer $033C and calls
 KERNAL CHROUT clear-screen after context restoration, then restores flags and
@@ -28,6 +30,13 @@ local C64 ROMs. Actual-package absent-UCI startup/refusal/executed BASIC tests
 also pass. Evidence: ignored `client/build/validation-screen-clear/` and
 `client/build/hardware-mvp-manual-9d438e4/`. Hardware acceptance of the cleared
 exit remains pending; the earlier ZIP below does not contain this fix.
+
+The user's wait/stall feedback reproduced an unchanged status during synchronous
+authentication/publishing. Independent Publisher now renders Connecting... or
+Publishing... before those calls; final success/error messages remain unchanged.
+These are activity messages, not a percent estimate. The package/manifests/guards
+and packaged VICE smoke pass after this addition; Publisher has 1,234 B spare.
+Real-hardware message visibility remains pending on the refreshed candidate.
 
 ## Bounded MVP hardware continuation (2026-10-10)
 

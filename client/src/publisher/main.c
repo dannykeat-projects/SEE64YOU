@@ -652,6 +652,10 @@ static void save_remote_document(void)
     if (destination.type == S64_DESTINATION_STANDALONE) {
         S64StandaloneResult result;
 
+#ifdef S64_INDEPENDENT_PUBLISHER
+        set_status("Publishing...");
+        render();
+#endif
         result = s64_standalone_save_document(
             &http,
             WORK_URL,
@@ -1375,6 +1379,10 @@ static void connect_destination(void)
         }
 
 #ifdef S64_DIRECT_PUBLISHER
+#ifdef S64_INDEPENDENT_PUBLISHER
+        set_status("Connecting...");
+        render();
+#endif
         result = s64_direct_publisher_test(&http, WORK_URL,
             destination.allow_insecure_http);
 #else
