@@ -16,9 +16,21 @@ existing config file independently. Each program starts fresh and returns to BAS
 manual one-time prerequisites are sufficient; optional backends, expanded setup,
 large-document redesign and UI enhancements are deferred.
 
-See [todo.md](todo.md) for the only live work queue, continuation instructions,
-acceptance gates and cleanup order. Prove the replacement on hardware before
-removing fallback machinery. Goals below are product direction, not claims that
+A measured candidate now builds with `make -C client independent-package` into
+`client/build/independent-package/SEE64YOU/`. Launch `SEE64YOU.PRG` for Editor
+(`S64EDIT.PRG` and its BIN files are internal Editor assets), `S64PUB.PRG` for
+Publisher, and `S64CFG.PRG` for Settings. Publisher uses `L` to load a local
+`.s64`, `2` to test the direct key, `3` to publish/update, `6`/`7` to open a
+remote page/post, and `D` to save it as a new `.s64`; STOP exits to BASIC.
+
+**Not yet a hardware-accepted release.** The launcher expects
+`/sd/SEE64YOU/`; do not overwrite an existing installation or config without
+backups (a separate test SD is preferred). The Editor launcher temporarily
+preloads the other two PRGs to satisfy the current module manifest, but no
+document, undo history or active application session moves between programs.
+
+See [todo.md](todo.md) for the only live work queue and acceptance gates.
+Prove the replacement on hardware before removing fallback machinery. Goals below are product direction, not claims that
 every capability is complete.
 
 ## Product goals

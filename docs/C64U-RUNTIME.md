@@ -14,8 +14,14 @@ canonical `/sd/SEE64YOU/SEE64YOU.CFG` (with existing fallback/migration).
 No document, undo, clipboard, Editor runtime, active lifecycle or REU cache is
 transferred between programs. Private in-program code overlays are acceptable.
 
-The current managed whole-PRG package and previous one-owner persistent-runtime
-diagnostics remain fallback/reference only. The following transition, allocator
+A combined candidate is built from the existing Editor launcher and internal
+Editor overlays plus two independently launched Publisher/Settings PRGs.
+The launcher temporarily verifies and preloads all three manifest binaries,
+including unused Publisher/Settings cache entries, to retain known bootstrap
+semantics. Those cached images carry **no active cross-program document or
+session**, and are removable after hardware acceptance. The current managed
+whole-PRG package and previous one-owner persistent-runtime diagnostics remain
+fallback/reference only. The following transition, allocator
 and shared-session sections record prior machinery, not requirements to
 recreate it in the independent candidate. Retain code that is actually needed
 for the existing Editor launcher/bootstrap, machine restoration and recovery.

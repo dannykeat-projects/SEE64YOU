@@ -13,9 +13,14 @@ No Editor history/document/session or cached REU state crosses program boundarie
 Publisher and Settings exit normally to BASIC. Internal code overlays remain
 permitted where resource measurements justify them.
 
-The existing 14-file managed package, persistent-runtime prototype and sections
-below describing shared application-state/whole-PRG transitions are **historical
-fallback/implementation reference**, not the intended new program topology.
+The combined candidate now builds: the established Editor launcher executes its
+private code-overlay Editor and separately launchable Publisher/Settings PRGs are
+packaged alongside it. The launcher still preloads all three manifest entries;
+Publisher/Settings cache copies are **unused** and must not be interpreted as
+runtime coordination or shared documents. Trimming that preload is deferred
+until hardware acceptance. The existing 14-file managed package, persistent-runtime
+prototype and sections below describing cross-program live application-state
+handoffs are **historical fallback/implementation reference**.
 Preserve still-used bootstrap, recovery, transports and codecs until full
 software and hardware acceptance. The only live implementation queue is todo.md.
 

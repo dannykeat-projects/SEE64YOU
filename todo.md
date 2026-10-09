@@ -6,20 +6,19 @@
 
 Editor saves/reopens canonical `.s64` source on SD and exits to BASIC. Publisher launches afresh, selects a local `.s64`, publishes/updates, and downloads remote content to a new `.s64`; it then exits to BASIC. Settings launches independently, loads/validates/saves `/sd/SEE64YOU/SEE64YOU.CFG` and exits to BASIC. No document, history, clipboard or session transfer between programs. C64 Ultimate-only with 16 MiB REU, Ultimate-DOS $01 and network $03 for direct publishing. Preserve direct challenge/HMAC auth, explicit plaintext HTTP consent, filesystem safety and machine restoration.
 
-## M1 — Bounded implementation, Publisher fit is first acceptance gate
+## M1 — Three-program software candidate (implemented, hardware unverified)
 
-- [ ] Confirm current PR head and measured standalone Publisher baseline (reported 641 bytes spare); trace actual build/link and current stored-file paths.
-- [ ] Replace Publisher Editor-handoff startup with local `.s64` selection/loading in the existing Editor SD context; reject invalid source before publishing.
-- [ ] Load/validate publishing configuration from the canonical file on each fresh Publisher launch, without an REU settings bridge or inter-program chain.
-- [ ] Keep the existing direct auth, remote list/open/save/update services. Download remote source to a **new** local `.s64`, refusing an existing filename; do not risk existing documents on cancellation/partial receive/storage failure.
-- [ ] **Hard stop:** build the full real Publisher (UI, file I/O, config, auth, network and wire format) with at least 1024 bytes RAM headroom and existing stack/overlay bounds. Initial independent Publisher source and guarded build target compiled through cc65 but failed ld65 by 782 bytes (CI 37877953074), before the 1 KiB guard. A single focused size reduction now excludes independent-only Preview and plain-text import/export; rerun the same complete link and stop if substantial new architecture is needed. No stubs, guard relaxation or large redesign. If it cannot fit after one focused reduction, report exact map and stop to reassess.
-- [ ] Finish independent Settings candidate: direct disk load after capability probe, save/readback verification, cancel without disk mutation, exit to BASIC. The initial additive Settings target was committed at `43e3d3c` but has NOT been compiler/hardware-verified.
-- [ ] Preserve Editor file round-trip/bootstrap/restoration. On the independent candidate, replace any misleading integrated Publisher transition with clear instructions to save and launch Publisher separately. A bare standalone Editor link was attempted and failed: ld65 RODATA exceeds MAIN by 1,161 bytes before the 1 KiB guard (CI 37879726527). **Do not strip core Editor features to force this through.** Evaluate reusing the existing Editor launcher plus its internal overlays without inter-program Publisher/Settings transitions. A complete Editor-only package is not built yet.
-- [ ] Package three independently launchable PRGs plus only genuinely needed assets. Retain managed package as labelled fallback until new hardware acceptance.
-- [ ] Add focused regression tests for local source, missing/invalid CFG, remote wire round-trip, refusal to overwrite, incomplete network and failed write/close/rename, exit and restoration. Run host, complete cc65 fit, VICE and full affected validators; record package hash and source commit.
+- [x] Inspect the baseline and reject bare Editor-only linking after its 1,161-byte conventional-RAM overflow; preserve the tested Editor launcher and private code overlays.
+- [x] Publisher independent startup, manual local `.s64` filename load under `/sd/`, direct validated on-disk settings load, existing authenticated network services, and BASIC exit. No Editor REU handoff.
+- [x] Remote page/post open and save to a **new** user-named `.s64`; refuse an existing destination. Failed local or remote reads disable publish/download and clear partially decoded document content.
+- [x] Settings independently probes capabilities, reads/validates/saves canonical `.CFG`, cancels without storing, and exits to BASIC; file readback still gates a successful save.
+- [x] Complete cc65 Publisher and Settings link/fit: 2026-10-09 CI 37879998473 measured Publisher 1,414 B free (>=1,024 guard), Settings 17,632 B free. Earlier standalone Editor linking does not fit; the private-overlay Editor instead passes its existing slot guard.
+- [x] Build and manifest-validate a candidate package (`make -C client independent-package`) with one Editor launcher, its private module/code assets, and independently launchable Publisher/Settings. No shared document/history/session across launches.
+- [x] Host service tests for local documents, disk settings and direct auth/network passed in CI 37879998473; those are component checks, not an integrated runtime test.
+- [ ] Validate the exact latest source/package, including the final failed-local-read and Publisher shortcut changes. Save package commit, file hashes and CI result. The old managed/persistent workflows are still red and do **not** represent this new candidate.
+- [ ] Confirm full live Editor → Publisher → site → local download → Editor reopening on the physical C64U; real UCI and file operations, interrupted I/O, Settings cold persistence, startup/exit and UI remain unverified. This is the next acceptance boundary.
 
-**M1 done:** a complete software-integrated, measured candidate, not separately passing slices. No hardware requested until this gate passes.
-
+**Current constraint:** Editor's existing launcher still verifies/caches Publisher and Settings PRG entries as part of the legacy three-module manifest even though those binaries are launched separately. No live application state transfers. Do not rewrite launcher/cache machinery merely to save that preload before acceptance; remove it in M3 if unused. The package is an MVP **candidate**, not a release.
 ## M2 — Bounded hardware acceptance
 
 - [ ] On backed-up SD and 16 MiB REU C64U: Editor create/save `TESTPAGE.s64` → BASIC; Publisher launch/open/publish → BASIC; Publisher remote open/save NEW `FETCHED.s64` → BASIC; Editor reopen/edit → BASIC; Publisher update.
@@ -34,12 +33,10 @@ Editor saves/reopens canonical `.s64` source on SD and exits to BASIC. Publisher
 
 ## Validation snapshot
 
-- Source inspection: confirmed original Publisher still requires Editor handoff; settings direct disk loader exists.
-- Independent Settings candidate: cc65 full link/headroom passed at ed748cd, 17,632 bytes spare. VICE and hardware **unverified**.
-- Independent Publisher initial full link/fit gate passed at ed748cd: 1,452 bytes free before $CC00 (>=1,024 guard) after removing Preview and plain-text import/export only from the independent target. Follow-up 1a3644 clears publishable/downloadable flags before remote reads and clears partial data after failure. **Recheck fit on this exact change.** Functional file/config/network integration remains unverified; no approved complete three-program package exists.
-- Independent Editor diagnostic at 1a3644 FAILED ld65 link: MAIN overflow 1,161 bytes. Use proven internal Editor overlays rather than removing editing features. Existing Editor launcher integration is pending.
-- Existing persistent-runtime diagnostic evidence remains historical, not proof of new MVP.
-
+- Branch `feature/c64u-publisher-chain`, draft PR #61, never merged/deployed.
+- Exact earlier software CI: [37879998473](https://github.com/dannykeat-projects/SEE64YOU/actions/runs/37879998473) — independent Publisher+Settings linked and passed guard; source/config/direct network host tests passed; combined independent package built, Editor overlay manifest and module manifest validated. Full workflow red **only on the old managed Publisher overlay** later in the job.
+- Memory: Publisher BSS `$C679` / 1,414 B spare to `$CC00`; Settings BSS `$871F` / 17,632 B spare; Editor resident BSS `$89B8` before `$8C00` overlay slot; launcher BSS `$C752` / 1,197 B spare to `$CC00`. Editor slot margin is 584 B under its existing slot-overlap rule, not a claimed 1 KiB Editor margin.
+- No complete hardware or emulator integration test has been recorded for the independent package. Run exact-head software checks again after changes. Preserve the fallback until hardware acceptance.
 ## Deferred until MVP acceptance
 
 These remain product intentions, not permission to remove existing functionality.

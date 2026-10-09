@@ -4,37 +4,41 @@ This file contains the **current** reproducible validation path for the C64 Ulti
 
 The authoritative outstanding-work queue is todo.md.
 
-## Independent three-program MVP (current acceptance direction)
+## Current independent file-based MVP gate (2026-10-09)
 
-Build the additive standalone Settings candidate with:
-
-~~~sh
-make -C client independent-settings
-~~~
-
-The current bounded independent software candidate builds with:
+Build the three *user-facing* independent applications (Editor via its established launcher and private code overlays; Publisher and Settings as standalone PRGs):
 
 ~~~sh
-make -C client independent-publisher independent-settings
+make -C client independent-package
 ~~~
 
-These are complete cc65 links with 1024-byte headroom guards. On commit ed748cd,
-CI integration run 37878063617 passed both: Publisher BSS $C653 (1452 bytes free),
-Settings BSS $871F (17632 bytes free). Publisher's initial build overflowed by
-782 bytes; the follow-up removed only its deferred Preview and text import/export.
-Independent full file/config/download behaviour, menu input, VICE, hardware and
-release packaging remain **unverified**, so passing fits alone do not clear
-hardware acceptance. A new standalone Editor link attempted at 1a3644 was
-blocked by 1,161 bytes of MAIN overflow before the 1 KiB guard. Retain the
-known Editor launcher/internal overlay path for the new architecture instead
-of dropping core Editor features merely to fit bare RAM. Neither an Editor-only
-overlay package nor a complete three-program bundle has passed acceptance. The broader workflow still fails while building the old
-managed package, a separate fallback path. The existing persistent-runtime and managed
-handoff checks below remain *fallback regression evidence*, not certification
-of the chosen independent workflow. Do not run an unverified new PRG on the
-production SD configuration.
+Package directory: `client/build/independent-package/SEE64YOU/`. It contains
+`SEE64YOU.PRG` (Editor launcher), `S64EDIT.PRG` (internal Editor runtime, **not**
+launched separately), `S64PUB.PRG`, `S64CFG.PRG`, the Editor's four code-asset
+BIN files and `S64MODULE.MNF`/`S64OVL.MNF` verified manifests.
 
+CI run [37879998473](https://github.com/dannykeat-projects/SEE64YOU/actions/runs/37879998473)
+**passed** the Publisher (1,414 B free, >=1,024 guard), Settings (17,632 B
+free) and Editor overlay link/slot checks, launcher headroom (1,197 B) and
+module/code-asset manifest checks. Focused real source/config/direct-network
+host service tests passed. The older managed Publisher build failed later, so
+**overall integration CI is red**. The independent package is diagnostic and
+has not yet been exercised end to end in VICE or on real hardware.
 
+Real acceptance requires a **backed-up or disposable C64U SD**. The Editor
+launcher has absolute `/sd/SEE64YOU/` package paths; do not install into an
+arbitrary alternate folder or overwrite the existing working installation
+without exact backup/restore. Existing session journals are at `/sd/` and
+Settings config at `/sd/SEE64YOU/SEE64YOU.CFG` (root fallback retained).
+
+First physical gate: verify start/exit, offline Editor save `.s64` to `/sd/`,
+Publisher `L` load that source, Settings independent load/cancel, Network $03
+and direct-key test, remote publish, remote page/post open, `D` save to a NEW
+`.s64` (never overwrite), BASIC exit, Editor reopen, and update. Then test
+invalid/missing settings, file errors and network failure preservation.
+Compare canonical source/metadata and record display, IRQ, drives, REU, journals
+and temporary machine setting restoration. No deployed-site write or hardware
+acceptance is claimed from these host/cc65 gates.
 ## Persistent candidate prerequisite gate
 
 Stop before hardware if any required preservation/integration gate fails. Run
