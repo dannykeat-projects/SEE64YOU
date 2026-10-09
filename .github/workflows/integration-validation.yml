@@ -27,6 +27,9 @@ jobs:
       - name: Run standalone site tests
         run: php site/tests/run.php
 
+      - name: Build independent Editor candidate and guard
+        run: make -C client independent-editor
+
       - name: Build independent Publisher candidate and guard
         run: make -C client independent-publisher
 
@@ -49,8 +52,10 @@ jobs:
         with:
           name: see64you-three-program-candidate-not-hardware-verified
           path: |
+            client/build/independent/SEE64YOU.PRG
             client/build/independent/S64PUB.PRG
             client/build/independent/S64CFG.PRG
+            client/build/independent/editor.map
             client/build/independent/publisher.map
             client/build/independent/settings.map
           if-no-files-found: error

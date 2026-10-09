@@ -122,7 +122,7 @@ static void show_local_result(S64LocalResult result)
 }
 
 #ifdef S64_REU_BUFFER
-#ifndef S64_MANAGED_OVERLAY
+#if !defined(S64_MANAGED_OVERLAY) && !defined(S64_INDEPENDENT_EDITOR)
 static unsigned char restore_publisher_handoff(void)
 {
     if (!s64_editor_handoff_restore(&editor, &document, &local_document)) {
@@ -137,7 +137,9 @@ static unsigned char restore_publisher_handoff(void)
 
 static void launch_publisher(void)
 {
-#ifdef S64_MANAGED_OVERLAY
+#ifdef S64_INDEPENDENT_EDITOR
+    s64_ui_message("Save, exit, run S64PUB.PRG");
+#elif defined(S64_MANAGED_OVERLAY)
 #ifdef S64_PERSISTENT_RUNTIME_FIT
     extern uint8_t s64_persistent_runtime_fit_publisher(void);
     if (!s64_persistent_runtime_fit_publisher()) {
@@ -748,7 +750,11 @@ int main(void)
 #endif
 #ifdef S64_REU_BUFFER
 #ifndef S64_MANAGED_OVERLAY
+#ifdef S64_INDEPENDENT_EDITOR
+    restored_handoff = 0u;
+#else
     restored_handoff = restore_publisher_handoff();
+#endif
 #endif
 #endif
     s64_ui_init();

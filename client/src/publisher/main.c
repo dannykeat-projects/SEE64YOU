@@ -993,6 +993,14 @@ static void list_open_remote(S64DocumentType type)
     document_replaced = 1u;
     document_changed = 1u;
 #endif
+#ifdef S64_INDEPENDENT_PUBLISHER
+    /* A streaming remote read can replace only part of the live buffer.
+     * Never allow partial data to be published or saved as a downloaded file. */
+    source_loaded = 0u;
+    remote_downloaded = 0u;
+    local_document.filename[0] = '\0';
+    s64_publish_state_clear_remote(&publish_state);
+#endif
 
     if (destination.type == S64_DESTINATION_STANDALONE) {
         S64StandaloneResult result;
@@ -1041,6 +1049,11 @@ static void list_open_remote(S64DocumentType type)
         );
 #endif
         if (result != S64_STANDALONE_OK) {
+#ifdef S64_INDEPENDENT_PUBLISHER
+            /* The original source is safely on SD. Clear any partial REU read. */
+            s64_buffer_init(&body);
+            s64_document_init(&document, &body);
+#endif
             set_status(s64_standalone_result_message(result));
             return;
         }
