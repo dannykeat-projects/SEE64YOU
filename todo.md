@@ -35,8 +35,8 @@ Editor saves/reopens canonical `.s64` source on SD and exits to BASIC. Publisher
 ## Validation snapshot
 
 - Source inspection: confirmed original Publisher still requires Editor handoff; settings direct disk loader exists.
-- Independent Settings candidate: source committed; build/headroom/VICE/hardware **unverified**.
-- Complete independent Publisher: **not implemented**.
+- Independent Settings candidate: cc65 full link/headroom passed at ed748cd, 17,632 bytes spare. VICE and hardware **unverified**.
+- Independent Publisher initial full link/fit gate passed at ed748cd: 1,452 bytes free before $CC00 (>=1,024 guard) after removing Preview and plain-text import/export only from the independent target. Functional file/config/network integration remains **unverified**, and no approved complete three-program package exists.
 - Existing persistent-runtime diagnostic evidence remains historical, not proof of new MVP.
 
 ## Deferred until MVP acceptance

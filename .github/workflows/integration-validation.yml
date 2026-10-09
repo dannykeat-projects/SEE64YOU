@@ -33,6 +33,28 @@ jobs:
       - name: Build independent Settings candidate and guard
         run: make -C client independent-settings
 
+      - name: Validate independent source, configuration, and direct network services
+        run: |
+          tmp=$(mktemp)
+          trap 'rm -f "$tmp"' EXIT
+          cc -std=c99 -Wall -Wextra -Iclient/src client/tests/local_documents_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/dos.c client/src/storage/local.c -o "$tmp"
+          "$tmp"
+          cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src client/tests/publisher_settings_store_test.c client/src/charset.c client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c client/src/publisher/settings_store.c -o "$tmp"
+          "$tmp"
+          cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_direct_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/network.c client/src/crypto/sha256.c client/src/publisher/direct_key.c client/src/publisher/direct_key_store.c client/src/publisher/direct_auth.c client/src/publisher/workspace.c client/src/publisher/standalone_direct.c -o "$tmp"
+          "$tmp"
+
+      - name: Publish independently built PRGs and measured maps (diagnostic only)
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-three-program-candidate-not-hardware-verified
+          path: |
+            client/build/independent/S64PUB.PRG
+            client/build/independent/S64CFG.PRG
+            client/build/independent/publisher.map
+            client/build/independent/settings.map
+          if-no-files-found: error
+
       - name: Build current managed C64U package
         run: make -C client clean c64u-package
 

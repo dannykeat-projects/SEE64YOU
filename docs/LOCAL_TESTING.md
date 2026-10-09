@@ -12,11 +12,20 @@ Build the additive standalone Settings candidate with:
 make -C client independent-settings
 ~~~
 
-Its Makefile target includes a complete cc65 link and 1024-byte memory guard.
-Until this gate runs and passes, it is **not** a hardware-test artifact. The next
-mandatory acceptance gate is a fully linked standalone Publisher with real
-local `.s64` file/configuration paths and remote download-to-file; those paths
-have not yet been implemented. The existing persistent-runtime and managed
+The current bounded independent software candidate builds with:
+
+~~~sh
+make -C client independent-publisher independent-settings
+~~~
+
+These are complete cc65 links with 1024-byte headroom guards. On commit ed748cd,
+CI integration run 37878063617 passed both: Publisher BSS $C653 (1452 bytes free),
+Settings BSS $871F (17632 bytes free). Publisher's initial build overflowed by
+782 bytes; the follow-up removed only its deferred Preview and text import/export.
+Independent full file/config/download behaviour, menu input, VICE, hardware and
+release packaging remain **unverified**, so passing fits alone do not clear
+hardware acceptance. The broader workflow still fails while building the old
+managed package, a separate fallback path. The existing persistent-runtime and managed
 handoff checks below remain *fallback regression evidence*, not certification
 of the chosen independent workflow. Do not run an unverified new PRG on the
 production SD configuration.
