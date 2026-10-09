@@ -63,9 +63,13 @@ title/slug/status/order and unchanged original local source. Executed BASIC inpu
 and IRQ/clock pass; the pre-next-Editor CPU turbo read is 0. Physical C64U-keyboard
 Editor reopening/edit/save then passed with exact body `Cycle 2. Cycle 1. MVP
 hardware round trip.` and unchanged metadata. The clean BASIC screen, executed
-input, CLEAN 92 (older ACTIVE 91) and live turbo 0 passed. A fresh Publisher is
-awaiting the physical update of that file; remaining complete manual cycles are
-still pending.
+input, CLEAN 92 (older ACTIVE 91) and live turbo 0 passed. A fresh Publisher then
+physically loaded/authenticated/updated that file and exited. Exact backend body,
+public HTTP 200 HTML, unchanged local metadata and executed BASIC/IRQ/clock pass.
+This completes one guided manual full round trip. The second pass is awaiting
+physical download to new S6T03.S64; three-cycle and broader keyboard acceptance
+remain pending. Program launches are REST-assisted; the application steps were
+performed on the user's physical C64U keyboard.
 
 ## Bounded MVP hardware continuation (2026-10-10)
 
