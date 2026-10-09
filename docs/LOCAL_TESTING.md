@@ -60,8 +60,12 @@ The user next physically connected a fresh corrected Publisher, browsed/opened
 the page and downloaded to new `S6T02.S64`, then returned to BASIC. Exact SD
 readback validates canonical source, body `Cycle 1. MVP hardware round trip.`,
 title/slug/status/order and unchanged original local source. Executed BASIC input
-and IRQ/clock pass; the pre-next-Editor CPU turbo read is 0. Physical reopening/
-edit/save of this download and the remaining complete manual cycles are pending.
+and IRQ/clock pass; the pre-next-Editor CPU turbo read is 0. Physical C64U-keyboard
+Editor reopening/edit/save then passed with exact body `Cycle 2. Cycle 1. MVP
+hardware round trip.` and unchanged metadata. The clean BASIC screen, executed
+input, CLEAN 92 (older ACTIVE 91) and live turbo 0 passed. A fresh Publisher is
+awaiting the physical update of that file; remaining complete manual cycles are
+still pending.
 
 ## Bounded MVP hardware continuation (2026-10-10)
 
