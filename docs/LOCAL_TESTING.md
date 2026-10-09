@@ -24,7 +24,11 @@ Settings BSS $871F (17632 bytes free). Publisher's initial build overflowed by
 782 bytes; the follow-up removed only its deferred Preview and text import/export.
 Independent full file/config/download behaviour, menu input, VICE, hardware and
 release packaging remain **unverified**, so passing fits alone do not clear
-hardware acceptance. The broader workflow still fails while building the old
+hardware acceptance. A new standalone Editor link attempted at 1a3644 was
+blocked by 1,161 bytes of MAIN overflow before the 1 KiB guard. Retain the
+known Editor launcher/internal overlay path for the new architecture instead
+of dropping core Editor features merely to fit bare RAM. Neither an Editor-only
+overlay package nor a complete three-program bundle has passed acceptance. The broader workflow still fails while building the old
 managed package, a separate fallback path. The existing persistent-runtime and managed
 handoff checks below remain *fallback regression evidence*, not certification
 of the chosen independent workflow. Do not run an unverified new PRG on the
