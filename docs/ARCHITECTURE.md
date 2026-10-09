@@ -267,6 +267,12 @@ Saves remain transactional:
 
 A failed write must not intentionally destroy the last known-good document/configuration.
 
+Local document Save As preserves the caller's overwrite policy through the
+writer's second existence check. If final rename fails, the completed canonical
+source remains at `<filename>.tmp` with its handle closed. Replacement is still
+delete-then-rename, not atomic: the previous destination may already be absent.
+Recover/copy the retained temp before retrying, since another save reuses it.
+
 ## Filesystem layout
 
 The intended application tree is rooted at:

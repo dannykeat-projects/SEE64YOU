@@ -158,7 +158,8 @@ static S64LocalResult write_document_file(
     result = s64_dos_rename_file(local->dos, temporary, filename);
     if (result != S64_DOS_OK) {
         local->dos_result = result;
-        (void)s64_dos_delete_file(local->dos, temporary);
+        /* Replacement may already have removed the old destination. Keep the
+         * completed canonical source recoverable as <filename>.tmp. */
         return S64_LOCAL_IO_ERROR;
     }
 
@@ -321,7 +322,7 @@ S64LocalResult s64_local_save_as(
         local,
         local->document,
         checked_filename,
-        1u
+        overwrite
     );
     if (result == S64_LOCAL_OK) {
         strcpy(local->filename, checked_filename);

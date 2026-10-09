@@ -4,6 +4,47 @@ This file contains the **current** reproducible validation path for the C64 Ulti
 
 The authoritative outstanding-work queue is todo.md.
 
+## File-integrity software follow-up (2026-10-10)
+
+Starting from committed `541dcf2`, focused fault injection reproduced two local
+save failures: a destination appearing at the second existence check was
+overwritten despite a new-only request, and a failed final rename deleted the
+completed temporary source. The writer now retains the overwrite policy and
+leaves `<filename>.tmp` on rename failure. The host regression reopens that
+retained file and compares the exact latest source. Failed writes still remove
+incomplete temp output and preserve the old destination.
+
+Replacement remains delete-then-rename. On a reported rename failure, the old
+destination may be absent; copy/recover the complete temp before another save
+can reuse it. This is recoverability, not atomic replacement or preservation of
+both versions. Verify this failure path on disposable hardware files.
+
+The clean candidate excludes the existing uncommitted allocator/legacy-test
+changes. Both manifests and binary guards pass: Publisher 1,385 B, Settings
+17,632 B, launcher 1,197 B; Editor resident margin 584 B and FILE asset
+15,350/15,360 B. VICE 3.9 passes actual packaged absent-UCI startup/refusal/exit
+and executed BASIC input for all three entry points, original BASIC-frame
+restoration, both transfer IRQ teardown paths and the 30-swap overlay ABI
+fixture. These are software checks; Ultimate-DOS/network integration and physical
+acceptance remain gated by the matching backend and hardware checklist below.
+
+Relevant host checks also passed for REU buffer/history/clipboard, editor and
+document codecs, local documents, disk settings, direct auth/network, platform
+preflight, system-state/turbo/journals/recovery, launcher/preload/return guards,
+manifest/extent/overlay helpers, and standalone PHP/HTTP API. The existing
+`direct_auth.c` signedness warning remains visible. Obsolete managed/persistent
+full builds were not used as an MVP gate.
+
+Run the focused file regression in Linux/WSL:
+
+~~~sh
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+  client/tests/local_documents_test.c client/src/buffer.c client/src/document.c \
+  client/src/charset.c client/src/platform/dos.c client/src/storage/local.c \
+  -o /tmp/s64-local-test
+/tmp/s64-local-test
+~~~
+
 ## Bounded hardware result (2026-10-09)
 
 C64 Ultimate, firmware **1.1.0**, FPGA **122**, core **1.49**, 16 MiB REU.

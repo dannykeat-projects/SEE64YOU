@@ -20,6 +20,9 @@ static unsigned char open_mode;
 static unsigned int read_offset;
 static unsigned int close_count;
 static unsigned char fail_write;
+static unsigned char fail_rename;
+static unsigned char stat_count;
+static unsigned char appear_on_second_stat;
 
 static void require(int condition, const char* message)
 {
@@ -71,6 +74,7 @@ static S64UciResult mock_execute(
 
     if (opcode == 0x08u) {
         require(part_count == 2u, "stat parts");
+        if (appear_on_second_stat && ++stat_count == 2u) file_exists = 1u;
         reply_status(
             reply,
             file_exists && parts[1].length == strlen(file_name) + 1u
@@ -149,6 +153,10 @@ static S64UciResult mock_execute(
         separator = parts[2].data;
         require(part_count == 4u && parts[2].length == 1u && separator[0] == 0u, "rename shape");
         require(temporary_exists && part_equals(&parts[1], temporary_name), "rename temp source");
+        if (fail_rename) {
+            reply_status(reply, "87,ACCESS DENIED");
+            return S64_UCI_OK;
+        }
         copy_part(file_name, sizeof(file_name), &parts[3]);
         memcpy(file_data, temporary_data, temporary_length);
         file_length = temporary_length;
@@ -279,6 +287,33 @@ int main(void)
     require(file_length == saved_length && file_checksum() == saved_checksum,
         "write failure preserves old file");
     fail_write = 0u;
+
+    /* A new-only download must still refuse a destination that appears after
+     * the first existence check, before the writer starts. */
+    file_exists = 0u;
+    stat_count = 0u;
+    appear_on_second_stat = 1u;
+    result = s64_local_save_as(&local, "My Note.s64", 0u);
+    require(result == S64_LOCAL_EXISTS, "second stat preserves new-only save policy");
+    require(file_exists && !temporary_exists && file_checksum() == saved_checksum,
+        "late overwrite refusal preserves existing bytes without temp output");
+    appear_on_second_stat = 0u;
+
+    fail_rename = 1u;
+    result = s64_local_save(&local);
+    require(result == S64_LOCAL_IO_ERROR, "replacement rename failure reported");
+    require(temporary_exists && open_mode == 0u,
+        "rename failure retains completed source with its handle closed");
+    /* Reopen the retained ordinary file, rather than checking only mock flags. */
+    fail_rename = 0u;
+    strcpy(file_name, temporary_name);
+    memcpy(file_data, temporary_data, temporary_length);
+    file_length = temporary_length;
+    file_exists = 1u;
+    temporary_exists = 0u;
+    result = s64_local_open(&local, file_name, 1u);
+    require(result == S64_LOCAL_OK, "retained temp is a valid canonical document");
+    require_body(&body, "New local body updated failed", "retained temp has exact latest source");
 
     require(s64_local_new(&local, 0u) == S64_LOCAL_DIRTY, "new requires discard approval");
     require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "approved new succeeds");
