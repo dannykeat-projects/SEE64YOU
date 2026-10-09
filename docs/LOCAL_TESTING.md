@@ -4,6 +4,31 @@ This file contains the **current** reproducible validation path for the C64 Ulti
 
 The authoritative outstanding-work queue is todo.md.
 
+## Editor return-screen cleanup follow-up (2026-10-10)
+
+The user physically reopened `S6T01.S64` on the C64U keyboard, added `Cycle 1. `
+and used dirty-exit Save. Exact source/metadata, responsive BASIC, IRQ/clock,
+valid newest CLEAN and a CPU-executed `PEEK(53297)` result of 0 passed. The user
+reported garbled screen text, reproduced in the captured screen: original return
+context and stub bytes were left in screen RAM. Publisher manual cycle 1 is
+pending; this is not a completed manual round trip.
+
+The return stub now executes transiently at cassette-buffer $033C and calls
+KERNAL CHROUT clear-screen after context restoration, then restores flags and
+returns through the original SYS frame. A screen-RAM stub cannot call clear-screen
+and safely return to its erased code. The test requires a cleared 1000-byte screen,
+original frame/SP/ZP/map/flags and untouched high stack; CHROUT may use inactive
+stack below SP. No resident reservation or session/integrity change.
+
+An isolated committed-source build plus this scoped fix passes the independent
+package, both manifests and unchanged binary guards. Focused context/launcher/
+teardown host tests pass. `python3 tools/test_basic_return_vice.py` passes with
+the pinned Open ROMs and `--rom-dir client/build/private-vice-roms` with compatible
+local C64 ROMs. Actual-package absent-UCI startup/refusal/executed BASIC tests
+also pass. Evidence: ignored `client/build/validation-screen-clear/` and
+`client/build/hardware-mvp-manual-9d438e4/`. Hardware acceptance of the cleared
+exit remains pending; the earlier ZIP below does not contain this fix.
+
 ## Bounded MVP hardware continuation (2026-10-10)
 
 On C64U firmware 1.1.0 / FPGA 122 / core 1.49 with 16 MiB REU and the user's

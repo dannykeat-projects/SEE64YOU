@@ -809,9 +809,12 @@ capsule and shared-session teardown and restore/verify -> durable CLEAN. Failed
 revocation or CLEAN blocks return. A missing/corrupt context still permits clean
 shutdown, then retains the resident Session clean. Reset to BASIC. park.
 
-After CLEAN, the transient $0700 return stub runs stock cc65 destructors (including
-IRQ-vector restoration), restores CPU stack/zero page/$01/SP/flags, clears BASIC
-status and RTS through the original SYS frame. No C runtime is used after its
+After CLEAN, stock cc65 destructors restore the IRQ vector before entering the
+transient return stub at $033C in the cassette buffer (not a resident reservation).
+It restores CPU stack/zero page/$01/SP, clears BASIC status and calls KERNAL
+CHROUT with clear-screen before restoring flags and RTS through the original SYS
+frame. Keeping the stub outside screen RAM permits removal of context/stub display
+debris without erasing executing code. No C runtime is used after its
 zero page is restored. The VICE synthetic-frame probe verifies these restoration
 mechanics. Host suites cover exact session/allocator binding, corruption of every
 record byte, publication/readback/revocation failures and cleanup ordering.

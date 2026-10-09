@@ -30,7 +30,7 @@ void s64_basic_return_stub_enter(void);
 void s64_basic_return_execute(const uint8_t* workspace)
 {
     memcpy((void*)0x0400, workspace + 32, S64_BASIC_RETURN_RAW_SIZE);
-    memcpy((void*)0x0700, s64_basic_return_stub_image,
+    memcpy((void*)0x033c, s64_basic_return_stub_image,
         s64_basic_return_stub_end - s64_basic_return_stub_image);
     s64_basic_return_stub_enter();
 }
