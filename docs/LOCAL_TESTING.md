@@ -4,6 +4,51 @@ This file contains the **current** reproducible validation path for the C64 Ulti
 
 The authoritative outstanding-work queue is todo.md.
 
+## File feedback and BASIC string-memory follow-up (2026-10-10)
+
+Editor local open/save and Publisher local load/download now display
+Loading.../Saving... before blocking file work. Publisher writes directly to
+the screen without changing its aliased filename/URL workspace. Existing
+Connecting.../Publishing... messages are preserved. No sound or percentage
+estimate is added.
+
+After the user's second physical download to S6T03.S64, BASIC numeric commands
+worked but PRINT"YEH" reported OUT OF MEMORY. Hardware pointers reproduced the
+cause: STREND $BFBF exceeded MEMSIZ $A000 after loading the application PRG.
+A bounded exit destructor resets only this invalid workspace; an existing
+valid workspace is untouched. All three final packaged programs now execute
+string PRINT after exit on real C64U hardware and in VICE 3.9. The return fixture
+also passes with the pinned Open ROMs and standard local ROMs; the equality
+boundary passes with --valid-workspace. Run:
+
+```sh
+python3 tools/test_basic_return_vice.py --rom-dir client/build/private-vice-roms
+python3 tools/test_basic_return_vice.py --valid-workspace --rom-dir client/build/private-vice-roms
+python3 tools/test_independent_programs_vice.py --rom-dir client/build/private-vice-roms
+```
+
+Isolated scoped-source build: client/build/validation-string-files/. Both
+manifests and existing binary guards pass: Publisher 1,098 B spare, Settings
+17,488 B, launcher 1,141 B; Editor resident margin 473 B. MODEL 15,271, FILE
+15,341, RUNTIME 15,309 and PUBLICATION 15,310 / 15,360 B remain unchanged.
+Final archive: client/build/SEE64YOU-independent-mvp-file-feedback-20261010.zip;
+the adjacent receipt records source identity, hashes and hardware byte parity.
+This supersedes the earlier working-messages archive below.
+
+Editor startup measured about 19.4 seconds on this C64U. Its existing integrity
+path already uses central CPU-intensive turbo and REU caching. A small CRC loop
+trial did not improve checksum time beyond polling noise and was discarded.
+No new acceleration or relaxed integrity checks are claimed. Redundant legacy
+preloads remain until acceptance as required by the MVP contract.
+
+One guided manual full round trip is complete. The second physical download
+to S6T03.S64 passed exact source/metadata readback; its Editor edit/update is
+pending. New file messages still need physical visual confirmation. USB
+keyboard testing is explicitly deferred by the user. Interrupted storage/network
+and the remaining repeatability checks are outstanding. Original SD backups
+are retained in client/build/hardware-mvp-manual-9d438e4/; restore them at the
+end of the bounded session and retain the user's enabled REU/turbo prerequisites.
+
 ## Editor return-screen cleanup follow-up (2026-10-10)
 
 The user physically reopened `S6T01.S64` on the C64U keyboard, added `Cycle 1. `

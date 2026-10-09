@@ -75,6 +75,7 @@ PUBLISHER_DOCUMENT_SOURCES := src/publisher/standalone_documents.c
 PUBLISHER_COMPANION_FIT_SOURCES := diagnostics/publisher_companion_fit.c $(PUBLISHER_CORE_SOURCES) $(PUBLISHER_DOCUMENT_SOURCES)
 PUBLISHER_SOURCES := src/publisher/main.c src/platform/chain_editor.s $(filter-out src/platform/http.c src/publisher/relay.c src/publisher/standalone.c,$(PUBLISHER_CORE_SOURCES)) src/platform/network.c src/crypto/sha256.c src/publisher/direct_key.c src/publisher/direct_key_store.c src/publisher/direct_auth.c src/publisher/standalone_direct.c
 INDEPENDENT_PUBLISHER_SOURCES := $(filter-out src/platform/chain_editor.s src/publisher/handoff.c src/publisher/settings_bridge.c src/publisher/plaintext.c src/publisher/preview.c,$(PUBLISHER_SOURCES)) src/storage/local.c src/publisher/settings_exchange.c src/publisher/settings_validate.c src/publisher/settings_store.c
+INDEPENDENT_PUBLISHER_SOURCES += src/platform/basic_workspace_reset.s
 INDEPENDENT_EDITOR_SOURCES := $(filter-out src/platform/chain.s src/publisher/editor_handoff.c src/publisher/editor_handoff_record.s,$(C64U_SOURCES))
 SETTINGS_SOURCES := src/publisher/settings_main.c src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/destination.c src/publisher/settings_exchange.c src/publisher/settings_validate.c src/publisher/settings_store.c
 LAUNCHER_SOURCES := src/platform/module_session.c src/platform/module_session_read.c src/platform/module_session_build.c src/platform/transfer_capsule.c src/platform/transfer_capsule_build.c src/platform/transfer_capsule_write.c src/platform/module_transfer.c src/platform/module_arrival.c src/platform/module_transfer_stub.s src/launcher/main.c src/platform/module_integrity.c src/platform/crc32.c src/platform/module_preload.c src/platform/dos_reu.c src/platform/dos_file.c src/launcher/recovery_runtime.c src/launcher/recovery_flow.c src/platform/preflight.c src/platform/requirements.c src/platform/module_manifest.c src/platform/module_manifest_build.c src/platform/module_manifest_parse.c src/platform/reu_runtime.c src/platform/reu_runtime_build.c src/platform/reu_runtime_write.c src/platform/session_lifecycle.c src/platform/session_lifecycle_start.c src/platform/session_recovery.c src/platform/session_journal.c src/platform/session_journal_start.c src/platform/system_state.c src/platform/system_state_start.c src/platform/dos.c src/platform/turbo.c src/platform/turbo_capture.c src/platform/uci.c src/platform/reu.c src/platform/reu_dma.s src/charset.c
@@ -267,9 +268,9 @@ c64u-package: managed-handoff-package
 	python3 ../tools/check_memory_headroom.py build/see64you-settings.map --label settings --min-headroom 1024
 	python3 ../tools/check_memory_headroom.py build/managed-settings.map --label managed-settings --min-headroom 1024
 
-build/managed-handoff-launcher.prg: $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/package_version.h src/platform/basic_return_capture.s src/platform/basic_return.c src/platform/basic_return_build.c src/launcher/basic_return_runtime.c
+build/managed-handoff-launcher.prg: $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/package_version.h src/platform/basic_return_capture.s src/platform/basic_return.c src/platform/basic_return_build.c src/launcher/basic_return_runtime.c src/platform/basic_workspace_reset.s
 	@mkdir -p build
-	$(CL65) $(CFLAGS) -DS64_CODE_ASSET_LAUNCHER=1 -DS64_EXECUTABLE_HANDOFF=1 -m build/managed-handoff-launcher.map -o $@ src/platform/basic_return_capture.s $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/basic_return.c src/platform/basic_return_build.c src/launcher/basic_return_runtime.c
+	$(CL65) $(CFLAGS) -DS64_CODE_ASSET_LAUNCHER=1 -DS64_EXECUTABLE_HANDOFF=1 -m build/managed-handoff-launcher.map -o $@ src/platform/basic_return_capture.s $(LAUNCHER_SOURCES) $(CODE_ASSET_SOURCES) src/launcher/code_assets_runtime.c src/platform/basic_return.c src/platform/basic_return_build.c src/launcher/basic_return_runtime.c src/platform/basic_workspace_reset.s
 
 # Diagnostic only; the exact ordinary c64u-package Editor remains the destination.
 .PHONY: resume-editor-gate
@@ -398,9 +399,9 @@ settings: $(SETTINGS_TARGET) $(SETTINGS_CHAIN_TARGET)
 .PHONY: independent-settings
 independent-settings: $(INDEPENDENT_SETTINGS_TARGET)
 
-$(INDEPENDENT_SETTINGS_TARGET): $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES))
+$(INDEPENDENT_SETTINGS_TARGET): $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES)) src/platform/basic_workspace_reset.s
 	@mkdir -p build/independent
-	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_INDEPENDENT_SETTINGS=1 -m build/independent/settings.map -o $@ $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES))
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_INDEPENDENT_SETTINGS=1 -m build/independent/settings.map -o $@ $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES)) src/platform/basic_workspace_reset.s
 	python3 ../tools/check_memory_headroom.py build/independent/settings.map --label independent-settings --min-headroom 1024
 
 $(SETTINGS_TARGET): $(SETTINGS_SOURCES)

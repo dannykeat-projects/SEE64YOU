@@ -76,6 +76,21 @@ def run(filename, prompt, exit_key, port, rom_dir, checks=()):
                 time.sleep(0.05)
             else:
                 raise AssertionError(f"{filename}: BASIC did not execute POKE after exit")
+            key(monitor, 147)
+            for value in b'PRINT"YEH"\r':
+                key(monitor, value)
+                time.sleep(0.03)
+            deadline = time.monotonic() + 10
+            while time.monotonic() < deadline:
+                text = screen(monitor)
+                assert "OUT OF MEMORY" not in text, (filename, text)
+                if any(text[i:i+40].startswith("YEH ") for i in range(0, 1000, 40)):
+                    print(f"VICE packaged {filename}: BASIC string PRINT passed")
+                    break
+                monitor.resume()
+                time.sleep(0.05)
+            else:
+                raise AssertionError(f"{filename}: BASIC string PRINT did not execute")
         finally:
             if monitor is not None:
                 monitor.quit()

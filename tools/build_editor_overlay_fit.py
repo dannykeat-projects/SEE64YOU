@@ -526,7 +526,7 @@ def compile_editor_overlay_fit(
                                   "src/platform/application_state_editor.c",
                                   "src/platform/application_state_build.c",
                                   "src/platform/module_transfer_stub.s",
-                                  "src/platform/basic_return_stub.s", "src/platform/crc32.c"]))
+                                  "src/platform/basic_return_stub.s", "src/platform/basic_workspace_reset.s", "src/platform/crc32.c"]))
     flags = shlex.split(values["CFLAGS"])
     if "-DS64_REU_BUFFER=1" not in flags:
         flags.append("-DS64_REU_BUFFER=1")

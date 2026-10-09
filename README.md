@@ -22,6 +22,9 @@ A measured candidate now builds with `make -C client independent-package` into
 Publisher, and `S64CFG.PRG` for Settings. Publisher uses `L` to load a local
 `.s64`, `2` to test the direct key, `3` to publish/update, `6`/`7` to open a
 remote page/post, and `D` to save it as a new `.s64`; STOP exits to BASIC.
+Editor and Publisher show Loading.../Saving... before local file operations;
+Publisher shows Connecting.../Publishing... before those network operations.
+These messages indicate activity, not a completion percentage.
 
 **Not yet a hardware-accepted release.** The launcher expects
 `/sd/SEE64YOU/`; do not overwrite an existing installation or config without

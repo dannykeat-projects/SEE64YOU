@@ -22,6 +22,13 @@ Execute the preserved context only after revocation, restoration and durable
 CLEAN succeed. A hardware-reproduced scratch alias caused the previous context
 to be zeroed before return; the host exit regression now models that teardown.
 
+All three independent programs also reclaim the loaded application's BASIC
+header on exit when STREND is strictly above MEMSIZ. Large PRGs otherwise leave
+an invalid BASIC variable end and string commands report OUT OF MEMORY after
+an apparently successful return. Valid workspaces, including equality at the
+memory ceiling, are untouched. This bounded destructor does not change the
+validated return context, session ordering or stack/integrity guards.
+
 A combined candidate is built from the existing Editor launcher and internal
 Editor overlays plus two independently launched Publisher/Settings PRGs.
 The launcher temporarily verifies and preloads all three manifest binaries,

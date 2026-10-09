@@ -354,6 +354,7 @@ static void open_document(void)
         return;
     }
 
+    s64_ui_message("Loading...");
     result = s64_local_open(&local_document, filename, 1u);
     if (result != S64_LOCAL_OK) {
         if (s64_local_document_replaced(&local_document)) {
@@ -381,12 +382,14 @@ static void save_as_document(void)
         return;
     }
 
+    s64_ui_message("Saving...");
     result = s64_local_save_as(&local_document, filename, 0u);
     if (result == S64_LOCAL_EXISTS) {
         if (!s64_ui_prompt_yes_no("Overwrite file? Y/N")) {
             s64_ui_render(&editor);
             return;
         }
+        s64_ui_message("Saving...");
         result = s64_local_save_as(&local_document, filename, 1u);
     }
 
@@ -411,6 +414,7 @@ static void save_document(void)
         return;
     }
 
+    s64_ui_message("Saving...");
     result = s64_local_save(&local_document);
     if (result != S64_LOCAL_OK) {
         show_local_result(result);

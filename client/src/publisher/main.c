@@ -1287,6 +1287,7 @@ static void load_local_source(void)
         set_status("Cannot access /sd/");
         return;
     }
+    print_value(STATUS_ROW, "", "Loading...");
     result = s64_local_open(&local_document, WORK_PROMPT, 1u);
     if (result != S64_LOCAL_OK) {
         /* An unsuccessful read may have partially replaced the REU source.
@@ -1322,6 +1323,7 @@ static void save_remote_source(void)
         set_status("Cannot access /sd/");
         return;
     }
+    print_value(STATUS_ROW, "", "Saving...");
     result = s64_local_save_as(&local_document, WORK_PROMPT, 0u);
     if (result != S64_LOCAL_OK) {
         set_status(s64_local_result_message(&local_document, result));

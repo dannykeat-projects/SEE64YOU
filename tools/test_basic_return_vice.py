@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / "tools/vice"))
 from test_reu_probe import wait_for_monitor
 
 
-def main(rom_dir: Path) -> None:
+def main(rom_dir: Path, valid_workspace: bool = False) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     # Landing code records restored SP/flags/ZP/map/stack bytes before parking.
     landing = [0x08, 0x68, 0x8d, 0x67, 0xc0, 0xba, 0x8e, 0x61, 0xc0, 0x78]
@@ -40,15 +40,25 @@ int main(void) {
     context[29+0xf1] = 0xff; context[29+0xf2] = 0xbf;
     memcpy((void*)0xc000, landing, sizeof(landing));
     *(volatile unsigned char*)0xc060 = 0;
+    /* Reproduce large-PRG BASIC end beyond the string-memory ceiling. */
+    *(unsigned int*)0x2b = 0x0801;
+    *(unsigned int*)0x31 = 0xbfbf;
+    *(unsigned int*)0x37 = 0xa000;
     memcpy((void*)0x033c, s64_basic_return_stub_image,
            s64_basic_return_stub_end-s64_basic_return_stub_image);
     s64_basic_return_stub_enter();
     return 1;
 }
 ''')
+    if valid_workspace:
+        source.write_text(source.read_text().replace(
+            '*(unsigned int*)0x31 = 0xbfbf;',
+            '*(unsigned int*)0x2d = 0xa000; *(unsigned int*)0x2f = 0xa000; '
+            '*(unsigned int*)0x31 = 0xa000; *(unsigned int*)0x33 = 0xa000;'))
     prg = OUT / "probe.prg"
     subprocess.run(["cl65", "-t", "c64", "-Os", "-o", str(prg), str(source),
-                    str(ROOT / "client/src/platform/basic_return_stub.s")], check=True)
+                    str(ROOT / "client/src/platform/basic_return_stub.s"),
+                    str(ROOT / "client/src/platform/basic_workspace_reset.s")], check=True)
     command = ["xvfb-run", "-a", "x64sc", "+sound", "-autostartprgmode", "1",
                "-binarymonitor", "-binarymonitoraddress", "ip4://127.0.0.1:6528"]
     for kind in ("kernal", "basic", "chargen"):
@@ -74,6 +84,9 @@ int main(void) {
                     assert monitor.read_memory(0x01f3, 0x01ff) == bytes(range(0xf3, 0x100))
                     assert monitor.read_memory(2, 0x1b) == bytes(range(0x40, 0x5a))
                     assert monitor.read_memory(0x0400, 0x07e7) == b'\x20' * 1000
+                    expected_workspace = ([0, 0xa0, 0, 0xa0, 0, 0xa0, 0, 0xa0]
+                                          if valid_workspace else [3, 8, 3, 8, 3, 8, 0, 0xa0])
+                    assert monitor.read_memory(0x2d, 0x34) == bytes(expected_workspace)
                     print("VICE BASIC return passed: original frame, SP, ZP, map, interrupt mask and cleared screen")
                     return
                 monitor.resume()
@@ -91,4 +104,6 @@ int main(void) {
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--rom-dir", type=Path, default=Path("/tmp/see64you-roms"))
-    main(parser.parse_args().rom_dir)
+    parser.add_argument("--valid-workspace", action="store_true")
+    args = parser.parse_args()
+    main(args.rom_dir, args.valid_workspace)
