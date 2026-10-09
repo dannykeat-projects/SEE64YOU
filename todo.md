@@ -17,7 +17,7 @@ Editor saves/reopens canonical `.s64` source on SD and exits to BASIC. Publisher
 - [x] Host service tests for local documents, disk settings and direct auth/network passed in CI 37879998473; those are component checks, not an integrated runtime test.
 - [x] Rebuild exact checkpoint `0b2ad99ebd9419c13d3b1ea62542c8a701834863` locally with cc65; both manifests and all binary guards pass. Publisher has 1,380 B free, Settings 17,632 B, launcher 1,197 B; Editor resident slot margin 584 B. File/config/direct-network host tests, backend tests and failed-open preservation pass. See LOCAL_TESTING for emulator scope and package receipt.
 - [x] Actual-package absent-UCI startup/exit smoke passes in VICE 3.9 with standard ROMs from the user's local VICE installation. Publisher's missing-source/DOS/network guards and Settings' failed-save/cancel path pass, followed by an executed BASIC POKE for each program. Pinned Open ROMs remain unsuitable for this conio smoke. Existing return/IRQ/30-swap/30-cycle fixture passes are separate evidence; full UCI file/network integration still needs hardware.
-- [ ] Confirm full live Editor → Publisher → site → local download → Editor reopening on the physical C64U; real UCI and file operations, interrupted I/O, Settings cold persistence, startup/exit and UI remain unverified. This is the next acceptance boundary.
+- [x] Confirm the physical C64U file workflow through Editor reopening/edit/save and fresh Publisher update against the matching local test site, including exact metadata and visible browser output. Settings cold persistence and BASIC return pass. Broader manual/UI and interrupted-I/O acceptance remain in M2.
 - [x] Reproduce and fix Editor exit corruption: capsule/session teardown reused the validated BASIC-context scratch. Preserve the 321-byte context beyond that scratch; regression, complete package/manifest/fit and packaged VICE smoke pass. Real C64U Editor edit/local save/dirty Save exit now writes CLEAN and returns to responsive BASIC without reset.
 - [x] 2026-10-10 local-save fault regressions: retain new-only policy at the second existence check and keep completed `<filename>.tmp` when final rename fails. Both failures reproduced before the fixes; exact temp source reopens afterward. Clean independent package/manifests/guards and packaged VICE startup/BASIC exit pass; Publisher headroom 1,385 B, FILE asset 15,350/15,360 B.
 - [x] 2026-10-10 Settings integrity follow-up: reject trailing config bytes and verify exact temporary config before replacing the previous file. Reproduced both failures first; host temp-corruption/read-failure preservation, legacy/profile persistence and final readback tests pass. Complete package/manifests/guards and packaged VICE startup/exit pass; Publisher 1,297 B, Settings 17,544 B spare. Hardware storage acceptance remains pending.
@@ -34,13 +34,21 @@ second-item remote browsing/open and new-file download passed with REST plain
 key injection against an isolated matching localhost site. Exact source/metadata,
 existing-download refusal, CLEAN 92, IRQ/clock/BASIC and original SD restore
 passed. The user's enabled REU/turbo-register baseline was retained. Editor
-download reopening/edit/update and physical keyboard/cold/three-cycle gates below
-are still unverified; synthetic modifier injection is not physical acceptance.
+download reopening/edit/save and fresh Publisher update subsequently passed with
+the user's physical Ctrl+O. The browser displayed the exact updated body, with
+remote metadata preserved. After a user-confirmed physical power cycle, fresh
+Settings loaded the exact saved config, passed readiness and cancelled unchanged.
+A missing local source after a successful load cleared the document and blocked
+publish/download; local and remote bytes stayed unchanged. Final CLEAN 88 (older
+ACTIVE 87), BASIC/IRQ/clock/drives, persistent prerequisite baseline and exact
+original SD restoration passed. REST plain-key injection is not full physical
+keyboard or three-manual-cycle acceptance.
 
-- [ ] On backed-up SD and 16 MiB REU C64U: Editor create/save `TESTPAGE.s64` → BASIC; Publisher launch/open/publish → BASIC; Publisher remote open/save NEW `FETCHED.s64` → BASIC; Editor reopen/edit → BASIC; Publisher update.
-- [ ] Verify browser rendering, exact source/metadata, Settings cold persistence and cancel behaviour, network/storage failure preservation, responsive BASIC, IRQ/drives/temporary machine settings, and three complete manual cycles.
+- [x] On backed-up SD and 16 MiB REU C64U: Editor create/save → BASIC; Publisher launch/open/publish → BASIC; Publisher remote open/save NEW `.s64` → BASIC; Editor reopen/edit/save → BASIC; fresh Publisher update.
+- [x] Verify browser rendering, exact source/metadata, Settings physical cold persistence/cancel, missing-source guards, existing-download refusal, responsive BASIC, IRQ/drives and persistent prerequisite baseline.
+- [ ] Complete three manual cycles, native/USB keyboard and 40×25 visual acceptance, broader network/storage failure preservation and live temporary turbo restoration. Persistent configuration parity alone does not prove live turbo-register restoration.
 - [ ] On disposable files, verify failed final document rename leaves the exact latest canonical `<filename>.tmp` recoverable; copy it before retrying. Existing delete-then-rename replacement does not preserve both versions atomically. Include configuration rename/readback failures in storage acceptance.
-- [ ] Record firmware, tested package hash, precise outcomes and known limitations in canonical docs. Dan performs ordinary 40×25 visual and keyboard acceptance.
+- [x] Record firmware, tested package hash, precise outcomes and known limitations in canonical docs; provide the latest package and concise manual checklist.
 
 2026-10-09 bounded run: C64 Ultimate firmware 1.1.0 / FPGA 122 / core 1.49,
 16 MiB REU. Publisher local load, authentication and cancelled local-open

@@ -50,10 +50,33 @@ The adjacent receipt records committed source, ZIP checksum and per-file hashes;
 package files reproduce the hardware-tested candidate and exclude config, ROMs
 and unrelated uncommitted work. No merge or deployment.
 
-Physical keyboard shortcuts, downloaded-file Editor reopening/edit/update,
-physical cold Settings persistence, three manual cycles and interrupted storage/
-network preservation remain acceptance work. This is a bounded hardware result,
-not full MVP acceptance. The older managed/persistent CI failures remain separate.
+The committed `9d438e4daffa82abfd7d6b4610e9bd8a36b23fc1` package subsequently
+passed the remaining functional round trip. The user physically pressed Ctrl+O;
+Editor reopened the downloaded `S6T01.S64`, saved an edit and returned to BASIC.
+FTP readback proved the exact new body and unchanged remote metadata. A fresh
+Publisher loaded/authenticated/updated the same document. The local browser
+displayed `Updated on C64U. MVP hardware round trip.` with matching backend source.
+
+After the user confirmed a physical off/on cycle and BASIC readiness, fresh
+Settings loaded the exact saved website/key, reported SETTINGS ARE VALID and
+cancelled to BASIC without changing the 334-byte config. Publisher also loaded
+the source after that cold start. Opening a missing filename cleared the prior
+document and blocked publish/download; the local source and remote page remained
+exactly unchanged. Plain keys were REST-injected; only Ctrl+O and the physical
+power cycle were user-operated in this continuation.
+
+Final CLEAN sequence 88 (older ACTIVE 87), both journal checksums, executed BASIC
+POKE, IRQ/clock/drives and persistent prerequisite categories passed. Original SD
+files were restored with exact hashes and newly staged test files removed. Evidence
+and backups: ignored `client/build/hardware-mvp-reopen-9d438e4/`, including the
+actual browser screenshot `public-update.jpg`. The archive SHA-256 is
+`d1fb00f7e5244967b83c64d487787953de9f1950bdf97209ac3853ba219ff6fa`.
+
+Three manual cycles, native/USB keyboard and visual coverage, interrupted storage/
+network preservation and live turbo-register restoration remain acceptance work.
+This is a bounded hardware result, not full MVP acceptance. The older managed/
+persistent CI failures remain separate. Earlier dated results below describe
+their own tested checkpoints; the current outstanding scope is in todo.md.
 
 Focused Editor prompt regression in Linux/WSL (also registered in validation):
 

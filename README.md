@@ -29,10 +29,11 @@ backups (a separate test SD is preferred). The Editor launcher temporarily
 preloads the other two PRGs to satisfy the current module manifest, but no
 document, undo history or active application session moves between programs.
 
-Bounded hardware checks now pass independent Settings save/cancel and Editor
-save → Publisher publish → remote download to a new source file on a matching
-local test site. Physical reopening/edit/update, cold persistence and three
-manual cycles remain acceptance work; see the current local testing runbook.
+Bounded hardware checks now pass Editor save → fresh Publisher publish → remote
+download → Editor reopen/edit/save → fresh Publisher update on a matching local
+test site. Physical Ctrl+O and Settings persistence after a user-confirmed cold
+power cycle also pass. Three manual cycles, broader keyboard/UI coverage and
+interrupted I/O remain acceptance work; see the current local testing runbook.
 
 See [todo.md](todo.md) for the only live work queue and acceptance gates.
 Prove the replacement on hardware before removing fallback machinery. Goals below are product direction, not claims that
