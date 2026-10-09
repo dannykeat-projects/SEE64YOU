@@ -1271,7 +1271,14 @@ static void load_local_source(void)
     }
     result = s64_local_open(&local_document, WORK_PROMPT, 1u);
     if (result != S64_LOCAL_OK) {
+        /* An unsuccessful read may have partially replaced the REU source.
+         * Do not allow an earlier remote download/save operation to continue. */
         source_loaded = 0u;
+        remote_downloaded = 0u;
+        local_document.filename[0] = '\0';
+        s64_publish_state_clear_remote(&publish_state);
+        s64_buffer_init(&body);
+        s64_document_init(&document, &body);
         set_status(s64_local_result_message(&local_document, result));
         return;
     }
