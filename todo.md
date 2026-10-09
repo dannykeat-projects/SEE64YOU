@@ -46,7 +46,8 @@ keyboard or three-manual-cycle acceptance.
 
 - [x] On backed-up SD and 16 MiB REU C64U: Editor create/save → BASIC; Publisher launch/open/publish → BASIC; Publisher remote open/save NEW `.s64` → BASIC; Editor reopen/edit/save → BASIC; fresh Publisher update.
 - [x] Verify browser rendering, exact source/metadata, Settings physical cold persistence/cancel, missing-source guards, existing-download refusal, responsive BASIC, IRQ/drives and persistent prerequisite baseline.
-- [ ] Complete three manual cycles, native/USB keyboard and 40×25 visual acceptance, broader network/storage failure preservation and live temporary turbo restoration. Persistent configuration parity alone does not prove live turbo-register restoration.
+- [x] Further real-hardware failure checks: truncated source clears the document and blocks publish/download; trailing-byte config is not adopted and cancel preserves it; controlled disposable-backend HTTP 503 rejects auth and blocks publish. Exact local/remote bytes and final original SD/machine restoration pass. No code changes needed.
+- [ ] Complete three manual cycles, native/USB keyboard and 40×25 visual acceptance, interrupted network/storage failure preservation and live temporary turbo restoration. Persistent configuration parity alone does not prove live turbo-register restoration.
 - [ ] On disposable files, verify failed final document rename leaves the exact latest canonical `<filename>.tmp` recoverable; copy it before retrying. Existing delete-then-rename replacement does not preserve both versions atomically. Include configuration rename/readback failures in storage acceptance.
 - [x] Record firmware, tested package hash, precise outcomes and known limitations in canonical docs; provide the latest package and concise manual checklist.
 

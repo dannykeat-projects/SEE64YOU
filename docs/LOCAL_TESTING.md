@@ -72,6 +72,22 @@ and backups: ignored `client/build/hardware-mvp-reopen-9d438e4/`, including the
 actual browser screenshot `public-update.jpg`. The archive SHA-256 is
 `d1fb00f7e5244967b83c64d487787953de9f1950bdf97209ac3853ba219ff6fa`.
 
+Further real-C64U failure checks on the same package passed without code changes:
+a truncated `.s64` after a valid local load reported DOCUMENT METADATA INVALID,
+cleared the document and blocked both publish and download. A saved config with
+one trailing byte was not adopted: Settings displayed an unconfigured state and
+cancel preserved its exact bytes; Publisher reported CONFIGURATION MISSING OR
+INVALID and blocked authentication. Settings' SETTINGS ARE VALID message checks
+the default in-memory structure, not publishing readiness or the invalid disk file.
+
+Temporarily returning HTTP 503 from only the disposable site's `api.php` made
+authentication report SERVER REJECTED REQUEST and left publishing blocked by
+TEST / LOGIN FIRST. The exact local source/config and remote document remained
+unchanged. The API was restored byte-for-byte; all original SD files, drives,
+IRQ/clock/BASIC and prerequisite settings passed restoration checks. Evidence:
+ignored `client/build/hardware-mvp-failures-9d438e4/`. These deterministic errors
+do not prove interrupted writes, timeouts or final rename/readback recovery.
+
 Three manual cycles, native/USB keyboard and visual coverage, interrupted storage/
 network preservation and live turbo-register restoration remain acceptance work.
 This is a bounded hardware result, not full MVP acceptance. The older managed/
