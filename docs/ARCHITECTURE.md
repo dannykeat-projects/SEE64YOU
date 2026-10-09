@@ -4,19 +4,20 @@ See64You is a **C64 Ultimate-native** editor and publishing environment. It reta
 
 Ordinary-C64 compatibility is retired as a product requirement.
 
-## Current migration boundary
+## Current migration boundary (2026-10-09)
 
-The supported build target still packages whole-PRG managed handoffs. The chosen
-MVP candidate retains Launcher → Editor startup and original BASIC return, then
-keeps one Editor-owned cc65 runtime, ACTIVE lifecycle and system snapshot alive.
-Publisher and Settings become callable cached code overlays beneath that owner.
-Do not reconstruct already-live application state on each mode change.
+The chosen MVP consists of three independently launched PRGs. Editor saves and
+reopens canonical `.s64` files; Publisher reads those files and saves fetched
+remote documents to new `.s64` files; Settings owns the disk configuration file.
+No Editor history/document/session or cached REU state crosses program boundaries.
+Publisher and Settings exit normally to BASIC. Internal code overlays remain
+permitted where resource measurements justify them.
 
-Candidate integration and hardware acceptance remain pending. Retain the fallback
-until the complete workflow passes; shared bootstrap dependencies are not dead
-code. The ordered work is only in ../todo.md; C64U-RUNTIME.md owns detailed
-contracts. Whole-PRG transfer descriptions below describe the retained package,
-not a mandate to reproduce those transfers in the persistent candidate.
+The existing 14-file managed package, persistent-runtime prototype and sections
+below describing shared application-state/whole-PRG transitions are **historical
+fallback/implementation reference**, not the intended new program topology.
+Preserve still-used bootstrap, recovery, transports and codecs until full
+software and hardware acceptance. The only live implementation queue is todo.md.
 
 ## Architectural principles
 
@@ -24,8 +25,8 @@ not a mandate to reproduce those transfers in the persistent candidate.
 - The editor remains useful without network access.
 - The C64 Ultimate's 16 MiB REU is shared application memory, not an optional enhancement.
 - UCI/Ultimate-DOS/Network/DMA/turbo facilities are platform services.
-- Keep Editor, Publisher and Settings modular through code overlays with one persistent application owner in the MVP candidate.
-- To the user those modules must behave like one application.
+- Independently run Editor, Publisher and Settings; ordinary `.s64` and `.CFG` files are their only shared persistent interface.
+- No cross-program REU ownership, live Editor document, undo history or application state.
 - Temporary hardware changes are centrally owned and restored.
 - More available hardware does not remove the requirement to stream, bound and validate data carefully.
 

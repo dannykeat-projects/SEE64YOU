@@ -4,6 +4,24 @@ This file contains the **current** reproducible validation path for the C64 Ulti
 
 The authoritative outstanding-work queue is todo.md.
 
+## Independent three-program MVP (current acceptance direction)
+
+Build the additive standalone Settings candidate with:
+
+~~~sh
+make -C client independent-settings
+~~~
+
+Its Makefile target includes a complete cc65 link and 1024-byte memory guard.
+Until this gate runs and passes, it is **not** a hardware-test artifact. The next
+mandatory acceptance gate is a fully linked standalone Publisher with real
+local `.s64` file/configuration paths and remote download-to-file; those paths
+have not yet been implemented. The existing persistent-runtime and managed
+handoff checks below remain *fallback regression evidence*, not certification
+of the chosen independent workflow. Do not run an unverified new PRG on the
+production SD configuration.
+
+
 ## Persistent candidate prerequisite gate
 
 Stop before hardware if any required preservation/integration gate fails. Run

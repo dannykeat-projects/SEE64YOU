@@ -30,6 +30,9 @@ jobs:
       - name: Build current managed C64U package
         run: make -C client clean c64u-package
 
+      - name: Build independent Settings candidate and guard
+        run: make -C client independent-settings
+
       - name: Build C64U platform preflight probe
         run: make -C client platform-preflight-probe
 

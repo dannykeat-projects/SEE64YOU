@@ -22,9 +22,9 @@ Read docs/C64U-RUNTIME.md before platform/runtime work.
 
 ## MVP-first execution
 
-The ordered acceptance plan in todo.md governs current work. Finish the persistent-runtime MVP and demonstrate its complete user workflow on real hardware before expanding features or performing broad cleanup. Keep one live queue; do not create competing plans.
+The ordered acceptance plan in todo.md governs current work. Deliver the three-independent-program, file-based MVP chosen 2026-10-09 before expanding features or broad cleanup. Editor saves/reopens canonical .s64 source; Publisher independently reads .s64, publishes and downloads remote source to a new .s64; Settings independently reads/writes the canonical disk configuration. Each executable launches fresh and exits to BASIC. No document, undo, clipboard or session state crosses program boundaries. Keep one live queue in todo.md.
 
-Retain the proven Launcher → Editor bootstrap and BASIC-return path. Within the candidate application, Editor owns one runtime/lifecycle while Publisher and Settings are callable cached overlays. Keep the whole-PRG fallback until replacement hardware acceptance; remove only proven-unused dependencies afterward.
+Preserve the proven Launcher → Editor bootstrap and BASIC-return path. Do not remove the whole-PRG fallback before independent hardware acceptance. Internal overlays may remain, but cross-program adoption/chaining is superseded. Hard stop if a complete Publisher with real file/config/download paths cannot meet the existing 1 KiB guard without another substantial architecture exercise.
 
 Use existing services and small explicit boundaries. Do not weaken memory/integrity/restore guards, add speculative abstractions, rewrite persisted formats or undertake another architecture pivot merely to fit deferred scope. Report user-visible progress and exact validation scope.
 
@@ -37,7 +37,7 @@ Use existing services and small explicit boundaries. Do not weaken memory/integr
 - Keep only small hot buffers and currently executing code in conventional C64 RAM when REU-backed storage is more appropriate.
 - Prefer Ultimate-DOS and native UCI transfers over IEC/KERNAL file loading.
 - Use Ultimate-DOS targets $01 and $02 intentionally as independent filesystem contexts when that simplifies state.
-- Validate and cache executable assets in REU. Preserve the trusted initial Launcher → Editor transfer; persistent candidate mode switches call overlays under the same owner rather than restarting whole PRGs.
+- Validate executable assets in REU where useful. Preserve trusted initial Launcher → Editor transfer and clean BASIC return. Publisher and Settings run independently without relying on cached state or Editor-owned lifecycle.
 - Do not resurrect the $C800-$CBFF resident-loader reservation as a production constraint unless later evidence makes it necessary.
 - Capability-probe hardware features. Do not enable a feature solely because a firmware version is expected to have it.
 - Real C64U hardware is the final authority for UCI, DMA/REU, turbo, USB-keyboard and timing behaviour.
@@ -114,6 +114,6 @@ If a prerequisite cannot safely be enabled by software, guide the user through t
 - Re-check the branch head immediately before a write because local/Codex work may advance it concurrently.
 - Update todo.md when work is completed, deferred, discovered or reprioritised.
 - Validate the smallest relevant scope first, then the full available validation required by risk.
-- The primary downloadable product artifact is the **current C64U package**, not a conventional-C64 PRG.
+- The target deliverable is one verified package with independently launched Editor, Publisher and Settings PRGs (and required assets). The current managed package remains a fallback, not the accepted independent candidate.
 - Do not merge/main/deploy solely because CI is green; follow the explicit delivery instruction.
 - Do not claim real-hardware validation unless it actually ran on real C64U hardware.

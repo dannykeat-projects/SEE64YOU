@@ -9,8 +9,10 @@ See64You is **not** an original-C64 compatibility project. Ordinary-C64 memory l
 ## Current priority: usable MVP
 
 The complete current application is not yet accepted end to end on hardware.
-The immediate goal is write → save/reopen → publish → remote reopen/update →
-safe exit on C64 Ultimate with one Standalone site. Existing Basic Settings and
+The immediate target is **three independently launched, file-based programs**: save a
+canonical `.s64` in Editor, exit and open that file in Publisher, then publish or
+download a new `.s64` for later reopening in Editor. Settings reads/writes the
+existing config file independently. Each program starts fresh and returns to BASIC. Existing Basic Settings and
 manual one-time prerequisites are sufficient; optional backends, expanded setup,
 large-document redesign and UI enhancements are deferred.
 
@@ -24,7 +26,7 @@ every capability is complete.
 - A fast, predictable editor with familiar desktop editing behaviour.
 - A small Markdown-like source format that remains the canonical editable document.
 - Large working documents, clipboard and history backed by the 16 MiB REU.
-- Fast module transitions using validated modules cached in REU rather than software-IEC chaining.
+- Independently launchable Editor, Publisher and Settings; internal overlays may be used when useful.
 - Direct local storage through Ultimate-DOS.
 - Direct Standalone publishing through Ultimate Network Target $03 on the firmware-1.1 baseline.
 - A first-run setup wizard that hides UCI/REU/transport terminology from normal users.
@@ -50,26 +52,22 @@ Where possible See64You probes capabilities instead of trusting firmware version
 
 See docs/C64U-RUNTIME.md for the platform contract.
 
-## Runtime architecture
+## Runtime architecture (2026-10-09 decision)
 
-The user launches one entry point, but See64You remains modular internally:
+The intended interface between user-visible programs is **ordinary files**, not
+live REU/application handoffs:
 
 ~~~text
-SEE64YOU launcher/supervisor
-        |
-        +-- C64U system-state manager
-        +-- REU allocator / shared application state
-        +-- validated module cache
-        |
-        +-- Editor
-        +-- Publisher
-        +-- Settings
-        +-- Recovery / diagnostics
+Editor (existing launcher) -> /sd/*.s64 -> Publisher -> remote standalone site
+                                              |
+                                              +-> new /sd/*.s64 -> Editor
+Settings -> /sd/SEE64YOU/SEE64YOU.CFG -> Publisher
 ~~~
 
-The current package still uses managed whole-PRG handoffs. The persistent-runtime candidate retains the trusted Launcher → Editor bootstrap, then keeps Editor as the single runtime/lifecycle owner while Publisher and Settings execute as cached code overlays. It is not yet the accepted product package. Detailed ownership and migration boundaries are in docs/C64U-RUNTIME.md.
-
-The previous $C800-$CBFF resident-loader design and conventional-C64 memory-headroom constraints are retired as the production direction. The successful resident-loader probe remains useful evidence that replacement loading and cc65 startup work on real firmware 1.1.
+Each separately launched program exits to BASIC. The proven Editor bootstrap and
+restore path is retained. The current packaged whole-PRG handoff system remains
+an **unaccepted fallback** while this candidate is built and software/hardware
+validated. No independent complete package has been certified yet.
 
 ## Current migration status
 

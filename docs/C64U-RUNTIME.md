@@ -4,92 +4,30 @@ This document is the authoritative hardware/resource/state-management plan for S
 
 See64You is intentionally **C64 Ultimate-only** and requires a **16 MiB REU**. The application should exploit useful Ultimate facilities aggressively while remaining disciplined about resource ownership, restoration and failure handling.
 
-## MVP ownership and migration decision (2026-10-08)
+## MVP ownership and migration decision (2026-10-09)
 
-The persistent candidate keeps the proven Launcher → managed Editor bootstrap
-and original BASIC-return path. Once adopted, Editor owns one cc65 runtime,
-ACTIVE lifecycle, system snapshot and canonical live document until final exit.
-Publisher and Settings run as cached code overlays. Normal mode changes do not
-start another crt0, adopt another lifecycle or serialize live editor state merely
-to reconstruct it in a replacement PRG. Startup provenance and exit restoration
-remain required.
+The selected MVP is three independent, file-based C64U PRGs. Every program is
+fresh on entry and returns to BASIC: Editor (existing proven launcher/return)
+stores canonical `.s64` source, Publisher selects it and publishes or downloads
+remote source to a **new** `.s64`, and Settings independently loads/saves the
+canonical `/sd/SEE64YOU/SEE64YOU.CFG` (with existing fallback/migration).
+No document, undo, clipboard, Editor runtime, active lifecycle or REU cache is
+transferred between programs. Private in-program code overlays are acceptable.
 
-The current c64u-package still uses whole-PRG handoffs; candidate integration,
-packaging and full hardware acceptance are pending. Whole-PRG contracts/evidence
-below remain relevant to that fallback and bootstrap. Do not remove shared
-module/session/capsule/BASIC-return helpers by name: prove each surviving
-dependency before deleting obsolete inter-mode paths.
+The current managed whole-PRG package and previous one-owner persistent-runtime
+diagnostics remain fallback/reference only. The following transition, allocator
+and shared-session sections record prior machinery, not requirements to
+recreate it in the independent candidate. Retain code that is actually needed
+for the existing Editor launcher/bootstrap, machine restoration and recovery.
 
-Reuse allocator, overlay selector, auth/wire codecs, settings store, recovery and
-system-state services. Return to resident orchestration before switching overlays.
-Pointers into replaceable assets must not outlive the owning asset; consume or
-copy screen data before replacement. Keep one canonical document rather than
-a Publisher copy. Keep mode workspace lifetimes explicit.
-
-Require at least 1 KiB resident headroom in the complete integrated build, retain
-the existing stack and 15,360-byte overlay guards, and stay within 16 allocator
-entries. Last recorded partial Editor + Publisher fit had 1,340 bytes resident
-margin, PNETWORK 14,397/15,360 and a 14/16 production allocation projection.
-These measurements do not certify the remaining Settings/UI/package integration.
-Do not weaken guards or byte-squeeze deferred features into the release.
-
-Recorded software evidence includes a 30-cycle persistent lifecycle gate and
-focused real-code tests for authentication/save/delete, writer/Preview, list/open,
-Publisher UI and Settings slices. Some combined-harness responsibilities remain
-placeholders; this is not proof of complete product integration. Earlier hardware
-upload/reopen and Editor entry/return evidence belongs to those earlier builds.
-The full persistent candidate workflow still needs real C64U acceptance.
-
-The fallback hardware diagnosis before reassessment is code e5ffd0f/checkpoint
-6ccf818: initial entry works, but whole-PRG Publisher application-state loading/
-validation remains a blocker. Preserve the fallback until replacement acceptance;
-do not treat it as a working end-to-end product.
-
-Normal config remains /sd/SEE64YOU/SEE64YOU.CFG with existing verified legacy
-migration/fallback; recovery journals stay at SD root. No new journal/data-format
-migration is part of MVP. Failed/cancelled remote open must preserve user source,
-including failures after REU staging begins; successful-open tests alone do not
-establish that property.
-
-The host-tested preservation patch isolates remote-open data in one reusable
-allocator-owned `S64_REU_OWNER_PUBLISHER` allocation, tagged `0x4f`. Its 126,976
-bytes hold a 4,096-byte header area, the existing 61,440-byte body capacity and a
-61,440-byte rollback copy of the original physical gap buffer. No fixed bank is
-reserved, no wire format changes, and the 16-entry limit remains unchanged. This
-adds one entry to the previous 14-entry projection; complete-package fit is still
-unverified. The append-only allocator retains this scratch for the ACTIVE session
-and reuses it rather than allocating on each open/cancel.
-
-Resident orchestration calls `s64_persistent_open_stage_init(stage, control)` with
-the live owner's allocator before entering the network overlay. Preparation lives
-in PCONTENT; it uses resident allocator helpers and returns before PNETWORK runs.
-Like `s64_reu_runtime_allocate`, preparation updates the live control only. Any
-required control publication remains an owner/lifecycle responsibility in the
-correct namespace; do not call an Editor RUNTIME veneer from Publisher PCONTENT.
-The transport authorizes commit with `stage_finish` only after a successful complete
-request. A cancelled or failed request must not commit the stage.
-
-PCONTENT parses metadata separately and converts only staged body bytes. It then
-copies and readback-verifies the original physical document buffer before writing
-live bytes. Replacement writes are also readback-verified. A failed replacement
-restores and verifies the backup without changing live metadata or Editor controls.
-History and clipboard are never staging storage. Successful commit updates the
-buffer and metadata; the owner must then apply existing history/dirty-state and
-binding semantics. The stage is consumed and cannot be committed/converted twice.
-
-If rollback fails, `recovery_required` stays set and the original backup remains
-reserved. Stop editing and keep the stage; `stage_restore` can retry restoration.
-Never reinitialize the stage or reuse its scratch until recovery succeeds. This
-is synchronous REU rollback, not durable power-loss recovery; do not restart and
-claim the source is safe. The legacy diagnostic caller stops on this condition;
-the future persistent owner must handle the same explicit result.
-
-Host failure-path coverage passes, but cc65 fit/VICE validation of the patch is
-pending. The Editor Publish placeholder, disconnected Settings/Publisher slices
-and Settings-screen timeout still block a complete persistent product package.
-
-Implementation, validation and retirement tasks live only in ../todo.md.
-Superseded troubleshooting remains in Git history.
+Acceptance begins with the **fully linked real standalone Publisher**, including
+file/configuration paths, network/authentication and remote-to-file saving,
+meeting >=1024 bytes headroom with unchanged stack/overlay safety guards.
+Smaller passing slices and prior 30-cycle persistent fixtures are not product
+acceptance. Stop rather than beginning another large architecture redesign if
+one focused Publisher reduction cannot pass the complete guard. Validate the
+hardware workflow only after software integration succeeds. No package or
+hardware acceptance is claimed for this new design yet.
 
 ## 1. Platform contract
 
