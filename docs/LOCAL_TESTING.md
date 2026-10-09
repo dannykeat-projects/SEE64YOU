@@ -4,6 +4,66 @@ This file contains the **current** reproducible validation path for the C64 Ulti
 
 The authoritative outstanding-work queue is todo.md.
 
+## Bounded MVP hardware continuation (2026-10-10)
+
+On C64U firmware 1.1.0 / FPGA 122 / core 1.49 with 16 MiB REU and the user's
+enabled turbo-register baseline, the `9460945` candidate reproduced two bugs:
+Editor dropped shifted uppercase filename letters (`S6T00.S64` became `600.64`),
+and Publisher's Next request reused a URL overwritten by HTTP header scratch.
+The narrow fixes retain native input and rebuild the URL per list item.
+
+The complete fixed package passes both manifests and unchanged guards: Publisher
+1,285 B spare, Settings 17,544 B, launcher 1,197 B, Editor resident margin 584 B;
+MODEL 15,271, FILE 15,341, RUNTIME 15,309 and PUBLICATION 15,310 / 15,360 B.
+Focused native text prompt and direct-network host tests pass. Packaged VICE
+absent-UCI startup/refusal/exit and executed BASIC input pass for all entry points.
+Existing direct-auth signedness warning remains visible.
+
+Real hardware, with REST-injected plain keys, passed independent Settings
+load/import/save/BASIC return, fresh relaunch and cancel with exact saved-byte
+parity. Editor saved the exact body with its corrected uppercase filename and
+wrote a valid CLEAN journal. Fresh Publisher local load/authentication/publish,
+compact first/second item browsing, remote open and download to a new `.s64`
+passed against the disposable matching local server. An existing destination
+was refused and retained its exact bytes. Downloaded body/title/slug/status
+match the remote document; local backend source and HTTP 200 public HTML match.
+Publisher exit restores the original IRQ and runs an actual BASIC POKE with
+the KERNAL clock advancing. Screen staging debris still needs clear-screen.
+
+The runtime-only test site is generated with `php tools/package-site.php` under
+ignored `client/build/mvp-site-9460945`, configured through its normal setup page
+with a disposable key/password. It is served by the existing local Apache;
+the main local site and deployed site are unchanged. Native config bytes are
+PETSCII, so compare imported keys/URLs after the normal charset conversion.
+Evidence and original SD backups are in ignored `client/build/hardware-mvp-9460945`.
+
+Cleanup passed: final Editor exit wrote CLEAN sequence 92 (older ACTIVE 91),
+both journal checksums passed, then original SD config/recovery/journals were
+restored with exact SHA-256 parity and newly staged package/key/test files were
+removed. Drives and IRQ match, the clock advances and BASIC executes POKE.
+Persistent C64/cartridge and U64 categories match the user's enabled 16 MiB
+REU/turbo-register baseline; these category reads are not live turbo-register
+verification. The prerequisite changes were kept.
+
+Latest testable archive: ignored `client/build/SEE64YOU-independent-mvp-20261010.zip`.
+The adjacent receipt records committed source, ZIP checksum and per-file hashes;
+package files reproduce the hardware-tested candidate and exclude config, ROMs
+and unrelated uncommitted work. No merge or deployment.
+
+Physical keyboard shortcuts, downloaded-file Editor reopening/edit/update,
+physical cold Settings persistence, three manual cycles and interrupted storage/
+network preservation remain acceptance work. This is a bounded hardware result,
+not full MVP acceptance. The older managed/persistent CI failures remain separate.
+
+Focused Editor prompt regression in Linux/WSL (also registered in validation):
+
+~~~sh
+cc -std=c99 -Wall -Wextra -Werror -D__fastcall__= \
+  -ffunction-sections -fdata-sections -Iclient/tests/ui_prompt_stubs -Iclient/src \
+  client/tests/ui_prompt_test.c client/src/ui.c -Wl,--gc-sections -o /tmp/s64-prompt-test
+/tmp/s64-prompt-test
+~~~
+
 ## Settings-integrity software follow-up (2026-10-10)
 
 From `4397a38`, fault injection reproduced accepted trailing configuration bytes
@@ -27,7 +87,7 @@ input pass in VICE 3.9 with the private standard-ROM fixture. This does not prov
 real Ultimate-DOS I/O, cold persistence or end-to-end publishing. Earlier return,
 IRQ and overlay fixtures were not rerun because their code is unchanged.
 
-Current testable ZIP is ignored
+The Settings-integrity follow-up ZIP is ignored
 `client/build/SEE64YOU-independent-settings-20261010.zip`; exact committed-source
 identity, ZIP checksum and per-file hashes are in the adjacent
 `SEE64YOU-independent-settings-20261010-receipt.json`. It excludes existing

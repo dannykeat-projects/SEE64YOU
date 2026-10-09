@@ -58,6 +58,12 @@ cc -std=c99 -Wall -Wextra -Werror -DCH_STOP=3 -Iclient/tests/launcher_stubs -Icl
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/charset_test.c client/src/charset.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host native text prompt tests =="
+cc -std=c99 -Wall -Wextra -Werror -D__fastcall__= -ffunction-sections -fdata-sections \
+    -Iclient/tests/ui_prompt_stubs -Iclient/src client/tests/ui_prompt_test.c \
+    client/src/ui.c -Wl,--gc-sections -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host gap-buffer tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/buffer_test.c client/src/buffer.c -o "$TMP_BIN"
 "$TMP_BIN"

@@ -21,10 +21,21 @@ Editor saves/reopens canonical `.s64` source on SD and exits to BASIC. Publisher
 - [x] Reproduce and fix Editor exit corruption: capsule/session teardown reused the validated BASIC-context scratch. Preserve the 321-byte context beyond that scratch; regression, complete package/manifest/fit and packaged VICE smoke pass. Real C64U Editor edit/local save/dirty Save exit now writes CLEAN and returns to responsive BASIC without reset.
 - [x] 2026-10-10 local-save fault regressions: retain new-only policy at the second existence check and keep completed `<filename>.tmp` when final rename fails. Both failures reproduced before the fixes; exact temp source reopens afterward. Clean independent package/manifests/guards and packaged VICE startup/BASIC exit pass; Publisher headroom 1,385 B, FILE asset 15,350/15,360 B.
 - [x] 2026-10-10 Settings integrity follow-up: reject trailing config bytes and verify exact temporary config before replacing the previous file. Reproduced both failures first; host temp-corruption/read-failure preservation, legacy/profile persistence and final readback tests pass. Complete package/manifests/guards and packaged VICE startup/exit pass; Publisher 1,297 B, Settings 17,544 B spare. Hardware storage acceptance remains pending.
-- [ ] Resolve the acceptance backend mismatch before resuming hardware: live authenticated `action=list&type=page&format=summary&offset=0` returns JSON, while this candidate requires `SEE64YOU-LIST/1`. No deployment is authorized. Use an explicitly approved matching test backend or obtain separate deployment authorization; do not change the client to hide this mismatch.
+- [x] Resume bounded hardware acceptance against a disposable matching localhost backend (2026-10-10). Authenticated compact listing, publishing, second-item browsing, remote open and new-file download work on firmware 1.1.0. The deployed backend mismatch remains; no deployment or client protocol workaround.
+- [x] Hardware-reproduced Editor uppercase filename loss: accept native PETSCII $C1-$DA in text prompts; preserve termination on insert/delete/cancel and empty ENTER. Focused prompt regressions and actual uppercase `S6T00.S64` save pass. FILE overlay 15,341/15,360 B.
+- [x] Hardware-reproduced remote Next failure: rebuild the list URL after each request reuses HTTP scratch. First/second compact list items and remote open/download pass. Publisher 1,285 B spare; complete package/manifests/guards, direct-network host tests and packaged VICE startup/exit pass.
 
 **Current constraint:** Editor's existing launcher still verifies/caches Publisher and Settings PRG entries as part of the legacy three-module manifest even though those binaries are launched separately. No live application state transfers. Do not rewrite launcher/cache machinery merely to save that preload before acceptance; remove it in M3 if unused. The package is an MVP **candidate**, not a release.
 ## M2 — Bounded hardware acceptance
+
+2026-10-10 continuation: independent Settings save/relaunch/cancel, Editor
+uppercase canonical file save, fresh Publisher local load/auth/publish,
+second-item remote browsing/open and new-file download passed with REST plain
+key injection against an isolated matching localhost site. Exact source/metadata,
+existing-download refusal, CLEAN 92, IRQ/clock/BASIC and original SD restore
+passed. The user's enabled REU/turbo-register baseline was retained. Editor
+download reopening/edit/update and physical keyboard/cold/three-cycle gates below
+are still unverified; synthetic modifier injection is not physical acceptance.
 
 - [ ] On backed-up SD and 16 MiB REU C64U: Editor create/save `TESTPAGE.s64` → BASIC; Publisher launch/open/publish → BASIC; Publisher remote open/save NEW `FETCHED.s64` → BASIC; Editor reopen/edit → BASIC; Publisher update.
 - [ ] Verify browser rendering, exact source/metadata, Settings cold persistence and cancel behaviour, network/storage failure preservation, responsive BASIC, IRQ/drives/temporary machine settings, and three complete manual cycles.

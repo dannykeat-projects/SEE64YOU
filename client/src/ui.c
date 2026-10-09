@@ -672,7 +672,6 @@ unsigned char s64_ui_prompt_text(const char* label, char* value, unsigned char c
         }
 
         if (key == CH_ENTER) {
-            value[length] = '\0';
             revers(0);
             return 1u;
         }
@@ -692,7 +691,9 @@ unsigned char s64_ui_prompt_text(const char* label, char* value, unsigned char c
             continue;
         }
 
-        if (key >= 0x20u && key <= 0x7eu
+        /* Shifted PETSCII letters occupy $C1-$DA. Keep native input intact. */
+        if (key >= 0x20u && (key <= 0x7eu
+                || (unsigned char)(key - 0xc1u) <= 25u)
             && length + 1u < capacity
 #ifndef S64_REU_BUFFER
             && label_length + length < SCREEN_COLUMNS

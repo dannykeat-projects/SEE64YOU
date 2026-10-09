@@ -10,6 +10,9 @@ The chosen MVP consists of three independently launched PRGs. Editor saves and
 reopens canonical `.s64` files; Publisher reads those files and saves fetched
 remote documents to new `.s64` files; Settings owns the disk configuration file.
 No Editor history/document/session or cached REU state crosses program boundaries.
+Editor text prompts retain both native PETSCII letter ranges, including shifted
+uppercase filenames. Direct Publisher list navigation rebuilds the request URL
+for every item because synchronous HTTP header parsing reuses its workspace.
 Publisher and Settings exit normally to BASIC. Internal code overlays remain
 permitted where resource measurements justify them.
 

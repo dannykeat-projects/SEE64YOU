@@ -853,6 +853,7 @@ static void list_open_remote(S64DocumentType type)
         return;
     }
 
+#ifndef S64_DIRECT_PUBLISHER
     url_result = s64_destination_list_url(
         &destination,
         type,
@@ -863,6 +864,7 @@ static void list_open_remote(S64DocumentType type)
         set_status(s64_destination_result_message(url_result));
         return;
     }
+#endif
 
 #ifdef S64_DIRECT_PUBLISHER
     {
@@ -874,6 +876,14 @@ static void list_open_remote(S64DocumentType type)
 
         for (;;) {
             S64StandaloneResult result;
+            /* Each request reuses WORK_URL for HTTP header scratch. */
+            url_result = s64_destination_list_url(
+                &destination, type, WORK_URL,
+                (uint16_t)S64_DESTINATION_URL_CAPACITY);
+            if (url_result != S64_DESTINATION_OK) {
+                set_status(s64_destination_result_message(url_result));
+                return;
+            }
 #ifdef S64_PERSISTENT_RUNTIME_FIT
             result = s64_persistent_standalone_list_stage(
                 &http,

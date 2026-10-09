@@ -87,6 +87,11 @@ if ($HostCc) {
         if ($LASTEXITCODE -ne 0) { throw "Exit prompt test build failed" }
         & (Join-Path $TestDir "ui_exit.exe")
         if ($LASTEXITCODE -ne 0) { throw "Exit prompt tests failed" }
+        Write-Host "== Host native text prompt tests =="
+        & $HostCc.Path -std=c99 -Wall -Wextra -Werror -D__fastcall__= -ffunction-sections -fdata-sections -Iclient/tests/ui_prompt_stubs -Iclient/src client/tests/ui_prompt_test.c client/src/ui.c "-Wl,--gc-sections" -o (Join-Path $TestDir "ui_prompt.exe")
+        if ($LASTEXITCODE -ne 0) { throw "Text prompt test build failed" }
+        & (Join-Path $TestDir "ui_prompt.exe")
+        if ($LASTEXITCODE -ne 0) { throw "Text prompt tests failed" }
         Invoke-CTest "charset" @(
             "client/tests/charset_test.c",
             "client/src/charset.c"
