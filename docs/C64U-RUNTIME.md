@@ -35,6 +35,16 @@ one focused Publisher reduction cannot pass the complete guard. Validate the
 hardware workflow only after software integration succeeds. No package or
 hardware acceptance is claimed for this new design yet.
 
+Local software acceptance on 2026-10-09 rebuilt the complete independent package
+and passed both manifests and memory guards. Actual packaged launcher, Publisher
+and Settings passed absent-UCI startup/exit and an executed BASIC command in VICE
+3.9 using the user's standard C64 ROMs. Publisher rejects missing-source/DOS/network
+operations; Settings reports unavailable DOS without exiting and can cancel to BASIC.
+These checks do not emulate UCI storage/network or establish hardware restoration,
+Editor editing after a successful platform preflight, or cold config persistence.
+The next gate is the bounded real-C64U checklist in LOCAL_TESTING, with original
+files/settings backed up and restored. Old managed CI failures are separate.
+
 ## 1. Platform contract
 
 The managed Editor's blocking exit-key reader lives in the MODEL overlay;

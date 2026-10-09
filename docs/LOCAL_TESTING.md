@@ -60,7 +60,7 @@ capsule, generic/capsule IRQ teardown, 30-swap overlay ABI and 30-cycle
 persistent lifecycle fixtures. The direct-network compiler emits an existing
 signedness warning in `direct_auth.c`; no warnings were hidden.
 
-**Blocked:** actual-package startup/exit with pinned Open ROMs. The launcher
+**Resolved fixture blocker:** actual-package startup/exit failed with pinned Open ROMs. The launcher
 stalls after its first title; Publisher/Settings also fail to reach their menus.
 An independent minimal cc65 program reproduces the fixture problem: it prints
 `HELLO` and stalls at the newline before `WORLD`, with no SEE64YOU code linked:
@@ -72,22 +72,32 @@ int main(void) { clrscr(); cputs("HELLO\r\nWORLD"); cgetc(); return 0; }
 
 Build this with `cl65 -t c64 -o hello.prg hello.c` and autostart it with the same
 pinned ROMs to reproduce. Do not change production startup based on this result.
-With a compatible locally supplied ROM set, run the new actual-binary smoke:
+The user supplied an existing VICE installation at `E:\Dropbox\Games and software\C64\VICE\`. Standard `kernal-901227-03.bin`, `basic-901226-01.bin` and `chargen-901225-01.bin` from its C64 directory **pass** the actual-binary smoke in VICE 3.9. Private copies are kept in ignored build space and are not redistributed. Run:
 
 ~~~sh
 make -C client independent-package
 python3 tools/test_independent_programs_vice.py --rom-dir /path/to/c64-roms
 ~~~
 
+Standard-ROM SHA-256 checksums (kernal / basic / chargen):
+
+~~~text
+83c60d47047d7beab8e5b7bf6f67f80daa088b7a6a27de0d7e016f6484042721
+89878cea0a268734696de11c4bae593eaaa506465d2029d619c0e0cbccdfa62d
+fd0d53b8480e86163ac98998976c72cc58d5dd8eb824ed7b829774e74213b420
+~~~
+
 The directory must contain `kernal.rom`, `basic.rom`, `chargen.rom`. The smoke
 uses the actual packaged launcher, Publisher and Settings, 16 MiB REU, absent-UCI
 guidance/offline menus, keyboard exit and a BASIC POKE after exit. It does not
-emulate Ultimate-DOS or Network Target. Full file/network workflow, cold settings
+emulate Ultimate-DOS or Network Target. It additionally verifies four Publisher
+missing-source/DOS/network refusals and Settings failed-save then cancel, followed
+by responsive BASIC in each case. Full file/network workflow, cold settings
 persistence and real machine restoration remain **unverified**. No C64U hardware,
 firmware, SD content or hardware settings were touched in this session.
 
-Do not begin the full hardware acceptance while the required startup smoke is
-blocked. After that gate is resolved, use a disposable SD or exact backups of
+The software startup smoke now passes. Begin bounded hardware acceptance with
+a disposable SD or exact backups of
 `/sd/SEE64YOU/`, root config fallbacks and existing session journals; record the
 machine's firmware, REU/turbo/IRQ/drive baseline and package SHA-256. Then:
 

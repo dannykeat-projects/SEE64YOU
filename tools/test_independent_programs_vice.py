@@ -24,7 +24,7 @@ def wait_text(monitor, expected, timeout=30):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         text = screen(monitor)
-        if expected in text:
+        if expected.upper() in text.upper():
             return
         monitor.resume()
         time.sleep(0.05)
@@ -37,7 +37,7 @@ def key(monitor, value):
     monitor.resume()
 
 
-def run(filename, prompt, exit_key, port, rom_dir):
+def run(filename, prompt, exit_key, port, rom_dir, checks=()):
     package = ROOT / "client/build/independent-package/SEE64YOU"
     out = ROOT / "client/build/independent-vice"
     out.mkdir(parents=True, exist_ok=True)
@@ -56,6 +56,9 @@ def run(filename, prompt, exit_key, port, rom_dir):
         try:
             monitor = wait_for_monitor("127.0.0.1", port, 20)
             wait_text(monitor, prompt)
+            for value, status in checks:
+                key(monitor, value)
+                wait_text(monitor, status)
             key(monitor, exit_key)
             wait_text(monitor, "READY.")
             # Prove BASIC executes input after exit rather than merely showing READY.
@@ -66,7 +69,8 @@ def run(filename, prompt, exit_key, port, rom_dir):
             deadline = time.monotonic() + 10
             while time.monotonic() < deadline:
                 if monitor.read_memory(0xc000, 0xc000) == b"\xa5":
-                    print(f"VICE packaged {filename}: startup, exit, responsive BASIC passed")
+                    print(f"VICE packaged {filename}: startup, {len(checks)} unavailable-service checks, "
+                          "exit, responsive BASIC passed")
                     break
                 monitor.resume()
                 time.sleep(0.05)
@@ -89,5 +93,10 @@ if __name__ == "__main__":
                         help="Compatible locally provided C64 ROM directory")
     args = parser.parse_args()
     run("SEE64YOU.PRG", "R RECHECK    X EXIT", ord("X"), 6544, args.rom_dir)
-    run("S64PUB.PRG", "RUN/STOP  EXIT TO BASIC", 3, 6545, args.rom_dir)
-    run("S64CFG.PRG", "A ADVANCED SETTINGS", 3, 6546, args.rom_dir)
+    run("S64PUB.PRG", "RUN/STOP  EXIT TO BASIC", 3, 6545, args.rom_dir,
+        ((ord("3"), "Load .S64 or open remote first"),
+         (ord("D"), "Open a remote page/post first"),
+         (ord("L"), "C64U DOS unavailable"),
+         (ord("2"), "C64U network target unavailable")))
+    run("S64CFG.PRG", "A ADVANCED SETTINGS", 3, 6546, args.rom_dir,
+        ((ord("S"), "SAVE FAILED - DOS UNAVAILABLE"),))
