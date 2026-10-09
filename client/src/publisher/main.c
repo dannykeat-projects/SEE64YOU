@@ -205,10 +205,12 @@ static void render(void)
 #else
     cputs("6 OPEN PAGE  7 OPEN POST");
 #endif
+#ifndef S64_INDEPENDENT_PUBLISHER
     gotoxy(0u, 18u);
     cputs("8 PREVIEW");
     gotoxy(0u, 19u);
     cputs("9 EXPORT TXT  0 IMPORT TXT");
+#endif
 #ifdef S64_DIRECT_PUBLISHER
     gotoxy(0u, 20u);
     cputs("T TOGGLE PAGE / POST");
@@ -1083,6 +1085,7 @@ static void list_open_remote(S64DocumentType type)
     set_status("Remote document opened");
 }
 
+#ifndef S64_INDEPENDENT_PUBLISHER
 static void preview_emit(
     uint8_t row,
     uint8_t column,
@@ -1234,6 +1237,7 @@ static void import_plain_text(void)
     document_changed = 1u;
     set_status("Text imported; save as source");
 }
+#endif
 
 #ifdef S64_INDEPENDENT_PUBLISHER
 static void load_local_source(void)
@@ -1527,13 +1531,17 @@ int main(void)
             list_open_remote(S64_DOCUMENT_PAGE);
         } else if (key == '7') {
             list_open_remote(S64_DOCUMENT_POST);
-        } else if (key == '8') {
+        }
+#ifndef S64_INDEPENDENT_PUBLISHER
+        else if (key == '8') {
             preview_document();
         } else if (key == '9') {
             export_plain_text();
         } else if (key == '0') {
             import_plain_text();
-        } else if (key == CH_STOP) {
+        }
+#endif
+        else if (key == CH_STOP) {
             return_to_editor();
         }
     }
