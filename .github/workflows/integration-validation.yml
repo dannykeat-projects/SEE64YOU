@@ -27,6 +27,9 @@ jobs:
       - name: Run standalone site tests
         run: php site/tests/run.php
 
+      - name: Build independent Publisher candidate and guard
+        run: make -C client independent-publisher
+
       - name: Build independent Settings candidate and guard
         run: make -C client independent-settings
 

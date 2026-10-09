@@ -38,6 +38,7 @@ SETTINGS_TARGET := build/see64you-settings.prg
 SETTINGS_CHAIN_TARGET := build/S64CFG.PRG
 MANAGED_SETTINGS_TARGET := build/managed-settings.prg
 INDEPENDENT_SETTINGS_TARGET := build/independent/S64CFG.PRG
+INDEPENDENT_PUBLISHER_TARGET := build/independent/S64PUB.PRG
 MODULE_MANIFEST_TARGET := build/S64MODULE.MNF
 SOURCES := src/main.c src/ui_exit.c src/charset.c src/buffer.c src/history.c src/clipboard.c src/document.c src/editor.c src/editor_format.c src/ui.c src/ui_status.s src/menu.c src/input/input.c src/input/repeat.s src/platform/uci.c src/platform/dos.c src/storage/local.c
 C64U_SOURCES := $(filter-out src/buffer.c src/history.c,$(SOURCES)) src/buffer_reu.c src/history_reu.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/editor_handoff.c src/publisher/editor_handoff_record.s
@@ -72,6 +73,7 @@ PUBLISHER_CORE_SOURCES := src/charset.c src/buffer_reu.c src/document.c src/plat
 PUBLISHER_DOCUMENT_SOURCES := src/publisher/standalone_documents.c
 PUBLISHER_COMPANION_FIT_SOURCES := diagnostics/publisher_companion_fit.c $(PUBLISHER_CORE_SOURCES) $(PUBLISHER_DOCUMENT_SOURCES)
 PUBLISHER_SOURCES := src/publisher/main.c src/platform/chain_editor.s $(filter-out src/platform/http.c src/publisher/relay.c src/publisher/standalone.c,$(PUBLISHER_CORE_SOURCES)) src/platform/network.c src/crypto/sha256.c src/publisher/direct_key.c src/publisher/direct_key_store.c src/publisher/direct_auth.c src/publisher/standalone_direct.c
+INDEPENDENT_PUBLISHER_SOURCES := $(filter-out src/platform/chain_editor.s src/publisher/handoff.c src/publisher/settings_bridge.c,$(PUBLISHER_SOURCES)) src/storage/local.c src/publisher/settings_exchange.c src/publisher/settings_validate.c src/publisher/settings_store.c
 SETTINGS_SOURCES := src/publisher/settings_main.c src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/destination.c src/publisher/settings_exchange.c src/publisher/settings_validate.c src/publisher/settings_store.c
 LAUNCHER_SOURCES := src/platform/module_session.c src/platform/module_session_read.c src/platform/module_session_build.c src/platform/transfer_capsule.c src/platform/transfer_capsule_build.c src/platform/transfer_capsule_write.c src/platform/module_transfer.c src/platform/module_arrival.c src/platform/module_transfer_stub.s src/launcher/main.c src/platform/module_integrity.c src/platform/crc32.c src/platform/module_preload.c src/platform/dos_reu.c src/platform/dos_file.c src/launcher/recovery_runtime.c src/launcher/recovery_flow.c src/platform/preflight.c src/platform/requirements.c src/platform/module_manifest.c src/platform/module_manifest_build.c src/platform/module_manifest_parse.c src/platform/reu_runtime.c src/platform/reu_runtime_build.c src/platform/reu_runtime_write.c src/platform/session_lifecycle.c src/platform/session_lifecycle_start.c src/platform/session_recovery.c src/platform/session_journal.c src/platform/session_journal_start.c src/platform/system_state.c src/platform/system_state_start.c src/platform/dos.c src/platform/turbo.c src/platform/turbo_capture.c src/platform/uci.c src/platform/reu.c src/platform/reu_dma.s src/charset.c
 
@@ -341,6 +343,15 @@ $(REU_BUFFER_PROBE_TARGET): $(REU_BUFFER_PROBE_SOURCES)
 	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -m build/reu-buffer-probe.map -o $@ $(REU_BUFFER_PROBE_SOURCES)
 
 publisher: $(PUBLISHER_TARGET) $(PUBLISHER_CHAIN_TARGET) $(SETTINGS_TARGET) $(SETTINGS_CHAIN_TARGET)
+
+# Measured MVP candidate; no handoff or PRG chaining between programs.
+.PHONY: independent-publisher
+independent-publisher: $(INDEPENDENT_PUBLISHER_TARGET)
+
+$(INDEPENDENT_PUBLISHER_TARGET): $(INDEPENDENT_PUBLISHER_SOURCES)
+	@mkdir -p build/independent
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_STANDALONE_ONLY=1 -DS64_DIRECT_PUBLISHER=1 -DS64_INDEPENDENT_PUBLISHER=1 -m build/independent/publisher.map -o $@ $(INDEPENDENT_PUBLISHER_SOURCES)
+	python3 ../tools/check_memory_headroom.py build/independent/publisher.map --label independent-publisher --min-headroom 1024
 
 $(PUBLISHER_TARGET): $(PUBLISHER_SOURCES)
 	@mkdir -p build

@@ -1,5 +1,11 @@
 #include <conio.h>
 #include <string.h>
+#ifdef S64_INDEPENDENT_PUBLISHER
+#include <stdlib.h>
+#include "storage/local.h"
+#include "platform/package_paths.h"
+#include "publisher/settings_store.h"
+#endif
 
 #include "buffer.h"
 #include "charset.h"
@@ -86,12 +92,23 @@ static unsigned char network_available;
 #define WORK_REMOTE_ID ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_MAIN_USERNAME_OFFSET])
 #define WORK_HANDOFF ((S64PublisherHandoff*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_HANDOFF_OFFSET])
 #define WORK_SETTINGS ((S64SettingsExchange*)&s64_publisher_workspace.bytes[0])
+#ifdef S64_INDEPENDENT_PUBLISHER
+#define WORK_SELECTION remote_selection
+#else
 #define WORK_SELECTION ((char*)&s64_publisher_workspace.bytes[S64_PUBLISH_WORK_SELECTION_OFFSET])
+#endif
 
 #ifndef S64_DIRECT_PUBLISHER
 static unsigned char selected_state;
 #endif
 static unsigned char document_replaced;
+#ifdef S64_INDEPENDENT_PUBLISHER
+static S64LocalDocument local_document;
+static unsigned char source_loaded;
+static unsigned char remote_downloaded;
+/* Direct HTTP scratch at offset 608 otherwise overwrites the selected slug. */
+static char remote_selection[S64_DOCUMENT_SLUG_CAPACITY];
+#endif
 
 
 static void clear_row(unsigned char row)
@@ -196,8 +213,17 @@ static void render(void)
     gotoxy(0u, 20u);
     cputs("T TOGGLE PAGE / POST");
 #endif
+#ifdef S64_INDEPENDENT_PUBLISHER
+    print_value(6u, "Local: ", local_document.filename[0] != '\0'
+        ? local_document.filename : "(none/remote unsaved)");
+    gotoxy(0u, 20u);
+    cputs("L LOAD .S64 / D SAVE REMOTE .S64");
+    gotoxy(0u, 21u);
+    cputs("RUN/STOP  EXIT TO BASIC");
+#else
     gotoxy(0u, 21u);
     cputs("RUN/STOP  RETURN TO EDITOR");
+#endif
 
     clear_row(STATUS_ROW);
     gotoxy(0u, STATUS_ROW);
@@ -325,7 +351,7 @@ static void clear_session(void)
     s64_publish_state_set_connected(&publish_state, 0u);
 }
 
-#ifndef S64_MANAGED_OVERLAY
+#if !defined(S64_MANAGED_OVERLAY) && !defined(S64_INDEPENDENT_PUBLISHER)
 static void sync_handoff_document(S64PublisherHandoff* target)
 {
     target->buffer = body;
@@ -343,7 +369,7 @@ static void mark_document_changed(void)
     document_changed = 1u;
 }
 
-#ifndef S64_MANAGED_OVERLAY
+#if !defined(S64_MANAGED_OVERLAY) && !defined(S64_INDEPENDENT_PUBLISHER)
 static unsigned char preserve_document_handoff(unsigned char returning)
 {
     S64PublisherHandoff* target = WORK_HANDOFF;
@@ -374,7 +400,10 @@ static unsigned char preserve_document_handoff(unsigned char returning)
 #endif
 static void return_to_editor(void)
 {
-#ifdef S64_MANAGED_OVERLAY
+#ifdef S64_INDEPENDENT_PUBLISHER
+    cursor(1);
+    exit(0);
+#elif defined(S64_MANAGED_OVERLAY)
     S64ModuleTransferPlan plan;
     S64ModuleTransitionResult transition;
     uint8_t prepared;
@@ -424,7 +453,9 @@ static void return_to_editor(void)
 
 static void open_settings(void)
 {
-#ifdef S64_MANAGED_OVERLAY
+#ifdef S64_INDEPENDENT_PUBLISHER
+    set_status("Run S64CFG.PRG separately");
+#elif defined(S64_MANAGED_OVERLAY)
     S64ModuleTransferPlan plan;
     S64ModuleTransitionResult transition;
     uint8_t prepared;
@@ -513,6 +544,16 @@ static unsigned char apply_settings(const S64SettingsExchange* settings)
 #ifndef S64_MANAGED_OVERLAY
 static unsigned char restore_settings(void)
 {
+#ifdef S64_INDEPENDENT_PUBLISHER
+    S64SettingsStoreResult result = s64_settings_store_load(&dos, WORK_SETTINGS);
+    if (result != S64_SETTINGS_STORE_OK) {
+        set_status(result == S64_SETTINGS_STORE_NOT_FOUND
+            ? "Run S64CFG.PRG to configure"
+            : "Configuration missing or invalid");
+        return 0u;
+    }
+    return apply_settings(WORK_SETTINGS);
+#else
     if (!s64_settings_bridge_load_ready(WORK_SETTINGS)) {
         if (!s64_settings_bridge_request_load(WORK_SETTINGS)) {
             set_status("Settings handoff unavailable");
@@ -526,6 +567,7 @@ static unsigned char restore_settings(void)
     }
 
     return apply_settings(WORK_SETTINGS);
+#endif
 }
 #endif
 
@@ -567,6 +609,12 @@ static void save_remote_document(void)
 {
     S64DestinationResult url_result;
     unsigned char updating;
+#ifdef S64_INDEPENDENT_PUBLISHER
+    if (!source_loaded) {
+        set_status("Load .S64 or open remote first");
+        return;
+    }
+#endif
 
     if (!publishing_ready()) {
         return;
@@ -1027,6 +1075,11 @@ static void list_open_remote(S64DocumentType type)
         return;
     }
 
+#ifdef S64_INDEPENDENT_PUBLISHER
+    s64_local_init(&local_document, &dos, &document);
+    source_loaded = 1u;
+    remote_downloaded = 1u;
+#endif
     set_status("Remote document opened");
 }
 
@@ -1181,6 +1234,61 @@ static void import_plain_text(void)
     document_changed = 1u;
     set_status("Text imported; save as source");
 }
+
+#ifdef S64_INDEPENDENT_PUBLISHER
+static void load_local_source(void)
+{
+    S64LocalResult result;
+    if (!capabilities.dos_target) {
+        set_status("C64U DOS unavailable");
+        return;
+    }
+    if (!prompt_text("OPEN .S64: ", WORK_PROMPT,
+            S64_LOCAL_FILENAME_CAPACITY, 0u)) {
+        set_status("Local open cancelled");
+        return;
+    }
+    if (s64_dos_change_dir(&dos, S64_SD_ROOT_DIRECTORY) != S64_DOS_OK) {
+        set_status("Cannot access /sd/");
+        return;
+    }
+    result = s64_local_open(&local_document, WORK_PROMPT, 1u);
+    if (result != S64_LOCAL_OK) {
+        source_loaded = 0u;
+        set_status(s64_local_result_message(&local_document, result));
+        return;
+    }
+    source_loaded = 1u;
+    remote_downloaded = 0u;
+    s64_publish_state_clear_remote(&publish_state);
+    set_status("Local .S64 loaded");
+}
+
+static void save_remote_source(void)
+{
+    S64LocalResult result;
+    if (!remote_downloaded) {
+        set_status("Open a remote page/post first");
+        return;
+    }
+    if (!prompt_text("SAVE NEW .S64: ", WORK_PROMPT,
+            S64_LOCAL_FILENAME_CAPACITY, 0u)) {
+        set_status("Download save cancelled");
+        return;
+    }
+    if (s64_dos_change_dir(&dos, S64_SD_ROOT_DIRECTORY) != S64_DOS_OK) {
+        set_status("Cannot access /sd/");
+        return;
+    }
+    result = s64_local_save_as(&local_document, WORK_PROMPT, 0u);
+    if (result != S64_LOCAL_OK) {
+        set_status(s64_local_result_message(&local_document, result));
+        return;
+    }
+    remote_downloaded = 0u;
+    set_status("Saved .S64; reopen in Editor");
+}
+#endif
 
 static void connect_destination(void)
 {
@@ -1342,6 +1450,7 @@ int main(void)
         return 1;
     }
 
+#ifndef S64_INDEPENDENT_PUBLISHER
     s64_handoff_init(WORK_HANDOFF);
     if (!s64_handoff_load(WORK_HANDOFF)
         || !s64_handoff_apply_document(WORK_HANDOFF, &body, &document)) {
@@ -1349,6 +1458,14 @@ int main(void)
         cputs("RUN EDITOR FIRST\r\n");
         return 1;
     }
+#else
+    if (s64_reu_probe_banks() != 256u) {
+        cputs("16 MB REU REQUIRED\r\n");
+        return 1;
+    }
+    s64_buffer_init(&body);
+    s64_document_init(&document, &body);
+#endif
 
 #endif
 #ifdef S64_DIRECT_PUBLISHER
@@ -1358,6 +1475,11 @@ int main(void)
     s64_http_init(&http, s64_uci_execute);
 #endif
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
+#ifdef S64_INDEPENDENT_PUBLISHER
+    s64_local_init(&local_document, &dos, &document);
+    source_loaded = 0u;
+    remote_downloaded = 0u;
+#endif
     s64_uci_probe_capabilities(&capabilities);
     s64_destination_clear(&destination);
     s64_publish_state_init(&publish_state);
@@ -1380,6 +1502,12 @@ int main(void)
 
         if (key == '1') {
             open_settings();
+#ifdef S64_INDEPENDENT_PUBLISHER
+        } else if (key == 'l' || key == 'L') {
+            load_local_source();
+        } else if (key == 'd' || key == 'D') {
+            save_remote_source();
+#endif
         } else if (key == '2') {
             connect_destination();
         } else if (key == '3') {
