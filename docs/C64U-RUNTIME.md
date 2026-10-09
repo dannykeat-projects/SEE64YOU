@@ -639,6 +639,13 @@ Do not hard-code this division if a particular operation benefits from switching
 
 ## 13. Filesystem plan
 
+Configuration persistence verifies the exact temporary record before removing
+the old destination and still verifies the final renamed record before reporting
+success. An invalid or unreadable temp preserves the previous configuration.
+Reads request one byte beyond the expected record to reject trailing data;
+the persisted format and valid legacy migration are unchanged. Replacement still
+uses delete-then-rename: final rename/readback failures are not an atomic rollback.
+
 Target layout:
 
 ~~~text

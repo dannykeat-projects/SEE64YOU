@@ -10,7 +10,7 @@
 static S64SettingsExchange reu_record, backup;
 static S64SettingsExchange disk_record;
 static uint16_t disk_length;
-static uint8_t disk_exists, key_open;
+static uint8_t disk_exists, disk_temporary, key_open;
 static uint8_t stores, loads, saves, keys, corrupt_read, fail_write, fail_store;
 static char selected = 'r', import_key;
 static char output[8192];
@@ -83,6 +83,7 @@ S64UciResult s64_uci_execute(const S64UciCommandPart* parts, uint8_t count, S64U
         assert(stores == 1); /* Only the diagnostic's explicit REU round-trip. */
         ++saves;
         disk_length = 0;
+        disk_temporary = 1;
     }
     if (opcode == 2 && parts[0].data[2] == 1)
         key_open = parts[1].length == strlen(S64_DIRECT_KEY_FILENAME)
@@ -93,7 +94,7 @@ S64UciResult s64_uci_execute(const S64UciCommandPart* parts, uint8_t count, S64U
             assert(requested == 64);
             assert(reply->data_sink((const uint8_t*)direct_secret, 64, reply->data_context));
         } else {
-            assert(requested == sizeof(disk_record) && disk_exists);
+            assert(requested == sizeof(disk_record) + 1 && (disk_exists || disk_temporary));
             assert(reply->data_sink((const uint8_t*)&disk_record, disk_length, reply->data_context));
         }
     }
@@ -102,8 +103,11 @@ S64UciResult s64_uci_execute(const S64UciCommandPart* parts, uint8_t count, S64U
         memcpy((uint8_t*)&disk_record + disk_length, parts[1].data, parts[1].length);
         disk_length += parts[1].length;
     }
-    if (opcode == 10) disk_exists = 1;
-    if (opcode == 8 && !disk_exists) status_text = "82,FILE NOT FOUND";
+    if (opcode == 10) { disk_exists = 1; disk_temporary = 0; }
+    if (opcode == 8 && !disk_exists
+        && !(disk_temporary && parts[1].length == strlen(PROBE_TEMP) + 1
+            && memcmp(parts[1].data, PROBE_TEMP, parts[1].length) == 0))
+        status_text = "82,FILE NOT FOUND";
     if (opcode == 5 && fail_write) status_text = "85,WRITE FAILED";
     strcpy(reply->status, status_text);
     reply->status_length = strlen(status_text);
@@ -113,7 +117,7 @@ S64UciResult s64_uci_execute(const S64UciCommandPart* parts, uint8_t count, S64U
 static void prepare(void)
 {
     stores = loads = saves = keys = corrupt_read = fail_write = fail_store = 0;
-    disk_length = disk_exists = key_open = 0;
+    disk_length = disk_exists = disk_temporary = key_open = 0;
     selected = 'r';
     import_key = 0;
     output[0] = 0;

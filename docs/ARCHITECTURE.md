@@ -273,6 +273,12 @@ source remains at `<filename>.tmp` with its handle closed. Replacement is still
 delete-then-rename, not atomic: the previous destination may already be absent.
 Recover/copy the retained temp before retrying, since another save reuses it.
 
+Configuration saves reopen, validate and compare the temporary record before
+removing the existing destination, then verify the final file after rename.
+The same readback/comparison helper clears verification scratch at both stages.
+Configuration reads reject trailing bytes as well as short or corrupt records;
+valid legacy configuration still migrates through the existing codec.
+
 ## Filesystem layout
 
 The intended application tree is rooted at:

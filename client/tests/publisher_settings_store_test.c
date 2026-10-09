@@ -25,8 +25,11 @@ static uint8_t read_open;
 static uint8_t write_open;
 static uint8_t fail_write;
 static uint8_t bad_final;
+static uint8_t bad_temporary;
 static uint8_t fail_reopen;
 static uint8_t fail_read_close;
+static uint8_t fail_temp_reopen;
+static uint8_t fail_temp_close;
 static uint8_t reu_writes;
 static uint8_t create_new_opened;
 static uint8_t fail_change_dir;
@@ -178,7 +181,10 @@ S64DosResult s64_dos_file_exists(S64Dos* dos, const char* filename, uint8_t* exi
 S64DosResult s64_dos_open_read(S64Dos* dos, const char* filename)
 {
     (void)dos;
-    if (fail_reopen) return S64_DOS_TARGET_ERROR;
+    if (fail_temp_reopen && strcmp(filename, "SEE64YOU.CFG.TMP") == 0)
+        return S64_DOS_TARGET_ERROR;
+    if (fail_reopen && strcmp(filename, "SEE64YOU.CFG.TMP") != 0)
+        return S64_DOS_TARGET_ERROR;
     if (strcmp(filename, S64_SETTINGS_FILENAME) == 0
         && current_directory && stored_length != 0u) {
         read_source = stored;
@@ -191,6 +197,10 @@ S64DosResult s64_dos_open_read(S64Dos* dos, const char* filename)
         && profile_one_length != 0u) {
         read_source = profile_one;
         read_length = profile_one_length;
+    } else if (strcmp(filename, "SEE64YOU.CFG.TMP") == 0
+        && temporary_length != 0u) {
+        read_source = temporary;
+        read_length = temporary_length;
     } else if (strcmp(filename, S64_DIRECT_KEY_FILENAME) == 0
         && !current_directory && direct_key_file_length != 0u) {
         read_source = direct_key_file;
@@ -245,12 +255,23 @@ S64DosResult s64_dos_write(S64Dos* dos, const uint8_t* data, uint16_t length)
     if ((uint32_t)temporary_length + length > sizeof(temporary)) return S64_DOS_TARGET_ERROR;
     memcpy(temporary + temporary_length, data, length);
     temporary_length = (uint16_t)(temporary_length + length);
+    if (bad_temporary == 1u) --temporary_length;
+    if (bad_temporary == 2u) temporary[12] ^= 1u;
+    if (bad_temporary == 3u) {
+        S64SettingsExchange stale;
+        memcpy(&stale, temporary, sizeof(stale));
+        strcpy(stale.base_url, "http://stale.local");
+        require(s64_settings_exchange_prepare(&stale), "seal stale temp fixture");
+        memcpy(temporary, &stale, sizeof(stale));
+    }
+    if (bad_temporary == 4u) temporary[temporary_length++] = 0x55u;
     return S64_DOS_OK;
 }
 
 S64DosResult s64_dos_close(S64Dos* dos)
 {
-    S64DosResult result = read_open && fail_read_close
+    S64DosResult result = read_open
+        && (read_source == temporary ? fail_temp_close : fail_read_close)
         ? S64_DOS_TARGET_ERROR : S64_DOS_OK;
     (void)dos;
     read_open = 0u;
@@ -314,6 +335,7 @@ int main(void)
     S64SettingsExchange settings;
     S64SettingsExchange loaded;
     S64SettingsStoreResult result;
+    unsigned char previous_settings[sizeof(S64SettingsExchange)];
     const char* key =
         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
@@ -381,10 +403,38 @@ int main(void)
     change_dir_calls = 0u;
     result = s64_settings_store_save(&dos, &settings);
     require(result == S64_SETTINGS_STORE_OK, "settings save succeeds");
-    require(change_dir_calls == 2u,
-        "settings save and readback use app folder");
+    require(change_dir_calls == 3u,
+        "settings save, temp verification and final readback use app folder");
     require(create_new_opened, "settings save uses create-new temp file");
     require(stored_length == sizeof(settings), "settings file size");
+
+    stored[stored_length++] = 0x55u;
+    require(s64_settings_store_load(&dos, &loaded) == S64_SETTINGS_STORE_INVALID,
+        "settings with trailing bytes rejected");
+    --stored_length;
+
+    memcpy(previous_settings, stored, sizeof(previous_settings));
+    for (bad_temporary = 1u; bad_temporary <= 4u; ++bad_temporary) {
+        require(s64_settings_store_save(&dos, &settings) == S64_SETTINGS_STORE_VERIFY_ERROR,
+            "truncated/corrupt/stale/overlong temp rejected before replacement");
+        require(stored_length == sizeof(previous_settings)
+            && memcmp(stored, previous_settings, sizeof(previous_settings)) == 0,
+            "invalid temp preserves exact previous configuration");
+        require(!read_open && !write_open, "temp verification closes handles");
+    }
+    bad_temporary = 0u;
+    fail_temp_reopen = 1u;
+    require(s64_settings_store_save(&dos, &settings) == S64_SETTINGS_STORE_VERIFY_ERROR,
+        "temp reopen failure blocks replacement");
+    fail_temp_reopen = 0u;
+    fail_temp_close = 1u;
+    require(s64_settings_store_save(&dos, &settings) == S64_SETTINGS_STORE_VERIFY_ERROR,
+        "temp read-close failure blocks replacement");
+    fail_temp_close = 0u;
+    require(stored_length == sizeof(previous_settings)
+        && memcmp(stored, previous_settings, sizeof(previous_settings)) == 0,
+        "temp read failures preserve exact previous configuration");
+    require(!read_open && !write_open, "temp read failures close handles");
 
     require(reu_writes == 0u, "disk save does not publish REU handoff");
     memset(reu_settings, 0, sizeof(reu_settings)); /* Complete power loss. */
@@ -452,8 +502,8 @@ int main(void)
     change_dir_calls = 0u;
     result = s64_settings_profile_save(&dos, 0u, &settings);
     require(result == S64_SETTINGS_STORE_OK, "profile save succeeds");
-    require(change_dir_calls == 2u,
-        "profile save and readback use app folder");
+    require(change_dir_calls == 3u,
+        "profile save, temp verification and final readback use app folder");
     require(profile_one_length == sizeof(settings), "profile file size");
     require(stored_length == sizeof(settings), "profile save preserves active file");
 

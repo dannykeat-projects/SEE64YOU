@@ -4,6 +4,36 @@ This file contains the **current** reproducible validation path for the C64 Ulti
 
 The authoritative outstanding-work queue is todo.md.
 
+## Settings-integrity software follow-up (2026-10-10)
+
+From `4397a38`, fault injection reproduced accepted trailing configuration bytes
+and loss of the previous config when a damaged/stale temporary write reported
+success. Saves now reopen/validate/compare the temp before deleting the previous
+config, retaining the existing final readback check. Reads reject trailing bytes
+without changing the persisted format or valid legacy migration.
+
+Passed: strict-warning host persistence and real-DOS exchange-probe tests,
+Settings I/O/save-trace tests and local-document regression. Temporary truncation,
+checksum corruption, valid-but-stale content, trailing bytes, failed reopen and
+failed read-close preserve exact prior config bytes with closed handles. Existing
+final missing/truncated/corrupt/stale/reopen/read-close failure checks still pass.
+Both normal profile persistence and legacy configuration migration pass.
+
+Clean independent package build, both manifests and unchanged guards pass:
+Publisher 1,297 B spare, Settings 17,544 B, launcher 1,197 B; Editor resident
+margin 584 B and FILE asset 15,350/15,360 B. Actual packaged absent-UCI startup,
+unavailable-service refusals, Settings failed-save/cancel and executed BASIC
+input pass in VICE 3.9 with the private standard-ROM fixture. This does not prove
+real Ultimate-DOS I/O, cold persistence or end-to-end publishing. Earlier return,
+IRQ and overlay fixtures were not rerun because their code is unchanged.
+
+Current testable ZIP is ignored
+`client/build/SEE64YOU-independent-settings-20261010.zip`; exact committed-source
+identity, ZIP checksum and per-file hashes are in the adjacent
+`SEE64YOU-independent-settings-20261010-receipt.json`. It excludes existing
+uncommitted allocator/legacy-test work, config and ROMs. Physical acceptance and
+the matching-backend prerequisite remain outstanding; no merge/deployment.
+
 ## File-integrity software follow-up (2026-10-10)
 
 Starting from committed `541dcf2`, focused fault injection reproduced two local

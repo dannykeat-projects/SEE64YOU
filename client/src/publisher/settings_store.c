@@ -112,7 +112,8 @@ static uint8_t read_settings(
 
     if ((uint32_t)read->offset + length > sizeof(*read->settings)) {
         read->overflow = 1u;
-        return 0u;
+        /* Finish the bounded read so load_named can reject an overlong file. */
+        return 1u;
     }
     memcpy((uint8_t*)read->settings + read->offset, data, length);
     read->offset = (uint16_t)(read->offset + length);
@@ -174,7 +175,7 @@ static S64SettingsStoreResult load_named(
     bytes_read = 0u;
     result = s64_dos_read(
         dos,
-        (uint16_t)sizeof(*settings),
+        (uint16_t)(sizeof(*settings) + 1u),
         read_settings,
         &read,
         &bytes_read
@@ -199,6 +200,20 @@ static S64SettingsStoreResult load_named(
         return S64_SETTINGS_STORE_OK;
     }
     return S64_SETTINGS_STORE_INVALID;
+}
+
+static uint8_t verify_named(
+    S64Dos* dos,
+    const char* path,
+    const char* filename,
+    const S64SettingsExchange* settings,
+    S64SettingsExchange* verified
+)
+{
+    uint8_t valid = load_named(dos, path, filename, verified) == S64_SETTINGS_STORE_OK
+        && memcmp(settings, verified, sizeof(*verified)) == 0;
+    memset(verified, 0, sizeof(*verified));
+    return valid;
 }
 
 static S64DosResult open_create_new(
@@ -258,7 +273,6 @@ static S64SettingsStoreResult save_named(
 )
 {
     S64DosResult result;
-    S64SettingsStoreResult verified_result;
     S64SettingsExchange* verified;
 #ifndef S64_PERSISTENT_RUNTIME_FIT
     static S64SettingsExchange verified_storage;
@@ -316,6 +330,12 @@ static S64SettingsStoreResult save_named(
         return S64_SETTINGS_STORE_IO_ERROR;
     }
 
+    /* A successful write/close status cannot prove that replacement is safe. */
+    if (!verify_named(dos, path, S64_SETTINGS_TEMP_FILENAME, settings, verified)) {
+        (void)s64_dos_delete_file(dos, S64_SETTINGS_TEMP_FILENAME);
+        return S64_SETTINGS_STORE_VERIFY_ERROR;
+    }
+
     (void)s64_dos_delete_file(dos, filename);
 
     result = s64_dos_rename_file(
@@ -327,14 +347,8 @@ static S64SettingsStoreResult save_named(
         return S64_SETTINGS_STORE_IO_ERROR;
     }
 
-    verified_result = load_named(dos, path, filename, verified);
-    if (verified_result != S64_SETTINGS_STORE_OK
-        || memcmp(settings, verified, sizeof(*verified)) != 0) {
-        memset(verified, 0, sizeof(*verified));
-        return S64_SETTINGS_STORE_VERIFY_ERROR;
-    }
-    memset(verified, 0, sizeof(*verified));
-    return S64_SETTINGS_STORE_OK;
+    return verify_named(dos, path, filename, settings, verified)
+        ? S64_SETTINGS_STORE_OK : S64_SETTINGS_STORE_VERIFY_ERROR;
 }
 
 S64SettingsStoreResult s64_settings_store_load(
