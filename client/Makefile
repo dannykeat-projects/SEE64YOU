@@ -37,6 +37,7 @@ PUBLISHER_CHAIN_TARGET := build/S64PUB.PRG
 SETTINGS_TARGET := build/see64you-settings.prg
 SETTINGS_CHAIN_TARGET := build/S64CFG.PRG
 MANAGED_SETTINGS_TARGET := build/managed-settings.prg
+INDEPENDENT_SETTINGS_TARGET := build/independent/S64CFG.PRG
 MODULE_MANIFEST_TARGET := build/S64MODULE.MNF
 SOURCES := src/main.c src/ui_exit.c src/charset.c src/buffer.c src/history.c src/clipboard.c src/document.c src/editor.c src/editor_format.c src/ui.c src/ui_status.s src/menu.c src/input/input.c src/input/repeat.s src/platform/uci.c src/platform/dos.c src/storage/local.c
 C64U_SOURCES := $(filter-out src/buffer.c src/history.c,$(SOURCES)) src/buffer_reu.c src/history_reu.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/editor_handoff.c src/publisher/editor_handoff_record.s
@@ -349,6 +350,16 @@ $(PUBLISHER_CHAIN_TARGET): $(PUBLISHER_TARGET)
 	cp $< $@
 
 settings: $(SETTINGS_TARGET) $(SETTINGS_CHAIN_TARGET)
+
+# Candidate only: standalone Settings with authoritative disk configuration and
+# ordinary BASIC return. The managed package remains untouched until acceptance.
+.PHONY: independent-settings
+independent-settings: $(INDEPENDENT_SETTINGS_TARGET)
+
+$(INDEPENDENT_SETTINGS_TARGET): $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES))
+	@mkdir -p build/independent
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_INDEPENDENT_SETTINGS=1 -m build/independent/settings.map -o $@ $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES))
+	python3 ../tools/check_memory_headroom.py build/independent/settings.map --label independent-settings --min-headroom 1024
 
 $(SETTINGS_TARGET): $(SETTINGS_SOURCES)
 	@mkdir -p build

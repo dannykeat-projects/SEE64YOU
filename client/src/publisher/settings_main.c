@@ -1,5 +1,8 @@
 #include <conio.h>
 #include <string.h>
+#ifdef S64_INDEPENDENT_SETTINGS
+#include <stdlib.h>
+#endif
 
 #include "charset.h"
 #ifndef S64_MANAGED_OVERLAY
@@ -892,7 +895,10 @@ static void import_direct_key(void)
 #ifndef S64_PERSISTENT_RUNTIME_FIT
 static void return_to_publisher(void)
 {
-#ifdef S64_MANAGED_OVERLAY
+#ifdef S64_INDEPENDENT_SETTINGS
+    cursor(1);
+    exit(0);
+#elif defined(S64_MANAGED_OVERLAY)
     S64ModuleTransferPlan plan;
     S64ModuleTransitionResult transition;
 
@@ -982,7 +988,9 @@ static void save_and_return(void)
 #endif
         return;
     }
-#ifdef S64_MANAGED_OVERLAY
+#if defined(S64_INDEPENDENT_SETTINGS)
+    /* Verified disk settings are authoritative; no volatile REU exchange. */
+#elif defined(S64_MANAGED_OVERLAY)
     if (!s64_settings_session_publish(
             &managed_runtime.reu_control,
             &managed_runtime.lifecycle.journal,
@@ -1026,7 +1034,9 @@ static void cancel_and_return(void)
     settings = original_settings;
 #endif
     settings.state = S64_SETTINGS_STATE_READY;
-#ifdef S64_MANAGED_OVERLAY
+#ifdef S64_INDEPENDENT_SETTINGS
+    /* Cancel does not write the configuration file. */
+#elif defined(S64_MANAGED_OVERLAY)
     if (!s64_settings_session_publish(
             &managed_runtime.reu_control,
             &managed_runtime.lifecycle.journal,
@@ -1045,7 +1055,7 @@ static void cancel_and_return(void)
 #endif
 }
 
-#if !defined(S64_MANAGED_OVERLAY) && !defined(S64_PERSISTENT_RUNTIME_FIT)
+#if !defined(S64_MANAGED_OVERLAY) && !defined(S64_PERSISTENT_RUNTIME_FIT) && !defined(S64_INDEPENDENT_SETTINGS)
 static void service_load_request(void)
 {
     S64SettingsStoreResult result;
@@ -1085,7 +1095,7 @@ static void service_load_request(void)
 int main(void)
 {
     unsigned char key;
-#ifndef S64_MANAGED_OVERLAY
+#if !defined(S64_MANAGED_OVERLAY) && !defined(S64_INDEPENDENT_SETTINGS)
     unsigned char have_exchange;
 #endif
 
@@ -1127,6 +1137,17 @@ int main(void)
     }
 
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
+#ifdef S64_INDEPENDENT_SETTINGS
+    s64_uci_probe_capabilities(&capabilities);
+    s64_settings_exchange_init(&settings);
+    if (capabilities.dos_target) {
+        S64SettingsStoreResult result = s64_settings_store_load(&dos, &settings);
+        if (result != S64_SETTINGS_STORE_OK || !validate_settings()) {
+            s64_settings_exchange_init(&settings);
+        }
+    }
+    settings.state = S64_SETTINGS_STATE_EDIT_REQUEST;
+#else
     have_exchange = s64_settings_exchange_load(&settings) ? 1u : 0u;
 #ifndef S64_PERSISTENT_RUNTIME_FIT
     if (have_exchange && settings.state == S64_SETTINGS_STATE_LOAD_REQUEST) {
@@ -1150,6 +1171,7 @@ int main(void)
         s64_settings_exchange_init(&settings);
         settings.state = S64_SETTINGS_STATE_EDIT_REQUEST;
     }
+#endif
 #endif
 
     s64_uci_probe_capabilities(&capabilities);
