@@ -34,6 +34,10 @@ done
 
 SETUP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/setup.php")
 [ "$SETUP_CODE" = "404" ]
+curl -fsS "$BASE/start.php" | grep -q 'Step 1 of 6'
+curl -fsS "$BASE/start.php?step=99" | grep -q 'Step 1 of 6'
+curl -fsS "$BASE/start.php?step=5&kind=post" | grep -q 'Publish your first post'
+curl -fsS "$BASE/start.php?step=5&kind=%3Cscript%3E" | grep -q 'Publish your first page'
 
 touch "$SITE/ENABLE_SETUP"
 curl -fsS "$BASE/setup.php" | grep -q 'See64You setup'
@@ -47,6 +51,16 @@ curl -fsS -X POST \
 
 [ -f "$SITE/config.php" ]
 [ ! -f "$SITE/ENABLE_SETUP" ]
+BEFORE=$(php -r 'echo hash_file("sha256",$argv[1]);' "$SITE/config.php")
+for STEP in 1 2 3 4 5 6; do
+    GUIDE=$(curl -fsS "$BASE/start.php?step=$STEP&kind=post")
+    printf '%s' "$GUIDE" | grep -q "Step $STEP of 6"
+    if printf '%s' "$GUIDE" | grep -Eq '<script|type="password"'; then
+        echo 'FAIL: walkthrough must not require script or collect credentials' >&2
+        exit 1
+    fi
+done
+[ "$BEFORE" = "$(php -r 'echo hash_file("sha256",$argv[1]);' "$SITE/config.php")" ]
 SETUP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/setup.php")
 [ "$SETUP_CODE" = "404" ]
 

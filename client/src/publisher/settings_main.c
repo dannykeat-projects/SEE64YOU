@@ -138,6 +138,9 @@ static char key_diag_close[S64_KEY_DIAG_STATUS_CAPACITY];
 static uint16_t key_diag_bytes;
 #endif
 static uint8_t advanced_view;
+#ifdef S64_INDEPENDENT_SETTINGS
+static uint8_t setup_step;
+#endif
 
 static uint8_t validate_settings(void);
 
@@ -262,6 +265,9 @@ static void render_basic(void)
     gotoxy(0u, 14u); cputs("4 DISABLE PUBLISHING KEY");
     gotoxy(0u, 17u); cputs("T CHECK READINESS");
     gotoxy(0u, 18u); cputs("A ADVANCED SETTINGS");
+#ifdef S64_INDEPENDENT_SETTINGS
+    gotoxy(0u, 19u); cputs("W FIRST PAGE SETUP");
+#endif
     gotoxy(0u, 21u); cputs("S SAVE + RETURN");
     gotoxy(0u, 22u); cputs("RUN/STOP CANCEL + RETURN");
     clear_row(STATUS_ROW);
@@ -301,8 +307,33 @@ static void render_advanced(void)
 
 #endif
 
+#ifdef S64_INDEPENDENT_SETTINGS
+static void render_setup(void)
+{
+    clrscr();
+    cprintf("FIRST PAGE SETUP - STEP %u/3\r\n\r\n", setup_step);
+    if (setup_step == 1u) {
+        cputs("Create your site in a web browser.\r\nOpen start.php for the full guide.\r\n\r\nUse the site folder URL, not api.php.\r\n1 ENTER WEBSITE\r\n");
+        print_value(9u, "Website: ", settings.base_url);
+    } else if (setup_step == 2u) {
+        cputs("In a browser use HTTPS pair.php.\r\nCopy key to:\r\n/sd/SEE64YOU/SEE64KEY.TXT\r\nor type the 64 hex characters here.\r\nKeep the file/key private.\r\nNever enter your site password here.\r\n\r\n1 IMPORT KEY FILE\r\n2 TYPE / REPLACE KEY\r\n");
+        print_value(12u, "Key: ", settings.direct_key[0] ? "configured" : "not set");
+    } else {
+        cputs("Direct publishing uses HTTP.\r\nDocument text is not encrypted.\r\n1 CHANGE HTTP CONSENT\r\n\r\nS SAVE VERIFIED SETTINGS\r\nThen launch SEE64YOU.PRG, write text,\r\nsave FIRST.S64 and exit to BASIC.\r\nLaunch S64PUB.PRG: L FIRST.S64,\r\n2 connect, T page/post, 4 published,\r\n3 publish. Wait for success.\r\nCheck the page/post in your browser.\r\n");
+        print_value(16u, "Plain HTTP: ", settings.allow_insecure_http ? "allowed" : "blocked");
+        cputs("\r\nHTTPS is never downgraded.\r\nUse Advanced for other transports.");
+    }
+    gotoxy(0u, 21u); cputs("N NEXT  B BACK  W BASIC SETTINGS");
+    gotoxy(0u, 22u); cputs("STOP CANCEL / SET UP LATER");
+    print_value(STATUS_ROW, "", status_text);
+}
+#endif
+
 static void render(void)
 {
+#ifdef S64_INDEPENDENT_SETTINGS
+    if (setup_step) { render_setup(); return; }
+#endif
 #ifdef S64_PERSISTENT_RUNTIME_FIT
     if (!s64_persistent_settings_screen(
             &settings,
@@ -1010,6 +1041,13 @@ static void save_and_return(void)
 #endif
 
     set_status("Saved SEE64YOU/SEE64YOU.CFG");
+#ifdef S64_INDEPENDENT_SETTINGS
+    if (setup_step) {
+        clrscr();
+        cputs("SETTINGS SAVED AND VERIFIED\r\n\r\nLaunch SEE64YOU.PRG to write and save.\r\nThen S64PUB.PRG to connect/publish.\r\nConnection has not been tested yet.\r\n\r\nRETURN: EXIT TO BASIC");
+        while ((unsigned char)cgetc() != CH_ENTER) { }
+    }
+#endif
 #ifdef S64_SETTINGS_SAVE_TRACE
     end_save_trace("SAVE COMPLETE", 0);
 #else
@@ -1180,9 +1218,45 @@ int main(void)
 #endif
     advanced_view = 0u;
     status_text[0] = '\0';
+#ifdef S64_INDEPENDENT_SETTINGS
+    setup_step = settings.base_url[0] && settings.direct_key[0] ? 0u : 1u;
+#endif
     for (;;) {
         render();
         key = (unsigned char)cgetc();
+
+#ifdef S64_INDEPENDENT_SETTINGS
+        if (setup_step) {
+            if (key == CH_STOP) cancel_and_return();
+            else if (key == 'w' || key == 'W') setup_step = 0u;
+            else if ((key == 'b' || key == 'B') && setup_step > 1u) --setup_step;
+            else if (key == '1') {
+                if (setup_step == 1u) edit_site_url();
+                else if (setup_step == 2u) import_direct_key();
+                else toggle_plain_http();
+            } else if (key == '2' && setup_step == 2u) replace_direct_key();
+            else if (key == 'n' || key == 'N') {
+                if (setup_step == 1u) {
+                    if (settings.base_url[0]) ++setup_step;
+                    else set_status("Enter your website first");
+                } else if (setup_step == 2u) {
+                    if (settings.direct_key[0] && s64_settings_exchange_values_valid(&settings)) ++setup_step;
+                    else set_status("Import or enter a valid key first");
+                }
+            } else if ((key == 's' || key == 'S') && setup_step == 3u) {
+                if (settings.destination_type != (uint8_t)S64_DESTINATION_STANDALONE
+                    || !settings.base_url[0] || !settings.direct_key[0]) {
+                    set_status("Direct site and key required");
+                } else if (!settings.allow_insecure_http) {
+                    set_status("HTTP consent required; or use Advanced");
+                } else {
+                    print_value(STATUS_ROW, "", "Saving...");
+                    save_and_return();
+                }
+            }
+            continue;
+        }
+#endif
 
         if (!advanced_view) {
             if (key == '1') {
@@ -1199,6 +1273,11 @@ int main(void)
             } else if (key == 'a' || key == 'A') {
                 advanced_view = 1u;
                 set_status("Advanced settings");
+#ifdef S64_INDEPENDENT_SETTINGS
+            } else if (key == 'w' || key == 'W') {
+                setup_step = 1u;
+                status_text[0] = '\0';
+#endif
             } else if (key == 's' || key == 'S') {
                 save_and_return();
             } else if (key == CH_STOP) {

@@ -68,8 +68,10 @@ function h(string $value): string
 <h1>See64You setup</h1>
 <?php if ($complete): ?>
 <p>Setup complete. Your site is ready.</p>
+<p><a href="start.php?step=3">Continue: pair your C64U and publish your first page or post</a></p>
 <p><a href="index.php">Open the site</a></p>
 <?php else: ?>
+<p><a href="start.php?step=2">First page or post walkthrough</a></p>
 <?php if ($error !== ''): ?><p><strong><?= h($error) ?></strong></p><?php endif; ?>
 <form method="post">
 <p><label>Site title<br><input name="site_title" value="<?= h((string)($_POST['site_title'] ?? 'My See64You Site')) ?>"></label></p>

@@ -33,6 +33,16 @@ handoffs are **historical fallback/implementation reference**.
 Preserve still-used bootstrap, recovery, transports and codecs until full
 software and hardware acceptance. The only live implementation queue is todo.md.
 
+## First-publication guidance
+
+The no-JavaScript website `start.php` walks through six stages, including page/post
+selection and browser confirmation. Independent Settings has a bounded three-step
+wizard using existing URL/key editing, HTTP consent and verified disk save services.
+Missing site/key triggers it; W from Basic restarts it. The completion screen reports
+verified saving separately from Publisher authentication. The guides refer to one
+another without new persistent workflow state, program chaining or document handoff.
+SETUP-UX owns this contract; FIRST-PAGE contains exact user instructions.
+
 ## Architectural principles
 
 - Canonical source text belongs to the editor, not a backend.
@@ -221,7 +231,7 @@ The package manifest should record for each executable module:
 - integrity checksum/hash;
 - startup address.
 
-The launcher validates modules before caching them. A later Editor → Publisher transition therefore does not depend on a fresh SD read.
+The launcher validates modules before caching them. A later Editor â†’ Publisher transition therefore does not depend on a fresh SD read.
 
 Mismatched module versions must fail clearly before state is overwritten.
 
@@ -264,7 +274,7 @@ Memory reclamation order should prefer disposable caches and oldest history befo
 
 Local documents, settings, recovery and application resources use Ultimate-DOS.
 
-Use DOS targets $01 and $02 as independent contexts where useful—for example one can retain the user's document/path while the other handles application resources, module cache loads or recovery work.
+Use DOS targets $01 and $02 as independent contexts where usefulâ€”for example one can retain the user's document/path while the other handles application resources, module cache loads or recovery work.
 
 Saves remain transactional:
 

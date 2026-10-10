@@ -1,251 +1,33 @@
-# Setup and configuration UX
+# Setup and first-publication UX
 
-This document defines the user-facing setup flow for the C64 Ultimate-only See64You architecture. Implementation work is tracked in todo.md.
+The current product uses three independent programs. Settings saves the canonical disk configuration; Editor saves canonical `.s64` files; Publisher reads them and publishes. Each returns to BASIC. Setup guidance must preserve that boundary.
 
-## UX goal
+## Guided path
 
-A new user should be able to:
+The website's `start.php` is a six-step, server-rendered walkthrough: hardware/package preparation, website creation, pairing and verified settings save, editing/local save, first page/post publication, then checking the result and later updates. It is available before site configuration, requires no JavaScript or CSS, and collects no credentials. Page/post choice and current step are carried in the URL. Back, Next and direct step links let users resume without a new persisted format. Navigation is a user acknowledgement, never a claimed machine or publishing test.
 
-1. copy the See64You package to SD;
-2. launch one PRG;
-3. follow only the hardware instructions that cannot be automated;
-4. enter/import website details;
-5. test the connection;
-6. begin editing.
+Website `setup.php` links to the guide and hands successful setup to pairing. HTTPS-only `pair.php` links back to the settings step and forward to writing. Pairing retains its existing password/key security boundary; the guide never displays a publishing key.
 
-They should not need to understand UCI targets, REU banks, module caches, DMA transfers or companion PRGs.
+Independent `S64CFG.PRG` opens its three-step setup wizard when the site or direct key is missing. W on Basic Settings runs it again. Existing configured users retain the Basic screen on launch.
 
-Subsequent launches should normally open directly into the editor.
+1. Website: instructions to create the site in a browser and use `start.php`; 1 edits the site-folder URL, N advances when nonempty.
+2. Key: HTTPS pairing instructions and private `/sd/SEE64YOU/SEE64KEY.TXT` import (1), or masked manual entry (2). N requires a nonempty, structurally valid key/settings record.
+3. Review: explains unencrypted direct HTTP, 1 invokes the existing explicit Y/N consent prompt, S uses existing validation, temporary-file verification, replacement and final readback. No save is attempted without a Standalone site/key and explicit HTTP consent. Existing transport services remain the authority when Publisher connects; the wizard never rewrites an HTTPS URL into HTTP.
 
-Interrupted-session machine-state recovery follows the same appliance-like rule. When a valid ACTIVE journal contains explicitly captured restorable state, the launcher restores and verifies it automatically, writes a CLEAN supersession and continues. Only failures interrupt startup: transient storage/restore/verification/CLEAN-write failures expose RETRY, while invalid recovery data directs the user to DIAGNOSTICS. Normal users are never asked to interpret journal state.
+B goes back; W returns to Basic while retaining in-memory edits; STOP cancels against the launch-time original and exits to BASIC without saving. Offline editing is available independently. Advanced Settings remains the route for existing relay/other destination configuration.
 
-## First launch: platform check
+Only a successful verified disk save displays `SETTINGS SAVED AND VERIFIED`, followed by Return to BASIC. Save errors retain the wizard and its inputs. The completion screen explicitly says connection has not been tested. It names Editor and Publisher and explains the remaining write/save/load/connect/type/state/publish/browser checks; it does not automatically chain programs or transfer documents.
 
-The launcher performs bounded checks before asking publishing questions.
+## Required machine setup
 
-User-facing results should look like:
+Editor retains the shared platform-preflight implementation: UCI, Ultimate-DOS, exact 16 MiB REU and writable/readable SD checks, with exact prerequisite guidance, R recheck and X exit. See C64U-RUNTIME.md. Missing network setup must not prevent offline editing. Persistent prerequisites are user choices; temporary runtime changes belong to the system-state manager and must be restored.
 
-~~~text
-C64 ULTIMATE      READY
-COMMAND INTERFACE READY
-MEMORY 16 MB      READY
-STORAGE           READY
-NETWORK           READY
-~~~
+## Files and security
 
-Technical target numbers belong behind Diagnostics.
+Copy the complete matching independent package to `/sd/SEE64YOU/`. Launch `SEE64YOU.PRG`, `S64CFG.PRG` or `S64PUB.PRG` independently; other PRGs/BINs are internal assets. Configuration is authoritative at `/sd/SEE64YOU/SEE64YOU.CFG`, with existing verified legacy migration. Source files use the SD root; key import prefers the application folder and retains the legacy root fallback. Remove the private key-import file when no longer needed.
 
-Required checks include:
+The browser publishing password is never requested on the C64U. Pairing requires HTTPS. Firmware-1.1 direct HTTP uses the dedicated challenge/HMAC key; it authenticates requests but does not encrypt document bodies. Consent remains explicit and there is no silent secure-transport downgrade.
 
-- C64U/UCI availability;
-- Ultimate-DOS;
-- 16 MiB REU;
-- writable/readable application storage;
-- Network $03 for direct publishing;
-- optional Control/turbo capabilities.
+## Instructions and validation
 
-The shared platform-preflight service now exercises UCI, Ultimate-DOS $01, exact 16 MiB REU and writable/readable /sd/ storage. Both the diagnostic and SEE64YOU.PRG launcher call the same implementation. Its storage check selects an unused temporary filename, writes a fixed marker, reopens and verifies it, then deletes it and verifies absence; existing candidate files are never intentionally overwritten. The launcher gives exact setup guidance and supports immediate R = RECHECK / X = EXIT. Real-hardware acceptance remains P0 migration work.
-
-Offline editing should remain available if networking is unavailable.
-
-## Missing machine prerequisite
-
-If See64You cannot enable a prerequisite itself, explain the exact one-time action.
-
-Example:
-
-~~~text
-16 MB REU REQUIRED
-
-OPEN THE ULTIMATE MENU
-F2 SETTINGS
-C64 AND CARTRIDGE SETTINGS
-RAM EXPANSION UNIT: ENABLED
-REU SIZE: 16 MB
-
-RETURN HERE AND CHOOSE RECHECK
-~~~
-
-Do not send the user back to the beginning after changing one setting.
-
-If UCI itself is disabled, See64You cannot use UCI to enable it; guided manual configuration is therefore expected for that bootstrap case.
-
-## Automatic runtime configuration
-
-Once prerequisites exist, See64You may temporarily change runtime state to improve operation.
-
-Normal users should not be asked about temporary turbo modes, REU cache layout or DOS target selection.
-
-The system-state manager must capture prior values, apply temporary settings only where needed and restore them on clean exit.
-
-Setup must clearly distinguish:
-
-- **required persistent machine prerequisites** the user chooses once;
-- **temporary See64You runtime changes** that are restored automatically.
-
-## Publishing setup wizard
-
-### Step 1 — Website
-
-Prompt for the See64You site URL.
-
-For the firmware-1.1 direct Network $03 path, explain briefly that direct HTTP does not encrypt the document body. Require explicit consent. Never silently downgrade an HTTPS URL.
-
-### Step 2 — Publishing key
-
-Prefer IMPORT SEE64KEY.TXT.
-
-The wizard establishes its own deterministic storage path and looks for the standard key file. Manual entry remains a fallback.
-
-The normal site password must not be requested by the direct C64U wizard.
-
-### Step 3 — Connection test
-
-Validate syntax and credentials, then perform the actual direct connection/authentication test.
-
-Distinguish:
-
-- network unavailable;
-- site unreachable;
-- authentication rejected;
-- invalid URL;
-- unsupported secure transport.
-
-### Step 4 — Save and verify
-
-Persistent configuration is not considered saved until:
-
-1. in-memory values validate;
-2. transactional write/replace completes;
-3. the final file is reopened;
-4. checksum/fields validate;
-5. required values match;
-6. the verified values become active session state.
-
-### Step 5 — Complete
-
-Example:
-
-~~~text
-SEE64YOU IS READY
-
-WEBSITE: example.com
-CONNECTION: OK
-SETTINGS SAVED: OK
-
-START EDITING
-~~~
-
-Do not display the secret key.
-
-## Offline/editor-only path
-
-Publishing setup must never trap the user.
-
-Provide EDIT OFFLINE / SET UP LATER wherever network configuration is optional.
-
-A missing/corrupt publishing configuration is different from a hardware prerequisite needed by the C64U runtime itself.
-
-## Normal Settings screen
-
-After setup, Basic Settings should contain only user-meaningful choices:
-
-- Website/profile;
-- Connection status / TEST CONNECTION;
-- Publishing key configured/not configured / REPLACE KEY;
-- Default page/post behaviour;
-- Autosave/recovery preference;
-- visual/editor preferences that belong to See64You;
-- RUN SETUP AGAIN;
-- ADVANCED SETTINGS.
-
-Do not expose UCI target IDs in Basic Settings.
-
-Current implementation keeps Basic deliberately narrow: website, publishing-key import/manual replacement/disable, readiness validation, save/cancel and the Advanced entry. The explicit plaintext-HTTP downgrade and low-level key-import diagnostics are Advanced-only. Connection/network diagnostics remain a separate follow-on rather than being folded back into Basic.
-
-## Advanced Settings
-
-Advanced contains:
-
-- profiles/destinations;
-- transport selection when multiple validated transports exist;
-- explicit plaintext-HTTP policy;
-- relay settings;
-- WordPress settings when enabled;
-- storage locations;
-- performance policy;
-- cache/module diagnostics;
-- recovery management;
-- hardware capability details;
-- logs/diagnostic export.
-
-Security-sensitive downgrades require explicit confirmation.
-
-The current Advanced screen includes a read-only Diagnostics view for package version, UCI/DOS/network capability, optional HTTP target visibility, REU bank count/16 MiB status, authoritative config path and key-import I/O details. It deliberately does not display publishing keys. Broader allocator/cache/recovery/performance/connection diagnostics and export remain follow-on work.
-
-## Application installation/layout
-
-The intended package eventually presents a simple /sd/SEE64YOU/ folder.
-
-Normal users should launch SEE64YOU.PRG; internal Editor/Publisher/Settings modules are implementation details.
-
-The launcher validates module versions/integrity before caching them in REU. Users should not have to keep track of matching S64EDIT/S64PUB/S64CFG files manually once the new package format lands.
-
-## Transition UX
-
-Editor, Publisher and Settings remain executable overlays but appear as one application.
-
-Every managed module transition now clears/replaces stale UI immediately before execution and briefly shows the destination:
-
-- OPENING PUBLISHER...
-- OPENING SETTINGS...
-- RETURNING TO PUBLISHER...
-- RETURNING TO SEE64YOU EDITOR...
-
-Normal transitions use validated REU-cached modules, not software IEC.
-
-## Persistence and migration
-
-Persistent settings are durable SD state. REU is fast working/cache state, not the sole durable copy.
-
-The original `/sd/SEE64YOU.CFG` passed real-hardware cold persistence testing. The implemented migration now makes `/sd/SEE64YOU/SEE64YOU.CFG` authoritative only after the new copy is transactionally written, reopened and canonically verified; failure leaves the legacy root copy untouched. Editor PREP retains a root fallback during this migration window. Session journals remain at the root until their own exact-record recovery-safe migration is implemented.
-
-## Exit flow
-
-Choosing Exit from the Editor resolves unsaved source before tearing down the managed session. A dirty document offers `S SAVE / D DISCARD / STOP CANCEL`. Save uses the ordinary local save path and exits only after the document becomes clean; a failed or cancelled save remains in the Editor. Discard clears the recovery snapshot before exit. Managed teardown then revokes shared authority, restores and verifies temporary machine state, writes CLEAN and returns through the preserved original SYS context when available.
-
-## Error handling
-
-Errors should state the problem and next useful action.
-
-Prefer:
-
-**NETWORK IS NOT AVAILABLE — EDIT OFFLINE OR RETRY**
-
-over:
-
-**UCI ERROR 82**
-
-Diagnostics may show the underlying status separately.
-
-Useful actions include:
-
-- RETRY;
-- RECHECK HARDWARE;
-- EDIT OFFLINE;
-- ADVANCED;
-- DIAGNOSTICS;
-- RESTORE LAST GOOD SETTINGS.
-
-## First-run acceptance
-
-A new supported C64U user can:
-
-- satisfy the one-time UCI/16 MiB prerequisites without developer knowledge;
-- launch a single See64You entry point;
-- import/enter site information;
-- save and verify configuration;
-- power cycle and reload configuration;
-- edit while offline;
-- publish when networking is available;
-- exit with temporary machine settings restored.
+[FIRST-PAGE.md](FIRST-PAGE.md) is the printable first-publication checklist. README links it and the browser wizard. LOCAL_TESTING owns reproducible tests and their scope; todo.md owns remaining work. The original three-program hardware checkpoint remains valid for its exact older package; the new wizard separately passes bounded real-C64U first-run/cancel/import/consent/verified-save/relaunch and Publisher-auth checks using remote plain keys, with exact original SD and live turbo restoration. Physical wizard key input, a new cold power cycle, USB and physical interruption coverage remain separate.

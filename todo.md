@@ -6,7 +6,15 @@
 
 Editor saves/reopens canonical `.s64` source on SD and exits to BASIC. Publisher launches afresh, selects a local `.s64`, publishes/updates, and downloads remote content to a new `.s64`; it then exits to BASIC. Settings launches independently, loads/validates/saves `/sd/SEE64YOU/SEE64YOU.CFG` and exits to BASIC. No document, history, clipboard or session transfer between programs. C64 Ultimate-only with 16 MiB REU, Ultimate-DOS $01 and network $03 for direct publishing. Preserve direct challenge/HMAC auth, explicit plaintext HTTP consent, filesystem safety and machine restoration.
 
-## M1 — Three-program software candidate (implemented, partial hardware validation)
+## Current user-requested setup work (2026-10-11)
+
+- [x] Implement linked website/C64U guidance through first page/post without changing program/file boundaries: six-step no-JS browser walkthrough, three-step independent Settings wizard, private key import/manual entry, explicit HTTP consent, verified saving and exact Editor/Publisher instructions.
+- [x] Review and validate the previously retained local allocator extraction/test-tool changes before committing them; keep obsolete runtime builds out of MVP results.
+- [x] Independent package/manifests/guards, existing host/PHP/HTTP tests and packaged VICE wizard required-field/key/consent/failed-save/back/basic/exit checks pass. Publisher 1,060 B free; Settings 15,740 B; launcher 1,141 B; Editor resident margin unchanged at 473 B.
+- [x] Bounded real-C64U wizard acceptance using remote plain keys: first entry/required-site refusal/cancel without config write; key import; explicit HTTP consent; verified save; relaunch/rerun/cancel byte parity; fresh Publisher authentication; rebuilt Editor launcher startup/exit and BASIC strings. Original SD files restored exactly, drives/IRQ/clock/config baseline checked, live turbo 15 restored. Manual key entry is VICE-only.
+- [ ] Physical wizard key input and a new guided cold power cycle remain unverified. Browser navigation is tested; user first-publication usability is not claimed from step navigation alone. USB remains user-deferred; broader prior hardware gaps remain in M2.
+
+## M1 â€” Three-program software candidate (implemented, partial hardware validation)
 
 - [x] Inspect the baseline and reject bare Editor-only linking after its 1,161-byte conventional-RAM overflow; preserve the tested Editor launcher and private code overlays.
 - [x] Publisher independent startup, manual local `.s64` filename load under `/sd/`, direct validated on-disk settings load, existing authenticated network services, and BASIC exit. No Editor REU handoff.
@@ -41,7 +49,7 @@ Original SD files restored with exact hashes; drives/IRQ/clock/BASIC and enabled
 REU/turbo baseline passed. Candidate is no longer staged. Second download
 S6T03.S64 is captured locally for the next guided edit/update; do not restart
 the restored=true staging helper without preparing a new backed-up session.
-## M2 — Bounded hardware acceptance
+## M2 â€” Bounded hardware acceptance
 
 **Final checkpoint (2026-10-11):** three functional cycles and bounded faults
 passed. Product package 7aada00 / SHA-256
@@ -82,12 +90,12 @@ ACTIVE 87), BASIC/IRQ/clock/drives, persistent prerequisite baseline and exact
 original SD restoration passed. REST plain-key injection is not full physical
 keyboard or three-manual-cycle acceptance.
 
-- [x] On backed-up SD and 16 MiB REU C64U: Editor create/save → BASIC; Publisher launch/open/publish → BASIC; Publisher remote open/save NEW `.s64` → BASIC; Editor reopen/edit/save → BASIC; fresh Publisher update.
+- [x] On backed-up SD and 16 MiB REU C64U: Editor create/save â†’ BASIC; Publisher launch/open/publish â†’ BASIC; Publisher remote open/save NEW `.s64` â†’ BASIC; Editor reopen/edit/save â†’ BASIC; fresh Publisher update.
 - [x] Verify browser rendering, exact source/metadata, Settings physical cold persistence/cancel, missing-source guards, existing-download refusal, responsive BASIC, IRQ/drives and persistent prerequisite baseline.
 - [x] Further real-hardware failure checks: truncated source clears the document and blocks publish/download; trailing-byte config is not adopted and cancel preserves it; controlled disposable-backend HTTP 503 rejects auth and blocks publish. Exact local/remote bytes and final original SD/machine restoration pass. No code changes needed.
 - [x] Three functional round trips complete: two guided physical C64U-keyboard cycles, third automated after physical Ctrl+O as requested. Exact source/metadata/browser output, Editor Loading/Saving and Publisher Loading/Connecting/Publishing captured. Reject a short HTTP body and block saving/publishing partial content; source/config/remote page unchanged. Controlled load-only then BASIC SYS proves application-entry/exit live turbo 15, valid CLEAN 94, BASIC strings and IRQ/clock; prior baseline 0 also passed.
 - [x] Bounded real-SD diagnostic rejects selected rename/read transport calls: exact latest document temp is retained and reopens; failed config verification preserves prior profile; failed final config rename leaves exact config temp recoverable. Copy both before cleanup. This is not physical SD removal; delete-then-rename can leave the destination absent and does not preserve both versions atomically.
-- [ ] USB keyboard is explicitly user-deferred. Broader physical storage/power interruption and 40×25 visual acceptance beyond the captured/tested paths remain unverified.
+- [ ] USB keyboard is explicitly user-deferred. Broader physical storage/power interruption and 40Ã—25 visual acceptance beyond the captured/tested paths remain unverified.
 - [x] Record firmware, tested package hash, precise outcomes and known limitations in canonical docs; provide the latest package and concise manual checklist.
 
 2026-10-09 bounded run: C64 Ultimate firmware 1.1.0 / FPGA 122 / core 1.49,
@@ -100,7 +108,7 @@ exact hashes; drives/IRQ/clock and persistent settings checked. Preserve the
 user's newly enabled turbo baseline. BASIC screen staging debris still requires
 a clear-screen before typing. See LOCAL_TESTING for the tested package identity.
 
-## M3 — Cleanup and delivery AFTER M2
+## M3 â€” Cleanup and delivery AFTER M2
 
 - [ ] Identify and remove only unused inter-program adoption/transition, redundant overlays and dead tests/targets. Preserve essential launcher, journal/recovery and independent product code. No indiscriminate deletion.
 - [ ] Consolidate README/ARCHITECTURE/C64U-RUNTIME/LOCAL_TESTING/SETUP-UX; move stale details to Git history, keep one live queue.
@@ -109,7 +117,7 @@ a clear-screen before typing. See LOCAL_TESTING for the tested package identity.
 ## Validation snapshot
 
 - Branch `feature/c64u-publisher-chain`, draft PR #61, never merged/deployed.
-- Exact earlier software CI: [37879998473](https://github.com/dannykeat-projects/SEE64YOU/actions/runs/37879998473) — independent Publisher+Settings linked and passed guard; source/config/direct network host tests passed; combined independent package built, Editor overlay manifest and module manifest validated. Full workflow red **only on the old managed Publisher overlay** later in the job.
+- Exact earlier software CI: [37879998473](https://github.com/dannykeat-projects/SEE64YOU/actions/runs/37879998473) â€” independent Publisher+Settings linked and passed guard; source/config/direct network host tests passed; combined independent package built, Editor overlay manifest and module manifest validated. Full workflow red **only on the old managed Publisher overlay** later in the job.
 - Memory: Publisher BSS `$C679` / 1,414 B spare to `$CC00`; Settings BSS `$871F` / 17,632 B spare; Editor resident BSS `$89B8` before `$8C00` overlay slot; launcher BSS `$C752` / 1,197 B spare to `$CC00`. Editor slot margin is 584 B under its existing slot-overlap rule, not a claimed 1 KiB Editor margin.
 - Current bounded acceptance: three functional hardware round trips, working messages, short-response rejection, real-SD injected transport faults and turbo 0/15 pass. VICE checks absent-UCI startup/refusal and executed numeric/string BASIC only. USB and uncontrolled physical interruption remain unverified; preserve fallback and do not merge/deploy.
 ## Deferred until MVP acceptance
@@ -118,7 +126,7 @@ These remain product intentions, not permission to remove existing functionality
 
 - Separately developed public-site browser (`feature/c64u-public-browser`): explicitly outside the three-program MVP and its acceptance/package. Test it later, as directed by the user on 2026-10-11.
 
-- Full first-run wizard, broader Basic/Advanced separation, profiles and integrated diagnostics/export/logging.
+- Broader Basic/Advanced separation, expanded profiles and integrated diagnostics/export/logging; the bounded first-publication wizard is now implemented above.
 - New hardware automation/framework integration (JC-000/c64-test-harness) and sim6502/u64sim lane; use existing procedures now.
 - Large-document paged/piece model, allocator-backed variable history/clipboard and pressure reclamation; large-document/deep-history stress beyond the demonstrated MVP limits.
 - Further CPU-heavy profiling/acceleration and editor conveniences; do not regress current responsiveness.

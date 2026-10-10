@@ -12,9 +12,9 @@ The complete current application is not yet accepted end to end on hardware.
 The immediate target is **three independently launched, file-based programs**: save a
 canonical `.s64` in Editor, exit and open that file in Publisher, then publish or
 download a new `.s64` for later reopening in Editor. Settings reads/writes the
-existing config file independently. Each program starts fresh and returns to BASIC. Existing Basic Settings and
-manual one-time prerequisites are sufficient; optional backends, expanded setup,
-large-document redesign and UI enhancements are deferred.
+existing config file independently. Each program starts fresh and returns to BASIC. The user-requested first-publication wizard now guides website setup, key import,
+verified Settings saving and the file-based publishing steps. Optional backends
+and large-document redesign remain deferred.
 
 A measured candidate now builds with `make -C client independent-package` into
 `client/build/independent-package/SEE64YOU/`. Launch `SEE64YOU.PRG` for Editor
@@ -34,8 +34,8 @@ backups (a separate test SD is preferred). The Editor launcher temporarily
 preloads the other two PRGs to satisfy the current module manifest, but no
 document, undo history or active application session moves between programs.
 
-Bounded hardware checks now pass Editor save → fresh Publisher publish → remote
-download → Editor reopen/edit/save → fresh Publisher update on a matching local
+Bounded hardware checks now pass Editor save â†’ fresh Publisher publish â†’ remote
+download â†’ Editor reopen/edit/save â†’ fresh Publisher update on a matching local
 test site. Physical Ctrl+O and Settings persistence after a user-confirmed cold
 power cycle also pass. Three functional round trips now pass (two guided native
 keyboard cycles and a third using remote keys after physical Ctrl+O). Working
@@ -46,6 +46,22 @@ interruption and broader UI coverage remain unverified. See LOCAL_TESTING.
 See [todo.md](todo.md) for the only live work queue and acceptance gates.
 Prove the replacement on hardware before removing fallback machinery. Goals below are product direction, not claims that
 every capability is complete.
+
+## Start here: first page or post
+
+Open your website's `start.php` for the six-step browser walkthrough, or follow
+[the printable first-publication checklist](docs/FIRST-PAGE.md). Website setup
+and HTTPS pairing link into the guide. On C64U, launch `S64CFG.PRG`: its three-step
+wizard appears for missing site/key settings; W from Basic Settings starts it again.
+The two guides refer to each other. Settings saves/verifies the configuration;
+Editor writes a local `.s64`; fresh Publisher connects and publishes it. Check
+page/post type and published state before publishing. No live state crosses programs.
+
+The new wizard passes host/HTTP, package/fit and VICE navigation/consent/failure/exit
+checks. A bounded real-C64U run using remote plain keys also passes first entry,
+cancel, key import, explicit consent, verified save/relaunch, Publisher authentication
+and Editor startup/exit. Original SD files and live turbo 15 are restored. Physical
+wizard key input and a new cold power cycle remain unverified; USB stays deferred.
 
 ## Product goals
 
@@ -128,45 +144,32 @@ tools/        Validation/development helpers
 
 ## Documentation map
 
-- todo.md — authoritative live work queue.
-- docs/ARCHITECTURE.md — system component boundaries and data flow.
-- docs/C64U-RUNTIME.md — C64U-only hardware/resource/state-management contract.
-- docs/SETUP-UX.md — first-run wizard and Basic/Advanced settings UX.
-- docs/UCI.md — UCI targets and hardware-proven behaviour.
-- docs/EDITOR.md and docs/INPUT.md — editor and keyboard behaviour.
-- docs/PROTOCOL.md — publishing/wire/authentication contracts.
-- docs/LOCAL_TESTING.md — current reproducible validation procedures.
-- docs/ENGINEERING-REFERENCES.md — external evidence, licensing and adoption boundaries.
+- todo.md â€” authoritative live work queue.
+- docs/ARCHITECTURE.md â€” system component boundaries and data flow.
+- docs/C64U-RUNTIME.md â€” C64U-only hardware/resource/state-management contract.
+- docs/SETUP-UX.md â€” first-run wizard and Basic/Advanced settings UX.
+- docs/UCI.md â€” UCI targets and hardware-proven behaviour.
+- docs/EDITOR.md and docs/INPUT.md â€” editor and keyboard behaviour.
+- docs/PROTOCOL.md â€” publishing/wire/authentication contracts.
+- docs/LOCAL_TESTING.md â€” current reproducible validation procedures.
+- docs/ENGINEERING-REFERENCES.md â€” external evidence, licensing and adoption boundaries.
 
 Git history is the archive for superseded conventional-C64 plans and completed troubleshooting.
 
-## Building during migration
+## Building the independent MVP
 
 Requires cc65.
 
-The current C64U package is built with:
-
 ~~~sh
-make -C client c64u-package
+make -C client independent-package
 ~~~
 
-Copy the complete 14-file contents of client/build/c64u-package/ into
-/sd/SEE64YOU/ and run SEE64YOU.PRG from that folder. The launcher validates and
-caches matching modules/code assets, enters the managed editor and restores
-machine state before returning to BASIC on exit. A 16 MiB REU and
-UCI/Ultimate-DOS are required. Publishing config is authoritative at
-/sd/SEE64YOU/SEE64YOU.CFG; the crash-recovery journals deliberately remain at
-the SD root until their separate two-slot migration is hardware-proven.
-
-Editor, Publisher and Settings now use the authenticated managed cached-transfer
-cycle in software/CI, including return-state and ACTIVE-bound settings authority.
-Real C64U acceptance of the complete Editor -> Publisher -> Settings -> Publisher
--> Editor cycle, repeated cycles, physical USB/native keyboard behavior and full
-file/menu behavior remains pending. Do not cold-launch S64EDIT.PRG, S64PUB.PRG or
-S64CFG.PRG: managed modules require trusted launcher/module entry.
-
-Conventional-C64 and old standalone editor targets remain optional migration
-diagnostics. They are excluded from current product artifacts and CI fit gates.
+Copy all ten files from `client/build/independent-package/SEE64YOU/` into
+`/sd/SEE64YOU/`. Launch `SEE64YOU.PRG` for Editor, `S64PUB.PRG` for Publisher,
+and `S64CFG.PRG` for Settings. Do not cold-launch the internal `S64EDIT.PRG`.
+Back up configuration, source and recovery files before replacing an installation.
+The 14-file `c64u-package` and managed/persistent-runtime targets are retained
+fallback diagnostics; their validation does not certify this independent package.
 
 ## Running the standalone site locally
 

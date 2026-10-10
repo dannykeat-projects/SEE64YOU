@@ -455,8 +455,8 @@ and `client/build/hardware-independent-exit-fix/`.
 
 Resume checklist after the backend prerequisite passes: back up SD/config and
 capture current machine settings; install the exact checksummed package; Editor
-save/reopen → BASIC; Publisher load/auth/publish → browser → remote download to
-a new `.s64` → BASIC; Editor edit and Publisher update. Repeat three times,
+save/reopen â†’ BASIC; Publisher load/auth/publish â†’ browser â†’ remote download to
+a new `.s64` â†’ BASIC; Editor edit and Publisher update. Repeat three times,
 exercise failed/cancelled operations and Save/Discard/Cancel, verify Settings
 after a physical cold restart and offline Editor use, then restore SD/settings
 and require CLEAN plus responsive BASIC. Use only disposable remote content.
@@ -647,7 +647,7 @@ module-cycle acceptance remains a separate required gate.
 
 On 2026-10-07, code commit `e5ffd0f` passed full local validation and exact-head
 CI run 37609738482. All 14 package files matched hardware SD readback. On real
-firmware-1.1 C64U, Editor → Publisher now restores IRQ $EA31 and reaches a genuine
+firmware-1.1 C64U, Editor â†’ Publisher now restores IRQ $EA31 and reaches a genuine
 stage-4 adoption failure with software stack $CFFA, replacing the stale-IRQ
 failure 0. The isolated adoption diagnostic recorded $02AA=4 and $02AB=17:
 module-runtime/session adoption, IO_SAFE selection and Publisher asset binding
@@ -1166,8 +1166,8 @@ and broader file/menu acceptance remain outstanding:
 6. exit through the managed owner and verify capsule + shared readiness are revoked, the original machine state is restored/verified, and a newer durable CLEAN journal is written;
 7. reset/interfere at bounded points and confirm failures leave ACTIVE recoverable rather than silently claiming CLEAN.
 
-The proven Launcher → Editor path now has a software/CI-complete cached
-Editor → Publisher → Editor cycle. Hardware-accept it next:
+The proven Launcher â†’ Editor path now has a software/CI-complete cached
+Editor â†’ Publisher â†’ Editor cycle. Hardware-accept it next:
 
 - invoke Publisher from the managed Editor and require the deliberate OPENING PUBLISHER message;
 - verify Publisher arrives without a fresh SD module load, displays the same document/settings state and remains responsive;
@@ -1175,7 +1175,7 @@ Editor → Publisher → Editor cycle. Hardware-accept it next:
 - verify the Editor restores the authenticated returned state, including dirty/replaced semantics where applicable;
 - repeat the round trip at least twice before exiting and verify the original machine state and durable CLEAN journal.
 
-The same cached ownership model is now implemented through Publisher → Settings → Publisher as well. Hardware-accept the full Editor → Publisher → Settings → Publisher → Editor sequence, including both Save and RUN/STOP cancel paths in Settings, then repeat the sequence at least twice before managed exit.
+The same cached ownership model is now implemented through Publisher â†’ Settings â†’ Publisher as well. Hardware-accept the full Editor â†’ Publisher â†’ Settings â†’ Publisher â†’ Editor sequence, including both Save and RUN/STOP cancel paths in Settings, then repeat the sequence at least twice before managed exit.
 
 After initial module preload, transitions must not depend on software IEC or a fresh SD load.
 
@@ -1403,3 +1403,56 @@ For an upgrade test, begin with the 14 runtime package files in `/sd/SEE64YOU/` 
 7. Verify profiles are written under `/sd/SEE64YOU/`; `SEE64KEY.TXT` may be imported from either the app folder or SD root.
 
 Do not move `S64JRN0.DAT` / `S64JRN1.DAT` as part of this test. Their recovery-safe migration is a separate change.
+
+## First-publication wizard validation (2026-10-11)
+
+Build `make -C client independent-package`. New independent Settings measures
+15,740 B free; Publisher 1,060 B, launcher 1,141 B and Editor slot margin 473 B
+remain unchanged. Both manifests and memory guards pass. Existing host-only
+validation lanes (tools/validate.sh before its cc65 section) pass, including the
+retained allocator/test-tool edits and PHP/package/HTTP tests. Normalize Windows
+shell line endings in a temporary test copy when running those lanes under WSL.
+Do not equate omitted obsolete managed builds with independent MVP failure.
+
+`python3 tools/test_independent_programs_vice.py --rom-dir <local ROM directory>`
+now checks missing-site/key wizard entry, required-field refusal, key masking,
+import-unavailable result, manual key, HTTP refusal/explicit Y/N consent,
+failed-save retention, Back/Basic navigation and cancel/BASIC numeric/string
+execution. VICE does not emulate Ultimate-DOS/network or prove successful wizard
+saving. Actual package startup/refusal/exit checks for Editor and Publisher pass.
+
+`sh site/tests/http.sh` also checks pre-setup guide access, invalid step/type
+fallbacks, all six post steps, no script/credential input and unchanged site
+configuration. Backend, package and HTTP regressions pass. Browser checks cover
+page/post selection, Next/Back and linked instructions; they do not publish on
+behalf of the guide user or certify real C64U setup.
+
+Real hardware follow-up: backed-up SD, missing-config first entry, key import or
+manual entry, reject HTTP consent then approve explicitly, verified save completion,
+relaunch persistence and cancel. Follow FIRST-PAGE to save a new local source,
+connect/publish a page or post, and verify the visible result. Preserve earlier
+package/receipt evidence separately. A separate backed-up real-C64U run subsequently passed the scope below, then restored its original state.
+
+Bounded wizard hardware result: firmware 1.1.0 / FPGA 122 / core 1.49, 16 MiB REU.
+Package `SEE64YOU-independent-setup-wizard-20261011.zip`, SHA-256
+`4bc2be58cbf18e10fbf8ed67eb51550fd405fee69115dc92c769035e9babe14e`.
+Ten installed files passed exact readback. Remote plain keys exercised first-run
+entry, required-site refusal, cancelled URL edit without a config write, key-file
+import, HTTP consent refusal/approval, verified save completion, fresh Settings
+relaunch/rerun/cancel byte parity and fresh Publisher authentication. The rebuilt
+launcher started Editor and exited to working numeric/string BASIC. Original
+SD files restored byte-exactly, drives/IRQ/clock and persistent user settings
+matched, and CPU-executed live turbo returned to the captured value 15. The
+REST runner resets before launches; manually restoring the session baseline
+is harness cleanup, not additional evidence of program-owned nonzero restoration.
+The first cleanup attempt used application text encoding for a BASIC POKE; it
+failed before restoration. Correct raw BASIC input restored 15 and all original
+files. This instrumentation error is not a wizard or system-state failure.
+
+Evidence: `client/build/hardware-setup-wizard-20261011/result.json`, SD backups,
+step captures and `setup-wizard-hardware-receipt.json`. Manual key entry remains
+VICE-only; no physical keyboard or new cold power cycle was performed. The old
+hardware file-roundtrip evidence remains separate, although unchanged product
+files retain their hashes. Only Settings, its module manifest and launcher binary
+changed in this package; the source allocator extraction changes linked addresses
+without changing the allocation function's text/behavior.

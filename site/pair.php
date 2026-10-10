@@ -58,10 +58,13 @@ function h(string $value): string
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pair C64U - See64You</title></head>
 <body>
 <h1>Pair C64U</h1>
+<p><a href="start.php?step=3">Setup and first publication walkthrough</a></p>
 <?php if ($key !== ''): ?>
 <p>Enter this publishing key in See64You on the C64U:</p>
 <p><code style="overflow-wrap:anywhere"><?= h($key) ?></code></p>
 <p>This key authenticates C64U publishing requests. The publishing password itself is never sent over the C64U HTTP connection.</p>
+<p>Save just these 64 characters to /sd/SEE64YOU/SEE64KEY.TXT, then launch S64CFG.PRG and import the key in its setup wizard. Keep the file private and remove it after import.</p>
+<p><a href="start.php?step=4">Continue: write your first page or post</a></p>
 <?php else: ?>
 <?php if ($error !== ''): ?><p><strong><?= h($error) ?></strong></p><?php endif; ?>
 <form method="post">
