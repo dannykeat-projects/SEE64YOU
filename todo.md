@@ -43,7 +43,15 @@ S6T03.S64 is captured locally for the next guided edit/update; do not restart
 the restored=true staging helper without preparing a new backed-up session.
 ## M2 — Bounded hardware acceptance
 
-- [x] Hardware-reproduced missing wait feedback in Publisher remote listing/open: direct Loading... precedes first/next requests and confirmed open without altering aliased scratch. Build/package/manifests/guards and packaged VICE checks pass; Publisher 1,060 B spare. Real C64U captures show each message before successful responses. S6T04.S64 download exact; third reopen/edit/update is pending. Continue automated functional checks at the user's request, labelling REST-key versus physical-keyboard scope accurately.
+**Final checkpoint (2026-10-11):** three functional cycles and bounded faults
+passed. Product package 7aada00 / SHA-256
+308ffc6ffd412dae3341b671019e79ff8a338044d61f0a2e60e4a52ab2a4cc9c.
+Clean archive 72f1fd5 reproduces all ten files exactly. Final CLEAN 94/live turbo
+15 passed before original SD restoration; original hashes and drives/IRQ/clock/
+BASIC/user configuration and live 15 passed afterward. Candidate is no longer
+staged. USB, uncontrolled physical interruption and broader UI remain unverified.
+
+- [x] Hardware-reproduced missing wait feedback in Publisher remote listing/open: direct Loading... precedes first/next requests and confirmed open without altering aliased scratch. Build/package/manifests/guards and packaged VICE checks pass; Publisher 1,060 B spare. Real C64U captures show each message before successful responses. S6T04.S64 download and third reopen/edit/update are exact. Automated checks are labelled separately from physical-keyboard scope.
 
 2026-10-11 continuation on unchanged a773871 package: second guided full round
 trip completed using the physical C64U keyboard. S6T03.S64 reopened promptly;
@@ -52,12 +60,11 @@ The focused repeat saved exact body `Cycle 3. Cycle 2. Cycle 1. MVP hardware
 round trip.` with unchanged metadata. Fresh Publisher load/auth/update and
 Loading/Connecting/Publishing messages were user-confirmed; exact backend
 source and HTTP 200 rendered HTML match. Clean BASIC/string input, IRQ/clock
-and valid CLEAN 90 pass. Third download to new S6T04.S64 is pending.
-Editor Loading/Saving visibility remains unverified. USB remains deferred.
-Fresh SD backups: client/build/hardware-mvp-resume-20261011/; candidate is
-currently staged. Do not confuse configured turbo 64 or pre-REST-launch live
-15 with the application snapshot: tested Editor journal/exit live value is 0.
-Nonzero application-start restoration still needs a controlled launch check.
+and valid CLEAN 90 passed at the intermediate checkpoint. The third cycle and
+Editor Loading/Saving were subsequently verified. USB remains deferred.
+Fresh SD backups: client/build/hardware-mvp-resume-20261011/; original files
+are restored. A controlled load-only/BASIC SYS check captured and restored live
+15 with CLEAN 94, separating application restoration from the runner reset.
 
 2026-10-10 continuation: independent Settings save/relaunch/cancel, Editor
 uppercase canonical file save, fresh Publisher local load/auth/publish,
@@ -97,7 +104,7 @@ a clear-screen before typing. See LOCAL_TESTING for the tested package identity.
 
 - [ ] Identify and remove only unused inter-program adoption/transition, redundant overlays and dead tests/targets. Preserve essential launcher, journal/recovery and independent product code. No indiscriminate deletion.
 - [ ] Consolidate README/ARCHITECTURE/C64U-RUNTIME/LOCAL_TESTING/SETUP-UX; move stale details to Git history, keep one live queue.
-- [ ] Validate clean-checkout package reproducibility, source/metadata round-trips and final hardware smoke. Publish installation/recovery instructions and checksums; do not merge/deploy until authorised and mandatory gates pass.
+- [x] Clean archive 72f1fd5 reproduces all ten tested package files; manifests/guards, exact source/metadata round-trips and bounded hardware smoke pass. Latest package/receipt/checklist and README installation/recovery guidance are available. No merge/deploy; deferred hardware scope remains explicit.
 
 ## Validation snapshot
 

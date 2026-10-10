@@ -11,6 +11,9 @@ Archive: client/build/SEE64YOU-independent-mvp-remote-loading-20261011.zip.
 SHA-256: 308ffc6ffd412dae3341b671019e79ff8a338044d61f0a2e60e4a52ab2a4cc9c.
 All ten installed files matched this package. Publisher has 1,060 B spare;
 existing guards and both manifests pass. Packaged VICE checks passed as above.
+An independently extracted clean Git archive of 72f1fd5 rebuilt with
+make -C client independent-package reproduces all ten per-file hashes exactly.
+The adjacent receipt records this validation commit and final hardware scope.
 
 Three functional round trips are complete: two guided physical C64U-keyboard
 cycles, then a third using remote plain keys after the user's physical Ctrl+O.
@@ -64,7 +67,7 @@ Candidate is no longer installed. USB is explicitly deferred; uncontrolled
 physical storage/power interruption and broader UI acceptance remain unverified.
 The separate public browser is outside MVP. No merge or deployment.
 
-## Guided MVP continuation (2026-10-11)
+## Guided MVP continuation (2026-10-11 intermediate checkpoint)
 
 The user reproduced long remote-list/open pauses with no working message and
 extra keys during the wait. S6T04.S64 was subsequently saved correctly with
