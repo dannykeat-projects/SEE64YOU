@@ -147,6 +147,11 @@ function s64_active_theme_values(array $config): ?array
 
 function s64_render_layout(array $config, array $pages, string $title, string $content): void
 {
+    if (str_contains((string)($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/x-see64you-browser')) {
+        require_once __DIR__ . '/Browser.php';
+        s64_browser_render($config, $pages, $title, $content);
+        return;
+    }
     $themeValues = s64_active_theme_values($config);
     $rawSiteTitle = $themeValues !== null && $themeValues['header_title'] !== ''
         ? $themeValues['header_title']
