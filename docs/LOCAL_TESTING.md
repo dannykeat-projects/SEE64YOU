@@ -4,6 +4,30 @@ This file contains the **current** reproducible validation path for the C64 Ulti
 
 The authoritative outstanding-work queue is todo.md.
 
+## Guided MVP continuation (2026-10-11)
+
+The public browser branch is explicitly outside this MVP. Branch/package code
+is unchanged from a773871; repeat software tests only if relevant code changes.
+The existing local Apache was restarted for the same disposable matching site.
+Fresh SD/config/recovery/journal backups are in ignored
+client/build/hardware-mvp-resume-20261011/; all ten candidate files and the
+prior S6T03.S64 download were staged with exact readback.
+
+After an interrupted keyboard attempt, SD source was unchanged. The focused
+repeat reopened S6T03.S64 promptly and saved exact body `Cycle 3. Cycle 2.
+Cycle 1. MVP hardware round trip.` with unchanged metadata. Fresh physical
+Publisher load/connect/update passed; the user confirmed its working messages.
+Backend source and HTTP 200 HTML match exactly, and BASIC input, IRQ/clock,
+string PRINT and valid CLEAN 90 pass. Two guided full round trips are complete;
+the third new-file download to S6T04.S64 is pending. Editor Loading/Saving
+visibility remains unverified; USB testing remains deferred.
+
+The enabled prerequisite configuration reports CPU Speed 64; CPU-executed live
+turbo before REST launch was 15, while Editor's journal and exit read 0.
+This does not establish preservation of nonzero application-entry turbo.
+Separate runner/reset effects from application capture using a controlled
+launch before claiming that additional restoration gate.
+
 ## File feedback and BASIC string-memory follow-up (2026-10-10)
 
 Editor local open/save and Publisher local load/download now display

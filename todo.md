@@ -43,6 +43,20 @@ S6T03.S64 is captured locally for the next guided edit/update; do not restart
 the restored=true staging helper without preparing a new backed-up session.
 ## M2 — Bounded hardware acceptance
 
+2026-10-11 continuation on unchanged a773871 package: second guided full round
+trip completed using the physical C64U keyboard. S6T03.S64 reopened promptly;
+the first interrupted attempt left the file unchanged and is not counted.
+The focused repeat saved exact body `Cycle 3. Cycle 2. Cycle 1. MVP hardware
+round trip.` with unchanged metadata. Fresh Publisher load/auth/update and
+Loading/Connecting/Publishing messages were user-confirmed; exact backend
+source and HTTP 200 rendered HTML match. Clean BASIC/string input, IRQ/clock
+and valid CLEAN 90 pass. Third download to new S6T04.S64 is pending.
+Editor Loading/Saving visibility remains unverified. USB remains deferred.
+Fresh SD backups: client/build/hardware-mvp-resume-20261011/; candidate is
+currently staged. Do not confuse configured turbo 64 or pre-REST-launch live
+15 with the application snapshot: tested Editor journal/exit live value is 0.
+Nonzero application-start restoration still needs a controlled launch check.
+
 2026-10-10 continuation: independent Settings save/relaunch/cancel, Editor
 uppercase canonical file save, fresh Publisher local load/auth/publish,
 second-item remote browsing/open and new-file download passed with REST plain
@@ -91,6 +105,8 @@ a clear-screen before typing. See LOCAL_TESTING for the tested package identity.
 ## Deferred until MVP acceptance
 
 These remain product intentions, not permission to remove existing functionality.
+
+- Separately developed public-site browser (`feature/c64u-public-browser`): explicitly outside the three-program MVP and its acceptance/package. Test it later, as directed by the user on 2026-10-11.
 
 - Full first-run wizard, broader Basic/Advanced separation, profiles and integrated diagnostics/export/logging.
 - New hardware automation/framework integration (JC-000/c64-test-harness) and sim6502/u64sim lane; use existing procedures now.
