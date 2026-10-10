@@ -191,6 +191,7 @@ if ($HostCc) {
         Invoke-CTest "reu_runtime" @(
             "client/tests/reu_runtime_test.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_allocate.c",
             "client/src/platform/reu_runtime_write.c",
             "client/src/platform/reu_runtime.c"
         )
@@ -205,6 +206,7 @@ if ($HostCc) {
             "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_allocate.c",
             "client/src/platform/reu_runtime_write.c",
             "client/src/platform/reu_runtime.c"
         )
@@ -220,6 +222,7 @@ if ($HostCc) {
             "client/src/platform/module_manifest.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_allocate.c",
             "client/src/platform/reu_runtime_write.c",
             "client/src/platform/session_journal.c",
             "client/src/platform/session_journal_start.c",
@@ -279,6 +282,7 @@ if ($HostCc) {
             "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_allocate.c",
             "client/src/platform/reu_runtime_write.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/dos.c",
@@ -296,6 +300,7 @@ if ($HostCc) {
             "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_allocate.c",
             "client/src/platform/reu_runtime_write.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/session_journal_start.c",
@@ -313,6 +318,7 @@ if ($HostCc) {
             "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_allocate.c",
             "client/src/platform/reu_runtime_write.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/session_journal_start.c",
@@ -346,6 +352,7 @@ if ($HostCc) {
             "client/diagnostics/persistent_publisher_services.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_allocate.c",
             "client/src/platform/reu_runtime_write.c"
         )
         Invoke-CTest "application_state" @(
@@ -361,6 +368,7 @@ if ($HostCc) {
             "client/src/platform/application_state_editor.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_allocate.c",
             "client/src/platform/reu_runtime_write.c",
             "client/src/platform/session_journal.c",
             "client/src/platform/crc32.c",
@@ -385,6 +393,7 @@ if ($HostCc) {
             "client/src/platform/application_state_editor.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_allocate.c",
             "client/src/platform/reu_runtime_write.c",
             "client/src/platform/session_journal.c",
             "client/src/platform/crc32.c",
@@ -410,6 +419,7 @@ if ($HostCc) {
             "client/src/platform/crc32.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_allocate.c",
             "client/src/platform/reu_runtime_write.c",
             "client/src/platform/session_journal.c",
             "client/src/platform/session_journal_start.c",
@@ -454,6 +464,7 @@ if ($HostCc) {
             "client/src/platform/module_manifest_parse.c",
             "client/src/platform/module_manifest.c",
             "client/src/platform/reu_runtime_build.c",
+            "client/src/platform/reu_runtime_allocate.c",
             "client/src/platform/reu_runtime_write.c",
             "client/src/platform/reu_runtime.c",
             "client/src/platform/session_lifecycle_start.c",

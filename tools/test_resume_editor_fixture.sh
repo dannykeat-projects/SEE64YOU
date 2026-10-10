@@ -11,6 +11,6 @@ cc -std=c99 -Wall -Wextra -Werror -ffunction-sections -Wl,--gc-sections \
     client/src/platform/application_state_payload.c client/src/platform/application_state_editor_decode.c \
     client/src/platform/application_state_reserve.c client/src/platform/managed_editor_state.c \
     client/src/platform/managed_editor_restore.c client/src/platform/reu_runtime.c \
-    client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_write.c \
+    client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_allocate.c client/src/platform/reu_runtime_write.c \
     client/src/platform/session_journal.c client/src/platform/crc32.c -o "$BIN"
 "$BIN" client/build/resume-editor-fixture

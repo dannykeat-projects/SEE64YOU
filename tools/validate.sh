@@ -94,7 +94,7 @@ cc -std=c99 -Wall -Wextra -Werror -DS64_REU_BUFFER=1 -Iclient/src \
     client/diagnostics/persistent_document_read.c \
     client/diagnostics/persistent_open_prepare.c \
     client/diagnostics/persistent_publisher_services.c \
-    client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c \
+    client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_allocate.c \
     client/src/platform/reu_runtime_write.c -o "$TMP_BIN"
 "$TMP_BIN"
 
@@ -106,7 +106,7 @@ cc -std=c99 -Wall -Wextra -Werror -ffunction-sections -Wl,--gc-sections \
     client/src/platform/application_state_read.c client/src/platform/application_state_build.c \
     client/src/platform/application_state_reserve.c \
     client/src/platform/application_state_editor.c client/src/platform/reu_runtime.c \
-    client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_write.c client/src/platform/session_journal.c \
+    client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_allocate.c client/src/platform/reu_runtime_write.c client/src/platform/session_journal.c \
     client/src/platform/crc32.c client/src/buffer_reu.c client/src/history_reu.c \
     client/src/editor.c client/src/clipboard.c client/src/document.c client/src/charset.c \
     -o "$TMP_BIN"
@@ -121,7 +121,7 @@ cc -std=c99 -Wall -Wextra -Werror -ffunction-sections -Wl,--gc-sections \
     client/src/platform/managed_editor_publish.c client/src/platform/managed_editor_prepare.c client/src/platform/system_state.c client/src/platform/managed_editor_revoke.c client/src/platform/application_state_build.c \
     client/src/platform/application_state_reserve.c \
     client/src/platform/application_state_editor.c client/src/platform/reu_runtime.c \
-    client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_write.c client/src/platform/session_journal.c \
+    client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_allocate.c client/src/platform/reu_runtime_write.c client/src/platform/session_journal.c \
     client/src/platform/crc32.c client/src/buffer_reu.c client/src/history_reu.c \
     client/src/editor.c client/src/storage/local.c client/src/clipboard.c client/src/document.c client/src/charset.c \
     -o "$TMP_BIN"
@@ -159,7 +159,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
 
 echo "== Host 16 MiB REU runtime allocator tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
-    client/tests/reu_runtime_test.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_write.c \
+    client/tests/reu_runtime_test.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_allocate.c client/src/platform/reu_runtime_write.c \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
@@ -181,7 +181,7 @@ do
         client/src/platform/code_assets_validate.c client/src/platform/code_assets_session.c client/src/platform/code_assets_session_build.c client/src/platform/code_assets_session_read.c \
         client/src/platform/code_overlay.c client/src/platform/crc32.c \
         client/src/platform/module_integrity.c client/src/platform/module_manifest.c \
-        client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_write.c \
+        client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_allocate.c client/src/platform/reu_runtime_write.c \
         client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
         client/src/platform/system_state.c client/src/platform/system_state_start.c -o "$TMP_BIN"
     "$TMP_BIN"
@@ -191,7 +191,7 @@ done
 echo "== Host C64U module manifest tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/module_manifest_test.c client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c \
-    client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_write.c -o "$TMP_BIN"
+    client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_allocate.c client/src/platform/reu_runtime_write.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host C64U system-state manager tests =="
@@ -246,7 +246,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
     client/src/platform/module_session.c client/src/platform/module_session_read.c client/src/platform/module_session_build.c client/src/platform/transfer_capsule.c client/src/platform/transfer_capsule_build.c client/src/platform/transfer_capsule_write.c client/src/platform/module_transfer.c client/src/launcher/recovery_runtime.c client/src/launcher/recovery_flow.c \
     client/src/platform/session_recovery.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
     client/src/platform/session_lifecycle.c client/src/platform/session_lifecycle_start.c client/src/platform/system_state.c client/src/platform/system_state_start.c \
-    client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_write.c client/src/platform/dos.c client/src/platform/turbo.c client/src/platform/turbo_capture.c client/src/charset.c \
+    client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_allocate.c client/src/platform/reu_runtime_write.c client/src/platform/dos.c client/src/platform/turbo.c client/src/platform/turbo_capture.c client/src/charset.c \
     -o "$TMP_BIN"
 "$TMP_BIN"
 
@@ -258,7 +258,7 @@ for managed_records in 0 1; do
 echo "== Host shared module session tests =="
 cc "$@" -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/module_session_test.c client/src/platform/module_session.c client/src/platform/module_session_read.c client/src/platform/module_session_build.c \
-    client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_write.c \
+    client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_allocate.c client/src/platform/reu_runtime_write.c \
     client/src/platform/session_journal.c client/src/platform/session_journal_start.c client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
 done
@@ -272,7 +272,7 @@ echo "== Host transfer capsule tests =="
 cc "$@" -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/transfer_capsule_test.c client/src/platform/transfer_capsule.c client/src/platform/transfer_capsule_build.c client/src/platform/transfer_capsule_write.c \
     client/src/platform/module_session.c client/src/platform/module_session_read.c client/src/platform/module_session_build.c client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c \
-    client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_write.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
+    client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_allocate.c client/src/platform/reu_runtime_write.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
     client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
 done
@@ -314,7 +314,7 @@ cc -std=c99 -Wall -Wextra -Werror -DS64_REU_BUFFER=1 -DS64_CODE_ASSET_PUBLISHER=
 "$TMP_BIN"
 
 echo "== Host original SYS return record tests =="
-cc -std=c99 -Wall -Wextra -Werror -Iclient/src client/tests/basic_return_test.c client/src/platform/basic_return.c client/src/platform/basic_return_read.c client/src/platform/basic_return_build.c client/src/platform/crc32.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_write.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c client/src/platform/system_state.c client/src/platform/system_state_start.c client/src/platform/dos.c client/src/platform/dos_file.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src client/tests/basic_return_test.c client/src/platform/basic_return.c client/src/platform/basic_return_read.c client/src/platform/basic_return_build.c client/src/platform/crc32.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_allocate.c client/src/platform/reu_runtime_write.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c client/src/platform/system_state.c client/src/platform/system_state_start.c client/src/platform/dos.c client/src/platform/dos_file.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host launcher original SYS return coordination tests =="
@@ -340,7 +340,7 @@ echo "== Host destination module runtime tests =="
 cc "$@" -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/module_runtime_test.c client/src/platform/module_runtime.c client/src/platform/module_runtime_init.c client/src/platform/module_transition.c client/src/platform/module_transfer.c \
     client/src/platform/transfer_capsule.c client/src/platform/transfer_capsule_build.c client/src/platform/transfer_capsule_write.c client/src/platform/module_session.c client/src/platform/module_session_read.c client/src/platform/module_session_build.c \
-    client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_write.c \
+    client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_allocate.c client/src/platform/reu_runtime_write.c \
     client/src/platform/session_lifecycle.c client/src/platform/session_lifecycle_start.c client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
     client/src/platform/system_state.c client/src/platform/system_state_start.c client/src/platform/turbo.c client/src/platform/turbo_capture.c \
     client/src/platform/dos.c -o "$TMP_BIN"
@@ -496,7 +496,7 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/platform/http.c \
         client/src/platform/network.c \
         client/src/platform/reu.c \
-        client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_write.c \
+        client/src/platform/reu_runtime.c client/src/platform/reu_runtime_build.c client/src/platform/reu_runtime_allocate.c client/src/platform/reu_runtime_write.c \
         client/src/platform/module_manifest.c client/src/platform/module_manifest_build.c client/src/platform/module_manifest_parse.c \
         client/src/platform/requirements.c \
         client/src/platform/preflight.c \

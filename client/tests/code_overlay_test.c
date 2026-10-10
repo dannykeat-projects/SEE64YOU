@@ -43,12 +43,11 @@ int main(void)
     assert(s64_code_overlay_select(2) && reads == 4);
     assert(!s64_code_overlay_select(0));
     assert(!s64_code_overlay_select(4));
-    assert(!s64_code_overlay_configure(&control, caches, 2u, slot, sizeof(slot), s64_reu_load));
+    /* Persistent namespaces may contain one or two assets as well. */
+    assert(s64_code_overlay_configure(&control, caches, 2u, slot, sizeof(slot), s64_reu_load));
+    assert(!s64_code_overlay_select(3));
+    assert(!s64_code_overlay_configure(&control, caches, 0u, slot, sizeof(slot), s64_reu_load));
     assert(!s64_code_overlay_configure(&control, caches, 5u, slot, sizeof(slot), s64_reu_load));
-#ifdef S64_CODE_ASSET_PUBLISHER
-    assert(!s64_code_overlay_configure(&control, caches, 4u, slot, sizeof(slot), s64_reu_load));
-    assert(!s64_code_overlay_select(4));
-#else
     assert(s64_code_overlay_configure(&control, caches, 4u, slot, sizeof(slot), s64_reu_load));
     assert(s64_code_overlay_select(4));
     assert(!s64_code_overlay_select(5));
@@ -57,7 +56,6 @@ int main(void)
     assert(s64_code_overlay_select(1));
     assert(s64_code_overlay_select(4));
     caches[3] = control.allocations[3];
-#endif
     caches[2] = caches[1];
     assert(!s64_code_overlay_configure(&control, caches, 3u, slot, sizeof(slot), s64_reu_load));
     assert(!s64_code_overlay_select(2));

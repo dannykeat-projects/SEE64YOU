@@ -19,6 +19,7 @@ SOURCES = (
     "platform/application_state_read.c", "platform/application_state_build.c",
     "platform/application_state_editor.c", "platform/application_state_reserve.c",
     "platform/reu_runtime.c", "platform/reu_runtime_build.c", "platform/reu_runtime_write.c",
+    "platform/reu_runtime_allocate.c",
     "platform/session_journal.c", "platform/crc32.c",
 )
 
