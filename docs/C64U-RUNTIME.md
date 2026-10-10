@@ -61,6 +61,18 @@ Editor editing after a successful platform preflight, or cold config persistence
 The next gate is the bounded real-C64U checklist in LOCAL_TESTING, with original
 files/settings backed up and restored. Old managed CI failures are separate.
 
+## SD-folder containment contract (planned; not implemented, 2026-10-11)
+
+The independent package already installs executables, assets and canonical settings in `/sd/SEE64YOU/`. New canonical documents, download saves, `SEE64YOU.REC` autosave, alternating `S64JRN0.DAT`/`S64JRN1.DAT` journals and transient preflight probes must also be contained there. Do not move or delete legacy root files as a startup side effect. File format, slot wire format, strict new-only remote download, temporary-file recovery and overwrite confirmation remain unchanged.
+
+**Ownership boundary:** `client/src/main.c` currently shares the primary DOS target for Editor local files and the managed session; `platform/session_journal.c` explicitly changes that target to `/sd/` before every journal load/save, including on exit. Merely selecting the installation directory once during Editor startup is therefore insufficient. Separate the document context (existing DOS `$02` is a candidate, subject to preflight/hardware verification) or explicitly reselect the required directory before every file operation without disturbing an open handle. Publisher independently selects root in its local load and remote save handlers; its last measured margin above the 1 KiB guard is only 36 B, so reuse the existing file/selection paths rather than adding a new subsystem. `platform/preflight.c` also creates `S64CHK?.TMP` under root.
+
+**Compatibility:** Search the application folder first for named document opens and expose an explicit, non-destructive legacy-root option. A missing file may allow a legacy lookup; corrupt data, access denial and transport errors must not. `S64LocalDocument` remembers only a filename, not its directory: after a root open, retain the origin for subsequent Save or require an explicit Save As into the folder with normal collision checks. Never redirect an automatic overwrite to a same-named folder file. Keep `.tmp` recoverable in the directory where it was written. If either recovery snapshot exists, offer an unambiguous choice; never erase the other location as a side effect.
+
+**Journal migration:** The launcher must inspect the complete two-slot journal in both directories before beginning a new session. Restore/verify any legacy ACTIVE state and write/verify its CLEAN successor in the original root directory before switching the write authority to the application folder. Do not use sequence numbers from independent directories to break an ambiguous concurrent ACTIVE tie; block and preserve evidence instead. Preserve both originals on failed read/write/verification, and never treat a missing directory or I/O failure as an empty journal. Once migration is proven, new ACTIVE/CLEAN records use the folder exclusively. Clean machine restoration and real-C64U power-interruption checks remain release gates.
+
+Implementation acceptance and exact regression matrix belong in `docs/LOCAL_TESTING.md`; live tasks remain only in `todo.md`.
+
 ## 1. Platform contract
 
 The managed Editor's blocking exit-key reader lives in the MODEL overlay;
