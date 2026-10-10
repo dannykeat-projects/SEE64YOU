@@ -47,8 +47,9 @@ meeting >=1024 bytes headroom with unchanged stack/overlay safety guards.
 Smaller passing slices and prior 30-cycle persistent fixtures are not product
 acceptance. Stop rather than beginning another large architecture redesign if
 one focused Publisher reduction cannot pass the complete guard. Validate the
-hardware workflow only after software integration succeeds. No package or
-hardware acceptance is claimed for this new design yet.
+hardware workflow only after software integration succeeds. The bounded
+three-program workflow now passes on real C64U; USB and uncontrolled physical
+interruption acceptance remain separate. Exact scope is in LOCAL_TESTING.
 
 Local software acceptance on 2026-10-09 rebuilt the complete independent package
 and passed both manifests and memory guards. Actual packaged launcher, Publisher

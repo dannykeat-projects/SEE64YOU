@@ -4,6 +4,66 @@ This file contains the **current** reproducible validation path for the C64 Ulti
 
 The authoritative outstanding-work queue is todo.md.
 
+## Final bounded MVP checkpoint (2026-10-11)
+
+Product code/package: 7aada008ea61f7ed4f453ea1cf0c20c0cacc8440.
+Archive: client/build/SEE64YOU-independent-mvp-remote-loading-20261011.zip.
+SHA-256: 308ffc6ffd412dae3341b671019e79ff8a338044d61f0a2e60e4a52ab2a4cc9c.
+All ten installed files matched this package. Publisher has 1,060 B spare;
+existing guards and both manifests pass. Packaged VICE checks passed as above.
+
+Three functional round trips are complete: two guided physical C64U-keyboard
+cycles, then a third using remote plain keys after the user's physical Ctrl+O.
+S6T04.S64 reopened with exact Cycle 3 source, Editor inserted `Cycle 4. `,
+dirty Save returned cleanly, and fresh Publisher updated the page. Exact source,
+unchanged metadata and HTTP 200 HTML match `Cycle 4. Cycle 3. Cycle 2. Cycle 1.
+MVP hardware round trip.` Editor Loading/Saving, dirty Save prompt and Publisher
+Loading/Connecting/Publishing were captured before successful operations.
+These checks are not three fully manual cycles or USB acceptance.
+
+The disposable API advertised full Content-Length but closed after the canonical
+header and five body bytes. Real Publisher rejected it, cleared partial source
+and blocked download/publish. Local source/config and remote body were unchanged;
+api.php was restored byte-for-byte in a finally block. This tests a truncated
+network response, not an unplugged cable or every timeout case.
+
+Build the bounded storage diagnostic in a clean tree with:
+
+```sh
+python3 tools/build_independent_storage_faults.py
+```
+
+It uses unchanged local/config services and real Ultimate-DOS I/O, selectively
+rejecting rename/read transport calls. It requires a backed-up test SD with
+S6T04.S64, canonical config, absent S6RTEST.S64/.tmp, profile 4 and
+SEE64YOU.CFG.TMP. Never run it over existing profile/temp files; guards refuse
+them. Stage the diagnostic separately; it is not part of the ten-file package.
+Require STORAGE FAULT CHECKS PASSED and BASIC, then FTP-copy and compare the
+latest document temp and config temp before cleanup. Document temp reopened on
+hardware and was exact; failed config verification retained the previous profile;
+final rename reported failure and left exact recoverable temp. Canonical source
+and config remained unchanged. Destinations can be absent after failed replacement;
+this existing delete-then-rename sequence is not atomic preservation of both copies.
+The initial diagnostic used ASCII instead of native body text; it failed before
+rename and was corrected. Final guarded diagnostic passes.
+
+For nonzero turbo, use the [documented load-only API](https://github.com/GideonZ/1541u-documentation/blob/master/api/api_calls.rst),
+which resets and DMA-loads without running. AFTER that reset, restore the measured
+user baseline with BASIC POKE53297,15; record a CPU-executed PEEK(53297), then
+enter the exact launcher's SYS address (2061 in this package) without another
+runner reset. Editor startup/clean exit passed with live 15 before/after and valid
+newest CLEAN 94 (older ACTIVE 93), both carrying captured turbo 15. Baseline 0
+passed earlier. Avoid whole-image REST RAM readback over banked ROM; an earlier
+direct-write/readback probe was aborted before execution and its BASIC header
+cleared. That instrumentation limitation is not an application failure.
+
+Final original SD files were restored with exact hashes; drives/IRQ/clock,
+responsive BASIC, enabled REU/turbo configuration and live user baseline 15
+passed. Evidence/backups: client/build/hardware-mvp-resume-20261011/.
+Candidate is no longer installed. USB is explicitly deferred; uncontrolled
+physical storage/power interruption and broader UI acceptance remain unverified.
+The separate public browser is outside MVP. No merge or deployment.
+
 ## Guided MVP continuation (2026-10-11)
 
 The user reproduced long remote-list/open pauses with no working message and

@@ -37,8 +37,11 @@ document, undo history or active application session moves between programs.
 Bounded hardware checks now pass Editor save → fresh Publisher publish → remote
 download → Editor reopen/edit/save → fresh Publisher update on a matching local
 test site. Physical Ctrl+O and Settings persistence after a user-confirmed cold
-power cycle also pass. Three manual cycles, broader keyboard/UI coverage and
-interrupted I/O remain acceptance work; see the current local testing runbook.
+power cycle also pass. Three functional round trips now pass (two guided native
+keyboard cycles and a third using remote keys after physical Ctrl+O). Working
+messages, partial-response rejection, bounded storage faults and live turbo
+restoration at 0/15 pass. USB testing is user-deferred; physical storage/power
+interruption and broader UI coverage remain unverified. See LOCAL_TESTING.
 
 See [todo.md](todo.md) for the only live work queue and acceptance gates.
 Prove the replacement on hardware before removing fallback machinery. Goals below are product direction, not claims that
