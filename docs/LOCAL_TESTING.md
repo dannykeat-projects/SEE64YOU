@@ -15,6 +15,16 @@ guards, Settings wizard and numeric/string BASIC-return checks also pass.
 The colour change has not been rerun on physical C64U. Test package:
 `client/build/SEE64YOU-independent-white-text-20261011.zip`.
 
+## SD-folder containment regression gate (pending; not yet run)
+
+Before source edits, record baseline root-file behaviour and verify backup hashes for legacy `.s64`, `SEE64YOU.REC` and both `S64JRN*.DAT`. Use disposable SD files only. Trace root writes and DOS-context changes with `rg -n 'S64_SD_ROOT_DIRECTORY|S64_SESSION_JOURNAL_STORAGE_PATH|S64_PREFLIGHT_STORAGE_PATH|change_dir|S64JRN|SEE64YOU.REC|S64CHK' client/src`.
+
+Focused host suites: `client/tests/local_documents_test.c`, `client/tests/session_journal_test.c` and `client/tests/session_recovery_test.c`, plus launcher recovery and preflight tests. Exercise: folder-only files; legacy root-only files; same-name collisions in both locations; corrupt/read-failed folder file (no silent root fallback); simultaneous legacy and folder autosaves; CLEAN/ACTIVE records in each directory; torn journal slot; conflicting ACTIVE sessions; failed directory selection, write/rename/readback and retry after interruption. Verify no original or completed `.tmp` is silently lost, and machine-state restoration is not skipped.
+
+After implementation, use `make -C client independent-package` and require both manifests and all existing memory/overlay guards. The last known independent Publisher headroom was 1,060 B against the unchanged 1,024 B minimum. Run the existing host local-file/journal/recovery suites and, with configured ROMs, `python3 tools/test_independent_programs_vice.py --rom-dir client/build/private-vice-roms` plus `python3 tools/test_basic_return_vice.py --rom-dir client/build/private-vice-roms`. Re-run applicable preflight/launcher and Editor recovery checks. Mark all not executed checks unverified, not passed.
+
+Physical C64U acceptance, separately: preserve baseline drive settings/IRQ/clock/turbo, confirm two-directory legacy recovery and collision behaviour, verify package-folder read/write/temp/rename across independent Editor/Publisher launches, exercise power interruption only on disposable data, and require CLEAN journal, BASIC numeric/string commands and exact restoration of pre-test original SD files. No hardware test is claimed by this plan.
+
 ## Final bounded MVP checkpoint (2026-10-11)
 
 Product code/package: 7aada008ea61f7ed4f453ea1cf0c20c0cacc8440.
