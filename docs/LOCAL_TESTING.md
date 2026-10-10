@@ -1456,3 +1456,8 @@ hardware file-roundtrip evidence remains separate, although unchanged product
 files retain their hashes. Only Settings, its module manifest and launcher binary
 changed in this package; the source allocator extraction changes linked addresses
 without changing the allocation function's text/behavior.
+
+Clean committed archive `8da6fda321926e523cc241410a49c92b76786088` rebuilt the
+complete independent package: both manifests and all memory guards passed; all
+ten file SHA-256 values match the hardware-tested setup-wizard ZIP exactly.
+Receipt: `client/build/setup-wizard-hardware-receipt.json`.

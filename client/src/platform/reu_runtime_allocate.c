@@ -51,4 +51,3 @@ uint8_t s64_reu_runtime_allocate(
     }
     return 1u;
 }
-
