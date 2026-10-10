@@ -25,6 +25,8 @@ remote page/post, and `D` to save it as a new `.s64`; STOP exits to BASIC.
 Editor and Publisher show Loading.../Saving... before local file operations;
 Publisher shows Connecting.../Publishing... before those network operations.
 These messages indicate activity, not a completion percentage.
+Publisher also shows Loading... while fetching each remote list item and opening
+the selected document, including after the replacement confirmation.
 
 **Not yet a hardware-accepted release.** The launcher expects
 `/sd/SEE64YOU/`; do not overwrite an existing installation or config without

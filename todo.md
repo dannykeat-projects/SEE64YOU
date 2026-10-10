@@ -43,6 +43,8 @@ S6T03.S64 is captured locally for the next guided edit/update; do not restart
 the restored=true staging helper without preparing a new backed-up session.
 ## M2 — Bounded hardware acceptance
 
+- [x] Hardware-reproduced missing wait feedback in Publisher remote listing/open: direct Loading... precedes first/next requests and confirmed open without altering aliased scratch. Build/package/manifests/guards and packaged VICE checks pass; Publisher 1,060 B spare. Real C64U captures show each message before successful responses. S6T04.S64 download exact; third reopen/edit/update is pending. Continue automated functional checks at the user's request, labelling REST-key versus physical-keyboard scope accurately.
+
 2026-10-11 continuation on unchanged a773871 package: second guided full round
 trip completed using the physical C64U keyboard. S6T03.S64 reopened promptly;
 the first interrupted attempt left the file unchanged and is not counted.

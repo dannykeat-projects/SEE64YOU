@@ -17,6 +17,8 @@ Independent Publisher renders Connecting/Publishing status before blocking
 authentication/save calls, then reports the existing success or failure result.
 Those working messages draw directly: status and request URL buffers share
 scratch, so storing status text after preparing a URL would corrupt the request.
+The independent remote list and confirmed open use the same direct Loading
+display before network work; neither stores busy text in the shared workspace.
 Publisher and Settings exit normally to BASIC. Internal code overlays remain
 permitted where resource measurements justify them.
 

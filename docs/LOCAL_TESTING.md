@@ -6,6 +6,21 @@ The authoritative outstanding-work queue is todo.md.
 
 ## Guided MVP continuation (2026-10-11)
 
+The user reproduced long remote-list/open pauses with no working message and
+extra keys during the wait. S6T04.S64 was subsequently saved correctly with
+exact body `Cycle 3. Cycle 2. Cycle 1. MVP hardware round trip.` and metadata;
+the original source was unchanged. Add direct Loading... before each list
+request and confirmed remote open, using the existing string/display path.
+Complete package/manifests/guards and all packaged VICE startup/refusal/numeric
+and string BASIC checks pass. Publisher has 1,060 B spare, still above 1,024.
+Real C64U screen captures prove Loading... before first/next list responses
+and confirmed open, with successful results. Authentication also completed;
+an initial helper used the wrong success-text expectation, so its timeout is
+an instrumentation error rather than an application failure. Correct screen
+readback confirmed STANDALONE CONNECTION READY before testing the new paths.
+The user now requests automated functional testing where possible; retain the
+distinction between earlier physical-keyboard and subsequent REST-key checks.
+
 The public browser branch is explicitly outside this MVP. Branch/package code
 is unchanged from a773871; repeat software tests only if relevant code changes.
 The existing local Apache was restarted for the same disposable matching site.

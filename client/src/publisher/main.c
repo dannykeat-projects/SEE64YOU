@@ -888,6 +888,9 @@ static void list_open_remote(S64DocumentType type)
                 set_status(s64_destination_result_message(url_result));
                 return;
             }
+#ifdef S64_INDEPENDENT_PUBLISHER
+            print_value(STATUS_ROW, "", "Loading...");
+#endif
 #ifdef S64_PERSISTENT_RUNTIME_FIT
             result = s64_persistent_standalone_list_stage(
                 &http,
@@ -1018,6 +1021,7 @@ static void list_open_remote(S64DocumentType type)
     remote_downloaded = 0u;
     local_document.filename[0] = '\0';
     s64_publish_state_clear_remote(&publish_state);
+    print_value(STATUS_ROW, "", "Loading...");
 #endif
 
     if (destination.type == S64_DESTINATION_STANDALONE) {
