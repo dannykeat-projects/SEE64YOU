@@ -4,6 +4,17 @@ This file contains the **current** reproducible validation path for the C64 Ulti
 
 The authoritative outstanding-work queue is todo.md.
 
+## White Editor text (2026-10-11)
+
+The Editor now uses white text on black. Rebuild with `make -C client
+independent-package`: both manifests and existing memory guards pass unchanged.
+The existing `ui-probe` rendering stages pass in VICE with compatible local ROMs;
+at its first checkpoint, all 200 body colour-RAM cells (`$D828` through `$D8EF`)
+have low nibble 1 (white). Packaged independent-program startup, unavailable-service
+guards, Settings wizard and numeric/string BASIC-return checks also pass.
+The colour change has not been rerun on physical C64U. Test package:
+`client/build/SEE64YOU-independent-white-text-20261011.zip`.
+
 ## Final bounded MVP checkpoint (2026-10-11)
 
 Product code/package: 7aada008ea61f7ed4f453ea1cf0c20c0cacc8440.

@@ -8,6 +8,8 @@ Editor saves/reopens canonical `.s64` source on SD and exits to BASIC. Publisher
 
 ## Current user-requested setup work (2026-10-11)
 
+- [x] Change Editor text from green to white. Independent package/manifests/guards pass unchanged; VICE checks all 200 body colour cells are white, existing rendering stages pass, and packaged startup/guards/wizard/BASIC-return checks pass. This colour change has not been rerun on physical C64U.
+- [ ] Make the C64U installation self-contained under `/sd/SEE64YOU/`, including documents, autosave and recovery/journal files; preserve access to existing SD-root files and verify recovery before changing paths.
 - [x] Implement linked website/C64U guidance through first page/post without changing program/file boundaries: six-step no-JS browser walkthrough, three-step independent Settings wizard, private key import/manual entry, explicit HTTP consent, verified saving and exact Editor/Publisher instructions.
 - [x] Review and validate the previously retained local allocator extraction/test-tool changes before committing them; keep obsolete runtime builds out of MVP results.
 - [x] Independent package/manifests/guards, existing host/PHP/HTTP tests and packaged VICE wizard required-field/key/consent/failed-save/back/basic/exit checks pass. Publisher 1,060 B free; Settings 15,740 B; launcher 1,141 B; Editor resident margin unchanged at 473 B.
@@ -117,7 +119,7 @@ a clear-screen before typing. See LOCAL_TESTING for the tested package identity.
 
 ## Validation snapshot
 
-- Branch `feature/c64u-publisher-chain`, draft PR #61, never merged/deployed.
+- Branch `feature/c64u-publisher-chain`; PR #61 merged into `integration-validation-2026-09-24` at user request. Website deployment is not requested; public GitHub/CC0 publication preparation remains outstanding.
 - Exact earlier software CI: [37879998473](https://github.com/dannykeat-projects/SEE64YOU/actions/runs/37879998473) â€” independent Publisher+Settings linked and passed guard; source/config/direct network host tests passed; combined independent package built, Editor overlay manifest and module manifest validated. Full workflow red **only on the old managed Publisher overlay** later in the job.
 - Memory: Publisher BSS `$C679` / 1,414 B spare to `$CC00`; Settings BSS `$871F` / 17,632 B spare; Editor resident BSS `$89B8` before `$8C00` overlay slot; launcher BSS `$C752` / 1,197 B spare to `$CC00`. Editor slot margin is 584 B under its existing slot-overlap rule, not a claimed 1 KiB Editor margin.
 - Current bounded acceptance: three functional hardware round trips, working messages, short-response rejection, real-SD injected transport faults and turbo 0/15 pass. VICE checks absent-UCI startup/refusal and executed numeric/string BASIC only. USB and uncontrolled physical interruption remain unverified; preserve fallback and do not merge/deploy.

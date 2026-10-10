@@ -402,7 +402,7 @@ void s64_ui_init(void)
 {
     bgcolor(COLOR_BLACK);
     bordercolor(COLOR_BLACK);
-    textcolor(COLOR_GREEN);
+    textcolor(COLOR_WHITE);
     clrscr();
     cursor(0);
 
