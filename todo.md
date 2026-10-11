@@ -39,11 +39,9 @@ at the user's request. Preserve the established three-program file workflow.
 - [ ] Validate palette forms, custom-theme persistence, PHP HTTP negotiation,
   strict v2 parser and browser navigation/colour restoration on a complete
   independent package. Record exact source and tested package hash.
-- [ ] Implement colour editing **from the C64U Editor** only after a bounded
-  design review: it currently has no authenticated site-settings transport.
-  Do not insert network writes or theme state into the offline Editor or
-  document format without preserving the independent file workflow. Consider
-  a Settings/Publisher command instead if that meets user intent.
+- [x] Website remains the sole interface for editing site colours.
+  The user explicitly deferred C64U Editor-side colour editing; do not add
+  website settings/network writes to Editor or Publisher unless requested again.
 
 ## Browser and cleanup (2026-10-11)
 
