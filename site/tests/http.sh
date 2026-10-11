@@ -280,15 +280,15 @@ printf '%s' "$PUBLIC" | grep -q '&lt;script&gt;bad()&lt;/script&gt;'
 
 SETTINGS=$(curl -fsS -X POST -H "$AUTH" \
     --data-urlencode "site_title=Changed by API" \
-    --data-urlencode "theme=c64" \
-    --data-urlencode "text_color=#abcdef" \
+    --data-urlencode "theme=simple" \
+    --data-urlencode "text_color=#75cec8" \
     "$BASE/api.php?action=settings")
 printf '%s' "$SETTINGS" | php -r '
 $d=json_decode(stream_get_contents(STDIN),true);
 $s=$d["settings"] ?? [];
 if (($s["site_title"] ?? "") !== "Changed by API") exit(1);
-if (($s["theme"] ?? "") !== "c64") exit(1);
-if (($s["text_color"] ?? "") !== "#abcdef") exit(1);
+if (($s["theme"] ?? "") !== "simple") exit(1);
+if (($s["text_color"] ?? "") !== "#75cec8") exit(1);
 if (array_key_exists("password_hash", $s) || array_key_exists("token_secret", $s)) exit(1);
 '
 
@@ -310,15 +310,15 @@ JAR="$TMP/theme-cookies"
 FORM=$(curl -fsS -c "$JAR" "$BASE/themes.php")
 CSRF=$(printf '%s' "$FORM" | sed -n 's/.*name="csrf" value="\([a-f0-9]*\)".*/\1/p' | head -n 1)
 [ "${#CSRF}" = "64" ]
-CODE=$(curl -sS -b "$JAR" -o /dev/null -w '%{http_code}' -d 'action=create&id=c64&name=Unauthorised' "$BASE/themes.php")
+CODE=$(curl -sS -b "$JAR" -o /dev/null -w '%{http_code}' -d 'action=create&id=simple&name=Unauthorised' "$BASE/themes.php")
 [ "$CODE" = "403" ]
 FORM=$(curl -fsS -b "$JAR" -c "$JAR" --data-urlencode "csrf=$CSRF" --data-urlencode "action=login" --data-urlencode "password=$PASSWORD" "$BASE/themes.php")
 printf '%s' "$FORM" | grep -q 'Create custom theme'
 BEFORE=$(php -r 'echo hash_file("sha256",$argv[1]);' "$SITE/config.php")
-FORM=$(curl -fsS -b "$JAR" -d "csrf=$CSRF&action=preview&id=c64&name=Preview" "$BASE/themes.php")
+FORM=$(curl -fsS -b "$JAR" -d "csrf=$CSRF&action=preview&id=simple&name=Preview" "$BASE/themes.php")
 printf '%s' "$FORM" | grep -q 'nothing saved'
 [ "$BEFORE" = "$(php -r 'echo hash_file("sha256",$argv[1]);' "$SITE/config.php")" ]
-curl -fsS -b "$JAR" -d "csrf=$CSRF&action=create&id=c64&name=Browser" "$BASE/themes.php" | grep -q 'value="save">Save changes'
+curl -fsS -b "$JAR" -d "csrf=$CSRF&action=create&id=simple&name=Browser&font=c64" "$BASE/themes.php" | grep -q 'value="save">Save changes'
 THEME_ID=$(php -r '$c=require $argv[1]; echo array_key_first($c["custom_themes"]);' "$SITE/config.php")
 curl -fsS -b "$JAR" -d "csrf=$CSRF&action=select&id=$THEME_ID" "$BASE/themes.php" >/dev/null
 curl -fsS "$BASE/index.php" | grep -q 'assets/fonts/c64.ttf'
@@ -331,7 +331,7 @@ curl -fsS -b "$JAR" -d "csrf=$CSRF&action=delete&id=$THEME_ID" "$BASE/themes.php
 curl -fsS -b "$JAR" -d "csrf=$CSRF&action=delete&id=$THEME_ID&confirm_delete=yes" "$BASE/themes.php" >/dev/null
 php -r '$c=require $argv[1]; if($c["theme"]!=="plain" || count($c["custom_themes"])!==1)exit(1);' "$SITE/config.php"
 curl -fsS -b "$JAR" -d "csrf=$CSRF&action=logout" "$BASE/themes.php" | grep -q 'Site publishing password'
-CODE=$(curl -sS -b "$JAR" -o /dev/null -w '%{http_code}' -d "csrf=$CSRF&action=select&id=c64" "$BASE/themes.php")
+CODE=$(curl -sS -b "$JAR" -o /dev/null -w '%{http_code}' -d "csrf=$CSRF&action=select&id=simple" "$BASE/themes.php")
 [ "$CODE" = "403" ]
 
 # Public text/link format preserves ordinary HTML and missing-page status.
