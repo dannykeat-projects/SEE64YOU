@@ -330,6 +330,17 @@ try {
     check($writtenConfig['password_hash'] === 'keep-this-hash', 'settings preserve password hash');
     check($writtenConfig['token_secret'] === str_repeat('b', 64), 'settings preserve token secret');
     check($writtenConfig['direct_secret'] === str_repeat('c', 64), 'settings preserve direct C64U secret');
+    $beforeInvalidColour = (string)file_get_contents($configPath);
+    $offPaletteRejected = false;
+    try {
+        $settings->update(['text_color' => '#abcdef']);
+    } catch (InvalidArgumentException $exception) {
+        $offPaletteRejected = $exception->getMessage() === 'invalid_color';
+    }
+    check($offPaletteRejected, 'site settings reject non-C64 palette colours');
+    check((string)file_get_contents($configPath) === $beforeInvalidColour,
+        'invalid palette choice must not overwrite site configuration');
+
 
     $contrastRejected = false;
     try {
