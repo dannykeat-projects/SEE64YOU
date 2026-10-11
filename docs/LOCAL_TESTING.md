@@ -42,6 +42,27 @@ Both experiment changes were reverted; the restored ten product files match
 `SEE64YOU-independent-white-text-20261011.zip` exactly. No C64U operations or SD
 file changes occurred during this second experiment.
 
+The isolated staging service has a current focused host gate:
+
+```sh
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+  client/tests/journal_migration_test.c client/src/platform/journal_migration.c \
+  client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
+  client/src/platform/dos.c client/src/platform/dos_file.c -o /tmp/s64-migration-test
+/tmp/s64-migration-test
+make -C client journal-migration-settings-fit
+```
+
+The same host test passes with address/undefined-behavior sanitizers
+(`-fsanitize=address,undefined -fno-omit-frame-pointer`). The fit-only Settings executable leaves 9,775 B free;
+it includes the service for measurement but does not call it. The normal validator
+runs the host gate. Faults cover restoration/verification, collisions, wrong
+slot parity, sequence wrap, malformed lengths, torn peers, failed reads/writes/
+close/readback and interrupted staging; root originals and failed destinations
+are preserved. Product startup, VICE and hardware migration gates are still
+pending. All ten normal package files remain byte-identical to the accepted
+white-text package; no hardware files were changed in this staging-service pass.
+
 Before source edits, record baseline root-file behaviour and verify backup hashes for legacy `.s64`, `SEE64YOU.REC` and both `S64JRN*.DAT`. Use disposable SD files only. Trace root writes and DOS-context changes with `rg -n 'S64_SD_ROOT_DIRECTORY|S64_SESSION_JOURNAL_STORAGE_PATH|S64_PREFLIGHT_STORAGE_PATH|change_dir|S64JRN|SEE64YOU.REC|S64CHK' client/src`.
 
 Focused host suites: `client/tests/local_documents_test.c`, `client/tests/session_journal_test.c` and `client/tests/session_recovery_test.c`, plus launcher recovery and preflight tests. Exercise: folder-only files; legacy root-only files; same-name collisions in both locations; corrupt/read-failed folder file (no silent root fallback); simultaneous legacy and folder autosaves; CLEAN/ACTIVE records in each directory; torn journal slot; conflicting ACTIVE sessions; failed directory selection, write/rename/readback and retry after interruption. Verify no original or completed `.tmp` is silently lost, and machine-state restoration is not skipped.

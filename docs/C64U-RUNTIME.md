@@ -81,6 +81,18 @@ programs. Migration, recovery and refusal guidance are not implemented or tested
 the experiment was reverted. One byte above the Launcher guard leaves further
 folder/preflight changes unproven, so this is not an accepted candidate.
 
+`platform/journal_migration.*` now provides the Settings-owned staging service.
+It inspects both stores using the existing journal decoder, requires restore and
+verification callbacks for a captured legacy turbo value, writes/readback-verifies
+matching CLEAN opposite the actual loaded root slot, then seeds folder CLEAN
+only if that store is absent. Existing folder state has independent sequencing
+and is preserved. Concurrent ACTIVE records, unreadable/wholly corrupt stores,
+equal-sequence conflicts and sequence wrap block staging. A valid peer still
+survives a torn slot. Root slots and failed folder writes are never deleted.
+This service is host-tested and fits alongside Settings, but is deliberately
+not invoked by product startup until refusal guidance, backup/retirement and
+the remaining document/preflight containment are integrated and validated.
+
 The independent package already installs executables, assets and canonical settings in `/sd/SEE64YOU/`. New canonical documents, download saves, `SEE64YOU.REC` autosave, alternating `S64JRN0.DAT`/`S64JRN1.DAT` journals and transient preflight probes must also be contained there. Do not move or delete legacy root files as a startup side effect. File format, slot wire format, strict new-only remote download, temporary-file recovery and overwrite confirmation remain unchanged.
 
 **Ownership boundary:** `client/src/main.c` currently shares the primary DOS target for Editor local files and the managed session; `platform/session_journal.c` explicitly changes that target to `/sd/` before every journal load/save, including on exit. Merely selecting the installation directory once during Editor startup is therefore insufficient. Separate the document context (existing DOS `$02` is a candidate, subject to preflight/hardware verification) or explicitly reselect the required directory before every file operation without disturbing an open handle. Publisher independently selects root in its local load and remote save handlers; its last measured margin above the 1 KiB guard is only 36 B, so reuse the existing file/selection paths rather than adding a new subsystem. `platform/preflight.c` also creates `S64CHK?.TMP` under root.

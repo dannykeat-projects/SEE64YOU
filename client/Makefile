@@ -406,6 +406,13 @@ settings: $(SETTINGS_TARGET) $(SETTINGS_CHAIN_TARGET)
 .PHONY: independent-settings
 independent-settings: $(INDEPENDENT_SETTINGS_TARGET)
 
+# Fit-only measurement for Settings-owned upgrade service; not a product PRG.
+.PHONY: journal-migration-settings-fit
+journal-migration-settings-fit:
+	@mkdir -p build
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_INDEPENDENT_SETTINGS=1 -m build/journal-migration-settings-fit.map -o build/journal-migration-settings-fit.prg $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES)) src/platform/basic_workspace_reset.s src/platform/journal_migration.c src/platform/session_journal.c src/platform/dos_file.c
+	python3 ../tools/check_memory_headroom.py build/journal-migration-settings-fit.map --label journal-migration-settings --min-headroom 1024
+
 $(INDEPENDENT_SETTINGS_TARGET): $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES)) src/platform/basic_workspace_reset.s
 	@mkdir -p build/independent
 	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_INDEPENDENT_SETTINGS=1 -m build/independent/settings.map -o $@ $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES)) src/platform/basic_workspace_reset.s
