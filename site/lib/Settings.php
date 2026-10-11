@@ -39,7 +39,7 @@ final class S64Settings
 
         if (array_key_exists('theme', $input)) {
             $theme = (string)$input['theme'];
-            if (!in_array($theme, ['plain', 'simple', 'c64'], true)
+            if (!in_array($theme, ['plain', 'simple'], true)
                 && !isset($updated['custom_themes'][$theme])) {
                 throw new InvalidArgumentException('invalid_theme');
             }
@@ -67,7 +67,7 @@ final class S64Settings
     {
         $updated = $this->config;
         $themes = $updated['custom_themes'] ?? [];
-        $builtIn = in_array($id, ['plain', 'simple', 'c64'], true);
+        $builtIn = in_array($id, ['plain', 'simple'], true);
         if (!$builtIn && !isset($themes[$id])) throw new InvalidArgumentException('invalid_theme');
         if ($action === 'select') {
             $updated['theme'] = $id;
@@ -80,7 +80,6 @@ final class S64Settings
             $name = trim(is_string($input['name'] ?? null) ? $input['name'] : '');
             if ($name === '' || strlen($name) > 80 || preg_match('/[\x00-\x1f\x7f]/', $name)) throw new InvalidArgumentException('invalid_theme_name');
             $base = $builtIn ? s64_theme_defaults($updated) : $themes[$id]['values'];
-            if ($id === 'c64') $base['font'] = 'c64';
             if ($id === 'simple') { $base['font'] = 'sans'; $base['content_width'] = '48'; }
             $values = s64_validate_theme($action === 'duplicate' ? [] : $input, $base);
             if ($action === 'preview') return array_replace($updated, ['theme' => 'preview', 'custom_themes' => ['preview' => ['name' => $name, 'values' => $values]]]);
