@@ -8,6 +8,18 @@ User scope expanded 2026-10-11: include a separately launched, read-only C64U
 browser for published sites. USB keyboard acceptance is deferred indefinitely
 at the user's request. Preserve the established three-program file workflow.
 
+## Next priority — first-time user acceptance (2026-10-12)
+
+- [ ] On a backed-up/test C64U and disposable PHP website, follow the actual
+  six-step `site/start.php` guide as a new user with physical native-keyboard
+  input: enable prerequisites, set up website and HTTPS pairing, enter/import
+  the key in Settings, consent/save and verify after restart, create/save
+  `/sd/SEE64YOU/FIRST.S64`, publish, and confirm the public page/post.
+  Optionally open it with `S64WEB.PRG`. Record screen wording, errors,
+  discoverability, file locations and BASIC return. This complete guided
+  first-time experience is not yet hardware-accepted; existing component and
+  automated hardware checks do not substitute for it.
+
 ## Browser and cleanup (2026-10-11)
 
 - [x] Integrate the public browser backend from `feature/c64u-public-browser`
@@ -156,6 +168,7 @@ a clear-screen before typing. See LOCAL_TESTING for the tested package identity.
 
 - [ ] Identify and remove only unused inter-program adoption/transition, redundant overlays and dead tests/targets. Preserve essential launcher, journal/recovery and independent product code. No indiscriminate deletion.
 - [ ] Consolidate README/ARCHITECTURE/C64U-RUNTIME/LOCAL_TESTING/SETUP-UX; move stale details to Git history, keep one live queue.
+- [ ] For public GitHub availability, create versioned downloadable client ZIP (all eleven independent-package files) and separate standalone PHP website ZIP as GitHub Release assets after first-time acceptance, with exact build commit, SHA-256 and installation checklist. The build and CI candidate artifact already exist; avoid duplicate packaging machinery.
 - [x] Clean archive 72f1fd5 reproduces all ten tested package files; manifests/guards, exact source/metadata round-trips and bounded hardware smoke pass. Latest package/receipt/checklist and README installation/recovery guidance are available. No merge/deploy; deferred hardware scope remains explicit.
 
 ## Validation snapshot
