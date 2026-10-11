@@ -27,9 +27,23 @@ at the user's request. Preserve the established three-program file workflow.
   customisation controls and user-saved themes. Old active C64 selections
   display as Simple without modifying saved configuration. Updated PHP
   regression expectations; full PHP suite and visual checks remain unverified.
-- [ ] After the first-time acceptance gate, decide whether to add optional
-  C64 palette choices to the existing theme editor. Browser site-colour
-  transport is discussion-only; no protocol or browser implementation yet.
+- [x] Website theme colour fields now use the 16 named C64 palette
+  values. Global settings reject newly submitted non-palette colours;
+  existing saved colour values are left on disk and mapped for rendering.
+  Custom themes, layouts and font choices remain available.
+- [x] Implement opt-in public browser v2 colour triplet (background/text/link);
+  legacy browser v1 is preserved for old clients/sites. C64U browser restores
+  its previous screen colours on a normal exit. Added PHP/host C regression
+  cases, but the exact head has not passed PHP, cc65, VICE or physical C64U
+  validation yet. No release or deployment.
+- [ ] Validate palette forms, custom-theme persistence, PHP HTTP negotiation,
+  strict v2 parser and browser navigation/colour restoration on a complete
+  independent package. Record exact source and tested package hash.
+- [ ] Implement colour editing **from the C64U Editor** only after a bounded
+  design review: it currently has no authenticated site-settings transport.
+  Do not insert network writes or theme state into the offline Editor or
+  document format without preserving the independent file workflow. Consider
+  a Settings/Publisher command instead if that meets user intent.
 
 ## Browser and cleanup (2026-10-11)
 
