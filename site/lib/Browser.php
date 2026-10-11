@@ -69,8 +69,15 @@ function s64_browser_render(array $config, array $pages, string $title, string $
     header('Cache-Control: no-store');
     header('X-Content-Type-Options: nosniff');
     $accept = (string)($_SERVER['HTTP_ACCEPT'] ?? '');
-    // Legacy clients continue receiving v1 text/link records.
-    $v2 = preg_match('/(?:^|[;,])\\s*version\\s*=\\s*2\\s*(?:;|,|$)/i', $accept) === 1;
+    // Negotiate on this media type only, not unrelated Accept entries.
+    $v2 = false;
+    foreach (explode(',', $accept) as $media) {
+        $parts = explode(';', $media);
+        if (strtolower(trim(array_shift($parts))) !== 'application/x-see64you-browser') continue;
+        foreach ($parts as $parameter) {
+            if (preg_match('/^version\\s*=\\s*2$/i', trim($parameter))) $v2 = true;
+        }
+    }
     echo $v2 ? "SEE64YOU-BROWSE/2\n" : "SEE64YOU-BROWSE/1\n";
     if ($v2) {
         $values = s64_active_theme_values($config) ?? s64_theme_defaults($config);
