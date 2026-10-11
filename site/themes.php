@@ -65,16 +65,15 @@ ob_start();
 <p><label>Site publishing password<br><input type="password" name="password" size="20"></label></p>
 <p><button type="submit">Log in</button></p></form>
 <?php else:
-    $choices = ['plain' => 'Plain (no CSS)', 'simple' => 'Simple', 'c64' => 'C64'];
+    $choices = ['plain' => 'Plain (no CSS)', 'simple' => 'Simple'];
     foreach ($config['custom_themes'] ?? [] as $id => $theme) $choices[$id] = $theme['name'];
-    $id = is_string($_GET['id'] ?? null) ? $_GET['id'] : 'c64';
+    $id = is_string($_GET['id'] ?? null) ? $_GET['id'] : 'simple';
     if (!isset($created) || $created === []) {
         if (isset($choices[theme_post('id')])) $id = theme_post('id');
     }
-    if (!isset($choices[$id])) $id = 'c64';
+    if (!isset($choices[$id])) $id = 'simple';
     $custom = isset($config['custom_themes'][$id]);
     $values = $custom ? $config['custom_themes'][$id]['values'] : s64_theme_defaults($config);
-    if ($id === 'c64') $values['font'] = 'c64';
     if ($id === 'simple') { $values['font'] = 'sans'; $values['content_width'] = '48'; }
     $name = $custom ? $choices[$id] : $choices[$id] . ' custom';
     if ($error !== '' || $preview !== null) {
@@ -82,7 +81,7 @@ ob_start();
         foreach (s64_theme_fields() as $key => $field) if (is_string($_POST[$key] ?? null)) $values[$key] = $_POST[$key];
     }
 ?>
-<p>Active theme: <strong><?= theme_h($choices[$config['theme']] ?? 'Plain') ?></strong>. Changes apply to this whole site. Built-in themes remain available.</p>
+<p>Active theme: <strong><?= theme_h($choices[$config['theme']] ?? (($config['theme'] ?? '') === 'c64' ? 'Simple' : 'Plain')) ?></strong>. Changes apply to this whole site. Built-in themes remain available.</p>
 <form method="get" action="themes.php"><p><label>Theme <select name="id">
 <?php foreach ($choices as $key => $label): ?><option value="<?= theme_h($key) ?>"<?= $key === $id ? ' selected' : '' ?>><?= theme_h($label) ?></option><?php endforeach; ?>
 </select></label> <button type="submit">Open</button></p></form>
