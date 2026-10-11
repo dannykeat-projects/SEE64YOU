@@ -52,7 +52,7 @@ final class S64Settings
             }
 
             $value = strtolower((string)$input[$key]);
-            if (!preg_match('/^#[0-9a-f]{6}$/', $value)) {
+            if (!isset(s64_theme_palette()[$value])) {
                 throw new InvalidArgumentException('invalid_color');
             }
             $updated[$key] = $value;
@@ -79,7 +79,7 @@ final class S64Settings
             if ($builtIn && $action === 'save') throw new InvalidArgumentException('built_in_theme');
             $name = trim(is_string($input['name'] ?? null) ? $input['name'] : '');
             if ($name === '' || strlen($name) > 80 || preg_match('/[\x00-\x1f\x7f]/', $name)) throw new InvalidArgumentException('invalid_theme_name');
-            $base = $builtIn ? s64_theme_defaults($updated) : $themes[$id]['values'];
+            $base = $builtIn ? s64_theme_defaults($updated) : s64_theme_palette_values($themes[$id]['values']);
             if ($id === 'simple') { $base['font'] = 'sans'; $base['content_width'] = '48'; }
             $values = s64_validate_theme($action === 'duplicate' ? [] : $input, $base);
             if ($action === 'preview') return array_replace($updated, ['theme' => 'preview', 'custom_themes' => ['preview' => ['name' => $name, 'values' => $values]]]);
@@ -121,7 +121,7 @@ final class S64Settings
             return;
         }
         if (isset($config['custom_themes'][$config['theme']])) {
-            s64_validate_theme($config['custom_themes'][$config['theme']]['values']);
+            s64_validate_theme(s64_theme_palette_values($config['custom_themes'][$config['theme']]['values']));
             return;
         }
 
