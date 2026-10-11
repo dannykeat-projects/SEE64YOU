@@ -99,16 +99,7 @@ function s64_theme_css(array $config): string
     $link = s64_safe_color($config['link_color'] ?? '', '#0000ee');
     $visited = s64_safe_color($config['visited_color'] ?? '', '#551a8b');
 
-    if ($theme === 'c64') {
-        return '@font-face{font-family:"See64You C64";src:url("assets/fonts/c64.ttf") format("truetype");font-weight:normal;font-style:normal;}'
-            . 'body{max-width:42em;margin:1em auto;padding:1em;font-family:"See64You C64","Courier New",Courier,monospace;'
-            . "color:$text;background:$text;line-height:1.5}"
-            . ".s64-screen{max-width:40em;min-height:25em;margin:0 auto;padding:1em;background:$background;color:$text}"
-            . "a{color:$link;text-decoration:underline}a:visited{color:$visited}"
-            . "a:focus-visible{outline:2px solid currentColor;outline-offset:2px}"
-            . "nav{margin:1em 0}hr{border:0;border-top:1px solid $text}";
-    }
-
+    // Old built-in C64 selections use Simple styling without modifying saved configuration.
     return 'body{max-width:48em;margin:2em auto;padding:0 1em;font-family:system-ui,sans-serif;line-height:1.5;'
         . "color:$text;background:$background}"
         . "a{color:$link;text-decoration:underline}a:visited{color:$visited}"
