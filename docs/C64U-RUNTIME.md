@@ -93,6 +93,16 @@ This service is host-tested and fits alongside Settings, but is deliberately
 not invoked by product startup until refusal guidance, backup/retirement and
 the remaining document/preflight containment are integrated and validated.
 
+The separate `s64_journal_migration_retire` service requires both stores CLEAN.
+It copies each original root slot, including empty or torn peers, byte-for-byte
+to folder `S64OLD0.DAT`/`S64OLD1.DAT` and verifies the retained bytes and length.
+Existing different backups block; oversized peers remain for diagnosis. Before
+deleting anything it rechecks canonical journal ownership and original bytes.
+It removes the older root slot first, newest CLEAN last, verifying each removal;
+interruption therefore leaves CLEAN authoritative for retry. This component is
+host-tested but not called by the product. Actual root cleanup remains gated on
+the complete containment transition and hardware acceptance.
+
 The independent package already installs executables, assets and canonical settings in `/sd/SEE64YOU/`. New canonical documents, download saves, `SEE64YOU.REC` autosave, alternating `S64JRN0.DAT`/`S64JRN1.DAT` journals and transient preflight probes must also be contained there. Do not move or delete legacy root files as a startup side effect. File format, slot wire format, strict new-only remote download, temporary-file recovery and overwrite confirmation remain unchanged.
 
 **Ownership boundary:** `client/src/main.c` currently shares the primary DOS target for Editor local files and the managed session; `platform/session_journal.c` explicitly changes that target to `/sd/` before every journal load/save, including on exit. Merely selecting the installation directory once during Editor startup is therefore insufficient. Separate the document context (existing DOS `$02` is a candidate, subject to preflight/hardware verification) or explicitly reselect the required directory before every file operation without disturbing an open handle. Publisher independently selects root in its local load and remote save handlers; its last measured margin above the 1 KiB guard is only 36 B, so reuse the existing file/selection paths rather than adding a new subsystem. `platform/preflight.c` also creates `S64CHK?.TMP` under root.

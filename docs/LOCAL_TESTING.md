@@ -42,7 +42,7 @@ Both experiment changes were reverted; the restored ten product files match
 `SEE64YOU-independent-white-text-20261011.zip` exactly. No C64U operations or SD
 file changes occurred during this second experiment.
 
-The isolated staging service has a current focused host gate:
+The isolated staging and retirement services have a current focused host gate:
 
 ```sh
 cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
@@ -54,7 +54,7 @@ make -C client journal-migration-settings-fit
 ```
 
 The same host test passes with address/undefined-behavior sanitizers
-(`-fsanitize=address,undefined -fno-omit-frame-pointer`). The fit-only Settings executable leaves 9,775 B free;
+(`-fsanitize=address,undefined -fno-omit-frame-pointer`). The fit-only Settings executable leaves 8,038 B free;
 it includes the service for measurement but does not call it. The normal validator
 runs the host gate. Faults cover restoration/verification, collisions, wrong
 slot parity, sequence wrap, malformed lengths, torn peers, failed reads/writes/
@@ -62,6 +62,21 @@ close/readback and interrupted staging; root originals and failed destinations
 are preserved. Product startup, VICE and hardware migration gates are still
 pending. All ten normal package files remain byte-identical to the accepted
 white-text package; no hardware files were changed in this staging-service pass.
+
+Retirement tests additionally cover exact original backups, conflicting backups,
+ACTIVE/missing-folder refusal, backup write/close/readback failures, corrupt
+backups, empty/torn/oversized peers, and interrupted deletion with newest CLEAN
+retained for retry. This is a separate service, not automatic product cleanup.
+
+`make -C client journal-migration-probe` compiles disposable hardware diagnostics:
+`build/journal-migration-probe.prg` seeds root ACTIVE using the entry turbo byte;
+`build/journal-migration-check.prg` stages supplied fixtures without seeding.
+They report success/refusal at `$C040`, journal result at `$C041`, and entry/exit
+turbo at `$C042`/`$C043`, then return to BASIC. These diagnostics do not invoke
+retirement. Run only on backed-up disposable journals after preserving machine
+state, then restore every original file and setting exactly. Compilation passes;
+physical execution is unverified and paused at the user's request. The readiness
+check found a BASIC game listing and stopped before any file upload or mutation.
 
 Before source edits, record baseline root-file behaviour and verify backup hashes for legacy `.s64`, `SEE64YOU.REC` and both `S64JRN*.DAT`. Use disposable SD files only. Trace root writes and DOS-context changes with `rg -n 'S64_SD_ROOT_DIRECTORY|S64_SESSION_JOURNAL_STORAGE_PATH|S64_PREFLIGHT_STORAGE_PATH|change_dir|S64JRN|SEE64YOU.REC|S64CHK' client/src`.
 

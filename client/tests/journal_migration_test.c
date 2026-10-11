@@ -10,11 +10,11 @@ typedef struct {
     uint32_t size;
 } Slot;
 
-static Slot slots[2][2];
+static Slot slots[2][4];
 static uint8_t directory, opened, mode;
 static uint16_t offset;
 static int fault_dir, fault_slot;
-static uint8_t fault_opcode, corrupt_write;
+static uint8_t fault_opcode, corrupt_write, ignore_delete, mutate_source;
 static unsigned writes, restores, verifies;
 static uint8_t restore_ok, verify_ok;
 
@@ -39,9 +39,11 @@ static void status(S64UciReply* reply, const char* value)
 
 static int filename(const S64UciCommandPart* part)
 {
-    static const char* names[2] = { "S64JRN0.DAT", "S64JRN1.DAT" };
+    static const char* names[4] = {
+        "S64JRN0.DAT", "S64JRN1.DAT", "S64OLD0.DAT", "S64OLD1.DAT"
+    };
     unsigned i;
-    for (i = 0; i < 2; ++i) {
+    for (i = 0; i < 4; ++i) {
         size_t length = strlen(names[i]);
         if ((part->length == length || part->length == length + 1u)
             && !memcmp(part->data, names[i], length)) return (int)i;
@@ -63,7 +65,7 @@ static S64UciResult execute(const S64UciCommandPart* parts,
         else if (parts[1].length == 13u && !memcmp(parts[1].data, "/sd/SEE64YOU/", 13u)) directory = 1;
         else return S64_UCI_PROTOCOL_ERROR;
     }
-    if (opcode == 0x08u || opcode == 0x02u) {
+    if (opcode == 0x08u || opcode == 0x02u || opcode == 0x09u) {
         if (count != 2u || (slot = filename(&parts[1])) < 0) return S64_UCI_PROTOCOL_ERROR;
     }
     if (fault_opcode == opcode && (fault_dir < 0 || directory == fault_dir)
@@ -109,14 +111,16 @@ static S64UciResult execute(const S64UciCommandPart* parts,
         break;
     }
     case 0x05u:
-        if (count != 2u || parts[1].length != 24u || mode == 1u) return S64_UCI_PROTOCOL_ERROR;
-        memcpy(file->bytes, parts[1].data, 24u);
-        file->size = 24;
+        if (count != 2u || parts[1].length > 24u || mode == 1u) return S64_UCI_PROTOCOL_ERROR;
+        memcpy(file->bytes, parts[1].data, parts[1].length);
+        file->size = parts[1].length;
         ++writes;
         if (corrupt_write && (fault_dir < 0 || directory == fault_dir)
             && (fault_slot < 0 || slot == fault_slot)) file->bytes[0] ^= 0xffu;
+        if (mutate_source && directory == 1u && slot == 2) slots[0][0].bytes[0] ^= 0xffu;
         break;
     case 0x03u: mode = 0; break;
+    case 0x09u: if (!ignore_delete) file->exists = 0; break;
     default: return S64_UCI_PROTOCOL_ERROR;
     }
     status(reply, "00,OK");
@@ -145,7 +149,7 @@ static void reset(void)
     directory = opened = mode = 0;
     offset = 0;
     writes = restores = verifies = 0;
-    fault_opcode = corrupt_write = 0;
+    fault_opcode = corrupt_write = ignore_delete = mutate_source = 0;
     fault_dir = fault_slot = -1;
     restore_ok = verify_ok = 1;
 }
@@ -307,6 +311,110 @@ int main(void)
         "failed destination and original journals retained for diagnosis");
     require(s64_journal_migration_stage(&dos, &backend) != S64_SESSION_JOURNAL_OK,
         "invalid partially written folder requires explicit recovery");
+    require(s64_journal_migration_retire(0) == S64_SESSION_JOURNAL_INVALID,
+        "retirement rejects null DOS");
+    reset();
+    require(s64_journal_migration_retire(&dos) == S64_SESSION_JOURNAL_OK
+        && !writes, "no root retirement is idempotent");
+
+    reset(); seed(0, 0, S64_SESSION_STATE_CLEAN, 2);
+    seed(0, 1, S64_SESSION_STATE_ACTIVE, 1);
+    original = slots[0][1];
+    require(s64_journal_migration_stage(&dos, &backend) == S64_SESSION_JOURNAL_OK,
+        "stage before retirement");
+    require(s64_journal_migration_retire(&dos) == S64_SESSION_JOURNAL_OK,
+        "retire backed-up CLEAN root store");
+    require(!slots[0][0].exists && !slots[0][1].exists
+        && !memcmp(&original, &slots[1][3], sizeof(original))
+        && decoded(1, 2).sequence == 2u
+        && decoded(1, 1).state == S64_SESSION_STATE_CLEAN,
+        "both originals backed up exactly and canonical folder retained");
+    require(s64_journal_migration_retire(&dos) == S64_SESSION_JOURNAL_OK,
+        "completed retirement retries safely");
+
+    reset(); seed(0, 0, S64_SESSION_STATE_ACTIVE, 2);
+    seed(1, 1, S64_SESSION_STATE_CLEAN, 1);
+    require(s64_journal_migration_retire(&dos) == S64_SESSION_JOURNAL_INVALID
+        && !writes && slots[0][0].exists, "ACTIVE root cannot be retired");
+    reset(); seed(0, 0, S64_SESSION_STATE_CLEAN, 2);
+    seed(1, 1, S64_SESSION_STATE_ACTIVE, 1);
+    require(s64_journal_migration_retire(&dos) == S64_SESSION_JOURNAL_INVALID
+        && !writes && slots[0][0].exists, "ACTIVE folder cannot be retired");
+    reset(); seed(0, 0, S64_SESSION_STATE_CLEAN, 2);
+    require(s64_journal_migration_retire(&dos) != S64_SESSION_JOURNAL_OK
+        && !writes && slots[0][0].exists, "missing canonical folder blocks retirement");
+
+    reset(); seed(0, 0, S64_SESSION_STATE_CLEAN, 2);
+    seed(1, 1, S64_SESSION_STATE_CLEAN, 1);
+    seed(1, 2, S64_SESSION_STATE_CLEAN, 3);
+    original = slots[1][2];
+    require(s64_journal_migration_retire(&dos) == S64_SESSION_JOURNAL_INVALID
+        && slots[0][0].exists && !writes
+        && !memcmp(&original, &slots[1][2], sizeof(original)),
+        "different backup is neither overwritten nor used to delete root");
+
+    for (opcode = 0; opcode < sizeof(write_fault_ops); ++opcode) {
+        reset(); seed(0, 0, S64_SESSION_STATE_CLEAN, 2);
+        seed(1, 1, S64_SESSION_STATE_CLEAN, 1);
+        original = slots[0][0];
+        fault_opcode = write_fault_ops[opcode]; fault_dir = 1; fault_slot = 2;
+        require(s64_journal_migration_retire(&dos) != S64_SESSION_JOURNAL_OK
+            && !memcmp(&original, &slots[0][0], sizeof(original)),
+            "backup write/close/readback failure retains root exactly");
+    }
+    reset(); seed(0, 0, S64_SESSION_STATE_CLEAN, 2);
+    seed(1, 1, S64_SESSION_STATE_CLEAN, 1);
+    corrupt_write = 1; fault_dir = 1; fault_slot = 2;
+    require(s64_journal_migration_retire(&dos) != S64_SESSION_JOURNAL_OK
+        && slots[0][0].exists, "corrupt backup cannot authorize deletion");
+
+    reset(); seed(0, 0, S64_SESSION_STATE_CLEAN, 2);
+    seed(0, 1, S64_SESSION_STATE_ACTIVE, 1);
+    seed(1, 1, S64_SESSION_STATE_CLEAN, 1);
+    slots[0][1].size = 6;
+    require(s64_journal_migration_retire(&dos) == S64_SESSION_JOURNAL_OK
+        && slots[1][3].size == 6u && !slots[0][1].exists,
+        "torn peer backed up with original length");
+    reset(); seed(0, 0, S64_SESSION_STATE_CLEAN, 2);
+    seed(0, 1, S64_SESSION_STATE_ACTIVE, 1);
+    seed(1, 1, S64_SESSION_STATE_CLEAN, 1);
+    slots[0][1].size = 0;
+    require(s64_journal_migration_retire(&dos) == S64_SESSION_JOURNAL_OK
+        && slots[1][3].exists && slots[1][3].size == 0u,
+        "empty torn peer retained as empty backup");
+    reset(); seed(0, 0, S64_SESSION_STATE_CLEAN, 2);
+    seed(0, 1, S64_SESSION_STATE_ACTIVE, 1);
+    seed(1, 1, S64_SESSION_STATE_CLEAN, 1);
+    slots[0][1].size = 25;
+    require(s64_journal_migration_retire(&dos) == S64_SESSION_JOURNAL_INVALID
+        && !writes && slots[0][0].exists && slots[0][1].exists,
+        "oversized peer retained for diagnosis");
+
+    reset(); seed(0, 0, S64_SESSION_STATE_CLEAN, 2);
+    seed(0, 1, S64_SESSION_STATE_ACTIVE, 1);
+    seed(1, 1, S64_SESSION_STATE_CLEAN, 1);
+    fault_opcode = 0x09u; fault_dir = 0; fault_slot = 0;
+    require(s64_journal_migration_retire(&dos) != S64_SESSION_JOURNAL_OK
+        && !slots[0][1].exists && decoded(0, 0).state == S64_SESSION_STATE_CLEAN
+        && slots[1][2].exists && slots[1][3].exists,
+        "interrupted deletion leaves newest CLEAN and both backups");
+    fault_opcode = 0;
+    require(s64_journal_migration_retire(&dos) == S64_SESSION_JOURNAL_OK
+        && !slots[0][0].exists && !slots[0][1].exists,
+        "retry after partial retirement succeeds without overwriting backups");
+
+    reset(); seed(0, 0, S64_SESSION_STATE_CLEAN, 2);
+    seed(0, 1, S64_SESSION_STATE_ACTIVE, 1);
+    seed(1, 1, S64_SESSION_STATE_CLEAN, 1);
+    ignore_delete = 1;
+    require(s64_journal_migration_retire(&dos) == S64_SESSION_JOURNAL_VERIFY_ERROR
+        && slots[0][0].exists && slots[0][1].exists,
+        "successful status without deletion cannot retire newest slot");
+    reset(); seed(0, 0, S64_SESSION_STATE_CLEAN, 2);
+    seed(1, 1, S64_SESSION_STATE_CLEAN, 1);
+    mutate_source = 1;
+    require(s64_journal_migration_retire(&dos) == S64_SESSION_JOURNAL_VERIFY_ERROR
+        && slots[0][0].exists, "changed source after backup blocks deletion");
     puts("journal migration tests passed");
     return 0;
 }

@@ -413,6 +413,12 @@ journal-migration-settings-fit:
 	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_INDEPENDENT_SETTINGS=1 -m build/journal-migration-settings-fit.map -o build/journal-migration-settings-fit.prg $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES)) src/platform/basic_workspace_reset.s src/platform/journal_migration.c src/platform/session_journal.c src/platform/dos_file.c
 	python3 ../tools/check_memory_headroom.py build/journal-migration-settings-fit.map --label journal-migration-settings --min-headroom 1024
 
+.PHONY: journal-migration-probe
+journal-migration-probe:
+	@mkdir -p build
+	$(CL65) $(CFLAGS) -o build/journal-migration-probe.prg diagnostics/journal_migration_probe.c src/platform/journal_migration.c src/platform/session_journal.c src/platform/session_journal_start.c src/platform/dos.c src/platform/dos_file.c src/platform/uci.c src/platform/turbo.c src/platform/turbo_capture.c src/charset.c
+	$(CL65) $(CFLAGS) -DS64_MIGRATION_PROBE_SEED=0 -o build/journal-migration-check.prg diagnostics/journal_migration_probe.c src/platform/journal_migration.c src/platform/session_journal.c src/platform/session_journal_start.c src/platform/dos.c src/platform/dos_file.c src/platform/uci.c src/platform/turbo.c src/platform/turbo_capture.c src/charset.c
+
 $(INDEPENDENT_SETTINGS_TARGET): $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES)) src/platform/basic_workspace_reset.s
 	@mkdir -p build/independent
 	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_INDEPENDENT_SETTINGS=1 -m build/independent/settings.map -o $@ $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES)) src/platform/basic_workspace_reset.s

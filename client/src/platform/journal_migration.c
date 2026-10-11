@@ -176,3 +176,131 @@ S64SessionJournalResult s64_journal_migration_stage(S64Dos* dos,
     root.sequence = 0UL;
     return write_next(dos, S64_PACKAGE_DIRECTORY, &root, 1u);
 }
+
+/* Raw backup reads preserve torn peers as well as valid 24-byte journals.
+ * Oversized files are retained in root for explicit diagnosis, never deleted. */
+static S64SessionJournalResult read_raw(S64Dos* dos, const char* filename,
+    MigrationRead* read)
+{
+    S64DosResult result;
+    S64DosResult closed;
+    uint32_t size;
+    uint16_t count = 0u;
+    uint8_t exists;
+
+    read->count = 0u;
+    if (s64_dos_file_exists(dos, filename, &exists) != S64_DOS_OK)
+        return S64_SESSION_JOURNAL_IO_ERROR;
+    if (!exists) return S64_SESSION_JOURNAL_NOT_FOUND;
+    if (s64_dos_open_read(dos, filename) != S64_DOS_OK)
+        return S64_SESSION_JOURNAL_IO_ERROR;
+    result = s64_dos_file_size(dos, &size);
+    if (result != S64_DOS_OK || size > S64_SESSION_JOURNAL_WIRE_SIZE) {
+        closed = s64_dos_close(dos);
+        return result != S64_DOS_OK || closed != S64_DOS_OK
+            ? S64_SESSION_JOURNAL_IO_ERROR : S64_SESSION_JOURNAL_INVALID;
+    }
+    if (size != 0UL)
+        result = s64_dos_read(dos, (uint16_t)size, collect, read, &count);
+    closed = s64_dos_close(dos);
+    if (result != S64_DOS_OK || closed != S64_DOS_OK)
+        return S64_SESSION_JOURNAL_IO_ERROR;
+    return count == size && read->count == size
+        ? S64_SESSION_JOURNAL_OK : S64_SESSION_JOURNAL_VERIFY_ERROR;
+}
+
+static const char* backup_name(uint8_t slot)
+{
+    return slot ? "S64OLD1.DAT" : "S64OLD0.DAT";
+}
+
+static uint8_t raw_equal(const MigrationRead* a, const MigrationRead* b)
+{
+    return a->count == b->count
+        && memcmp(a->bytes, b->bytes, a->count) == 0;
+}
+
+S64SessionJournalResult s64_journal_migration_retire(S64Dos* dos)
+{
+    S64SessionJournal root;
+    S64SessionJournal folder;
+    S64SessionJournal check;
+    MigrationRead originals[2];
+    MigrationRead verify;
+    S64SessionJournalResult root_result;
+    S64SessionJournalResult folder_result;
+    S64SessionJournalResult result;
+    S64DosResult written;
+    S64DosResult closed;
+    uint8_t present[2];
+    uint8_t newest;
+    uint8_t slot;
+    uint8_t attempt;
+
+    if (dos == 0) return S64_SESSION_JOURNAL_INVALID;
+    root_result = read_store(dos, S64_SD_ROOT_DIRECTORY, &root, &newest);
+    if (root_result == S64_SESSION_JOURNAL_NOT_FOUND)
+        return S64_SESSION_JOURNAL_OK;
+    if (root_result != S64_SESSION_JOURNAL_OK) return root_result;
+    folder_result = read_store(dos, S64_PACKAGE_DIRECTORY, &folder, 0);
+    if (folder_result != S64_SESSION_JOURNAL_OK) return folder_result;
+    if (root.state != S64_SESSION_STATE_CLEAN
+        || folder.state != S64_SESSION_STATE_CLEAN)
+        return S64_SESSION_JOURNAL_INVALID;
+
+    if (s64_dos_change_dir(dos, S64_SD_ROOT_DIRECTORY) != S64_DOS_OK)
+        return S64_SESSION_JOURNAL_IO_ERROR;
+    for (slot = 0u; slot < 2u; ++slot) {
+        result = read_raw(dos, slot_name(slot), &originals[slot]);
+        if (result != S64_SESSION_JOURNAL_OK
+            && result != S64_SESSION_JOURNAL_NOT_FOUND) return result;
+        present[slot] = result == S64_SESSION_JOURNAL_OK;
+    }
+    if (s64_dos_change_dir(dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK)
+        return S64_SESSION_JOURNAL_IO_ERROR;
+    for (slot = 0u; slot < 2u; ++slot) {
+        if (!present[slot]) continue;
+        result = read_raw(dos, backup_name(slot), &verify);
+        if (result == S64_SESSION_JOURNAL_OK) {
+            if (!raw_equal(&originals[slot], &verify))
+                return S64_SESSION_JOURNAL_INVALID;
+            continue;
+        }
+        if (result != S64_SESSION_JOURNAL_NOT_FOUND) return result;
+        if (s64_dos_open_write(dos, backup_name(slot)) != S64_DOS_OK)
+            return S64_SESSION_JOURNAL_IO_ERROR;
+        written = originals[slot].count == 0u ? S64_DOS_OK
+            : s64_dos_write(dos, originals[slot].bytes, originals[slot].count);
+        closed = s64_dos_close(dos);
+        if (written != S64_DOS_OK || closed != S64_DOS_OK)
+            return S64_SESSION_JOURNAL_IO_ERROR;
+        if (read_raw(dos, backup_name(slot), &verify) != S64_SESSION_JOURNAL_OK
+            || !raw_equal(&originals[slot], &verify))
+            return S64_SESSION_JOURNAL_VERIFY_ERROR;
+    }
+    /* Recheck journal ownership and source bytes before retirement. */
+    if (read_store(dos, S64_PACKAGE_DIRECTORY, &check, 0)
+            != S64_SESSION_JOURNAL_OK || !equal(&folder, &check)
+        || read_store(dos, S64_SD_ROOT_DIRECTORY, &check, 0)
+            != S64_SESSION_JOURNAL_OK || !equal(&root, &check))
+        return S64_SESSION_JOURNAL_VERIFY_ERROR;
+    for (slot = 0u; slot < 2u; ++slot) {
+        result = read_raw(dos, slot_name(slot), &verify);
+        if (present[slot]) {
+            if (result != S64_SESSION_JOURNAL_OK
+                || !raw_equal(&originals[slot], &verify))
+                return S64_SESSION_JOURNAL_VERIFY_ERROR;
+        } else if (result != S64_SESSION_JOURNAL_NOT_FOUND)
+            return S64_SESSION_JOURNAL_VERIFY_ERROR;
+    }
+    for (attempt = 0u; attempt < 2u; ++attempt) {
+        slot = attempt ? newest : (uint8_t)(newest ^ 1u);
+        if (present[slot]
+            && s64_dos_delete_file(dos, slot_name(slot)) != S64_DOS_OK)
+            return S64_SESSION_JOURNAL_IO_ERROR;
+        if (read_raw(dos, slot_name(slot), &verify)
+            != S64_SESSION_JOURNAL_NOT_FOUND)
+            return S64_SESSION_JOURNAL_VERIFY_ERROR;
+    }
+    return S64_SESSION_JOURNAL_OK;
+}

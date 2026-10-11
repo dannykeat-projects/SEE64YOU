@@ -11,4 +11,9 @@ S64SessionJournalResult s64_journal_migration_stage(
     const S64SessionRecoveryBackend* backend
 );
 
+/* Separate retirement step. Both stores must be CLEAN; original root slot
+ * bytes are retained as S64OLD0.DAT/S64OLD1.DAT in the installation folder.
+ * Existing different backups block. Delete the newest CLEAN root slot last. */
+S64SessionJournalResult s64_journal_migration_retire(S64Dos* dos);
+
 #endif
