@@ -68,7 +68,20 @@ function s64_browser_render(array $config, array $pages, string $title, string $
     header('Content-Type: application/x-see64you-browser; charset=us-ascii');
     header('Cache-Control: no-store');
     header('X-Content-Type-Options: nosniff');
-    echo "SEE64YOU-BROWSE/1\n";
+    $accept = (string)($_SERVER['HTTP_ACCEPT'] ?? '');
+    // Legacy clients continue receiving v1 text/link records.
+    $v2 = preg_match('/(?:^|[;,])\\s*version\\s*=\\s*2\\s*(?:;|,|$)/i', $accept) === 1;
+    echo $v2 ? "SEE64YOU-BROWSE/2\n" : "SEE64YOU-BROWSE/1\n";
+    if ($v2) {
+        $values = s64_active_theme_values($config) ?? s64_theme_defaults($config);
+        $colours = array_keys(s64_theme_palette());
+        echo "C\t";
+        foreach (['background_color', 'text_color', 'link_color'] as $key) {
+            $index = array_search(s64_theme_nearest_colour($values[$key]), $colours, true);
+            echo strtoupper(dechex((int)$index));
+        }
+        echo "\n";
+    }
     s64_browser_text((string)($config['site_title'] ?? 'SEE64YOU'));
     s64_browser_link('index.php', 'Home');
     foreach ($pages as $page) {
