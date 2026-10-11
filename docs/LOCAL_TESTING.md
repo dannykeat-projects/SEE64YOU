@@ -12,8 +12,37 @@ Run `php site/tests/browser.php`, `php site/tests/run.php`,
 website wire renderer, including ASCII whitespace, published navigation, entity
 decoding, exact Accept negotiation, default HTML and missing-document 404.
 The HTTP suite creates and removes an isolated temporary site; it does not
-change the running localhost configuration. There is no C64 browser PRG to test
-yet; C64U/VICE browser-client acceptance remains unverified. USB is user-deferred.
+change the running localhost configuration. USB is user-deferred.
+
+Build with `make -C client independent-package`; `S64WEB.PRG` has its own unchanged
+1 KiB headroom guard. The normal host validator includes `browser_protocol_test`
+and `browser_http_test` (strict C89; both also pass ASan/UBSan). Run
+`python3 tools/test_independent_programs_vice.py --rom-dir LOCAL_ROM_DIRECTORY`:
+browser URL entry, HTTPS/credential refusal, missing-UCI network errors, stale
+link guard and numeric/string BASIC return join the existing three-program checks.
+
+For backed-up C64U acceptance, create a NEW disposable site under your local web
+root: `php tools/create_browser_test_site.php client/build/browser-test-site`.
+Run from the repository root with the machine available at empty BASIC:
+
+```sh
+python3 tools/test_browser_c64u.py --host C64U_IP \
+  --site-url http://WEB_HOST/SEE64YOU/client/build/browser-test-site/ \
+  --output client/build/NEW-browser-hardware-receipt
+```
+
+The harness preserves/restores any SD `S64WEB.PRG`, tests published home/page/
+archive/post links, paging, a deliberately delayed response and cancellation,
+404/stale-link refusal, HTTPS refusal and reopening. BASIC number/string
+execution, IRQ, drives and live turbo parity gate success; originals and screen
+captures are retained in the local receipt. Use only disposable fixtures and
+review `restored` before proceeding after a failed/interrupted test. Network and
+physical power interruption remain distinct from clean-cancel acceptance.
+
+Latest real-C64U receipt: `client/build/hardware-browser-final-20261011/state.json`
+(`restored=true`, all nine named gates passed, turbo 0/IRQ/drives parity). Browser
+headroom is 18,054 B. Package `client/build/SEE64YOU-independent-browser-20261011.zip`
+contains eleven files; its original ten match the white-text package byte-exact.
 
 ## White Editor text (2026-10-11)
 

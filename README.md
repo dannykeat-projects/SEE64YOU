@@ -11,8 +11,13 @@ See64You is **not** an original-C64 compatibility project. Ordinary-C64 memory l
 The public C64U site browser is now included in the requested scope. Its website
 format is implemented and tested: send `Accept: application/x-see64you-browser`
 to public index/page/post/archive routes to receive `SEE64YOU-BROWSE/1` text/link
-records. Ordinary requests still receive HTML. **The independently launched C64U
-browser executable has not been implemented yet.**
+records. Ordinary requests still receive HTML. Launch `S64WEB.PRG` independently
+to read the configured public site, or press `O` to enter another HTTP URL.
+Cursor up/down selects a row; RETURN follows yellow link text; SPACE/`-` pages
+forward/back. RUN/STOP cancels a pending read or exits to BASIC. Loading feedback
+appears before reads. HTTPS is explicitly unsupported on the firmware-1.1 direct
+TCP path; no credentials are sent and HTTPS is never downgraded. This is a public
+See64You reader, not a general HTML browser.
 
 The complete current application is not yet accepted end to end on hardware.
 The immediate target is **three independently launched, file-based programs**: save a
@@ -171,9 +176,10 @@ Requires cc65.
 make -C client independent-package
 ~~~
 
-Copy all ten files from `client/build/independent-package/SEE64YOU/` into
+Copy all eleven files from `client/build/independent-package/SEE64YOU/` into
 `/sd/SEE64YOU/`. Launch `SEE64YOU.PRG` for Editor, `S64PUB.PRG` for Publisher,
-and `S64CFG.PRG` for Settings. Do not cold-launch the internal `S64EDIT.PRG`.
+and `S64CFG.PRG` for Settings; `S64WEB.PRG` reads published sites independently.
+Do not cold-launch the internal `S64EDIT.PRG`.
 Back up configuration, source and recovery files before replacing an installation.
 The 14-file `c64u-package` and managed/persistent-runtime targets are retained
 fallback diagnostics; their validation does not certify this independent package.

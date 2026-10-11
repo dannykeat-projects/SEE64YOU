@@ -52,6 +52,13 @@ echo "== Host charset tests =="
 TMP_BIN=$(mktemp)
 TMP_MODULE_DIR=""
 trap 'rm -f "$TMP_BIN"; if [ -n "$TMP_MODULE_DIR" ]; then rm -rf "$TMP_MODULE_DIR"; fi' EXIT
+echo "== Host public browser protocol/HTTP tests =="
+cc -std=c89 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/browser_protocol_test.c client/src/browser/protocol.c -o "$TMP_BIN"
+"$TMP_BIN"
+cc -std=c89 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/browser_http_test.c client/src/browser/http.c client/src/charset.c -o "$TMP_BIN"
+"$TMP_BIN"
 echo "== Host exit prompt tests =="
 cc -std=c99 -Wall -Wextra -Werror -DCH_STOP=3 -Iclient/tests/launcher_stubs -Iclient/src \
     client/tests/ui_exit_test.c client/src/ui_exit.c -o "$TMP_BIN"

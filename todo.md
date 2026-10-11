@@ -14,9 +14,18 @@ at the user's request. Preserve the established three-program file workflow.
   (original commit `558a5e3`). It contains only website wire rendering, not a C64
   executable. Reproduce/fix unreadable whitespace and rejected/mismatched Accept
   negotiation; focused PHP, existing site/theme and actual HTTP tests pass.
-- [ ] Implement/build the independent C64U browser client, then validate published
-  page/post reading, link navigation, wait/error feedback, resource cleanup and
-  BASIC return with host/VICE/real-C64U checks. No browser PRG is claimed yet.
+- [x] Implement/build independent `S64WEB.PRG`: bounded ASCII URL/wire parser,
+  public HTTP target `$03`, two centrally allocated 64 KiB PREVIEW regions,
+  selected links/paging, visible loading, cancellation and explicit HTTPS refusal.
+  Strict/sanitizer host parser/socket fault tests, complete package/manifests and
+  browser VICE URL/refusal/BASIC numeric/string checks pass. Real C64U home/page/
+  archive/post navigation, paging, delayed loading/cancel, missing-page/stale-link
+  refusal, HTTPS refusal and reopening pass. IRQ/drives/turbo 0 parity and original
+  SD restoration pass; receipt `client/build/hardware-browser-final-20261011/state.json`.
+  Browser headroom 18,054 B; the ten established package files remain byte-identical.
+  Latest eleven-file package `client/build/SEE64YOU-independent-browser-20261011.zip`,
+  SHA-256 `e9260fae11baf3fc08fb3f9aade1b9da18349c3d7e3bc8ee1a4929f68fc22c06`.
+  Interrupted network/power behavior and USB are not claimed by these clean tests.
 - [x] Remove 20 obsolete generated CI/validation trees (about 49.5 MiB before
   retained receipts). Archive logs/JSON/document fixtures under local ignored
   `client/build/receipts-archive/`; current packages, ROMs, hardware backups and

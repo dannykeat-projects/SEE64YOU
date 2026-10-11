@@ -56,6 +56,19 @@ def run(filename, prompt, exit_key, port, rom_dir, checks=()):
         try:
             monitor = wait_for_monitor("127.0.0.1", port, 20)
             wait_text(monitor, prompt)
+            if filename == "S64WEB.PRG":
+                for url, expected in ((b"HTTPS://EXAMPLE.COM/", "HTTPS unavailable"),
+                                      (b"HTTP://EXAMPLE.COM/", "Ultimate network unavailable"),
+                                      (b"HTTP://USER@EXAMPLE.COM/", "Invalid URL")):
+                    key(monitor, ord("O"))
+                    wait_text(monitor, "OPEN PUBLIC URL")
+                    for value in url + b"\r":
+                        key(monitor, value)
+                        time.sleep(0.03)
+                    wait_text(monitor, expected)
+                key(monitor, 13)
+                wait_text(monitor, "Invalid URL")
+                print("VICE browser: URL prompt, HTTPS/refused URL, unavailable network, stale-link guard passed")
             if filename == "S64CFG.PRG":
                 key(monitor, ord("N"))
                 wait_text(monitor, "Enter your website first")
@@ -156,3 +169,4 @@ if __name__ == "__main__":
          (ord("2"), "C64U network target unavailable")))
     run("S64CFG.PRG", "STEP 1/3", 3, 6546, args.rom_dir,
         ((ord("S"), "SAVE FAILED - DOS UNAVAILABLE"),))
+    run("S64WEB.PRG", "SEE64YOU PUBLIC BROWSER", 3, 6547, args.rom_dir)

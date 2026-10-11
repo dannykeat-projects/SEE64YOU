@@ -13,7 +13,17 @@ an exact media type with positive quality enables `SEE64YOU-BROWSE/1`.
 Records are ASCII `T\ttext` or `L\thref\tlabel`, one per line; text is split
 at 100 characters, link URLs capped at 190 and labels at 58. Published navigation
 is included; draft navigation is excluded. Normal requests remain HTML.
-The C64U client, URL/link handling and hardware acceptance remain pending.
+`S64WEB.PRG` is an independently launched public reader. A platform-light ASCII
+URL/wire parser feeds two fresh centrally allocated PREVIEW regions: 64 KiB for
+up to 1,024 display rows and 64 KiB for up to 256 links. Fixed 64/256-byte strides
+keep DMA records inside a bank; conventional RAM holds one display row, bounded
+URL/header/record buffers and configuration. No cached Editor state is adopted.
+Ultimate Network target `$03` serves HTTP/1.0 GET requests with explicit browser
+Accept and close semantics. HTTPS is refused, never downgraded. Configuration is
+read only, publishing secrets cleared after loading the base URL, and no auth
+headers are transmitted. Framing/type/length/size failures clear partial page
+rows and links; sockets are closed on success, failure and cancellation. Close
+failure remains visible. The reader leaves turbo, drives and IRQ unchanged.
 
 ## Current migration boundary (2026-10-09)
 

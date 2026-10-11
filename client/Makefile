@@ -217,14 +217,24 @@ independent-editor-overlay-fit:
 	python3 ../tools/build_editor_overlay_fit.py --independent-editor
 
 INDEPENDENT_PACKAGE_DIR := build/independent-package/SEE64YOU
+INDEPENDENT_BROWSER_SOURCES := src/browser/main.c src/browser/protocol.c src/browser/http.c src/charset.c src/platform/uci.c src/platform/network.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/reu_runtime.c src/platform/reu_runtime_build.c src/platform/reu_runtime_allocate.c src/platform/reu_runtime_write.c src/publisher/settings_exchange.c src/publisher/settings_validate.c src/publisher/settings_store.c src/platform/basic_workspace_reset.s
+.PHONY: independent-browser
+independent-browser: build/independent/S64WEB.PRG
+
+build/independent/S64WEB.PRG: $(INDEPENDENT_BROWSER_SOURCES) src/browser/protocol.h src/browser/http.h
+	@mkdir -p build/independent
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -m build/independent/browser.map -o $@ $(INDEPENDENT_BROWSER_SOURCES)
+	python3 ../tools/check_memory_headroom.py build/independent/browser.map --label independent-browser --min-headroom 1024
+
 .PHONY: independent-package
-independent-package: independent-editor-overlay-fit independent-publisher independent-settings build/managed-handoff-launcher.prg
+independent-package: independent-editor-overlay-fit independent-publisher independent-settings independent-browser build/managed-handoff-launcher.prg
 	python3 ../tools/check_memory_headroom.py build/managed-handoff-launcher.map --label independent-launcher --min-headroom 1024
 	@mkdir -p $(INDEPENDENT_PACKAGE_DIR)
 	cp build/managed-handoff-launcher.prg $(INDEPENDENT_PACKAGE_DIR)/SEE64YOU.PRG
 	cp build/editor-overlay-fit/editor-overlay-fit.prg $(INDEPENDENT_PACKAGE_DIR)/S64EDIT.PRG
 	cp $(INDEPENDENT_PUBLISHER_TARGET) $(INDEPENDENT_PACKAGE_DIR)/S64PUB.PRG
 	cp $(INDEPENDENT_SETTINGS_TARGET) $(INDEPENDENT_PACKAGE_DIR)/S64CFG.PRG
+	cp build/independent/S64WEB.PRG $(INDEPENDENT_PACKAGE_DIR)/S64WEB.PRG
 	cp build/editor-overlay-fit/S64MODEL.BIN build/editor-overlay-fit/S64FILE.BIN build/editor-overlay-fit/S64RUN.BIN build/editor-overlay-fit/S64PREP.BIN build/editor-overlay-fit/S64OVL.MNF $(INDEPENDENT_PACKAGE_DIR)/
 	python3 ../tools/generate_module_manifest.py $(INDEPENDENT_PACKAGE_DIR) --output $(INDEPENDENT_PACKAGE_DIR)/S64MODULE.MNF
 	python3 ../tools/generate_module_manifest.py $(INDEPENDENT_PACKAGE_DIR) --validate $(INDEPENDENT_PACKAGE_DIR)/S64MODULE.MNF

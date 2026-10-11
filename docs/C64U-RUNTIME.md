@@ -6,6 +6,15 @@ See64You is intentionally **C64 Ultimate-only** and requires a **16 MiB REU**. T
 
 ## MVP ownership and migration decision (2026-10-09)
 
+The scope now also includes independent `S64WEB.PRG`, a read-only public site
+browser. It requires the same 16 MiB REU, allocates its own two 64 KiB PREVIEW
+regions through the central allocator, and neither changes turbo nor adopts
+Editor/runtime caches. Target `$03` sockets close after each bounded HTTP read;
+RUN/STOP cancels between reads. It sends no publishing credentials and refuses
+HTTPS on the direct firmware-1.1 TCP path. Startup, public navigation, delayed
+read feedback/cancellation and BASIC return have separate acceptance receipts.
+Its extra package PRG is not added to the legacy three-entry preload manifest.
+
 The selected MVP is three independent, file-based C64U PRGs. Every program is
 fresh on entry and returns to BASIC: Editor (existing proven launcher/return)
 stores canonical `.s64` source, Publisher selects it and publishes or downloads
