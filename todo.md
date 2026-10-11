@@ -20,6 +20,17 @@ at the user's request. Preserve the established three-program file workflow.
   first-time experience is not yet hardware-accepted; existing component and
   automated hardware checks do not substitute for it.
 
+## Website themes (2026-10-12)
+
+- [x] Retire the broken C64 built-in website preset from setup, theme
+  selection and CSS; keep Plain, Simple, the optional C64 font, all
+  customisation controls and user-saved themes. Old active C64 selections
+  display as Simple without modifying saved configuration. Updated PHP
+  regression expectations; full PHP suite and visual checks remain unverified.
+- [ ] After the first-time acceptance gate, decide whether to add optional
+  C64 palette choices to the existing theme editor. Browser site-colour
+  transport is discussion-only; no protocol or browser implementation yet.
+
 ## Browser and cleanup (2026-10-11)
 
 - [x] Integrate the public browser backend from `feature/c64u-public-browser`
