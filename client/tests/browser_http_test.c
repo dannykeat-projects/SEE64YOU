@@ -42,7 +42,7 @@ int main(void)
     for(i=1;i<120;++i) {
         assert(run(good,i)==S64_BROWSER_HTTP_OK); assert(bytes==4 && opens==1 && closes==1);
         assert(strstr(request,"Host: example.org:8080\r\n"));
-        assert(strstr(request,"Accept: application/x-see64you-browser\r\n"));
+        assert(strstr(request,"Accept: application/x-see64you-browser; version=2\r\n"));
     }
     assert(run("HTTP/1.1 200 OK\nContent-Type: application/x-see64you-browser\n\ntest",1)==S64_BROWSER_HTTP_OK);
     assert(run("HTTP/1.0 404 Missing\r\nContent-Type: text/html\r\n\r\nerror",3)==S64_BROWSER_HTTP_SERVER && bytes==0);
