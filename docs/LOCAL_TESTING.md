@@ -129,7 +129,7 @@ Integrated C64U checklist (backed-up disposable fixtures only):
    backups; preserve unrelated files and unresolved recovery/temp data.
 
 Integrated C64U acceptance passes with REST plain-key input: Launcher refuses
-legacy ACTIVE ownership; Settings migration restores turbo 15 to recorded 0,
+legacy ACTIVE ownership; Settings migration verifies the recorded turbo 0,
 verifies backups and retires root slots; Editor recovers, edits and saves folder
 source while preserving a same-name root document; fresh Publisher opens both
 folder and explicit root files. Receipt:
@@ -147,6 +147,9 @@ parity. Receipt: `client/build/hardware-folder-network-20261011/state.json`
 (`passed=true`, `restored=true`). Config/source originals, IRQ/drives, live turbo
 and BASIC numeric/string checks pass. Failed REC recovery is host fault coverage;
 controlled physical power interruption remains unverified. USB is user-deferred.
+The integrated driver sampled live 15 before the load-only Settings launch; it
+did not measure the post-load application-entry speed. Actual changed-speed
+restore coverage comes from the separate in-program journal diagnostic above.
 
 Latest eleven-file package:
 `client/build/SEE64YOU-independent-folder-browser-20261011.zip`, SHA-256
@@ -160,8 +163,16 @@ config match; BASIC numeric input, IRQ/drives/live turbo 0 pass. Remaining user
 SD files were preserved. Receipt/backups: `client/build/folder-install-20261011/`;
 SD originals: `/sd/SEE64YOU/legacy-backup-20261011/`, plus journal `S64OLD*.DAT`.
 The driver's rejected overlong BASIC command was corrected before resuming its
-remaining cleanup; no reset or unrelated SD deletion occurred. The actual REC
+remaining cleanup; no emergency reset or unrelated SD deletion occurred. The actual REC
 was retained, not edited during this transition.
+
+A clean Git archive of `3dd56e52982ac619ea259e9c7e45f76bf0d37c83`
+reproduces all eleven ZIP and installed-file hashes exactly. Final installed
+Editor startup recovers the migrated original REC and exits to responsive BASIC;
+the exit check's exact original REC bytes were restored afterward for the user.
+Root journal/REC absence, unchanged config and IRQ/drives/live turbo 0 pass.
+Receipts: `client/build/folder-package-receipt.json` and
+`client/build/installed-editor-smoke-20261011/state.json`.
 
 ## Final bounded MVP checkpoint (2026-10-11)
 

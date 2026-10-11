@@ -3,7 +3,8 @@
 
 Backups contain private configuration: keep the new output directory private.
 REST keyboard-buffer injection is not physical/USB keyboard acceptance.
-No machine reset is performed. Failure restoration requires verified BASIC.
+Normal launches use the documented load-only API before BASIC SYS. No emergency
+reset is performed; failure restoration requires verified BASIC.
 """
 import argparse
 import ftplib
