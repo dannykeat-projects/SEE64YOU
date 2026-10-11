@@ -10,7 +10,7 @@ static char seen_text[101], seen_href[191];
 static uint8_t collect(uint8_t kind, const char* text, const char* href, void* context)
 {
     assert(context == &records);
-    assert(kind == 0x54u || kind == 0x4cu);
+    assert(kind == 0x54u || kind == 0x4cu || kind == 0x43u);
     ++records;
     strcpy(seen_text, text);
     if (href) strcpy(seen_href, href);
@@ -122,6 +122,21 @@ static void wire(void)
         assert(records == 2u && strcmp(seen_text, "My page") == 0);
         assert(strcmp(seen_href, "page.php?slug=hello") == 0);
     }
+    for (i = 1u; i <= 20u; ++i) {
+        assert(parse_chunks("SEE64YOU-BROWSE/2\nC\t617\nT\tColoured page\n", i)
+            == S64_BROWSER_PROTOCOL_OK);
+        assert(records == 2u && strcmp(seen_text, "Coloured page") == 0);
+    }
+    assert(parse_chunks("SEE64YOU-BROWSE/2\nT\tMissing colours\n", 1u)
+        == S64_BROWSER_PROTOCOL_INVALID);
+    assert(parse_chunks("SEE64YOU-BROWSE/2\nC\t617\nC\t617\n", 1u)
+        == S64_BROWSER_PROTOCOL_INVALID);
+    assert(parse_chunks("SEE64YOU-BROWSE/2\nC\t61G\n", 1u)
+        == S64_BROWSER_PROTOCOL_INVALID);
+    assert(parse_chunks("SEE64YOU-BROWSE/2\nC\t617\nL\tpage.php\tLink\n", 1u)
+        == S64_BROWSER_PROTOCOL_OK);
+    assert(parse_chunks("SEE64YOU-BROWSE/1\nC\t617\n", 1u)
+        == S64_BROWSER_PROTOCOL_INVALID);
     for (i = 0; i < sizeof(invalid) / sizeof(invalid[0]); ++i)
         assert(parse_chunks(invalid[i], 1u) == S64_BROWSER_PROTOCOL_INVALID);
     assert(parse_chunks("SEE64YOU-BROWSE/1\nL\thttps://host/a#part\tUnsupported link\n", 1u)
