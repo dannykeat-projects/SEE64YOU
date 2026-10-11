@@ -9,15 +9,25 @@ See64You is **not** an original-C64 compatibility project. Ordinary-C64 memory l
 ## Current priority: usable MVP
 
 The public C64U site browser is now included in the requested scope. Its website
-format is implemented and tested: send `Accept: application/x-see64you-browser`
-to public index/page/post/archive routes to receive `SEE64YOU-BROWSE/1` text/link
-records. Ordinary requests still receive HTML. Launch `S64WEB.PRG` independently
+format supports the established `SEE64YOU-BROWSE/1` text/link records when
+requested with `Accept: application/x-see64you-browser`. A newer client
+requests `Accept: application/x-see64you-browser; version=2`, receiving the
+same text/links plus C64 background, text and link colour indices. Older
+browser/site combinations retain the original protocol. These colour changes
+are source-implemented but still await C64U package/real-hardware acceptance.
+Ordinary requests still receive HTML. Launch `S64WEB.PRG` independently
 to read the configured public site, or press `O` to enter another HTTP URL.
-Cursor up/down selects a row; RETURN follows yellow link text; SPACE/`-` pages
+Cursor up/down selects a row; RETURN follows site-coloured link text; SPACE/`-` pages
 forward/back. RUN/STOP cancels a pending read or exits to BASIC. Loading feedback
 appears before reads. HTTPS is explicitly unsupported on the firmware-1.1 direct
 TCP path; no credentials are sent and HTTPS is never downgraded. This is a public
 See64You reader, not a general HTML browser.
+
+Website custom themes preserve their existing font, spacing and layout
+controls. Website colour dropdowns accept only the 16 standard C64 palette
+colours; saved legacy values are not overwritten automatically. Changing a
+website's colours takes place only on the website, not from Editor, unless a
+future user request reopens that scope.
 
 The complete current application is not yet accepted end to end on hardware.
 The immediate target is **three independently launched, file-based programs**: save a
