@@ -34,6 +34,14 @@ local-document/journal/recovery/lifecycle host tests and packaged VICE
 startup/wizard/guards/numeric-and-string BASIC-return tests. Full folder migration
 and physical recovery/cleanup remain unverified. Preserve SD-root originals.
 
+The narrower Launcher-only legacy-slot refusal experiment builds the complete
+independent package and validates both manifests: Launcher headroom 1,025 B,
+runtime overlay 15,318/15,360 B. This proves fitting only. Settings migration,
+refusal UI, host faults and hardware acceptance of this policy remain unverified.
+Both experiment changes were reverted; the restored ten product files match
+`SEE64YOU-independent-white-text-20261011.zip` exactly. No C64U operations or SD
+file changes occurred during this second experiment.
+
 Before source edits, record baseline root-file behaviour and verify backup hashes for legacy `.s64`, `SEE64YOU.REC` and both `S64JRN*.DAT`. Use disposable SD files only. Trace root writes and DOS-context changes with `rg -n 'S64_SD_ROOT_DIRECTORY|S64_SESSION_JOURNAL_STORAGE_PATH|S64_PREFLIGHT_STORAGE_PATH|change_dir|S64JRN|SEE64YOU.REC|S64CHK' client/src`.
 
 Focused host suites: `client/tests/local_documents_test.c`, `client/tests/session_journal_test.c` and `client/tests/session_recovery_test.c`, plus launcher recovery and preflight tests. Exercise: folder-only files; legacy root-only files; same-name collisions in both locations; corrupt/read-failed folder file (no silent root fallback); simultaneous legacy and folder autosaves; CLEAN/ACTIVE records in each directory; torn journal slot; conflicting ACTIVE sessions; failed directory selection, write/rename/readback and retry after interruption. Verify no original or completed `.tmp` is silently lost, and machine-state restoration is not skipped.
