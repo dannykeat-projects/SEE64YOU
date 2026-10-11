@@ -55,106 +55,113 @@ guards, Settings wizard and numeric/string BASIC-return checks also pass.
 The colour change has not been rerun on physical C64U. Test package:
 `client/build/SEE64YOU-independent-white-text-20261011.zip`.
 
-## SD-folder containment regression gate (partial, 2026-10-11)
+## SD-folder containment regression gate (2026-10-11)
 
-Build the read-only context diagnostic with `make -C client dos-context-probe`.
-It requires an existing `/sd/SEE64YOU/SEE64YOU.CFG`; start at BASIC, run the
-diagnostic PRG, and inspect `$C040`/`$C041`: `$A5`/`$00` means success; otherwise
-the second byte identifies the failed stage. It does not read config contents
-or write SD files. On firmware 1.1.0, target `$02` retains its relative folder
-lookup after target `$01` changes to `/sd/`, and both absolute and relative
-config opens close successfully. BASIC READY, IRQ vector and drive settings
-pass; the uploaded probe was removed. No application migration was installed.
+The current candidate defaults documents/downloads, `SEE64YOU.REC`, session
+journals and preflight probes to `/sd/SEE64YOU/`. Editor uses document target `$02`
+and journal target `$01`. Explicit `/sd/NAME.S64` preserves root origin on Save;
+there is no automatic fallback after corrupt data or I/O failure. Settings `M`
+requires `Y`, stages/restores/verifies journal ownership, then verifies backups and
+retires root slots. Launcher blocks legacy root slots with Settings guidance.
 
-A bounded two-directory journal spike passed focused host migration/fault
-tests but failed cc65 fitting: Editor `RUNTIME_CODE` overflow 222 B, and launcher
-link rejection `Return capture overlaps launcher resident state`. It was reverted.
-The restored baseline passes the independent package/manifests/guards, focused
-local-document/journal/recovery/lifecycle host tests and packaged VICE
-startup/wizard/guards/numeric-and-string BASIC-return tests. Full folder migration
-and physical recovery/cleanup remain unverified. Preserve SD-root originals.
-
-The narrower Launcher-only legacy-slot refusal experiment builds the complete
-independent package and validates both manifests: Launcher headroom 1,025 B,
-runtime overlay 15,318/15,360 B. This proves fitting only. Settings migration,
-refusal UI, host faults and hardware acceptance of this policy remain unverified.
-Both experiment changes were reverted; the restored ten product files match
-`SEE64YOU-independent-white-text-20261011.zip` exactly. No C64U operations or SD
-file changes occurred during this second experiment.
-
-The isolated staging and retirement services have a current focused host gate:
+Run `make -C client independent-package` and `sh tools/validate.sh` (LF scripts
+in WSL). The validator includes local-document, journal, migration, context and
+failed-recovery regressions. `storage_context_test` covers folder/root same-name
+collisions, explicit legacy Save origin and failure behavior; `editor_recovery_failure_test`
+verifies failed REC loading keeps the original and inhibits autosave until explicit
+resolution. Both manifests and unchanged guards pass: Publisher 1,046 B,
+Launcher 1,032 B and Settings 4,009 B free. All four packaged VICE program checks
+pass with compatible local ROMs:
 
 ```sh
-cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
-  client/tests/journal_migration_test.c client/src/platform/journal_migration.c \
-  client/src/platform/session_journal.c client/src/platform/session_journal_start.c \
-  client/src/platform/dos.c client/src/platform/dos_file.c -o /tmp/s64-migration-test
-/tmp/s64-migration-test
-make -C client journal-migration-settings-fit
+python3 tools/test_independent_programs_vice.py --rom-dir LOCAL_ROM_DIRECTORY
+python3 tools/test_basic_return_vice.py --rom-dir LOCAL_ROM_DIRECTORY
 ```
 
-The same host test passes with address/undefined-behavior sanitizers
-(`-fsanitize=address,undefined -fno-omit-frame-pointer`). The fit-only Settings executable leaves 8,038 B free;
-it includes the service for measurement but does not call it. The normal validator
-runs the host gate. Faults cover restoration/verification, collisions, wrong
-slot parity, sequence wrap, malformed lengths, torn peers, failed reads/writes/
-close/readback and interrupted staging; root originals and failed destinations
-are preserved. Product startup, VICE and hardware migration gates are still
-pending. All ten normal package files remain byte-identical to the accepted
-white-text package; no hardware files were changed in this staging-service pass.
+For read-only context verification, build `make -C client storage-context-probe`.
+It requires an existing folder config and does not write SD files. `$C040=$A5`,
+`$C041=$00` means success; `$C042` records the CD-during-open capability result.
+The corrected real-C64U run reports `a50000`: secondary relative lookup survives
+primary directory changes, exact config bytes match absolute/relative reads and
+handles close. Production closes documents before journal I/O; it does not rely
+on simultaneous-open behavior. Restore the temporary diagnostic PRG and verify
+BASIC/IRQ/drives/turbo parity after testing.
 
-Retirement tests additionally cover exact original backups, conflicting backups,
-ACTIVE/missing-folder refusal, backup write/close/readback failures, corrupt
-backups, empty/torn/oversized peers, and interrupted deletion with newest CLEAN
-retained for retry. This is a separate service, not automatic product cleanup.
-
-`make -C client journal-migration-probe` compiles disposable hardware diagnostics:
-`build/journal-migration-probe.prg` seeds root ACTIVE using the entry turbo byte;
-`build/journal-migration-check.prg` stages supplied fixtures without seeding.
-They report success/refusal at `$C040`, journal result at `$C041`, and entry/exit
-turbo at `$C042`/`$C043`, then return to BASIC. These diagnostics do not invoke
-retirement. `build/journal-migration-retire.prg` invokes the separate retirement
-service on supplied CLEAN fixtures. Run only on backed-up disposable journals
-after preserving machine state, then restore every original file and setting
-exactly. Physical component acceptance resumed after user availability
-confirmation: six staging/recovery and seven retirement cases pass on real C64U, with
-original file hashes, BASIC numeric execution, IRQ, drives and live turbo 0
-verified after restoration. One recovery case enters with turbo 15 and restores
-the journal's recorded 0 before committing CLEAN. Product migration is still
-unverified. Latest receipt: `client/build/hardware-journal-changed-turbo-20261011/state.json`
-(13 cases, `passed=true`, `restored=true`); backups and raw screens are local
-ignored evidence, not release files.
-
-Reproduce the combined gate from the repository root with an empty BASIC program
-and no other hardware use:
+Prior isolated migration acceptance passes six staging/recovery and seven
+retirement cases, with original SD restoration and changed turbo 15 restored to
+recorded 0 before CLEAN. Receipt:
+`client/build/hardware-journal-changed-turbo-20261011/state.json`
+(`passed=true`, `restored=true`). Reproduce components with empty BASIC and no
+other hardware use:
 
 ```sh
 make -C client journal-migration-probe
 python3 tools/test_journal_migration_c64u.py --host C64U_IP --output client/build/NEW-journal-receipt
 ```
 
-The output directory must be new. The tool checks BASIC program emptiness before
-mutation and retains exact backups of both directories' journals, the temporary
-diagnostic PRG and any existing `S64OLD*.DAT`. A failed FTP read is considered
-missing only when a directory listing confirms absence. If a diagnostic stalls
-or exit checks fail, its receipt/backups remain and automatic file restoration
-is suppressed while execution may still be active; diagnose/recover before
-touching these files. This gate tests components using REST keyboard input;
-physical keyboard, power interruption and integrated folder startup are separate.
+The new output directory retains exact original journal/backup/temp-PRG bytes.
+Missing FTP files require directory-list confirmation. If execution or exit checks
+fail, do not restore files while a diagnostic may still be active; keep receipts
+and resolve execution first. Component results do not establish integrated acceptance.
 
-The later relative-name Launcher refusal plus folder-preflight fit experiment
-passes the complete package, both manifests and unchanged guards with 1,035 B
-Launcher headroom. Its sources were reverted and all ten restored product files
-match the accepted white-text ZIP. Eleven spare bytes do not prove integrated
-refusal UI/document containment.
+Integrated C64U checklist (backed-up disposable fixtures only):
 
-Before source edits, record baseline root-file behaviour and verify backup hashes for legacy `.s64`, `SEE64YOU.REC` and both `S64JRN*.DAT`. Use disposable SD files only. Trace root writes and DOS-context changes with `rg -n 'S64_SD_ROOT_DIRECTORY|S64_SESSION_JOURNAL_STORAGE_PATH|S64_PREFLIGHT_STORAGE_PATH|change_dir|S64JRN|SEE64YOU.REC|S64CHK' client/src`.
+1. Capture original root/folder files, IRQ, drive and live turbo values. Keep exact
+   backup hashes for journals, recovery, documents/config and completed temps.
+2. With legacy root journals, verify Launcher blocks without starting a session;
+   Settings M/N cancels unchanged, then M/Y restores/verifies ACTIVE state, retains
+   exact `S64OLD*.DAT` backups and removes root slots only after CLEAN verification.
+   Conflicting/invalid/I/O-failed migration must preserve evidence and block.
+3. Fresh Editor saves/reopens folder source. Open explicit `/sd/NAME.S64`, Save,
+   and verify same-name folder content is unchanged; Save As a new name creates a
+   folder copy. Corrupt/read-failed folder data must not select root silently.
+4. Test folder autosave recovery and failed-load preservation/autosave inhibition.
+   Root REC is NOT automatically offered. Compare root/folder REC and retain
+   backups before manual copying; never overwrite differing/unresolved recovery.
+   Saved canonical root source may be opened explicitly and saved under a new
+   folder name instead. Retain unresolved REC/temp files.
+5. Fresh Publisher loads folder source, publishes, downloads to a new folder name,
+   refuses collisions and reopens exact source in Editor. Confirm storage probes
+   leave no newly created root files; verify CLEAN, responsive BASIC number/string
+   commands and original turbo/IRQ/drives after every program exit.
+6. Restore all pre-test originals byte-exact and inspect receipts. Only after full
+   transition acceptance remove migrated SEE64YOU-owned root files with verified
+   backups; preserve unrelated files and unresolved recovery/temp data.
 
-Focused host suites: `client/tests/local_documents_test.c`, `client/tests/session_journal_test.c` and `client/tests/session_recovery_test.c`, plus launcher recovery and preflight tests. Exercise: folder-only files; legacy root-only files; same-name collisions in both locations; corrupt/read-failed folder file (no silent root fallback); simultaneous legacy and folder autosaves; CLEAN/ACTIVE records in each directory; torn journal slot; conflicting ACTIVE sessions; failed directory selection, write/rename/readback and retry after interruption. Verify no original or completed `.tmp` is silently lost, and machine-state restoration is not skipped.
+Integrated C64U acceptance passes with REST plain-key input: Launcher refuses
+legacy ACTIVE ownership; Settings migration restores turbo 15 to recorded 0,
+verifies backups and retires root slots; Editor recovers, edits and saves folder
+source while preserving a same-name root document; fresh Publisher opens both
+folder and explicit root files. Receipt:
+`client/build/hardware-folder-mvp-20261011/state.json` (`restored=true`).
+Reproduce with empty BASIC, an existing canonical config and a new receipt:
 
-After implementation, use `make -C client independent-package` and require both manifests and all existing memory/overlay guards. The last known independent Publisher headroom was 1,060 B against the unchanged 1,024 B minimum. Run the existing host local-file/journal/recovery suites and, with configured ROMs, `python3 tools/test_independent_programs_vice.py --rom-dir client/build/private-vice-roms` plus `python3 tools/test_basic_return_vice.py --rom-dir client/build/private-vice-roms`. Re-run applicable preflight/launcher and Editor recovery checks. Mark all not executed checks unverified, not passed.
+```sh
+python3 tools/test_folder_mvp_c64u.py --host C64U_IP --output client/build/NEW-folder-receipt
+```
 
-Physical C64U acceptance, separately: preserve baseline drive settings/IRQ/clock/turbo, confirm two-directory legacy recovery and collision behaviour, verify package-folder read/write/temp/rename across independent Editor/Publisher launches, exercise power interruption only on disposable data, and require CLEAN journal, BASIC numeric/string commands and exact restoration of pre-test original SD files. No hardware test is claimed by this plan.
+Separate disposable-site hardware acceptance passes authentication, remote
+download into the folder despite a root-name collision, existing-folder-file
+refusal, and fresh Publisher reload/auth/publish with exact backend metadata/body
+parity. Receipt: `client/build/hardware-folder-network-20261011/state.json`
+(`passed=true`, `restored=true`). Config/source originals, IRQ/drives, live turbo
+and BASIC numeric/string checks pass. Failed REC recovery is host fault coverage;
+controlled physical power interruption remains unverified. USB is user-deferred.
+
+Latest eleven-file package:
+`client/build/SEE64YOU-independent-folder-browser-20261011.zip`, SHA-256
+`c490286bc711ac01959f3cbdafb9a8f862d182f478c665440ff20b9892585d3e`.
+
+After acceptance, this C64U's actual legacy journals were migrated with Settings
+M; the existing canonical recovery/source/key were copied into the folder with
+exact readback. Twenty identified old SEE64YOU root files were removed only after
+local and SD backups. The eleven installed package hashes and canonical folder
+config match; BASIC numeric input, IRQ/drives/live turbo 0 pass. Remaining user
+SD files were preserved. Receipt/backups: `client/build/folder-install-20261011/`;
+SD originals: `/sd/SEE64YOU/legacy-backup-20261011/`, plus journal `S64OLD*.DAT`.
+The driver's rejected overlong BASIC command was corrected before resuming its
+remaining cleanup; no reset or unrelated SD deletion occurred. The actual REC
+was retained, not edited during this transition.
 
 ## Final bounded MVP checkpoint (2026-10-11)
 

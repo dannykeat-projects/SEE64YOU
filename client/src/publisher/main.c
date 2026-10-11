@@ -1287,7 +1287,7 @@ static void load_local_source(void)
         set_status("Local open cancelled");
         return;
     }
-    if (s64_dos_change_dir(&dos, S64_SD_ROOT_DIRECTORY) != S64_DOS_OK) {
+    if (s64_dos_change_dir(&dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK) {
         set_status("Cannot access /sd/");
         return;
     }
@@ -1323,7 +1323,7 @@ static void save_remote_source(void)
         set_status("Download save cancelled");
         return;
     }
-    if (s64_dos_change_dir(&dos, S64_SD_ROOT_DIRECTORY) != S64_DOS_OK) {
+    if (s64_dos_change_dir(&dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK) {
         set_status("Cannot access /sd/");
         return;
     }

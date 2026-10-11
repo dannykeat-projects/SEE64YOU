@@ -70,66 +70,67 @@ Editor editing after a successful platform preflight, or cold config persistence
 The next gate is the bounded real-C64U checklist in LOCAL_TESTING, with original
 files/settings backed up and restored. Old managed CI failures are separate.
 
-## SD-folder containment contract (planned; not implemented, 2026-10-11)
+## SD-folder containment contract (implemented candidate, 2026-10-11)
 
-The read-only `dos-context-probe` now proves target `$02` retains its folder
-lookup after target `$01` changes directory on firmware 1.1.0; relative and
-absolute file opens also pass. This establishes directory independence only,
-not simultaneous-handle or migrated-document acceptance. A bounded dual-directory
-journal spike failed the existing Editor runtime-slot and launcher return-capture
-guards and was reverted. Runtime paths remain unchanged until that fit blocker
-is resolved without weakening guards. Remove migrated SEE64YOU-owned root files
-only after verified backup, recovery and complete transition acceptance.
+New documents, remote downloads, `SEE64YOU.REC`, alternating journals and
+preflight `S64CHK?.TMP` probes use `/sd/SEE64YOU/`. Executables/assets and canonical
+`SEE64YOU.CFG` already use that directory. File formats, new-only download policy,
+collision checks and recoverable completed temporary files remain unchanged.
+Bounded integrated folder hardware acceptance passes; see LOCAL_TESTING for
+exact receipts and the remaining physical interruption/USB scope.
 
-A second size experiment confines the root-slot refusal check to Launcher,
-where startup recovery already belongs; Editor continues ordinary folder journal
-I/O without repeating migration arbitration. Its complete package fits with
-1,025 B Launcher headroom and a 15,318/15,360 B runtime overlay. This suggests
-Settings can own the one-time two-directory migration within the existing three
-programs. Product migration, recovery and refusal guidance are not integrated;
-the experiment was reverted. One byte above the Launcher guard leaves further
-folder/preflight changes unproven, so this is not an accepted candidate.
+**Context ownership:** Editor document/autosave operations use Ultimate-DOS
+`$02`; Launcher and Editor session journals use `$01`. Both establish the folder
+explicitly. Documents close before journal operations; simultaneous handles are
+not a runtime dependency. Publisher reselects the folder before local load or
+remote save. The corrected read-only C64U context diagnostic returns `a50000`:
+relative target-$02 lookup survives primary-directory changes, and absolute and
+relative opens close successfully. This is component evidence, not integrated
+migration acceptance.
 
-A subsequent fit experiment reuses the existing relative slot filename lookup
-after selecting root and moves preflight probes into the folder. The complete
-package and both manifests pass with Launcher 1,035 B free and the same runtime
-overlay size. Both changes are reverted; eleven bytes above the guard remains
-size evidence, not integrated containment or refusal-UI acceptance.
+**Legacy documents and recovery:** A bare name selects a folder file. Explicit
+`/sd/NAME.S64` accesses root, and `S64LocalDocument` retains the full filename for
+subsequent Save. A new bare Save As name explicitly creates a folder copy; a
+same-named root and folder file are never silently substituted. Corruption,
+access denial or transport failure does not trigger fallback. Completed `.tmp`
+files stay in the directory where they were written until explicitly recovered.
 
-`platform/journal_migration.*` now provides the Settings-owned staging service.
-It inspects both stores using the existing journal decoder, requires restore and
-verification callbacks for a captured legacy turbo value, writes/readback-verifies
-matching CLEAN opposite the actual loaded root slot, then seeds folder CLEAN
-only if that store is absent. Existing folder state has independent sequencing
-and is preserved. Concurrent ACTIVE records, unreadable/wholly corrupt stores,
-equal-sequence conflicts and sequence wrap block staging. A valid peer still
-survives a torn slot. Root slots and failed folder writes are never deleted.
-This service is host-tested, fits alongside Settings and passes six disposable
-real-C64U staging/recovery cases, including restoring changed turbo 15 to the
-recorded 0 before CLEAN. It is deliberately
-not invoked by product startup until refusal guidance, backup/retirement and
-the remaining document/preflight containment are integrated and validated.
+Editor automatically offers only folder `SEE64YOU.REC`. Legacy root recovery
+is retained, not automatically loaded or discarded. Compare both recovery files,
+keep exact backups and do not replace differing/unresolved recovery during manual
+migration. Canonical saved source can instead be reopened by explicit root path
+and saved under a new folder name. Failed recovery loading preserves the original
+snapshot and inhibits autosave until explicit resolution; the prior deletion
+regression is fixed and host-tested. Successful recovery remains dirty until saved.
 
-The separate `s64_journal_migration_retire` service requires both stores CLEAN.
-It copies each original root slot, including empty or torn peers, byte-for-byte
-to folder `S64OLD0.DAT`/`S64OLD1.DAT` and verifies the retained bytes and length.
-Existing different backups block; oversized peers remain for diagnosis. Before
-deleting anything it rechecks canonical journal ownership and original bytes.
-It removes the older root slot first, newest CLEAN last, verifying each removal;
-interruption therefore leaves CLEAN authoritative for retry. This component is
-host-tested and exercised on disposable real-C64U fixtures, but not called by
-the product. Actual root cleanup remains gated on
-the complete containment transition and hardware acceptance.
+**Journal ownership/migration:** Launcher refuses startup if either root
+`S64JRN*.DAT` exists and displays `JOURNAL BLOCKED - RUN S64CFG.PRG`. Settings `M`
+shows the operation and requires `Y`; it does not change documents/config.
+`platform/journal_migration.*` inspects both stores, restores/verifies captured
+ACTIVE machine state, writes/readback-verifies CLEAN in the original store, and
+seeds folder CLEAN only when absent. Independent directory sequences cannot
+arbitrate concurrent ACTIVE ownership. Conflicts, wholly corrupt/unreadable stores,
+sequence wrap and failed restore/readback block migration without root retirement.
+A valid peer can survive a torn slot.
 
-The independent package already installs executables, assets and canonical settings in `/sd/SEE64YOU/`. New canonical documents, download saves, `SEE64YOU.REC` autosave, alternating `S64JRN0.DAT`/`S64JRN1.DAT` journals and transient preflight probes must also be contained there. Do not move or delete legacy root files as a startup side effect. File format, slot wire format, strict new-only remote download, temporary-file recovery and overwrite confirmation remain unchanged.
+After staging, retirement requires CLEAN ownership in both stores. Exact root
+slot bytes/lengths are retained as folder `S64OLD0.DAT`/`S64OLD1.DAT` and verified;
+existing different backups or oversized peers block deletion. Ownership and source
+bytes are rechecked before older-root-first/newest-CLEAN-last deletion and verified
+absence. Interrupted deletion remains retryable. Ordinary new sessions then use
+folder journals only. Migration is user-confirmed, never an automatic startup
+cleanup. Remaining root documents/recovery/temp files are preserved until full
+transition acceptance and verified backup.
 
-**Ownership boundary:** `client/src/main.c` currently shares the primary DOS target for Editor local files and the managed session; `platform/session_journal.c` explicitly changes that target to `/sd/` before every journal load/save, including on exit. Merely selecting the installation directory once during Editor startup is therefore insufficient. Separate the document context (existing DOS `$02` is a candidate, subject to preflight/hardware verification) or explicitly reselect the required directory before every file operation without disturbing an open handle. Publisher independently selects root in its local load and remote save handlers; its last measured margin above the 1 KiB guard is only 36 B, so reuse the existing file/selection paths rather than adding a new subsystem. `platform/preflight.c` also creates `S64CHK?.TMP` under root.
-
-**Compatibility:** Search the application folder first for named document opens and expose an explicit, non-destructive legacy-root option. A missing file may allow a legacy lookup; corrupt data, access denial and transport errors must not. `S64LocalDocument` remembers only a filename, not its directory: after a root open, retain the origin for subsequent Save or require an explicit Save As into the folder with normal collision checks. Never redirect an automatic overwrite to a same-named folder file. Keep `.tmp` recoverable in the directory where it was written. If either recovery snapshot exists, offer an unambiguous choice; never erase the other location as a side effect.
-
-**Journal migration:** The launcher must inspect the complete two-slot journal in both directories before beginning a new session. Restore/verify any legacy ACTIVE state and write/verify its CLEAN successor in the original root directory before switching the write authority to the application folder. Do not use sequence numbers from independent directories to break an ambiguous concurrent ACTIVE tie; block and preserve evidence instead. Preserve both originals on failed read/write/verification, and never treat a missing directory or I/O failure as an empty journal. Once migration is proven, new ACTIVE/CLEAN records use the folder exclusively. Clean machine restoration and real-C64U power-interruption checks remain release gates.
-
-Implementation acceptance and exact regression matrix belong in `docs/LOCAL_TESTING.md`; live tasks remain only in `todo.md`.
+The complete candidate passes host regressions, both manifests, unchanged guards
+and all four packaged VICE startup/BASIC-return checks. Current free conventional
+RAM: Publisher 1,046 B, Launcher 1,032 B, Settings 4,009 B; the 1,024 B minimum
+is unchanged. Prior component C64U journal receipts cover six staging/recovery
+and seven retirement cases, including changed turbo 15 restored to recorded 0
+before CLEAN. Integrated migration, folder recovery/edit/save, explicit-root
+access, authenticated download/collision refusal and fresh reload/publish pass
+with original-file restoration. Physical power interruption remains unverified;
+failed REC recovery is host fault coverage. LOCAL_TESTING records exact scope.
 
 ## 1. Platform contract
 
@@ -164,7 +165,7 @@ Initial supported baseline:
 
 Network Target $03 is required for current direct web publishing but not for offline editing.
 
-The shared platform preflight in client/src/platform/preflight.* now owns the required UCI, Ultimate-DOS $01, exact-16-MiB REU and SD-storage checks. Both the standalone diagnostic and SEE64YOU.PRG launcher call the same implementation. The storage probe selects /sd/, finds an unused S64CHK?.TMP candidate, writes and reopens a fixed marker, verifies exact readback, deletes it and confirms absence without overwriting a pre-existing candidate. The launcher presents exact requirement guidance and supports immediate RECHECK/EXIT. Real-hardware acceptance remains P0 work.
+The shared platform preflight in client/src/platform/preflight.* now owns the required UCI, Ultimate-DOS $01, exact-16-MiB REU and SD-storage checks. Both the standalone diagnostic and SEE64YOU.PRG launcher call the same implementation. The storage probe selects /sd/SEE64YOU/, finds an unused S64CHK?.TMP candidate, writes and reopens a fixed marker, verifies exact readback, deletes it and confirms absence without overwriting a pre-existing candidate. The launcher presents exact requirement guidance and supports immediate RECHECK/EXIT. Real-hardware acceptance remains P0 work.
 
 Optional capabilities are detected individually. Firmware version alone does not enable a code path.
 
@@ -274,7 +275,7 @@ The journal does not promise to restore arbitrary C64 RAM or another program tha
 
 The first journal implementation is now host-tested in client/src/platform/session_journal.*. Its fixed 24-byte wire format is encoded explicitly rather than serialising compiler struct layout. It records format version, ACTIVE/CLEAN state, caller-supplied package version and session ID, a monotonically increasing sequence, recovery reference, and explicit restore-valid flags plus values for state See64You actually captured. The current restore payload can carry the captured turbo-control byte only when its valid bit is set.
 
-Until the final /sd/SEE64YOU/ tree lands, the journal uses two small root-SD slots, S64JRN0.DAT and S64JRN1.DAT. Each update writes and reopens/verifies the alternate sequence slot; the previous valid slot is not deleted first. Startup chooses the highest valid sequence. If the newest slot is torn/corrupt, the previous valid slot remains available, which can cause a safe false-positive interrupted-session recovery rather than losing the captured state. The session lifecycle coordinator owns ACTIVE/CLEAN sequencing but is intentionally not linked into the constrained editor/publisher overlays; the final launcher/supervisor will bind its save callback to s64_session_journal_store_save().
+The independent folder candidate uses S64JRN0.DAT and S64JRN1.DAT under /sd/SEE64YOU/, after user-confirmed legacy migration in Settings. Each update writes and reopens/verifies the alternate sequence slot; the previous valid slot is not deleted first. Startup chooses the highest valid sequence. If the newest slot is torn/corrupt, the previous valid slot remains available, which can cause a safe false-positive interrupted-session recovery rather than losing the captured state. The session lifecycle coordinator owns ACTIVE/CLEAN sequencing but is intentionally not linked into the constrained editor/publisher overlays; the final launcher/supervisor will bind its save callback to s64_session_journal_store_save().
 
 Startup inspection and recovery resolution are now separately host-tested in client/src/platform/session_recovery.*. The launcher-facing classifier distinguishes no journal, clean prior session, interrupted ACTIVE session, invalid journal and storage failure. Only an interrupted ACTIVE record is converted into a restore snapshot, and that snapshot contains only fields whose journal restore-valid bits were explicitly recorded; a clean, invalid or unreadable record never exposes a restoration action. The resolver restores those captured fields, verifies them when a backend provides verification, then writes a CLEAN supersession. Restore/verification failure leaves the session ACTIVE; a failed CLEAN write also leaves the inspected in-memory journal ACTIVE so recovery remains safely retryable. The launcher-owned recovery flow in client/src/launcher/recovery_flow.* now applies startup policy without coupling it to editor UI: NONE/CLEAN proceed silently; INTERRUPTED automatically runs safe restore/verify/CLEAN resolution; failures return concise RETRY or DIAGNOSTICS outcomes while leaving retryable ACTIVE state intact. The launcher runtime adapter in client/src/launcher/recovery_runtime.* now binds that policy to the real Ultimate-DOS journal store and the existing turbo backend's restore/verify callbacks. A real C64U launcher entry point now wraps that runtime in client/src/launcher/main.c and builds as SEE64YOU.PRG. It first runs shared platform preflight, then automatic startup recovery. After recovery succeeds it begins the lifecycle coordinator: capture -> durable ACTIVE -> INTERACTIVE. The launcher runtime now exposes an explicit ACTIVE-preserving transition boundary; the editor handoff stub switches to TRANSITION and, because cached-module transfer is not implemented yet, cancels back to INTERACTIVE without cleaning the session. Only the later exit path performs restore/verify -> durable CLEAN. This establishes the non-legacy handoff contract without invoking software-IEC chaining. The next P0 step is the shared control metadata/module-cache path that actually transfers execution to the editor.
 
@@ -724,29 +725,15 @@ Reads request one byte beyond the expected record to reject trailing data;
 the persisted format and valid legacy migration are unchanged. Replacement still
 uses delete-then-rename: final rename/readback failures are not an atomic rollback.
 
-Target layout:
+Current independent layout is flat: `/sd/SEE64YOU/` contains package assets,
+configuration/keys, documents, recovery, journal backups and temporary files.
+Nested APP/CONFIG/DOCS trees are not required by the current candidate.
 
-~~~text
-/sd/SEE64YOU/
-  APP/
-  CONFIG/
-  DOCS/
-  KEYS/
-  RECOVERY/
-  CACHE/
-  TEMP/
-  LOGS/
-  UPDATE/
-~~~
-
-Names may be adjusted for filesystem constraints, but roles should remain clear.
-
-The existing /sd/SEE64YOU.CFG persistence path has already passed real power-cycle testing. Migration to the new tree must be transactional:
-
-1. load/validate old configuration;
-2. write the new location;
-3. reopen/validate exact values;
-4. retain rollback until success is established.
+Canonical configuration is `/sd/SEE64YOU/SEE64YOU.CFG`. The existing legacy-root
+configuration migration validates the old record, writes/verifies the folder
+record and only then retires the root copy best-effort. Failure preserves the
+legacy copy. Editor PREP retains its missing-folder-config fallback; corrupt or
+unreadable configuration does not become a valid replacement.
 
 ## 14. Recovery model
 
@@ -795,7 +782,7 @@ Therefore:
 
 The setup wizard may recommend/require a register-controllable turbo mode if automatic performance management proves worthwhile, while preserving the user's selected underlying speed policy.
 
-Runtime package files now live under `/sd/SEE64YOU/` so installation is a single application folder. Module PRGs, manifests and overlay assets use the absolute package directory and no longer depend on the Ultimate-DOS working directory. Publishing configuration is now authoritative at `/sd/SEE64YOU/SEE64YOU.CFG`. A valid legacy `/sd/SEE64YOU.CFG` is copied through the existing transactional save path, reopened and canonically validated before the root copy is retired best-effort; migration failure leaves the legacy copy untouched. Editor PREP prefers the app-folder file and retains a legacy-root read fallback until migration occurs. Session journals remain at `/sd/` pending a separate migration that preserves their exact two-slot ACTIVE/CLEAN records and sequence authority.
+Runtime package files now live under `/sd/SEE64YOU/` so installation is a single application folder. Module PRGs, manifests and overlay assets use the absolute package directory and no longer depend on the Ultimate-DOS working directory. Publishing configuration is now authoritative at `/sd/SEE64YOU/SEE64YOU.CFG`. A valid legacy `/sd/SEE64YOU.CFG` is copied through the existing transactional save path, reopened and canonically validated before the root copy is retired best-effort; migration failure leaves the legacy copy untouched. Editor PREP prefers the app-folder file and retains a legacy-root read fallback until migration occurs. Session journals now use the folder in the independent candidate; Settings M owns explicit legacy staging, verified backups and retirement as described above.
 
 ## 18. UI transition behaviour
 

@@ -410,6 +410,21 @@ echo "== Host local document tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/local_documents_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/dos.c client/src/storage/local.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host document and journal DOS context tests =="
+for storage_define in "" "-DS64_CODE_ASSET_LAUNCHER=1"; do
+    cc -std=c99 -Wall -Wextra -Werror $storage_define -Iclient/src \
+        client/tests/storage_context_test.c client/src/buffer.c client/src/document.c \
+        client/src/charset.c client/src/platform/dos.c client/src/storage/local.c \
+        client/src/platform/session_journal.c client/src/platform/session_journal_start.c -o "$TMP_BIN"
+    "$TMP_BIN"
+done
+
+echo "== Host Editor failed recovery preservation tests =="
+cc -std=c99 -Wall -Wextra -Werror -D__fastcall__= -ffunction-sections -fdata-sections \
+    -Iclient/tests/ui_prompt_stubs -Iclient/src client/tests/editor_recovery_failure_test.c \
+    -Wl,--gc-sections -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host publisher destination tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/destination_test.c client/src/document.c client/src/charset.c client/src/buffer.c client/src/publisher/destination.c -o "$TMP_BIN"
 "$TMP_BIN"

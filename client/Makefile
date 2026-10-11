@@ -76,6 +76,7 @@ PUBLISHER_COMPANION_FIT_SOURCES := diagnostics/publisher_companion_fit.c $(PUBLI
 PUBLISHER_SOURCES := src/publisher/main.c src/platform/chain_editor.s $(filter-out src/platform/http.c src/publisher/relay.c src/publisher/standalone.c,$(PUBLISHER_CORE_SOURCES)) src/platform/network.c src/crypto/sha256.c src/publisher/direct_key.c src/publisher/direct_key_store.c src/publisher/direct_auth.c src/publisher/standalone_direct.c
 INDEPENDENT_PUBLISHER_SOURCES := $(filter-out src/platform/chain_editor.s src/publisher/handoff.c src/publisher/settings_bridge.c src/publisher/plaintext.c src/publisher/preview.c,$(PUBLISHER_SOURCES)) src/storage/local.c src/publisher/settings_exchange.c src/publisher/settings_validate.c src/publisher/settings_store.c
 INDEPENDENT_PUBLISHER_SOURCES += src/platform/basic_workspace_reset.s
+INDEPENDENT_SETTINGS_MIGRATION_SOURCES := src/platform/journal_migration.c src/platform/session_journal.c src/platform/dos_file.c src/platform/system_state.c src/platform/system_state_start.c src/platform/turbo.c src/platform/turbo_capture.c
 INDEPENDENT_EDITOR_SOURCES := $(filter-out src/platform/chain.s src/publisher/editor_handoff.c src/publisher/editor_handoff_record.s,$(C64U_SOURCES))
 SETTINGS_SOURCES := src/publisher/settings_main.c src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/destination.c src/publisher/settings_exchange.c src/publisher/settings_validate.c src/publisher/settings_store.c
 LAUNCHER_SOURCES := src/platform/module_session.c src/platform/module_session_read.c src/platform/module_session_build.c src/platform/transfer_capsule.c src/platform/transfer_capsule_build.c src/platform/transfer_capsule_write.c src/platform/module_transfer.c src/platform/module_arrival.c src/platform/module_transfer_stub.s src/launcher/main.c src/platform/module_integrity.c src/platform/crc32.c src/platform/module_preload.c src/platform/dos_reu.c src/platform/dos_file.c src/launcher/recovery_runtime.c src/launcher/recovery_flow.c src/platform/preflight.c src/platform/requirements.c src/platform/module_manifest.c src/platform/module_manifest_build.c src/platform/module_manifest_parse.c src/platform/reu_runtime.c src/platform/reu_runtime_build.c src/platform/reu_runtime_allocate.c src/platform/reu_runtime_write.c src/platform/session_lifecycle.c src/platform/session_lifecycle_start.c src/platform/session_recovery.c src/platform/session_journal.c src/platform/session_journal_start.c src/platform/system_state.c src/platform/system_state_start.c src/platform/dos.c src/platform/turbo.c src/platform/turbo_capture.c src/platform/uci.c src/platform/reu.c src/platform/reu_dma.s src/charset.c
@@ -220,6 +221,12 @@ INDEPENDENT_PACKAGE_DIR := build/independent-package/SEE64YOU
 INDEPENDENT_BROWSER_SOURCES := src/browser/main.c src/browser/protocol.c src/browser/http.c src/charset.c src/platform/uci.c src/platform/network.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/reu_runtime.c src/platform/reu_runtime_build.c src/platform/reu_runtime_allocate.c src/platform/reu_runtime_write.c src/publisher/settings_exchange.c src/publisher/settings_validate.c src/publisher/settings_store.c src/platform/basic_workspace_reset.s
 .PHONY: independent-browser
 independent-browser: build/independent/S64WEB.PRG
+
+.PHONY: storage-context-probe
+storage-context-probe: build/storage-context-probe.prg
+build/storage-context-probe.prg: diagnostics/storage_context_probe.c src/platform/dos.c src/platform/uci.c src/charset.c src/platform/basic_workspace_reset.s
+	@mkdir -p build
+	$(CL65) $(CFLAGS) -m build/storage-context-probe.map -o $@ $^
 
 build/independent/S64WEB.PRG: $(INDEPENDENT_BROWSER_SOURCES) src/browser/protocol.h src/browser/http.h
 	@mkdir -p build/independent
@@ -430,9 +437,9 @@ journal-migration-probe:
 	$(CL65) $(CFLAGS) -DS64_MIGRATION_PROBE_SEED=0 -o build/journal-migration-check.prg diagnostics/journal_migration_probe.c src/platform/journal_migration.c src/platform/session_journal.c src/platform/session_journal_start.c src/platform/dos.c src/platform/dos_file.c src/platform/uci.c src/platform/turbo.c src/platform/turbo_capture.c src/charset.c
 	$(CL65) $(CFLAGS) -DS64_MIGRATION_PROBE_SEED=0 -DS64_MIGRATION_PROBE_RETIRE=1 -o build/journal-migration-retire.prg diagnostics/journal_migration_probe.c src/platform/journal_migration.c src/platform/session_journal.c src/platform/session_journal_start.c src/platform/dos.c src/platform/dos_file.c src/platform/uci.c src/platform/turbo.c src/platform/turbo_capture.c src/charset.c
 
-$(INDEPENDENT_SETTINGS_TARGET): $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES)) src/platform/basic_workspace_reset.s
+$(INDEPENDENT_SETTINGS_TARGET): $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES)) src/platform/basic_workspace_reset.s $(INDEPENDENT_SETTINGS_MIGRATION_SOURCES)
 	@mkdir -p build/independent
-	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_INDEPENDENT_SETTINGS=1 -m build/independent/settings.map -o $@ $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES)) src/platform/basic_workspace_reset.s
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_INDEPENDENT_SETTINGS=1 -m build/independent/settings.map -o $@ $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES)) src/platform/basic_workspace_reset.s $(INDEPENDENT_SETTINGS_MIGRATION_SOURCES)
 	python3 ../tools/check_memory_headroom.py build/independent/settings.map --label independent-settings --min-headroom 1024
 
 $(SETTINGS_TARGET): $(SETTINGS_SOURCES)

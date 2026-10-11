@@ -321,15 +321,33 @@ valid legacy configuration still migrates through the existing codec.
 
 ## Filesystem layout
 
-The intended application tree is rooted at:
+The current independent candidate uses a flat `/sd/SEE64YOU/` directory for
+executables/assets, canonical configuration, new `.s64` documents, downloads,
+`SEE64YOU.REC`, `S64JRN0.DAT`/`S64JRN1.DAT` and `S64CHK?.TMP` storage probes.
+File codecs and transactional save/collision rules remain unchanged.
 
-~~~text
-/sd/SEE64YOU/
-~~~
+Editor document/autosave I/O owns Ultimate-DOS target `$02`; its launcher and
+session journal own target `$01`. Both establish the application directory.
+Publisher explicitly selects the folder before local loading or download saving.
+A bare filename is folder-relative. Explicit `/sd/NAME.S64` accesses a legacy
+root document and remains the stored filename for subsequent Save, avoiding
+same-name folder collisions. No automatic root lookup masks corruption or I/O
+failure. Save As under a new bare name makes an explicit folder copy.
 
-with logical areas for application modules, configuration, keys, documents, recovery, cache, temporary files, logs and updates.
+Launcher refuses startup while either legacy root journal slot exists and points
+to `S64CFG.PRG`. Settings `M`, after explicit `Y`, owns two-directory recovery,
+restore verification, CLEAN staging and verified backup/retirement. Independent
+store sequence numbers do not resolve conflicting ownership. Ordinary runtime
+journal I/O then uses the folder alone. No automatic document/recovery migration
+or broad root cleanup is performed at startup.
 
-The currently proven /sd/SEE64YOU.CFG path must not be moved until a tested migration writes the new location, reopens/validates it and preserves rollback.
+Legacy root `SEE64YOU.REC` remains accessible outside the Editor recovery prompt;
+only folder recovery is offered automatically. Compare both locations and retain
+backups before manual migration. Differing/unresolved recovery must not be
+replaced. Failed recovery loading preserves the original snapshot and inhibits
+autosave until an explicit recovery resolution; it does not silently delete the
+failed file. Integrated folder hardware acceptance and final root cleanup remain
+separate gates in todo.md.
 
 ## Publishing transports
 

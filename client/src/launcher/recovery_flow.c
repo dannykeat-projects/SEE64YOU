@@ -60,7 +60,7 @@ const char* s64_launcher_recovery_message(S64LauncherRecoveryResult result)
         case S64_LAUNCHER_RECOVERY_READY_RESTORED:
             return "PREVIOUS SESSION RECOVERED";
         case S64_LAUNCHER_RECOVERY_BLOCKED_INVALID_JOURNAL:
-            return "RECOVERY DATA INVALID - DIAGNOSTICS";
+            return "JOURNAL BLOCKED - RUN S64CFG.PRG";
         case S64_LAUNCHER_RECOVERY_BLOCKED_STORAGE:
             return "RECOVERY STORAGE ERROR - RETRY";
         case S64_LAUNCHER_RECOVERY_BLOCKED_RESTORE:

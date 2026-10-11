@@ -2,6 +2,8 @@
 #include <string.h>
 #ifdef S64_INDEPENDENT_SETTINGS
 #include <stdlib.h>
+#include "platform/journal_migration.h"
+#include "platform/turbo.h"
 #endif
 
 #include "charset.h"
@@ -267,6 +269,7 @@ static void render_basic(void)
     gotoxy(0u, 18u); cputs("A ADVANCED SETTINGS");
 #ifdef S64_INDEPENDENT_SETTINGS
     gotoxy(0u, 19u); cputs("W FIRST PAGE SETUP");
+    gotoxy(0u, 20u); cputs("M MOVE SESSION FILES INTO FOLDER");
 #endif
     gotoxy(0u, 21u); cputs("S SAVE + RETURN");
     gotoxy(0u, 22u); cputs("RUN/STOP CANCEL + RETURN");
@@ -299,6 +302,9 @@ static void render_advanced(void)
     gotoxy(0u, 20u); cputs("8 LOAD PROFILE");
     gotoxy(0u, 21u); cputs("9 SAVE PROFILE");
     gotoxy(0u, 22u); cputs("D DIAGNOSTICS");
+#ifdef S64_INDEPENDENT_SETTINGS
+    cputs("  M MOVE SESSION FILES");
+#endif
     gotoxy(0u, 23u); cputs("S SAVE  B BASIC  STOP CANCEL");
     clear_row(STATUS_ROW);
     gotoxy(0u, STATUS_ROW);
@@ -323,9 +329,78 @@ static void render_setup(void)
         print_value(16u, "Plain HTTP: ", settings.allow_insecure_http ? "allowed" : "blocked");
         cputs("\r\nHTTPS is never downgraded.\r\nUse Advanced for other transports.");
     }
+    gotoxy(0u, 20u); cputs("M MOVE SESSION FILES INTO FOLDER");
     gotoxy(0u, 21u); cputs("N NEXT  B BACK  W BASIC SETTINGS");
     gotoxy(0u, 22u); cputs("STOP CANCEL / SET UP LATER");
     print_value(STATUS_ROW, "", status_text);
+}
+#endif
+
+#ifdef S64_INDEPENDENT_SETTINGS
+typedef struct {
+    S64TurboBackend turbo;
+    S64SystemState system;
+} S64SettingsMigrationRuntime;
+
+static uint8_t migration_restore(void* context,
+    const S64SystemSnapshot* snapshot)
+{
+    S64SettingsMigrationRuntime* runtime = (S64SettingsMigrationRuntime*)context;
+    return s64_system_state_adopt(&runtime->system, snapshot) == S64_SYSTEM_OK
+        && s64_system_state_restore(&runtime->system) == S64_SYSTEM_OK;
+}
+
+static uint8_t migration_verify(void* context,
+    const S64SystemSnapshot* snapshot)
+{
+    S64SettingsMigrationRuntime* runtime = (S64SettingsMigrationRuntime*)context;
+    return runtime->system.backend.verify(&runtime->turbo, snapshot);
+}
+
+static void migrate_session_files(void)
+{
+    S64SettingsMigrationRuntime runtime;
+    S64SystemBackend system_backend;
+    S64SessionRecoveryBackend recovery_backend;
+    S64SessionJournalResult result;
+    unsigned char key;
+
+    clrscr();
+    cputs("MOVE SESSION FILES INTO SEE64YOU\r\n\r\nClose other SEE64YOU programs first.\r\nInterrupted machine settings will be\r\nrestored and verified before moving.\r\nOriginal root journals are backed up\r\nin the folder before removal.\r\nDocuments/config are not changed.\r\n\r\nCONTINUE? Y/N");
+    key = (unsigned char)cgetc();
+    if (key != 'y' && key != 'Y') {
+        set_status("Session migration cancelled");
+        return;
+    }
+    if (!capabilities.dos_target) {
+        set_status("Migration needs Ultimate DOS");
+        return;
+    }
+    s64_turbo_backend_init_hardware(&runtime.turbo);
+    s64_turbo_backend_bind_adopt(&system_backend);
+    s64_system_state_init(&runtime.system, &system_backend, &runtime.turbo);
+    recovery_backend.restore = migration_restore;
+    recovery_backend.verify = migration_verify;
+    recovery_backend.context = &runtime;
+    clrscr();
+    cputs("Migrating...\r\nChecking/restoring session files.\r\nPlease wait.");
+    result = s64_journal_migration_stage(&dos, &recovery_backend);
+    if (result == S64_SESSION_JOURNAL_OK) {
+        clrscr();
+        cputs("Migrating...\r\nVerifying backups/removing root slots.\r\nPlease wait.");
+        result = s64_journal_migration_retire(&dos);
+    }
+    clrscr();
+    if (result == S64_SESSION_JOURNAL_OK) {
+        cputs("SESSION FILES MOVED AND VERIFIED\r\n\r\nNew sessions use /sd/SEE64YOU/.\r\nOriginal root backups are retained:\r\nS64OLD0.DAT / S64OLD1.DAT\r\nwhen those original slots existed.");
+        set_status("Session migration complete");
+    } else {
+        cprintf("SESSION MIGRATION STOPPED: %u\r\n\r\n", result);
+        cputs("Keep root/folder journals and backups.\r\nDo not delete or overwrite them.\r\nCheck storage or conflicting sessions,\r\nthen retry M from Settings.\r\nIf it repeats, collect diagnostics.");
+        set_status("Migration stopped; keep files, retry M");
+    }
+    cputs("\r\n\r\nRETURN: BACK TO SETTINGS");
+    while ((unsigned char)cgetc() != CH_ENTER) { }
 }
 #endif
 
@@ -1226,6 +1301,10 @@ int main(void)
         key = (unsigned char)cgetc();
 
 #ifdef S64_INDEPENDENT_SETTINGS
+        if (key == 'm' || key == 'M') {
+            migrate_session_files();
+            continue;
+        }
         if (setup_step) {
             if (key == CH_STOP) cancel_and_return();
             else if (key == 'w' || key == 'W') setup_step = 0u;

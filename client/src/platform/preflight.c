@@ -4,7 +4,7 @@
 #include "platform/reu.h"
 #include "platform/uci.h"
 
-#define S64_PREFLIGHT_STORAGE_PATH "/sd/"
+#define S64_PREFLIGHT_STORAGE_PATH "/sd/SEE64YOU/"
 #define S64_PREFLIGHT_TEMP_ATTEMPTS 10u
 
 typedef struct {

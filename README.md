@@ -34,6 +34,26 @@ Publisher, and `S64CFG.PRG` for Settings. Publisher uses `L` to load a local
 `.s64`, `2` to test the direct key, `3` to publish/update, `6`/`7` to open a
 remote page/post, and `D` to save it as a new `.s64`; STOP exits to BASIC.
 Editor uses white text on a black background.
+New document names, downloads, autosave (`SEE64YOU.REC`), session journals and
+storage-check temporary files now default to `/sd/SEE64YOU/`. To open an old
+root document explicitly, enter `/sd/NAME.S64`; ordinary Save retains that
+absolute filename. Use Save As with a new bare name to create a folder copy.
+Corrupt or unreadable folder files never trigger an automatic root fallback.
+
+If Editor reports `JOURNAL BLOCKED - RUN S64CFG.PRG`, launch Settings, press `M`,
+read the migration screen and confirm `Y`. Settings resolves and verifies any
+interrupted machine state, verifies retained root-journal backups, then removes
+the old journal slots. This does not migrate documents or autosaves. Legacy root
+`SEE64YOU.REC` is retained and is not automatically offered by Editor. Compare
+root and folder recovery files before copying; keep backups and never overwrite
+unresolved or different recovery. A saved canonical document can instead be
+opened explicitly and saved under a new folder name.
+
+The folder candidate passes host tests, all four packaged VICE program checks,
+existing build guards and bounded real-C64U migration/edit/save/download/update
+acceptance. These automated hardware checks use REST plain keys; USB and physical
+power interruption remain unverified. See LOCAL_TESTING for exact receipts.
+
 Editor and Publisher show Loading.../Saving... before local file operations;
 Publisher shows Connecting.../Publishing... before those network operations.
 These messages indicate activity, not a completion percentage.
@@ -112,9 +132,9 @@ The intended interface between user-visible programs is **ordinary files**, not
 live REU/application handoffs:
 
 ~~~text
-Editor (existing launcher) -> /sd/*.s64 -> Publisher -> remote standalone site
+Editor (existing launcher) -> /sd/SEE64YOU/*.s64 -> Publisher -> remote site
                                               |
-                                              +-> new /sd/*.s64 -> Editor
+                                              +-> new /sd/SEE64YOU/*.s64 -> Editor
 Settings -> /sd/SEE64YOU/SEE64YOU.CFG -> Publisher
 ~~~
 

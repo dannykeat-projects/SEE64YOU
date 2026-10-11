@@ -176,9 +176,25 @@ static uint8_t collect_wire(
     return 1u;
 }
 
+static const char* slot_filename(uint8_t slot);
+
 static S64SessionJournalResult select_storage(S64Dos* dos)
 {
+#ifdef S64_CODE_ASSET_LAUNCHER
+    uint8_t exists;
+    uint8_t slot;
+#endif
     if (dos == 0) return S64_SESSION_JOURNAL_INVALID;
+#ifdef S64_CODE_ASSET_LAUNCHER
+    /* Settings resolves and backs up legacy ownership before Editor can run. */
+    if (s64_dos_change_dir(dos, "/sd/") != S64_DOS_OK)
+        return S64_SESSION_JOURNAL_IO_ERROR;
+    for (slot = 0u; slot < 2u; ++slot) {
+        if (s64_dos_file_exists(dos, slot_filename(slot), &exists) != S64_DOS_OK)
+            return S64_SESSION_JOURNAL_IO_ERROR;
+        if (exists) return S64_SESSION_JOURNAL_INVALID;
+    }
+#endif
     return s64_dos_change_dir(dos, S64_SESSION_JOURNAL_STORAGE_PATH)
         == S64_DOS_OK
         ? S64_SESSION_JOURNAL_OK
@@ -241,9 +257,8 @@ S64SessionJournalResult s64_session_journal_store_load(
     S64SessionJournalResult second_result;
 
     if (dos == 0 || journal == 0) return S64_SESSION_JOURNAL_INVALID;
-    if (select_storage(dos) != S64_SESSION_JOURNAL_OK) {
-        return S64_SESSION_JOURNAL_IO_ERROR;
-    }
+    first_result = select_storage(dos);
+    if (first_result != S64_SESSION_JOURNAL_OK) return first_result;
 
     first_result = load_slot(dos, S64_SESSION_JOURNAL_FILENAME_0, &first);
     second_result = load_slot(dos, S64_SESSION_JOURNAL_FILENAME_1, &second);

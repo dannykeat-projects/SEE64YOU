@@ -50,12 +50,16 @@ static S64Editor editor;
 static S64Clipboard clipboard;
 static S64Document document;
 static S64Dos dos;
+#if defined(S64_MANAGED_OVERLAY) && defined(S64_INDEPENDENT_EDITOR)
+static S64Dos journal_dos;
+#endif
 static S64LocalDocument local_document;
 static S64UciCapabilities uci_capabilities;
 static char find_query[SEARCH_TEXT_CAPACITY];
 static unsigned char find_query_valid;
 static clock_t last_recovery_write;
 static unsigned char recovery_error_shown;
+static unsigned char recovery_preserve;
 #if defined(S64_MANAGED_OVERLAY) && !defined(S64_PERSISTENT_RUNTIME_FIT)
 static unsigned char restore_managed_application(void)
 {
@@ -249,6 +253,7 @@ static void defer_recovery_autosave(void)
 
 static void clear_recovery_snapshot(void)
 {
+    recovery_preserve = 0u;
     if (uci_capabilities.dos_target) {
         (void)s64_local_delete_recovery(&local_document);
     }
@@ -260,7 +265,7 @@ static void maybe_autosave(void)
     clock_t now;
     S64LocalResult result;
 
-    if (!editor.dirty || !uci_capabilities.dos_target) {
+    if (!editor.dirty || !uci_capabilities.dos_target || recovery_preserve) {
         return;
     }
 
@@ -296,6 +301,7 @@ static void offer_recovery(void)
     }
 
     if (!s64_ui_prompt_yes_no("Recover autosave? Y/N")) {
+        recovery_preserve = 0u;
         (void)s64_local_delete_recovery(&local_document);
         arm_recovery_autosave();
         s64_ui_render(&editor);
@@ -305,12 +311,13 @@ static void offer_recovery(void)
 
     result = s64_local_open_recovery(&local_document);
     if (result != S64_LOCAL_OK) {
-        (void)s64_local_delete_recovery(&local_document);
+        recovery_preserve = 1u;
         arm_recovery_autosave();
         show_local_result(result);
         return;
     }
 
+    recovery_preserve = 0u;
     s64_editor_document_loaded(&editor);
     editor.dirty = 1u;
     defer_recovery_autosave();
@@ -729,9 +736,15 @@ int main(void)
     if (!s64_code_overlay_bootstrap(&managed_runtime.reu_control,
             1u, S64_PACKAGE_VERSION, s64_code_overlay_linked_lengths,
             (void*)S64_CODE_OVERLAY_ADDRESS, s64_reu_load)) managed_entry_failed(3u);
+#ifdef S64_INDEPENDENT_EDITOR
+    s64_dos_init(&journal_dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
+    if (s64_dos_change_dir(&journal_dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK) managed_entry_failed(4u);
+    if (!s64_managed_editor_adopt(&managed_runtime, &journal_dos, S64_PACKAGE_VERSION)) managed_entry_failed(4u);
+#else
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
     if (s64_dos_change_dir(&dos, S64_SD_ROOT_DIRECTORY) != S64_DOS_OK) managed_entry_failed(4u);
     if (!s64_managed_editor_adopt(&managed_runtime, &dos, S64_PACKAGE_VERSION)) managed_entry_failed(4u);
+#endif
 #ifdef S64_PERSISTENT_RUNTIME_FIT
     restored_handoff = 0u;
 #else
@@ -747,7 +760,18 @@ int main(void)
     s64_editor_init(&editor);
     s64_clipboard_init(&clipboard);
     s64_document_init(&document, &editor.buffer);
+#ifdef S64_INDEPENDENT_EDITOR
+    s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_SECONDARY);
+    if (s64_dos_change_dir(&dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK) {
+        s64_ui_message("Document folder unavailable");
+#ifdef S64_MANAGED_OVERLAY
+        if (!s64_managed_editor_exit(&managed_runtime)) managed_entry_failed(6u);
+#endif
+        return 1;
+    }
+#else
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
+#endif
     s64_local_init(&local_document, &dos, &document);
 #ifdef S64_MANAGED_OVERLAY
     }
