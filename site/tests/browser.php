@@ -39,6 +39,19 @@ s64_browser_render(
 $coloured = ob_get_clean();
 require_browser(str_starts_with($coloured, "SEE64YOU-BROWSE/2\nC\t617\n"), 'v2 C64 colours');
 require_browser(str_contains($coloured, "T\tHello\n"), 'v2 retains text content');
+// A selected custom website theme, not merely global defaults, supplies colours.
+$values = s64_theme_defaults();
+$values['background_color'] = '#000000';
+$values['panel_color'] = '#000000';
+ob_start();
+s64_browser_render(
+    ['site_title' => 'Sample Site', 'theme' => 'custom-test',
+     'custom_themes' => ['custom-test' => ['name' => 'Dark', 'values' => $values]]],
+    [], 'Welcome', '<p>Custom</p>'
+);
+$custom = ob_get_clean();
+require_browser(str_starts_with($custom, "SEE64YOU-BROWSE/2\nC\t017\n"), 'active custom theme colours');
+
 unset($_SERVER['HTTP_ACCEPT']);
 require_browser(s64_browser_requested('text/html, Application/X-See64you-Browser; q=0.5'), 'exact media type is case insensitive');
 require_browser(!s64_browser_requested('application/x-see64you-browser-extra'), 'substring media type rejected');
