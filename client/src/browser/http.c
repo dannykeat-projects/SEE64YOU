@@ -132,7 +132,7 @@ S64BrowserHttpResult s64_browser_http_get(S64NetTransport* network,
         port_text[--digit] = ':';
         if (!send(network, handle, port_text + digit)) goto cleanup;
     }
-    if (!send(network, handle, "\r\nAccept: application/x-see64you-browser\r\nConnection: close\r\n\r\n")) goto cleanup;
+    if (!send(network, handle, "\r\nAccept: application/x-see64you-browser; version=2\r\nConnection: close\r\n\r\n")) goto cleanup;
     while (idle < 512u) {
         if (wait && !wait(wait_context)) { outcome = S64_BROWSER_HTTP_CANCELLED; goto cleanup; }
         received = 0;
