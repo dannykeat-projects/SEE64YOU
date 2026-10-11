@@ -175,11 +175,28 @@ static S64BrowserProtocolResult record(S64BrowserParser* parser)
     uint16_t href_length, i;
     parser->line[parser->length] = 0;
     if (!parser->header_seen) {
-        if (parser->length != sizeof(header) || memcmp(parser->line, header, sizeof(header)))
+        if (parser->length != sizeof(header)
+            || memcmp(parser->line, header, sizeof(header) - 1u)
+            || (parser->line[sizeof(header) - 1u] != '1'
+                && parser->line[sizeof(header) - 1u] != '2'))
             return S64_BROWSER_PROTOCOL_INVALID;
+        parser->version = (uint8_t)(parser->line[sizeof(header) - 1u] - '0');
         parser->header_seen = 1u; return S64_BROWSER_PROTOCOL_OK;
     }
     if (parser->length < 3u || (uint8_t)parser->line[1] != 0x09u)
+        return S64_BROWSER_PROTOCOL_INVALID;
+    if ((uint8_t)parser->line[0] == 0x43u) {
+        if (parser->version != 2u || parser->style_seen || parser->length != 5u)
+            return S64_BROWSER_PROTOCOL_INVALID;
+        for (i = 2u; i < 5u; ++i)
+            if (!((parser->line[i] >= '0' && parser->line[i] <= '9')
+                || (parser->line[i] >= 'A' && parser->line[i] <= 'F')))
+                return S64_BROWSER_PROTOCOL_INVALID;
+        parser->style_seen = 1u;
+        return parser->sink && parser->sink(0x43u, parser->line + 2u, 0, parser->context)
+            ? S64_BROWSER_PROTOCOL_OK : S64_BROWSER_PROTOCOL_CALLBACK_FAILED;
+    }
+    if (parser->version == 2u && !parser->style_seen)
         return S64_BROWSER_PROTOCOL_INVALID;
     separator = strchr(parser->line + 2u, 0x09);
     if ((uint8_t)parser->line[0] == 0x54u) {
@@ -234,7 +251,8 @@ S64BrowserProtocolResult s64_browser_parser_finish(S64BrowserParser* parser)
 {
     if (!parser) return S64_BROWSER_PROTOCOL_INVALID;
     if (parser->result == S64_BROWSER_PROTOCOL_OK
-        && (!parser->header_seen || parser->length || parser->pending_cr))
+        && (!parser->header_seen || (parser->version == 2u && !parser->style_seen)
+            || parser->length || parser->pending_cr))
         parser->result = S64_BROWSER_PROTOCOL_INVALID;
     return parser->result;
 }
