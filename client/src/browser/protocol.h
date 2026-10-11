@@ -28,13 +28,13 @@ S64BrowserProtocolResult s64_browser_url_resolve(
     const S64BrowserUrl* base, const char* link, S64BrowserUrl* url);
 uint8_t s64_browser_url_format(const S64BrowserUrl* url, char* ascii, uint16_t capacity);
 
-/* kind is ASCII 0x54 (text) or 0x4c (link). Pointers expire after callback. */
+/* kind is ASCII T (text), L (link), or C (v2 colour triple). Pointers expire after callback. */
 typedef uint8_t (*S64BrowserRecordSink)(
     uint8_t kind, const char* text, const char* href, void* context);
 typedef struct {
     char line[S64_BROWSER_LINE_CAPACITY];
     uint16_t length;
-    uint8_t header_seen, pending_cr;
+    uint8_t header_seen, pending_cr, version, style_seen;
     S64BrowserProtocolResult result;
     S64BrowserRecordSink sink;
     void* context;
