@@ -21,7 +21,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
     if ($siteTitle === '') {
         $error = 'Site title is required.';
-    } elseif (!in_array($theme, ['plain', 'simple', 'c64'], true)) {
+    } elseif (!in_array($theme, ['plain', 'simple'], true)) {
         $error = 'Invalid theme.';
     } elseif (strlen($password) < 8) {
         $error = 'Password must be at least 8 characters.';
@@ -77,7 +77,7 @@ function h(string $value): string
 <p><label>Site title<br><input name="site_title" value="<?= h((string)($_POST['site_title'] ?? 'My See64You Site')) ?>"></label></p>
 <p><label>Theme<br>
 <select name="theme">
-<?php foreach (['plain' => 'Plain HTML', 'simple' => 'Simple', 'c64' => 'C64'] as $value => $label): ?>
+<?php foreach (['plain' => 'Plain HTML', 'simple' => 'Simple'] as $value => $label): ?>
 <option value="<?= h($value) ?>"<?= (string)($_POST['theme'] ?? 'plain') === $value ? ' selected' : '' ?>><?= h($label) ?></option>
 <?php endforeach; ?>
 </select></label></p>
