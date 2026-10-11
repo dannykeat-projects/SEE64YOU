@@ -26,6 +26,9 @@ static char input[S64_BROWSER_URL_CAPACITY], native_host[96], native_path[224];
 static char href[191];
 static const char* status = "O: open a public See64You URL";
 static uint8_t network_ready, pulse;
+static uint8_t page_background, page_text, page_link;
+static uint8_t next_background, next_text, next_link;
+static uint8_t previous_background, previous_border, previous_text;
 
 static uint8_t transfer(uint8_t write, uint32_t address, void* data, uint16_t length)
 {
@@ -48,6 +51,17 @@ static uint8_t record(uint8_t kind, const char* text, const char* link, void* co
     uint16_t id = 65535u;
     uint8_t column, value;
     (void)context;
+    if (kind == 0x43u) {
+        uint8_t colours[3], i, c;
+        for (i = 0u; i < 3u; ++i) {
+            c = (uint8_t)text[i];
+            colours[i] = c <= '9' ? (uint8_t)(c - '0') : (uint8_t)(c - 'A' + 10u);
+        }
+        next_background = colours[0];
+        next_text = colours[1];
+        next_link = colours[2];
+        return 1u;
+    }
     if (kind == 0x4cu) {
         if (links >= MAX_LINKS) return 0;
         id = links++;
@@ -90,6 +104,7 @@ static void render(void)
 {
     uint16_t index;
     uint8_t y, x;
+    bgcolor(page_background); bordercolor(page_background);
     clrscr(); textcolor(COLOR_WHITE);
     cputs("SEE64YOU PUBLIC BROWSER"); gotoxy(0,1); cputs(status);
     for (y = 0; y < VIEW_ROWS; ++y) {
@@ -99,7 +114,7 @@ static void render(void)
             rows = links = 0; status = "REU read failed; reopen URL"; break;
         }
         gotoxy(0, y + 3u);
-        textcolor(row.link == 65535u ? COLOR_WHITE : COLOR_YELLOW);
+        textcolor(row.link == 65535u ? page_text : page_link);
         revers(index == selected);
         for (x = 0; x < 40u; ++x) cputc(row.text[x]);
         revers(0);
@@ -113,6 +128,7 @@ static void load(void)
 {
     S64BrowserHttpResult result;
     rows = links = top = selected = 0;
+    next_background = COLOR_BLUE; next_text = COLOR_WHITE; next_link = COLOR_YELLOW;
     status = "Connecting... RUN/STOP cancels"; render();
     if (!network_ready) { status = "Ultimate network unavailable"; return; }
     if (!convert(native_host, next.host) || !convert(native_path, next.path)) {
@@ -133,7 +149,9 @@ static void load(void)
         else status = "Invalid/too large browser response";
         return;
     }
-    current = next; status = "Loaded. Yellow text is a link.";
+    current = next;
+    page_background = next_background; page_text = next_text; page_link = next_link;
+    status = "Loaded. Select a link; RETURN.";
 }
 
 static void url_error(S64BrowserProtocolResult result)
@@ -197,6 +215,10 @@ int main(void)
     s64_net_init(&network, s64_uci_execute);
     network_ready = s64_uci_probe_target(3u);
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
+    page_background = COLOR_BLUE; page_text = COLOR_WHITE; page_link = COLOR_YELLOW;
+    previous_background = bgcolor(page_background);
+    previous_border = bordercolor(page_background);
+    previous_text = textcolor(COLOR_WHITE);
     if (s64_settings_store_load(&dos, &settings) == S64_SETTINGS_STORE_OK) {
         for (i = 0; settings.base_url[i]; ++i) {
             if (!s64_charset_native_to_ascii((uint8_t)settings.base_url[i], &ascii)) break;
@@ -223,5 +245,6 @@ int main(void)
         } else if (key == ' ' && top + VIEW_ROWS < rows) { top += VIEW_ROWS; selected = top; }
         else if (key == '-' && top) { top = top > VIEW_ROWS ? top - VIEW_ROWS : 0; selected = top; }
     }
-    clrscr(); return 0;
+    bgcolor(previous_background); bordercolor(previous_border);
+    textcolor(previous_text); clrscr(); return 0;
 }
