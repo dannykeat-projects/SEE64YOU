@@ -12,7 +12,7 @@ declare(strict_types=1);
  */
 return [
     'site_title' => 'My See64You Site',
-    'theme' => 'plain', // plain, simple, c64
+    'theme' => 'plain', // plain, simple (custom themes via themes.php)
     'text_color' => '#b0b0ff',
     'background_color' => '#3e31a2',
     'link_color' => '#ffffff',
