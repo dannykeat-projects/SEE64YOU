@@ -81,7 +81,7 @@ function s64_draft_preview_banner(): string
 function s64_safe_color(mixed $value, string $fallback): string
 {
     $value = (string)$value;
-    return preg_match('/^#[0-9a-f]{6}$/i', $value) ? $value : $fallback;
+    return preg_match('/^#[0-9a-f]{6}$/i', $value) ? s64_theme_nearest_colour($value) : $fallback;
 }
 
 function s64_theme_css(array $config): string
@@ -94,10 +94,10 @@ function s64_theme_css(array $config): string
         return s64_custom_theme_css($config['custom_themes'][$theme]['values']);
     }
 
-    $text = s64_safe_color($config['text_color'] ?? '', '#222222');
-    $background = s64_safe_color($config['background_color'] ?? '', '#ffffff');
-    $link = s64_safe_color($config['link_color'] ?? '', '#0000ee');
-    $visited = s64_safe_color($config['visited_color'] ?? '', '#551a8b');
+    $text = s64_safe_color($config['text_color'] ?? '', '#ffffff');
+    $background = s64_safe_color($config['background_color'] ?? '', '#2e2c9b');
+    $link = s64_safe_color($config['link_color'] ?? '', '#edf171');
+    $visited = s64_safe_color($config['visited_color'] ?? '', '#a9ff9f');
 
     // Old built-in C64 selections use Simple styling without modifying saved configuration.
     return 'body{max-width:48em;margin:2em auto;padding:0 1em;font-family:system-ui,sans-serif;line-height:1.5;'
@@ -130,7 +130,7 @@ function s64_active_theme_values(array $config): ?array
         return null;
     }
     try {
-        return s64_validate_theme($config['custom_themes'][$theme]['values']);
+        return s64_validate_theme(s64_theme_palette_values($config['custom_themes'][$theme]['values']));
     } catch (InvalidArgumentException) {
         return null;
     }
