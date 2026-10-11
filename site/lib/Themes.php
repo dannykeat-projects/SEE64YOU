@@ -1,6 +1,52 @@
 <?php
 declare(strict_types=1);
 
+// Commodore 64 VIC-II colour indices, represented by approximate web RGB values.
+function s64_theme_palette(): array
+{
+    return [
+        '#000000' => 'Black', '#ffffff' => 'White',
+        '#813338' => 'Red', '#75cec8' => 'Cyan',
+        '#8e3c97' => 'Purple', '#56ac4d' => 'Green',
+        '#2e2c9b' => 'Blue', '#edf171' => 'Yellow',
+        '#8e5029' => 'Orange', '#553800' => 'Brown',
+        '#c46c71' => 'Pink', '#4a4a4a' => 'Dark grey',
+        '#7b7b7b' => 'Grey', '#a9ff9f' => 'Light green',
+        '#706deb' => 'Light blue', '#b2b2b2' => 'Light grey',
+    ];
+}
+
+// Legacy colours remain stored unchanged; rendering maps them to the nearest
+// C64 shade without rewriting the user's saved theme or configuration.
+function s64_theme_nearest_colour(string $hex): string
+{
+    $hex = strtolower($hex);
+    $palette = s64_theme_palette();
+    if (isset($palette[$hex])) return $hex;
+    if (!preg_match('/^#[0-9a-f]{6}$/', $hex)) return '#ffffff';
+    $rgb = [hexdec(substr($hex, 1, 2)), hexdec(substr($hex, 3, 2)), hexdec(substr($hex, 5, 2))];
+    $best = '#ffffff';
+    $score = PHP_INT_MAX;
+    foreach ($palette as $colour => $label) {
+        $distance = 0;
+        foreach ([1, 3, 5] as $i => $offset) {
+            $diff = $rgb[$i] - hexdec(substr($colour, $offset, 2));
+            $distance += $diff * $diff;
+        }
+        if ($distance < $score) { $score = $distance; $best = $colour; }
+    }
+    return $best;
+}
+
+function s64_theme_palette_values(array $values): array
+{
+    foreach (s64_theme_fields() as $key => $field) {
+        if ($field[0] === 'color' && isset($values[$key]) && is_string($values[$key]))
+            $values[$key] = s64_theme_nearest_colour($values[$key]);
+    }
+    return $values;
+}
+
 // One schema drives validation and the ordinary HTML editor.
 function s64_theme_fields(): array
 {
@@ -38,10 +84,10 @@ function s64_theme_field_groups(): array
 function s64_theme_defaults(array $config = []): array
 {
     $values = [
-        'text_color' => '#b0b0ff', 'background_color' => '#3e31a2', 'link_color' => '#ffffff', 'visited_color' => '#e49aff',
-        'heading_color' => '#ffffff', 'border_color' => '#b0b0ff', 'panel_color' => '#3e31a2',
-        'menu_color' => '#3e31a2', 'menu_text_color' => '#ffffff', 'input_color' => '#ffffff', 'input_text_color' => '#000000',
-        'button_color' => '#b0b0ff', 'button_text_color' => '#000000', 'font' => 'monospace', 'font_size' => '16',
+        'text_color' => '#ffffff', 'background_color' => '#2e2c9b', 'link_color' => '#edf171', 'visited_color' => '#a9ff9f',
+        'heading_color' => '#ffffff', 'border_color' => '#ffffff', 'panel_color' => '#2e2c9b',
+        'menu_color' => '#2e2c9b', 'menu_text_color' => '#ffffff', 'input_color' => '#ffffff', 'input_text_color' => '#000000',
+        'button_color' => '#ffffff', 'button_text_color' => '#000000', 'font' => 'monospace', 'font_size' => '16',
         'content_width' => '40', 'page_margin' => '16', 'padding' => '16', 'panel_padding' => '16',
         'paragraph_spacing' => '16', 'letter_spacing' => '0', 'border_width' => '1', 'corner_radius' => '0',
         'menu_padding' => '8', 'control_padding' => '4', 'line_height' => '1.5', 'border_style' => 'solid',
@@ -51,7 +97,7 @@ function s64_theme_defaults(array $config = []): array
     ];
     foreach (['text_color', 'background_color', 'link_color', 'visited_color'] as $key) {
         if (isset($config[$key]) && is_string($config[$key]) && preg_match('/^#[0-9a-f]{6}$/i', $config[$key])) {
-            $values[$key] = strtolower($config[$key]);
+            $values[$key] = s64_theme_nearest_colour($config[$key]);
         }
     }
     $values['panel_color'] = $values['menu_color'] = $values['background_color'];
@@ -69,7 +115,7 @@ function s64_validate_theme(array $input, array $defaults = []): array
         if (!is_scalar($raw)) throw new InvalidArgumentException('invalid_' . $key);
         $value = trim((string)$raw);
         $valid = match ($field[0]) {
-            'color' => preg_match('/^#[0-9a-f]{6}$/i', $value) === 1,
+            'color' => isset(s64_theme_palette()[strtolower($value)]),
             'number' => preg_match('/^[0-9]{1,3}$/', $value) === 1 && (int)$value >= $field[2] && (int)$value <= $field[3],
             'choice' => in_array($value, $field[2], true),
             'text' => strlen($value) <= $field[2],
@@ -100,7 +146,7 @@ function s64_contrast_ratio(string $first, string $second): float
 function s64_custom_theme_css(array $input): string
 {
     // Revalidate at rendering too: never interpolate raw configuration into CSS.
-    try { $v = s64_validate_theme($input); } catch (InvalidArgumentException) { $v = s64_theme_defaults(); }
+    try { $v = s64_validate_theme(s64_theme_palette_values($input)); } catch (InvalidArgumentException) { $v = s64_theme_defaults(); }
     $fonts = [
         'c64' => '"See64You C64","Courier New",Courier,monospace',
         'monospace' => '"Courier New",Courier,monospace',
