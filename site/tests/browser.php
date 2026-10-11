@@ -28,6 +28,17 @@ ob_start();
 s64_render_layout(['site_title' => 'Sample Site', 'theme' => 'plain'], [], 'Welcome', '<p>Hello</p>');
 $rejected = ob_get_clean();
 require_browser(!str_starts_with($rejected, "SEE64YOU-BROWSE/1\n"), 'explicitly rejected browser format uses HTML');
+$_SERVER['HTTP_ACCEPT'] = 'application/x-see64you-browser; version=2';
+ob_start();
+s64_browser_render(
+    ['site_title' => 'Sample Site', 'theme' => 'simple',
+     'background_color' => '#2e2c9b', 'text_color' => '#ffffff',
+     'link_color' => '#edf171', 'visited_color' => '#a9ff9f'],
+    [], 'Welcome', '<p>Hello</p>'
+);
+$coloured = ob_get_clean();
+require_browser(str_starts_with($coloured, "SEE64YOU-BROWSE/2\nC\t617\n"), 'v2 C64 colours');
+require_browser(str_contains($coloured, "T\tHello\n"), 'v2 retains text content');
 unset($_SERVER['HTTP_ACCEPT']);
 require_browser(s64_browser_requested('text/html, Application/X-See64you-Browser; q=0.5'), 'exact media type is case insensitive');
 require_browser(!s64_browser_requested('application/x-see64you-browser-extra'), 'substring media type rejected');
