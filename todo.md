@@ -2,7 +2,29 @@
 
 **Only live work queue.** Reprioritised 2026-10-09 following the user-directed decision to use three independently launched, file-based C64U programs. The previous single-owner persistent-runtime MVP is superseded. Earlier code and measurements are evidence only, not the new deliverable.
 
-## MVP contract
+## Current scope
+
+User scope expanded 2026-10-11: include a separately launched, read-only C64U
+browser for published sites. USB keyboard acceptance is deferred indefinitely
+at the user's request. Preserve the established three-program file workflow.
+
+## Browser and cleanup (2026-10-11)
+
+- [x] Integrate the public browser backend from `feature/c64u-public-browser`
+  (original commit `558a5e3`). It contains only website wire rendering, not a C64
+  executable. Reproduce/fix unreadable whitespace and rejected/mismatched Accept
+  negotiation; focused PHP, existing site/theme and actual HTTP tests pass.
+- [ ] Implement/build the independent C64U browser client, then validate published
+  page/post reading, link navigation, wait/error feedback, resource cleanup and
+  BASIC return with host/VICE/real-C64U checks. No browser PRG is claimed yet.
+- [x] Remove 20 obsolete generated CI/validation trees (about 49.5 MiB before
+  retained receipts). Archive logs/JSON/document fixtures under local ignored
+  `client/build/receipts-archive/`; current packages, ROMs, hardware backups and
+  recovery evidence remain. All ten current C64 package files still match the
+  accepted ZIP. Permanent SD-root cleanup still waits
+  for complete folder containment and verified migration.
+
+## MVP file workflow contract
 
 Editor saves/reopens canonical `.s64` source on SD and exits to BASIC. Publisher launches afresh, selects a local `.s64`, publishes/updates, and downloads remote content to a new `.s64`; it then exits to BASIC. Settings launches independently, loads/validates/saves `/sd/SEE64YOU/SEE64YOU.CFG` and exits to BASIC. No document, history, clipboard or session transfer between programs. C64 Ultimate-only with 16 MiB REU, Ultimate-DOS $01 and network $03 for direct publishing. Preserve direct challenge/HMAC auth, explicit plaintext HTTP consent, filesystem safety and machine restoration.
 

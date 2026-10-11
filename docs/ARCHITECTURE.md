@@ -4,6 +4,17 @@ See64You is a **C64 Ultimate-native** editor and publishing environment. It reta
 
 Ordinary-C64 compatibility is retired as a product requirement.
 
+## Public browser scope (2026-10-11)
+
+The user has added a separately launched, read-only C64U browser to scope.
+The existing browser branch contributes only a website renderer, not an executable.
+Public layout routes negotiate `application/x-see64you-browser` explicitly;
+an exact media type with positive quality enables `SEE64YOU-BROWSE/1`.
+Records are ASCII `T\ttext` or `L\thref\tlabel`, one per line; text is split
+at 100 characters, link URLs capped at 190 and labels at 58. Published navigation
+is included; draft navigation is excluded. Normal requests remain HTML.
+The C64U client, URL/link handling and hardware acceptance remain pending.
+
 ## Current migration boundary (2026-10-09)
 
 The chosen MVP consists of three independently launched PRGs. Editor saves and

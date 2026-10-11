@@ -4,6 +4,17 @@ This file contains the **current** reproducible validation path for the C64 Ulti
 
 The authoritative outstanding-work queue is todo.md.
 
+## Public browser backend
+
+Run `php site/tests/browser.php`, `php site/tests/run.php`,
+`php site/tests/themes.php` and `sh site/tests/http.sh` from the repository root
+(shell scripts require LF line endings in WSL). These pass for the integrated
+website wire renderer, including ASCII whitespace, published navigation, entity
+decoding, exact Accept negotiation, default HTML and missing-document 404.
+The HTTP suite creates and removes an isolated temporary site; it does not
+change the running localhost configuration. There is no C64 browser PRG to test
+yet; C64U/VICE browser-client acceptance remains unverified. USB is user-deferred.
+
 ## White Editor text (2026-10-11)
 
 The Editor now uses white text on black. Rebuild with `make -C client

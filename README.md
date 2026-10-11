@@ -8,6 +8,12 @@ See64You is **not** an original-C64 compatibility project. Ordinary-C64 memory l
 
 ## Current priority: usable MVP
 
+The public C64U site browser is now included in the requested scope. Its website
+format is implemented and tested: send `Accept: application/x-see64you-browser`
+to public index/page/post/archive routes to receive `SEE64YOU-BROWSE/1` text/link
+records. Ordinary requests still receive HTML. **The independently launched C64U
+browser executable has not been implemented yet.**
+
 The complete current application is not yet accepted end to end on hardware.
 The immediate target is **three independently launched, file-based programs**: save a
 canonical `.s64` in Editor, exit and open that file in Publisher, then publish or

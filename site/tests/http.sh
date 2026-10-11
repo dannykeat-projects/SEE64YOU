@@ -334,4 +334,14 @@ curl -fsS -b "$JAR" -d "csrf=$CSRF&action=logout" "$BASE/themes.php" | grep -q '
 CODE=$(curl -sS -b "$JAR" -o /dev/null -w '%{http_code}' -d "csrf=$CSRF&action=select&id=c64" "$BASE/themes.php")
 [ "$CODE" = "403" ]
 
-echo "HTTP API and browser theme tests passed"
+# Public text/link format preserves ordinary HTML and missing-page status.
+curl -fsS -D "$TMP/browser-headers" -H 'Accept: application/x-see64you-browser' "$BASE/index.php" > "$TMP/browser-body"
+grep -qi 'Content-Type: application/x-see64you-browser' "$TMP/browser-headers"
+grep -q '^SEE64YOU-BROWSE/1$' "$TMP/browser-body"
+curl -fsS -H 'Accept: application/x-see64you-browser;q=0, text/html' "$BASE/index.php" | grep -qi '<!doctype html>'
+curl -fsS -H 'Accept: application/x-see64you-browser-extra' "$BASE/index.php" | grep -qi '<!doctype html>'
+curl -fsS -H 'Accept: application/x-see64you-browser' "$BASE/posts.php" | grep -q '^SEE64YOU-BROWSE/1$'
+CODE=$(curl -sS -H 'Accept: application/x-see64you-browser' -o /dev/null -w '%{http_code}' "$BASE/post.php?slug=api-test")
+[ "$CODE" = "404" ]
+
+echo "HTTP API, browser format and browser theme tests passed"

@@ -145,9 +145,25 @@ function s64_active_theme_values(array $config): ?array
     }
 }
 
+function s64_browser_requested(string $accept): bool
+{
+    foreach (explode(',', $accept) as $entry) {
+        $parts = explode(';', $entry);
+        if (strtolower(trim(array_shift($parts))) !== 'application/x-see64you-browser') continue;
+        $quality = 1.0;
+        foreach ($parts as $part) {
+            if (!preg_match('/^q\s*=/i', trim($part))) continue;
+            if (!preg_match('/^q\s*=\s*([01](?:\.\d{0,3})?)$/i', trim($part), $match)) return false;
+            $quality = (float)$match[1];
+        }
+        return $quality > 0.0 && $quality <= 1.0;
+    }
+    return false;
+}
+
 function s64_render_layout(array $config, array $pages, string $title, string $content): void
 {
-    if (str_contains((string)($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/x-see64you-browser')) {
+    if (s64_browser_requested((string)($_SERVER['HTTP_ACCEPT'] ?? ''))) {
         require_once __DIR__ . '/Browser.php';
         s64_browser_render($config, $pages, $title, $content);
         return;

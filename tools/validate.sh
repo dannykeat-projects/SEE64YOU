@@ -12,6 +12,7 @@ done
 
 echo "== Standalone backend tests =="
 php site/tests/run.php
+php site/tests/browser.php
 
 echo "== Standalone package tests =="
 php tools/tests/package_site_test.php

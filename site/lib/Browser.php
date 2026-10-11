@@ -9,8 +9,8 @@ function s64_browser_ascii(string $value): string
         $converted = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
         if ($converted !== false) $value = $converted;
     }
-    $value = preg_replace('/[^\x20-\x7E]/', '?', $value) ?? '';
-    return preg_replace('/\s+/', ' ', $value) ?? '';
+    $value = preg_replace('/\s+/', ' ', $value) ?? '';
+    return preg_replace('/[^\x20-\x7E]/', '?', $value) ?? '';
 }
 
 function s64_browser_text(string $value): void
