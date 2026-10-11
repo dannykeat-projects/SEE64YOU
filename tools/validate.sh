@@ -212,7 +212,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src \
     client/src/platform/dos.c -o "$TMP_BIN"
 "$TMP_BIN"
 
-echo "== Host Settings journal migration staging tests =="
+echo "== Host Settings journal staging/retirement tests =="
 cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
     client/tests/journal_migration_test.c client/src/platform/journal_migration.c \
     client/src/platform/session_journal.c client/src/platform/session_journal_start.c \

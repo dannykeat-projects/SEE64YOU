@@ -77,9 +77,15 @@ where startup recovery already belongs; Editor continues ordinary folder journal
 I/O without repeating migration arbitration. Its complete package fits with
 1,025 B Launcher headroom and a 15,318/15,360 B runtime overlay. This suggests
 Settings can own the one-time two-directory migration within the existing three
-programs. Migration, recovery and refusal guidance are not implemented or tested;
+programs. Product migration, recovery and refusal guidance are not integrated;
 the experiment was reverted. One byte above the Launcher guard leaves further
 folder/preflight changes unproven, so this is not an accepted candidate.
+
+A subsequent fit experiment reuses the existing relative slot filename lookup
+after selecting root and moves preflight probes into the folder. The complete
+package and both manifests pass with Launcher 1,035 B free and the same runtime
+overlay size. Both changes are reverted; eleven bytes above the guard remains
+size evidence, not integrated containment or refusal-UI acceptance.
 
 `platform/journal_migration.*` now provides the Settings-owned staging service.
 It inspects both stores using the existing journal decoder, requires restore and
@@ -89,7 +95,9 @@ only if that store is absent. Existing folder state has independent sequencing
 and is preserved. Concurrent ACTIVE records, unreadable/wholly corrupt stores,
 equal-sequence conflicts and sequence wrap block staging. A valid peer still
 survives a torn slot. Root slots and failed folder writes are never deleted.
-This service is host-tested and fits alongside Settings, but is deliberately
+This service is host-tested, fits alongside Settings and passes six disposable
+real-C64U staging/recovery cases, including restoring changed turbo 15 to the
+recorded 0 before CLEAN. It is deliberately
 not invoked by product startup until refusal guidance, backup/retirement and
 the remaining document/preflight containment are integrated and validated.
 
@@ -100,7 +108,8 @@ Existing different backups block; oversized peers remain for diagnosis. Before
 deleting anything it rechecks canonical journal ownership and original bytes.
 It removes the older root slot first, newest CLEAN last, verifying each removal;
 interruption therefore leaves CLEAN authoritative for retry. This component is
-host-tested but not called by the product. Actual root cleanup remains gated on
+host-tested and exercised on disposable real-C64U fixtures, but not called by
+the product. Actual root cleanup remains gated on
 the complete containment transition and hardware acceptance.
 
 The independent package already installs executables, assets and canonical settings in `/sd/SEE64YOU/`. New canonical documents, download saves, `SEE64YOU.REC` autosave, alternating `S64JRN0.DAT`/`S64JRN1.DAT` journals and transient preflight probes must also be contained there. Do not move or delete legacy root files as a startup side effect. File format, slot wire format, strict new-only remote download, temporary-file recovery and overwrite confirmation remain unchanged.

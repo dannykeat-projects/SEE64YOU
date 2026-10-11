@@ -73,10 +73,40 @@ retained for retry. This is a separate service, not automatic product cleanup.
 `build/journal-migration-check.prg` stages supplied fixtures without seeding.
 They report success/refusal at `$C040`, journal result at `$C041`, and entry/exit
 turbo at `$C042`/`$C043`, then return to BASIC. These diagnostics do not invoke
-retirement. Run only on backed-up disposable journals after preserving machine
-state, then restore every original file and setting exactly. Compilation passes;
-physical execution is unverified and paused at the user's request. The readiness
-check found a BASIC game listing and stopped before any file upload or mutation.
+retirement. `build/journal-migration-retire.prg` invokes the separate retirement
+service on supplied CLEAN fixtures. Run only on backed-up disposable journals
+after preserving machine state, then restore every original file and setting
+exactly. Physical component acceptance resumed after user availability
+confirmation: six staging/recovery and seven retirement cases pass on real C64U, with
+original file hashes, BASIC numeric execution, IRQ, drives and live turbo 0
+verified after restoration. One recovery case enters with turbo 15 and restores
+the journal's recorded 0 before committing CLEAN. Product migration is still
+unverified. Latest receipt: `client/build/hardware-journal-changed-turbo-20261011/state.json`
+(13 cases, `passed=true`, `restored=true`); backups and raw screens are local
+ignored evidence, not release files.
+
+Reproduce the combined gate from the repository root with an empty BASIC program
+and no other hardware use:
+
+```sh
+make -C client journal-migration-probe
+python3 tools/test_journal_migration_c64u.py --host C64U_IP --output client/build/NEW-journal-receipt
+```
+
+The output directory must be new. The tool checks BASIC program emptiness before
+mutation and retains exact backups of both directories' journals, the temporary
+diagnostic PRG and any existing `S64OLD*.DAT`. A failed FTP read is considered
+missing only when a directory listing confirms absence. If a diagnostic stalls
+or exit checks fail, its receipt/backups remain and automatic file restoration
+is suppressed while execution may still be active; diagnose/recover before
+touching these files. This gate tests components using REST keyboard input;
+physical keyboard, power interruption and integrated folder startup are separate.
+
+The later relative-name Launcher refusal plus folder-preflight fit experiment
+passes the complete package, both manifests and unchanged guards with 1,035 B
+Launcher headroom. Its sources were reverted and all ten restored product files
+match the accepted white-text ZIP. Eleven spare bytes do not prove integrated
+refusal UI/document containment.
 
 Before source edits, record baseline root-file behaviour and verify backup hashes for legacy `.s64`, `SEE64YOU.REC` and both `S64JRN*.DAT`. Use disposable SD files only. Trace root writes and DOS-context changes with `rg -n 'S64_SD_ROOT_DIRECTORY|S64_SESSION_JOURNAL_STORAGE_PATH|S64_PREFLIGHT_STORAGE_PATH|change_dir|S64JRN|SEE64YOU.REC|S64CHK' client/src`.
 

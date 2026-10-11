@@ -418,6 +418,7 @@ journal-migration-probe:
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -o build/journal-migration-probe.prg diagnostics/journal_migration_probe.c src/platform/journal_migration.c src/platform/session_journal.c src/platform/session_journal_start.c src/platform/dos.c src/platform/dos_file.c src/platform/uci.c src/platform/turbo.c src/platform/turbo_capture.c src/charset.c
 	$(CL65) $(CFLAGS) -DS64_MIGRATION_PROBE_SEED=0 -o build/journal-migration-check.prg diagnostics/journal_migration_probe.c src/platform/journal_migration.c src/platform/session_journal.c src/platform/session_journal_start.c src/platform/dos.c src/platform/dos_file.c src/platform/uci.c src/platform/turbo.c src/platform/turbo_capture.c src/charset.c
+	$(CL65) $(CFLAGS) -DS64_MIGRATION_PROBE_SEED=0 -DS64_MIGRATION_PROBE_RETIRE=1 -o build/journal-migration-retire.prg diagnostics/journal_migration_probe.c src/platform/journal_migration.c src/platform/session_journal.c src/platform/session_journal_start.c src/platform/dos.c src/platform/dos_file.c src/platform/uci.c src/platform/turbo.c src/platform/turbo_capture.c src/charset.c
 
 $(INDEPENDENT_SETTINGS_TARGET): $(filter-out src/platform/chain.s,$(SETTINGS_SOURCES)) src/platform/basic_workspace_reset.s
 	@mkdir -p build/independent

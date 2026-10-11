@@ -7,11 +7,15 @@
 
 /* Disposable, backed-up journal fixture only. Never run on user journals.
  * Default seeds root ACTIVE with the actual entry turbo byte. SEED=0 instead
- * stages the supplied files, for collision/refusal checks. Result at $C040:
+ * stages the supplied files, for collision/refusal checks. RETIRE=1 instead
+ * retires supplied CLEAN fixtures, keeping verified S64OLD backups. $C040:
  * $A5 = success, $5A = refusal, $C041 = journal result; $C042/$C043 = turbo.
  * Returns to BASIC. The external harness owns backup and exact SD restoration. */
 #ifndef S64_MIGRATION_PROBE_SEED
 #define S64_MIGRATION_PROBE_SEED 1
+#endif
+#ifndef S64_MIGRATION_PROBE_RETIRE
+#define S64_MIGRATION_PROBE_RETIRE 0
 #endif
 #define REPORT ((volatile uint8_t*)0xC040u)
 
@@ -48,7 +52,11 @@ int main(void)
         return 1;
     }
 #endif
+#if S64_MIGRATION_PROBE_RETIRE
+    result = s64_journal_migration_retire(&dos);
+#else
     result = s64_journal_migration_stage(&dos, &backend);
+#endif
     REPORT[1] = (uint8_t)result;
     REPORT[3] = turbo.read(turbo.io_context);
     REPORT[0] = result == S64_SESSION_JOURNAL_OK ? 0xA5u : 0x5Au;
