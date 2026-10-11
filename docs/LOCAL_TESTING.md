@@ -1459,9 +1459,9 @@ Run `php site/tests/themes.php` for custom-theme lifecycle, validation/injection
 
 Theme UI checklist (use a disposable configured site):
 
-1. Open Themes, test wrong/correct site password, then create a C64 copy. Change name, website title, title/menu/header-line visibility, boxed/open content layout, font, colours, spacing, border and menu layout; preview must not change the public site until saved/selected. For stacked navigation, links must appear one per line without stray pipe separators.
+1. Open Themes, test wrong/correct site password, then create a custom theme from Simple (the C64 font remains an optional font choice). Change name, website title, title/menu/header-line visibility, boxed/open content layout, font, colours, spacing, border and menu layout; preview must not change the public site until saved/selected. For stacked navigation, links must appear one per line without stray pipe separators.
 2. Save/reopen, rename and duplicate; select the copy and check Home/Page/Posts. Delete an inactive copy, then the active copy: only active deletion returns to Plain. Built-ins remain selectable.
-3. Preview C64 text, punctuation, numbers, menu/input/button colours and keyboard focus. Block `assets/fonts/c64.ttf`: readable Courier/monospace must remain. Compare glyph appearance with a C64 screen; exact glyph/metrics acceptance remains manual.
+3. Preview C64-font text, punctuation, numbers, menu/input/button colours and keyboard focus. Block `assets/fonts/c64.ttf`: readable Courier/monospace must remain. Compare glyph appearance with a C64 screen; exact glyph/metrics acceptance remains manual.
 4. Disable JavaScript before login and repeat create/preview/save/select/delete. Test rejected CSS-like values/low contrast; saved theme remains intact and entered form values remain available.
 5. At 390px wide check labels, fields, menu, sample text and public content. Use keyboard-only navigation and verify readable focus.
 6. On an available legacy browser, check GET/POST forms with CSS/font enhancements ignored. Alternatively document a fallback run with CSS and webfont loading disabled: Plain, login and all actions remain usable. This fallback does not certify a specific historic browser/TLS implementation.
@@ -1473,7 +1473,7 @@ When site-facing code changes, manually confirm:
 - page/post draft/publish;
 - signed draft preview;
 - listings/archives;
-- plain/simple/C64 themes;
+- plain/simple built-in themes and saved custom themes;
 - keyboard readability;
 - generated upload package.
 
