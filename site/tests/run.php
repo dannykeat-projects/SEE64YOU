@@ -320,8 +320,8 @@ try {
         'theme' => 'simple',
         'text_color' => '#ffffff',
         'background_color' => '#000000',
-        'link_color' => '#00ffff',
-        'visited_color' => '#ffccff',
+        'link_color' => '#75cec8',
+        'visited_color' => '#a9ff9f',
     ]);
     check($visible['site_title'] === 'New title', 'settings title updates');
     check($visible['theme'] === 'simple', 'settings theme updates');
@@ -335,10 +335,10 @@ try {
     try {
         $settings->update([
             'theme' => 'simple',
-            'text_color' => '#777777',
-            'background_color' => '#777777',
-            'link_color' => '#777777',
-            'visited_color' => '#777777',
+            'text_color' => '#7b7b7b',
+            'background_color' => '#7b7b7b',
+            'link_color' => '#7b7b7b',
+            'visited_color' => '#7b7b7b',
         ]);
     } catch (InvalidArgumentException $exception) {
         $contrastRejected = $exception->getMessage() === 'insufficient_contrast';
