@@ -103,10 +103,12 @@ ob_start();
 ?>
 <?php foreach (s64_theme_field_groups() as $group => $keys): ?>
 <fieldset><legend><strong><?= theme_h($group) ?></strong></legend>
-<?php if ($group === 'Colours'): ?><p>Use six-digit colours such as #ffffff. Readability is checked before saving.</p><?php endif; ?>
+<?php if ($group === 'Colours'): ?><p>Choose from the 16 Commodore 64 colours. Readability is checked before saving.</p><?php endif; ?>
 <?php foreach ($keys as $key): $field = $fields[$key]; ?>
 <p><label><?= theme_h($field[1]) ?><br>
-<?php if ($field[0] === 'choice'): ?><select name="<?= theme_h($key) ?>">
+<?php if ($field[0] === 'color'): ?><select name="<?= theme_h($key) ?>">
+<?php foreach (s64_theme_palette() as $hex => $label): ?><option value="<?= $hex ?>"<?= s64_theme_nearest_colour((string)$values[$key]) === $hex ? ' selected' : '' ?>><?= theme_h($label) ?> (<?= $hex ?>)</option><?php endforeach; ?></select>
+<?php elseif ($field[0] === 'choice'): ?><select name="<?= theme_h($key) ?>">
 <?php foreach ($field[2] as $choice): ?><option value="<?= theme_h($choice) ?>"<?= $values[$key] === $choice ? ' selected' : '' ?>><?= theme_h($choiceLabels[$choice] ?? ucfirst($choice)) ?></option><?php endforeach; ?></select>
 <?php else: ?><input type="text" size="<?= $field[0] === 'text' ? '28' : '12' ?>" name="<?= theme_h($key) ?>" value="<?= theme_h((string)$values[$key]) ?>"<?= $field[0] === 'text' ? ' maxlength="' . (int)$field[2] . '"' : '' ?>> <?= $field[0] === 'number' ? '(' . $field[2] . '–' . $field[3] . ')' : '' ?><?php endif; ?>
 </label></p>
