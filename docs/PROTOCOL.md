@@ -109,6 +109,15 @@ Protected. Editable public settings include site title/theme/colours.
 
 Styled themes enforce readable contrast.
 
+Website colour controls accept only the 16 canonical C64 palette RGB values. Existing saved colours are preserved and approximated to the palette when displayed; new settings must use a listed palette value. Custom fonts, layout and user-saved themes remain independent of this restriction.
+
+### Public C64U browser colours
+
+The public browser still uses unauthenticated, read-only HTTP. The original client sends `Accept: application/x-see64you-browser` and receives `SEE64YOU-BROWSE/1` followed by ordinary `T` and `L` records.
+
+Colour-aware clients request `Accept: application/x-see64you-browser; version=2`. The server replies with `SEE64YOU-BROWSE/2` and a mandatory first record `C\\t617` (example: blue background, white text, yellow links), followed by the same `T` and `L` records. The three uppercase hexadecimal digits are C64 colour indices (0-F) in background/text/link order. A new client accepts legacy v1 output from older servers with its default colours. Existing clients keep v1 output from upgraded servers. A v2 colour record must occur exactly once, immediately after the header. No document or font markup is added to the browser protocol, and no credentials are sent.
+
+
 ### List
 
 GET api.php?action=list&type=page
