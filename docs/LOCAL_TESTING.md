@@ -1458,6 +1458,9 @@ On a fresh configuration:
 Run `php site/tests/themes.php` for custom-theme lifecycle, validation/injection rejection, preview non-persistence, secret preservation and built-in protection; this is also included by `site/tests/run.php`.
 
 Theme UI checklist (use a disposable configured site):
+- The theme's colour fields offer exactly 16 named C64 swatches; arbitrary hex submissions are rejected without altering saved themes. Verify text/link/visited contrast, font/layout persistence, and the old C64 built-in theme is not selectable.
+- Over HTTP, compare `Accept: application/x-see64you-browser` (v1 without colour) and `Accept: application/x-see64you-browser; version=2` (v2 colour triple). Confirm colours after changing site themes and following a link to another site, default colours on v1 sites, and previous screen colours restored after RUN/STOP on the C64U. Source implementation is **not** hardware acceptance.
+
 
 1. Open Themes, test wrong/correct site password, then create a custom theme from Simple (the C64 font remains an optional font choice). Change name, website title, title/menu/header-line visibility, boxed/open content layout, font, colours, spacing, border and menu layout; preview must not change the public site until saved/selected. For stacked navigation, links must appear one per line without stray pipe separators.
 2. Save/reopen, rename and duplicate; select the copy and check Home/Page/Posts. Delete an inactive copy, then the active copy: only active deletion returns to Plain. Built-ins remain selectable.
