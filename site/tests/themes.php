@@ -11,6 +11,9 @@ $config = s64_default_config();
 $config['direct_secret'] = 'preserve';
 try {
     $settings = new S64Settings($path, $config);
+    theme_check(count(s64_theme_palette()) === 16, 'only 16 C64 colours');
+    theme_check(s64_theme_nearest_colour('#2e2c9b') === '#2e2c9b', 'palette identity');
+    theme_check(s64_theme_nearest_colour('#3e31a2') === '#2e2c9b', 'old blue maps to C64 blue');
     $preview = $settings->themeAction('preview', 'simple', ['name' => 'Preview', 'font' => 'c64']);
     theme_check(!file_exists($path), 'preview must not write');
     theme_check(str_contains(s64_theme_css($preview), 'assets/fonts/c64.ttf'), 'local C64 font');
