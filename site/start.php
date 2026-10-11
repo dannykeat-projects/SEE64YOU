@@ -25,7 +25,7 @@ $titles = [1 => 'Prepare your C64U', 'Create your website', 'Pair and save setti
 <li>Back up an existing installation, configuration and source files. Copy every file from the independent client package into <code>/sd/SEE64YOU/</code>, keeping matching assets together.</li>
 <li>In the Ultimate menu, enable the Ultimate Command Interface. Under C64 and Cartridge Settings, set RAM Expansion Unit to Enabled and REU Size to 16 MB.</li>
 <li>Connect the C64U to your network. The website must be reachable from the C64U; localhost refers to the machine opening it, so use a reachable hostname or computer IP address.</li>
-<li>Launch <code>SEE64YOU.PRG</code> for Editor, <code>S64CFG.PRG</code> for Settings and <code>S64PUB.PRG</code> for Publisher separately. Other PRGs/BIN files are internal assets. Each program returns to BASIC.</li>
+<li>Launch <code>SEE64YOU.PRG</code> for Editor, <code>S64CFG.PRG</code> for Settings, <code>S64PUB.PRG</code> for Publisher, or <code>S64WEB.PRG</code> for the optional public-site browser. These are separate programs; <code>S64EDIT.PRG</code> and the BIN files are internal Editor assets. Each program returns to BASIC.</li>
 </ol>
 <p>You can write and save offline, then complete publishing setup later. If the Editor prerequisite screen appears, follow its instruction and press R to recheck.</p>
 <?php elseif ($step === 2): ?>
@@ -47,7 +47,7 @@ $titles = [1 => 'Prepare your C64U', 'Create your website', 'Pair and save setti
 <h2>Write and save your source</h2>
 <ol>
 <li>Launch <code>SEE64YOU.PRG</code>. Choose a new document (Ctrl+N), resolving any unsaved/recovered content first.</li>
-<li>Type a short first <?= $kind ?>. Press Ctrl+S, enter a new name such as <code>FIRST.S64</code>, and Return. Wait for saving to finish. Local source files live at the SD root. The first filename supplies the initial title and slug.</li>
+<li>Type a short first <?= $kind ?>. Press Ctrl+S, enter a new name such as <code>FIRST.S64</code>, and Return. Wait for saving to finish. New source files default to <code>/sd/SEE64YOU/</code>. The first filename supplies the initial title and slug.</li>
 <li>Press RUN/STOP to return to BASIC. If prompted, S saves, D discards, STOP cancels exit. Open the saved file with Ctrl+O if you want to check it before publishing.</li>
 </ol>
 <p>The <code>.s64</code> file is your editable original. Keep it backed up. No live document transfers between Editor and Publisher.</p>
@@ -64,6 +64,7 @@ $titles = [1 => 'Prepare your C64U', 'Create your website', 'Pair and save setti
 <?php else: ?>
 <h2>Check your published <?= $kind ?></h2>
 <p>Open <a href="<?= $kind === 'post' ? 'posts.php' : 'index.php' ?>"><?= $kind === 'post' ? 'the post archive' : 'the website' ?></a>, follow your document's link and confirm the text matches. “Document published” plus the visible matching page completes this walkthrough. Next/step navigation alone is not proof of publication.</p>
+<p>Optional C64U check: launch <code>S64WEB.PRG</code> and press O to enter your public <code>http://</code> See64You site URL. Select links with Up/Down and Return. This reader does not support HTTPS or arbitrary HTML sites.</p>
 <p>To edit later: fresh Publisher, 2 connect, <?= $kind === 'post' ? '7' : '6' ?> browse <?= $kind ?>s, Space for Next, O to open and Y if replacement is requested. Wait for “Remote document opened”. Then D, enter a <strong>new</strong> filename such as <code>FIRST2.S64</code>, and wait for “Saved .S64; reopen in Editor”. Existing download files are refused.</p>
 <p>Exit to BASIC, open that download in Editor, edit/save, then launch Publisher and load it to update the same remote document. Keep its title, slug and type if you want an update rather than a different document.</p>
 <p>If your page is missing, check that Publisher's State was published and that you are looking at the configured website, then check the displayed slug. Do not delete your source or recovery files to retry.</p>
