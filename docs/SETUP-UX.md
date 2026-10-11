@@ -1,6 +1,6 @@
 # Setup and first-publication UX
 
-The current product uses three independent programs. Settings saves the canonical disk configuration; Editor saves canonical `.s64` files; Publisher reads them and publishes. Each returns to BASIC. Setup guidance must preserve that boundary.
+The current authoring/publishing workflow uses three independent programs (plus the optional `S64WEB.PRG` public-site browser). Settings saves the canonical disk configuration; Editor saves canonical `.s64` files; Publisher reads them and publishes. Each returns to BASIC. Setup guidance must preserve that boundary.
 
 ## Guided path
 
@@ -24,10 +24,10 @@ Editor retains the shared platform-preflight implementation: UCI, Ultimate-DOS, 
 
 ## Files and security
 
-Copy the complete matching independent package to `/sd/SEE64YOU/`. Launch `SEE64YOU.PRG`, `S64CFG.PRG` or `S64PUB.PRG` independently; other PRGs/BINs are internal assets. Configuration is authoritative at `/sd/SEE64YOU/SEE64YOU.CFG`, with existing verified legacy migration. Source files use the SD root; key import prefers the application folder and retains the legacy root fallback. Remove the private key-import file when no longer needed.
+Copy the complete matching independent package to `/sd/SEE64YOU/`. Launch `SEE64YOU.PRG`, `S64CFG.PRG` or `S64PUB.PRG` independently; other PRGs/BINs are internal assets. Configuration is authoritative at `/sd/SEE64YOU/SEE64YOU.CFG`, with existing verified legacy migration. New source files default to `/sd/SEE64YOU/`; explicit absolute `/sd/NAME.S64` paths can open legacy root documents without implicit fallback. Key import prefers the application folder and retains the legacy root fallback. Remove the private key-import file when no longer needed.
 
 The browser publishing password is never requested on the C64U. Pairing requires HTTPS. Firmware-1.1 direct HTTP uses the dedicated challenge/HMAC key; it authenticates requests but does not encrypt document bodies. Consent remains explicit and there is no silent secure-transport downgrade.
 
 ## Instructions and validation
 
-[FIRST-PAGE.md](FIRST-PAGE.md) is the printable first-publication checklist. README links it and the browser wizard. LOCAL_TESTING owns reproducible tests and their scope; todo.md owns remaining work. The original three-program hardware checkpoint remains valid for its exact older package; the new wizard separately passes bounded real-C64U first-run/cancel/import/consent/verified-save/relaunch and Publisher-auth checks using remote plain keys, with exact original SD and live turbo restoration. Physical wizard key input, a new cold power cycle, USB and physical interruption coverage remain separate.
+[FIRST-PAGE.md](FIRST-PAGE.md) is the printable first-publication checklist. README links it and the browser wizard. LOCAL_TESTING owns reproducible tests and their scope; todo.md owns remaining work. The independent file workflow has passed three bounded real-C64U publishing round trips; the browser and SD-folder migration have also passed bounded hardware tests. The wizard passes real-C64U first-entry/cancel/import/consent/verified-save/relaunch and Publisher-auth checks using remote plain keys, with exact original SD and live turbo restoration. A complete first-time-user physical-keyboard walkthrough remains unverified. USB and uncontrolled storage/power interruption remain deferred.
