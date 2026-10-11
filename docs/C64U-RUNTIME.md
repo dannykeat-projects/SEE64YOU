@@ -63,6 +63,15 @@ files/settings backed up and restored. Old managed CI failures are separate.
 
 ## SD-folder containment contract (planned; not implemented, 2026-10-11)
 
+The read-only `dos-context-probe` now proves target `$02` retains its folder
+lookup after target `$01` changes directory on firmware 1.1.0; relative and
+absolute file opens also pass. This establishes directory independence only,
+not simultaneous-handle or migrated-document acceptance. A bounded dual-directory
+journal spike failed the existing Editor runtime-slot and launcher return-capture
+guards and was reverted. Runtime paths remain unchanged until that fit blocker
+is resolved without weakening guards. Remove migrated SEE64YOU-owned root files
+only after verified backup, recovery and complete transition acceptance.
+
 The independent package already installs executables, assets and canonical settings in `/sd/SEE64YOU/`. New canonical documents, download saves, `SEE64YOU.REC` autosave, alternating `S64JRN0.DAT`/`S64JRN1.DAT` journals and transient preflight probes must also be contained there. Do not move or delete legacy root files as a startup side effect. File format, slot wire format, strict new-only remote download, temporary-file recovery and overwrite confirmation remain unchanged.
 
 **Ownership boundary:** `client/src/main.c` currently shares the primary DOS target for Editor local files and the managed session; `platform/session_journal.c` explicitly changes that target to `/sd/` before every journal load/save, including on exit. Merely selecting the installation directory once during Editor startup is therefore insufficient. Separate the document context (existing DOS `$02` is a candidate, subject to preflight/hardware verification) or explicitly reselect the required directory before every file operation without disturbing an open handle. Publisher independently selects root in its local load and remote save handlers; its last measured margin above the 1 KiB guard is only 36 B, so reuse the existing file/selection paths rather than adding a new subsystem. `platform/preflight.c` also creates `S64CHK?.TMP` under root.

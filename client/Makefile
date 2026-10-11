@@ -122,6 +122,13 @@ $(MODULE_CACHE_GATE_TARGET): diagnostics/module_cache_gate.c $(LAUNCHER_SOURCES)
 .PHONY: companion-stream-probe
 companion-stream-probe: $(COMPANION_STREAM_PROBE_TARGET)
 
+.PHONY: dos-context-probe
+dos-context-probe: build/dos-context-probe.prg
+
+build/dos-context-probe.prg: diagnostics/dos_context_probe.c src/platform/dos.c src/platform/uci.c src/charset.c src/platform/package_paths.h
+	@mkdir -p build
+	$(CL65) $(CFLAGS) -o $@ diagnostics/dos_context_probe.c src/platform/dos.c src/platform/uci.c src/charset.c
+
 $(COMPANION_STREAM_PROBE_TARGET): $(COMPANION_STREAM_PROBE_SOURCES)
 	@mkdir -p build
 	$(CL65) $(CFLAGS) -m build/companion-stream-probe.map -o $@ $(COMPANION_STREAM_PROBE_SOURCES)

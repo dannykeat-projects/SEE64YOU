@@ -15,7 +15,24 @@ guards, Settings wizard and numeric/string BASIC-return checks also pass.
 The colour change has not been rerun on physical C64U. Test package:
 `client/build/SEE64YOU-independent-white-text-20261011.zip`.
 
-## SD-folder containment regression gate (pending; not yet run)
+## SD-folder containment regression gate (partial, 2026-10-11)
+
+Build the read-only context diagnostic with `make -C client dos-context-probe`.
+It requires an existing `/sd/SEE64YOU/SEE64YOU.CFG`; start at BASIC, run the
+diagnostic PRG, and inspect `$C040`/`$C041`: `$A5`/`$00` means success; otherwise
+the second byte identifies the failed stage. It does not read config contents
+or write SD files. On firmware 1.1.0, target `$02` retains its relative folder
+lookup after target `$01` changes to `/sd/`, and both absolute and relative
+config opens close successfully. BASIC READY, IRQ vector and drive settings
+pass; the uploaded probe was removed. No application migration was installed.
+
+A bounded two-directory journal spike passed focused host migration/fault
+tests but failed cc65 fitting: Editor `RUNTIME_CODE` overflow 222 B, and launcher
+link rejection `Return capture overlaps launcher resident state`. It was reverted.
+The restored baseline passes the independent package/manifests/guards, focused
+local-document/journal/recovery/lifecycle host tests and packaged VICE
+startup/wizard/guards/numeric-and-string BASIC-return tests. Full folder migration
+and physical recovery/cleanup remain unverified. Preserve SD-root originals.
 
 Before source edits, record baseline root-file behaviour and verify backup hashes for legacy `.s64`, `SEE64YOU.REC` and both `S64JRN*.DAT`. Use disposable SD files only. Trace root writes and DOS-context changes with `rg -n 'S64_SD_ROOT_DIRECTORY|S64_SESSION_JOURNAL_STORAGE_PATH|S64_PREFLIGHT_STORAGE_PATH|change_dir|S64JRN|SEE64YOU.REC|S64CHK' client/src`.
 
