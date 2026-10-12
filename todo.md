@@ -37,15 +37,20 @@ at the user's request. Preserve the established three-program file workflow.
   cases. The independent smoke gate passed at 7d72e7480d22:
   PHP site/theme tests, PHP browser tests, live local HTTP tests, native
   browser parser/HTTP tests, and cc65 independent S64WEB.PRG build. Browser
-  headroom was 17,235 bytes. Full package, VICE and physical C64U acceptance
-  remain unverified. No release or deployment.
-- [x] Add a GitHub-hosted smoke job to run these focused checks while the
-  self-hosted integration runner is unavailable; retain the integration
-  workflow and its hardware gates. The two superseded persistent-runtime
-  diagnostics remain available through manual workflow dispatch only.
-- [ ] Build/test the full independent package, navigate between two C64U sites
-  using different palette choices, and verify colour restoration on exit
-  using real C64U hardware. Record source/package hashes.
+  headroom was 17,235 bytes. No release or deployment.
+- [x] Add a GitHub-hosted smoke job to run focused website/browser checks
+  independently of the self-hosted integration runner. It builds the full
+  eleven-file independent package and uploads a provisional ZIP. At commit
+  `17e23529c4076d06069436f75bc35ef7b00db0d4`, GitHub Actions run
+  `38275335109` passed PHP unit/HTTP, native C parser/HTTP tests, full cc65
+  build and both manifests. Launcher has 1,032 bytes free (8-byte margin
+  above the 1 KiB guard), Publisher 1,046, Settings 4,009 and Browser
+  17,235. Artifact ID `11759185570` is diagnostic-only, not hardware-accepted.
+  The superseded persistent-runtime diagnostics are manual dispatch only.
+- [ ] Run the full independent package through VICE and a real C64U; navigate
+  between two sites using different C64 palettes and verify colours, URL
+  handling, restoration and clean BASIC return. Record machine/package
+  verification and exact per-file hashes before any release.
 - [x] Website remains the sole interface for editing site colours.
   The user explicitly deferred C64U Editor-side colour editing; do not add
   website settings/network writes to Editor or Publisher unless requested again.
