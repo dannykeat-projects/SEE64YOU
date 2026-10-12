@@ -44,14 +44,14 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq cc65
 
-      - name: Build independent C64U browser and enforce memory guard
-        run: make -C client independent-browser
+      - name: Build complete eleven-file independent C64U package
+        run: make -C client independent-package
 
-      - name: Upload provisional browser for later hardware testing
+      - name: Upload provisional complete C64U package for hardware testing
         uses: actions/upload-artifact@v4
         with:
-          name: see64you-browser-palette-candidate-not-hardware-verified
-          path: client/build/independent/S64WEB.PRG
+          name: see64you-independent-palette-candidate-not-hardware-verified
+          path: client/build/independent-package/SEE64YOU/
           if-no-files-found: error
 
   validate:
