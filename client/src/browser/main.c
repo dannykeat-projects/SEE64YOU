@@ -105,7 +105,7 @@ static void render(void)
     uint16_t index;
     uint8_t y, x;
     bgcolor(page_background); bordercolor(page_background);
-    clrscr(); textcolor(COLOR_WHITE);
+    clrscr(); textcolor(page_text);
     cputs("SEE64YOU PUBLIC BROWSER"); gotoxy(0,1); cputs(status);
     for (y = 0; y < VIEW_ROWS; ++y) {
         index = top + y;
@@ -119,7 +119,7 @@ static void render(void)
         for (x = 0; x < 40u; ++x) cputc(row.text[x]);
         revers(0);
     }
-    textcolor(COLOR_WHITE); gotoxy(0,23);
+    textcolor(page_text); gotoxy(0,23);
     cputs("Cursor: select  RETURN: follow link");
     gotoxy(0,24); cputs("SPACE: next  -: previous  O: URL  STOP");
 }
