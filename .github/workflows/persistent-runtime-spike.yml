@@ -1,9 +1,8 @@
 name: Persistent runtime spike
 
+# Superseded persistent-runtime diagnostic; invoke manually only.
+# The independent file-based MVP is validated by integration-validation.yml.
 on:
-  push:
-    branches:
-      - feature/c64u-publisher-chain
   workflow_dispatch:
 
 concurrency:
