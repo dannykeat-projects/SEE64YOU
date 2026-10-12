@@ -34,11 +34,18 @@ at the user's request. Preserve the established three-program file workflow.
 - [x] Implement opt-in public browser v2 colour triplet (background/text/link);
   legacy browser v1 is preserved for old clients/sites. C64U browser restores
   its previous screen colours on a normal exit. Added PHP/host C regression
-  cases, but the exact head has not passed PHP, cc65, VICE or physical C64U
-  validation yet. No release or deployment.
-- [ ] Validate palette forms, custom-theme persistence, PHP HTTP negotiation,
-  strict v2 parser and browser navigation/colour restoration on a complete
-  independent package. Record exact source and tested package hash.
+  cases. The independent smoke gate passed at 7d72e7480d22:
+  PHP site/theme tests, PHP browser tests, live local HTTP tests, native
+  browser parser/HTTP tests, and cc65 independent S64WEB.PRG build. Browser
+  headroom was 17,235 bytes. Full package, VICE and physical C64U acceptance
+  remain unverified. No release or deployment.
+- [x] Add a GitHub-hosted smoke job to run these focused checks while the
+  self-hosted integration runner is unavailable; retain the integration
+  workflow and its hardware gates. The two superseded persistent-runtime
+  diagnostics remain available through manual workflow dispatch only.
+- [ ] Build/test the full independent package, navigate between two C64U sites
+  using different palette choices, and verify colour restoration on exit
+  using real C64U hardware. Record source/package hashes.
 - [x] Website remains the sole interface for editing site colours.
   The user explicitly deferred C64U Editor-side colour editing; do not add
   website settings/network writes to Editor or Publisher unless requested again.
