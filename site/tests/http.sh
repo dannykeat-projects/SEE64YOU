@@ -337,34 +337,10 @@ CODE=$(curl -sS -b "$JAR" -o /dev/null -w '%{http_code}' -d "csrf=$CSRF&action=s
 # Public text/link format preserves ordinary HTML and missing-page status.
 curl -fsS -D "$TMP/browser-headers" -H 'Accept: application/x-see64you-browser' "$BASE/index.php" > "$TMP/browser-body"
 grep -qi 'Content-Type: application/x-see64you-browser' "$TMP/browser-headers"
-grep -q '^SEE64YOU-BROWSE/1
-curl -fsS -H 'Accept: application/x-see64you-browser;q=0, text/html' "$BASE/index.php" | grep -qi '<!doctype html>'
-curl -fsS -H 'Accept: application/x-see64you-browser-extra' "$BASE/index.php" | grep -qi '<!doctype html>'
-curl -fsS -H 'Accept: application/x-see64you-browser' "$BASE/posts.php" | grep -q '^SEE64YOU-BROWSE/1$'
-CODE=$(curl -sS -H 'Accept: application/x-see64you-browser' -o /dev/null -w '%{http_code}' "$BASE/post.php?slug=api-test")
-[ "$CODE" = "404" ]
-
-echo "HTTP API, browser format and browser theme tests passed"
- "$TMP/browser-body"
+grep -q '^SEE64YOU-BROWSE/1$' "$TMP/browser-body"
 curl -fsS -H 'Accept: application/x-see64you-browser; version=2' "$BASE/index.php" > "$TMP/browser-v2"
-grep -q '^SEE64YOU-BROWSE/2
-curl -fsS -H 'Accept: application/x-see64you-browser;q=0, text/html' "$BASE/index.php" | grep -qi '<!doctype html>'
-curl -fsS -H 'Accept: application/x-see64you-browser-extra' "$BASE/index.php" | grep -qi '<!doctype html>'
-curl -fsS -H 'Accept: application/x-see64you-browser' "$BASE/posts.php" | grep -q '^SEE64YOU-BROWSE/1$'
-CODE=$(curl -sS -H 'Accept: application/x-see64you-browser' -o /dev/null -w '%{http_code}' "$BASE/post.php?slug=api-test")
-[ "$CODE" = "404" ]
-
-echo "HTTP API, browser format and browser theme tests passed"
- "$TMP/browser-v2"
-grep -Eq '^C[[:space:]][0-9A-F]{3}
-curl -fsS -H 'Accept: application/x-see64you-browser;q=0, text/html' "$BASE/index.php" | grep -qi '<!doctype html>'
-curl -fsS -H 'Accept: application/x-see64you-browser-extra' "$BASE/index.php" | grep -qi '<!doctype html>'
-curl -fsS -H 'Accept: application/x-see64you-browser' "$BASE/posts.php" | grep -q '^SEE64YOU-BROWSE/1$'
-CODE=$(curl -sS -H 'Accept: application/x-see64you-browser' -o /dev/null -w '%{http_code}' "$BASE/post.php?slug=api-test")
-[ "$CODE" = "404" ]
-
-echo "HTTP API, browser format and browser theme tests passed"
- "$TMP/browser-v2"
+grep -q '^SEE64YOU-BROWSE/2$' "$TMP/browser-v2"
+grep -Eq '^C[[:space:]][0-9A-F]{3}$' "$TMP/browser-v2"
 curl -fsS -H 'Accept: application/x-see64you-browser;q=0, text/html' "$BASE/index.php" | grep -qi '<!doctype html>'
 curl -fsS -H 'Accept: application/x-see64you-browser-extra' "$BASE/index.php" | grep -qi '<!doctype html>'
 curl -fsS -H 'Accept: application/x-see64you-browser' "$BASE/posts.php" | grep -q '^SEE64YOU-BROWSE/1$'
