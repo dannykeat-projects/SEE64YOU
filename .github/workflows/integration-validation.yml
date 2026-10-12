@@ -12,6 +12,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Fast public-runner gate: independent of the hardware-connected self-hosted runner.
+  website-browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check standalone website and C64 palette
+        run: |
+          php site/tests/run.php
+          php site/tests/browser.php
+          sh site/tests/http.sh
+
+      - name: Check public-browser host protocol and HTTP transport
+        run: |
+          set -eu
+          tmp=$(mktemp)
+          trap 'rm -f "$tmp"' EXIT
+          cc -std=c89 -Wall -Wextra -Werror -Iclient/src \
+            client/tests/browser_protocol_test.c client/src/browser/protocol.c -o "$tmp"
+          "$tmp"
+          cc -std=c89 -Wall -Wextra -Werror -Iclient/src \
+            client/tests/browser_http_test.c client/src/browser/http.c \
+            client/src/charset.c -o "$tmp"
+          "$tmp"
+
+      - name: Install C64 compiler
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cc65
+
+      - name: Build independent C64U browser and enforce memory guard
+        run: make -C client independent-browser
+
+      - name: Upload provisional browser for later hardware testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-browser-palette-candidate-not-hardware-verified
+          path: client/build/independent/S64WEB.PRG
+          if-no-files-found: error
+
   validate:
     runs-on: [self-hosted, linux, x64, terra64]
     timeout-minutes: 20
