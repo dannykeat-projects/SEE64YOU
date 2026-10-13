@@ -1,415 +1,57 @@
-# Architecture
+# SEE64YOU — current MVP architecture
 
-See64You is a **C64 Ultimate-native** editor and publishing environment. It retains a Commodore-style 40-column interface while using the Ultimate platform as the actual runtime platform.
+**Authoritative release architecture.** SEE64YOU is a C64 Ultimate-only application for creating simple `.s64` text documents, publishing them to independently hosted PHP websites, and optionally browsing public SEE64YOU sites from the C64U. Historic cross-program managed/persistent runtime designs are retired; Git history preserves them.
 
-Ordinary-C64 compatibility is retired as a product requirement.
+## Runtime and data flow
 
-## Public browser scope (2026-10-11)
+```text
+           /sd/SEE64YOU/*.s64
+            ^             |
+            |             v
+    Editor (SEE64YOU)   Publisher (S64PUB) <----> PHP site/API
+            |             ^                    |          |
+            |             |                    |          +--> public HTML
+            +---------- BASIC                  +--> SEE64YOU-BROWSE/1 or /2
+                                                    ^
+  Settings (S64CFG) --> /sd/SEE64YOU/SEE64YOU.CFG    |
+                                             Browser (S64WEB)
+```
 
-The user has added a separately launched, read-only C64U browser to scope.
-The existing browser branch contributes only a website renderer, not an executable.
-Public layout routes negotiate `application/x-see64you-browser` explicitly;
-an exact media type with positive quality enables `SEE64YOU-BROWSE/1`.
-Records are ASCII `T\ttext` or `L\thref\tlabel`, one per line; text is split
-at 100 characters, link URLs capped at 190 and labels at 58. Published navigation
-is included; draft navigation is excluded. Normal requests remain HTML.
-`S64WEB.PRG` is an independently launched public reader. A platform-light ASCII
-URL/wire parser feeds two fresh centrally allocated PREVIEW regions: 64 KiB for
-up to 1,024 display rows and 64 KiB for up to 256 links. Fixed 64/256-byte strides
-keep DMA records inside a bank; conventional RAM holds one display row, bounded
-URL/header/record buffers and configuration. No cached Editor state is adopted.
-Ultimate Network target `$03` serves HTTP/1.0 GET requests with explicit browser
-Accept and close semantics. HTTPS is refused, never downgraded. Configuration is
-read only, publishing secrets cleared after loading the base URL, and no auth
-headers are transmitted. Framing/type/length/size failures clear partial page
-rows and links; sockets are closed on success, failure and cancellation. Close
-failure remains visible. The reader leaves turbo, drives and IRQ unchanged.
+- **Editor:** established Launcher→private Editor overlays; edit/format, save and reopen canonical `.s64`. The Editor must work without networking and leave a responsive BASIC environment.
+- **Publisher:** a separate program; reads a saved source file and configuration, authenticates direct requests, publishes/updates; can download remote canonical source to a *new* file. Its UI cannot assume Editor session state.
+- **Settings:** independent first-run wizard and disk configuration owner; settings are verified by readback before reported as saved. Manual, verified migration applies to legacy journals and configuration where already implemented.
+- **Browser:** independently launched, optional and read-only; selects/enters public `http://` URLs, follows links and pages through output. No publishing credentials, documents or Editor state are transferred into it.
+- **Standalone website:** PHP 8.1+, flat-file storage, ordinary HTML for modern browsers, generated compact public records for C64. No database or JavaScript required for public reading.
 
-## Current migration boundary (2026-10-09)
+Each program launches fresh and returns to BASIC. `.s64` and `.CFG` are the **only shared persistent interfaces** between user programs. Internal overlays and REU storage *within* Editor are permitted; whole-program handoffs and shared persistent active application state are not MVP requirements.
 
-The chosen MVP consists of three independently launched PRGs. Editor saves and
-reopens canonical `.s64` files; Publisher reads those files and saves fetched
-remote documents to new `.s64` files; Settings owns the disk configuration file.
-No Editor history/document/session or cached REU state crosses program boundaries.
-Editor text prompts retain both native PETSCII letter ranges, including shifted
-uppercase filenames. Direct Publisher list navigation rebuilds the request URL
-for every item because synchronous HTTP header parsing reuses its workspace.
-Independent Publisher renders Connecting/Publishing status before blocking
-authentication/save calls, then reports the existing success or failure result.
-Those working messages draw directly: status and request URL buffers share
-scratch, so storing status text after preparing a URL would corrupt the request.
-The independent remote list and confirmed open use the same direct Loading
-display before network work; neither stores busy text in the shared workspace.
-Publisher and Settings exit normally to BASIC. Internal code overlays remain
-permitted where resource measurements justify them.
+## Canonical content and browser representation
 
-The combined candidate now builds: the established Editor launcher executes its
-private code-overlay Editor and separately launchable Publisher/Settings PRGs are
-packaged alongside it. The launcher still preloads all three manifest entries;
-Publisher/Settings cache copies are **unused** and must not be interpreted as
-runtime coordination or shared documents. Trimming that preload is deferred
-until hardware acceptance. The existing 14-file managed package, persistent-runtime
-prototype and sections below describing cross-program live application-state
-handoffs are **historical fallback/implementation reference**.
-Preserve still-used bootstrap, recovery, transports and codecs until full
-software and hardware acceptance. The only live implementation queue is todo.md.
+- The editable truth is `SEE64YOU/1` canonical source: title, slug, page/post type, draft/published state and source body. Generated HTML is disposable; reopen remote source without HTML round-tripping. See [PROTOCOL.md](PROTOCOL.md) and [MARKUP.md](MARKUP.md).
+- C64 browsing uses server-rendered `SEE64YOU-BROWSE/1` (`T` and `L` text/link records). A colour-aware client requests v2: mandatory `C` palette record followed by the same text/link records. v1 clients retain v1 output, and v2 clients accept v1 fallback. These are existing compatibility contracts, not invitations to redesign the wire.
+- The browser is a bounded network parser, not an HTML, CSS, JavaScript, PETSCII executable-markup or HTTPS engine. Sites can be changed through their normal browser-admin interface; C64U editing of site appearance is deferred.
+- Public content can be shown both ways because the *server* translates canonical source into HTML or the C64 records. Do not duplicate a second authored copy for the C64.
 
-## First-publication guidance
+## Platform, memory and files
 
-The no-JavaScript website `start.php` walks through six stages, including page/post
-selection and browser confirmation. Independent Settings has a bounded three-step
-wizard using existing URL/key editing, HTTP consent and verified disk save services.
-Missing site/key triggers it; W from Basic restarts it. The completion screen reports
-verified saving separately from Publisher authentication. The guides refer to one
-another without new persistent workflow state, program chaining or document handoff.
-SETUP-UX owns this contract; FIRST-PAGE contains exact user instructions.
+- Target: C64 Ultimate firmware-1.1 hardware baseline, UCI, Ultimate-DOS, SD-backed `/sd/SEE64YOU/` and a required 16 MiB REU. Offline Editor doesn't require networking. Direct publishing and browsing use Network Target `$03`; HTTP Target `$06` is not available on the tested firmware.
+- Existing Launcher→Editor bootstrap, module validation, protection of BASIC return context, state capture/restore, documented REU/overlay boundaries and 1 KiB Publisher/Launcher memory guards are preserved until a measured and hardware-tested replacement is available.
+- Current Launcher still checks/preloads unused Publisher/Settings module images to preserve its proven bootstrap. Removal is a **candidate future cleanup**, not approval to change module manifests or bootstrap without traces and a real-C64U acceptance gate.
+- Bare document names, autosave, journals, temporary storage probes, binaries, configuration and downloads live under `/sd/SEE64YOU/`. Explicit `/sd/NAME.S64` continues to reference older SD-root documents; no automatic fallback hides a corrupt or missing folder file.
+- Editor documents/autosave use DOS target `$02`; Launcher/journal uses `$01`. Handles and directory contexts must remain isolated. Save As/new downloads must refuse unintended overwrite; completed `.tmp` files remain recoverable after a failed replacement.
+- `S64CFG.PRG` owns explicit legacy-journal migration. Root journal presence blocks Editor startup pending verified migration; root recovery sources and unrelated SD files are not silently deleted. Protect original bytes, backups and interrupted recovery.
 
-## Architectural principles
+Detailed machine ownership, journal, migration, tempfile, resource limits and interruption rules stay in [C64U-RUNTIME.md](C64U-RUNTIME.md); they remain binding wherever current shipping code relies on them.
 
-- Canonical source text belongs to the editor, not a backend.
-- The editor remains useful without network access.
-- The C64 Ultimate's 16 MiB REU is shared application memory, not an optional enhancement.
-- UCI/Ultimate-DOS/Network/DMA/turbo facilities are platform services.
-- Independently run Editor, Publisher and Settings; ordinary `.s64` and `.CFG` files are their only shared persistent interface.
-- No cross-program REU ownership, live Editor document, undo history or application state.
-- Temporary hardware changes are centrally owned and restored.
-- More available hardware does not remove the requirement to stream, bound and validate data carefully.
+## Network and trust
 
-## Runtime topology
+- Pair direct credentials from the website over **HTTPS**, not the C64U's plaintext transport; do not send the normal site password or bearer token over direct HTTP.
+- Firmware-1.1 Publisher uses a separate 256-bit key, server challenge and HMAC-SHA256 to bind method, URI and body hash. This authenticates and protects request integrity/replay, **not confidentiality**. Explicit consent to plaintext document content remains mandatory. Never silently downgrade HTTPS.
+- Public browser GETs never transmit publishing keys, cached credentials, auth headers or arbitrary HTML. Reject unsupported schemes and malformed/oversized records; close sockets on success, failure and cancellation.
+- Validate slugs/types and permissions server-side. Escape generated HTML. File/configuration writes preserve integrity/readback and failed-recovery safeguards. Preserve prior turbo, IRQ, drive/user machine settings on exit to the extent the supported interface permits.
 
-~~~text
-                    SEE64YOU launcher/supervisor
-                              |
-                  C64U system-state manager
-                              |
-       +----------------------+----------------------+
-       |                                             |
- conventional C64 RAM                              16 MiB REU
- executing overlay + UI                shared control/state + allocator
- small hot buffers                     document/history/clipboard
- transition stub                       module cache/recovery/scratch
-       |                                             |
-       +----------------------+----------------------+
-                              |
-                         Ultimate UCI
-                 +------------+------------+
-                 |            |            |
-             DOS $01/$02   Network $03  Control $04
-                 |            |            |
-            SD/files       TCP/IP       hardware/state
-~~~
+## Status and controlled simplification
 
-Optional/future UCI targets are capability-probed. HTTP Target $06 is not available on the tested firmware-1.1 C64 Ultimate and is not a baseline dependency.
+Hardware receipts demonstrate bounded independent edit→publish→download→edit→update, Settings persistence, app-folder migration and browser navigation. They do **not** certify a complete unassisted first-user install, final browser colour changes or every physical interruption. See [LOCAL_TESTING.md](LOCAL_TESTING.md) for executable gates and [todo.md](../todo.md) for the **only** active work.
 
-## Launcher/supervisor
-
-The final user-facing entry point is SEE64YOU.PRG.
-
-Its responsibilities are:
-
-1. detect required C64U capabilities;
-2. recover/close an abandoned previous session where practical;
-3. validate the 16 MiB REU requirement;
-4. capture restorable machine state;
-5. establish the shared REU control block and allocator;
-6. validate/create application storage directories;
-7. load persistent configuration;
-8. validate the installed module manifest;
-9. preload normal modules into REU;
-10. offer document recovery if required;
-11. launch the Editor.
-
-After first-run setup this should normally require no user interaction.
-
-## System-state manager
-
-A single runtime service owns temporary machine changes.
-
-Other modules request operating modes instead of directly changing global C64U state. Examples include:
-
-- NORMAL/INTERACTIVE;
-- CPU-INTENSIVE;
-- I/O-SAFE;
-- TRANSITION.
-
-The manager captures the user's prior settings when readable, applies temporary changes only when needed and restores the captured values on clean exit.
-
-A small persistent session journal records enough information to identify an interrupted See64You session and perform safe recovery/restoration on the next launch where possible.
-
-See C64U-RUNTIME.md for the detailed contract.
-
-## REU as shared application memory
-
-A 16 MiB REU is required.
-
-REU is divided into:
-
-- a small stable control/ABI area;
-- module-cache metadata;
-- allocator metadata;
-- dynamically allocated application memory.
-
-The dynamic pool serves:
-
-- active document;
-- undo/redo history;
-- clipboard;
-- search/index scratch;
-- publisher workspace;
-- generated preview/cache;
-- recovery shadows;
-- remote-list/cache data;
-- future features.
-
-Avoid hard-coding most of the 16 MiB into permanent fixed banks. Stable addresses are reserved only where cross-module ABI or transfer mechanics genuinely require them.
-
-## Shared control block
-
-Every executable module exchanges state through a versioned REU control structure containing, at minimum:
-
-- magic/version;
-- application/package version;
-- session state;
-- active/requested module;
-- allocator state/handles;
-- document descriptor;
-- cursor/selection/view state;
-- history descriptor;
-- clipboard descriptor;
-- publisher binding/profile state;
-- settings descriptor;
-- recovery/session-journal state;
-- module-cache descriptors;
-- integrity/version fields.
-
-A module must reject an incompatible or corrupt control block rather than guessing.
-
-Application-state authority is the runtime-control validity bit. The Editor
-publication service captures controls after a history flush, verifies persisted
-revocation before replacing the record, verifies the complete replacement, then
-publishes and verifies the bit. Only successful publication advances generation.
-Managed Editor clean exit verifies the bit clear before teardown/CLEAN while
-preserving the already loaded BASIC-return context. Publish now calls the existing
-application-state service through a dedicated fourth Editor PUBLICATION overlay in
-IO_SAFE, then returns to INTERACTIVE without executing Publisher. Success retains
-verified authority until a transition or the next live input event; that event
-revokes authority before controls or payloads can change. Failure must verify
-revocation and recover INTERACTIVE, otherwise the Editor stops for launcher
-recovery with ACTIVE retained.
-
-Publisher asset preparation is also staged in this roomy PUBLICATION/PREP overlay,
-not the launcher. The launcher remains on its compact, hardware-proven Editor-only
-asset producer so the original-SYS return workspace at $C800 is untouched. The
-14-file package carries the exact managed Publisher root and its three asset
-binaries plus manifest. A preparation-only Publisher producer reuses the existing
-Publisher-specialized asset codec and consumes the final four allocator entries on
-first Publisher preparation, bringing the approved plan to exactly 16/16. Production
-Editor now invokes that path before first Publisher entry, publishes canonical
-ACTIVE-bound settings, and transfers through the authenticated cached-module path.
-The authenticated resumed-entry hardware gate passed on firmware 1.1; the newer
-Publisher PREP/settings/module-cycle path still needs complete real-C64U acceptance.
-See C64U-RUNTIME.md for the transaction and code-asset v2 contracts.
-
-## Executable overlay model
-
-Editor, Publisher and Settings remain separate PRGs/overlays because each can use the conventional address space cleanly while sharing large state through REU.
-
-The production transition model is:
-
-1. package manifest validates module filename, load address, length, version and integrity;
-2. launcher opens the module with Ultimate-DOS;
-3. DOS_CMD_LOAD_REU loads the full PRG, including its two-byte load header, into its assigned high-REU cache region;
-4. later transitions select the already validated cached image;
-5. a tiny overwrite-safe routine DMA/copies the cached PRG image into its C64 load range;
-6. CPU/memory state is established;
-7. the transfer stub writes a one-shot conventional-RAM arrival proof and execution enters the module startup;
-8. the new module consumes that proof, validates the transfer capsule/shared control block, adopts the existing ACTIVE lifecycle without recapturing global state, and continues.
-
-No normal module transition should depend on IEC device 8, KERNAL LOAD or the current software-IEC chain.
-
-The earlier $C800-$CBFF resident-loader experiment is retired as the production design. Its real-hardware pass proves useful lower-level behaviour but does not impose a permanent 1 KiB reservation on the new architecture.
-
-The executable diagnostic captures the original BASIC SYS context before launcher
-crt0 and publishes it as a checksummed allocator-owned ACTIVE-session record.
-Managed editor exit validates it before revocation, restores/verifies system state,
-persists CLEAN, runs cc65 destructors and restores the original stack/zero page/
-memory map through a transient stub. Invalid context retains a safe CLEAN park.
-The current c64u-package target enables verified Editor entry/exit and the
-managed Editor -> Publisher -> Settings -> Publisher -> Editor ownership cycle.
-The complete multi-module cycle remains a real-C64U hardware acceptance gate.
-See docs/C64U-RUNTIME.md for the wire, scratch and hardware evidence contracts.
-
-## Package manifest and integrity
-
-The package manifest should record for each executable module:
-
-- module identifier;
-- filename;
-- application/ABI version;
-- PRG load address;
-- executable extent;
-- byte length;
-- integrity checksum/hash;
-- startup address.
-
-The launcher validates modules before caching them. A later Editor â†’ Publisher transition therefore does not depend on a fresh SD read.
-
-Mismatched module versions must fail clearly before state is overwritten.
-
-Managed Editor startup uses the validated runtime application-state bit to choose
-fresh initialization or exact ACTIVE-bound state resumption. A resumed record
-must authenticate and pass payload range checks before live controls are bound;
-failure halts entry. Document/history/clipboard payloads remain in REU. Entry
-uses synchronous scratch in the asserted `$C800` workspace/stack gap, and exit
-reloads its original SYS-return record independently. Publisher execution now consumes authenticated application state and
-ACTIVE-bound settings through the cached transfer path; complete real-C64U
-module-cycle acceptance remains pending.
-
-## Canonical document
-
-The editable source remains metadata plus body text:
-
-- type: page or post;
-- slug;
-- title;
-- status: draft or published;
-- date;
-- order;
-- body source.
-
-Generated HTML is disposable.
-
-SEE64YOU/1 remains the current canonical wire representation. Backends retain enough canonical source to reopen and edit exactly.
-
-## Editor/storage evolution
-
-The current REU-backed gap-buffer implementation is migration scaffolding, not the final size ceiling.
-
-The C64U-only design will move toward a paged/piece-based document service backed by the REU allocator. Logical document positions may exceed 16-bit values while hot per-page operations remain small and efficient.
-
-Undo/redo and clipboard storage become allocator-backed and memory-pressure-aware rather than fixed primarily by old C64 limits.
-
-Memory reclamation order should prefer disposable caches and oldest history before any canonical unsaved source.
-
-## Local storage
-
-Local documents, settings, recovery and application resources use Ultimate-DOS.
-
-Use DOS targets $01 and $02 as independent contexts where usefulâ€”for example one can retain the user's document/path while the other handles application resources, module cache loads or recovery work.
-
-Saves remain transactional:
-
-1. remove stale temporary output;
-2. create/write/close a new temporary file;
-3. validate where required;
-4. replace the destination;
-5. reopen/verify critical configuration data before reporting success.
-
-A failed write must not intentionally destroy the last known-good document/configuration.
-
-Local document Save As preserves the caller's overwrite policy through the
-writer's second existence check. If final rename fails, the completed canonical
-source remains at `<filename>.tmp` with its handle closed. Replacement is still
-delete-then-rename, not atomic: the previous destination may already be absent.
-Recover/copy the retained temp before retrying, since another save reuses it.
-
-Configuration saves reopen, validate and compare the temporary record before
-removing the existing destination, then verify the final file after rename.
-The same readback/comparison helper clears verification scratch at both stages.
-Configuration reads reject trailing bytes as well as short or corrupt records;
-valid legacy configuration still migrates through the existing codec.
-
-## Filesystem layout
-
-The current independent candidate uses a flat `/sd/SEE64YOU/` directory for
-executables/assets, canonical configuration, new `.s64` documents, downloads,
-`SEE64YOU.REC`, `S64JRN0.DAT`/`S64JRN1.DAT` and `S64CHK?.TMP` storage probes.
-File codecs and transactional save/collision rules remain unchanged.
-
-Editor document/autosave I/O owns Ultimate-DOS target `$02`; its launcher and
-session journal own target `$01`. Both establish the application directory.
-Publisher explicitly selects the folder before local loading or download saving.
-A bare filename is folder-relative. Explicit `/sd/NAME.S64` accesses a legacy
-root document and remains the stored filename for subsequent Save, avoiding
-same-name folder collisions. No automatic root lookup masks corruption or I/O
-failure. Save As under a new bare name makes an explicit folder copy.
-
-Launcher refuses startup while either legacy root journal slot exists and points
-to `S64CFG.PRG`. Settings `M`, after explicit `Y`, owns two-directory recovery,
-restore verification, CLEAN staging and verified backup/retirement. Independent
-store sequence numbers do not resolve conflicting ownership. Ordinary runtime
-journal I/O then uses the folder alone. No automatic document/recovery migration
-or broad root cleanup is performed at startup.
-
-Legacy root `SEE64YOU.REC` remains accessible outside the Editor recovery prompt;
-only folder recovery is offered automatically. Compare both locations and retain
-backups before manual migration. Differing/unresolved recovery must not be
-replaced. Failed recovery loading preserves the original snapshot and inhibits
-autosave until an explicit recovery resolution; it does not silently delete the
-failed file. Integrated folder hardware acceptance and final root cleanup remain
-separate gates in todo.md.
-
-## Publishing transports
-
-### Direct Standalone transport
-
-The firmware-1.1 baseline uses Network Target $03 for DNS/TCP and raw HTTP. Protected requests use a dedicated 256-bit direct key, one-time challenge and HMAC-SHA256 over the method, exact URI and body hash.
-
-This provides authentication, integrity and replay protection. It does not provide confidentiality; direct HTTP requires explicit consent.
-
-### HTTP Target compatibility/future path
-
-HTTP Target $06 remains optional capability-detected functionality. It is absent on the tested firmware-1.1 machine and is not assumed from a URL string or firmware marketing version.
-
-### Trusted-LAN relay
-
-The relay remains an optional compatibility path for HTTPS-required origins and deferred WordPress use.
-
-## Performance governor
-
-Performance policy is centralized.
-
-- Interactive mode: fastest hardware-proven setting that preserves correct input/display.
-- CPU-intensive mode: temporary high turbo for search, hashing, transforms and similar work.
-- I/O-safe mode: conservative settings for operations not yet proven reliable at higher speed.
-- Transition mode: controlled state for module replacement.
-
-Every temporary turbo/badline change restores the user's prior value.
-
-## Recovery
-
-Recovery has two levels:
-
-- REU-resident cheap session/history snapshots;
-- SD-backed durable recovery surviving reset/power loss.
-
-Network or publisher failures must never make local source unavailable.
-
-## Backends
-
-The standalone site remains a flat-file PHP backend with no database requirement and no JavaScript requirement for public pages.
-
-The WordPress adapter remains isolated from client state, uses WordPress-native permissions/authentication and preserves canonical See64You source in post metadata.
-
-## Security boundaries
-
-- The server validates authentication, type, slug and operation independently of the client.
-- Browser/bearer credentials require HTTPS outside controlled testing.
-- Direct firmware-1.1 publishing uses challenge/HMAC and explicit plaintext-HTTP consent.
-- The direct transport does not claim source confidentiality.
-- The relay is trusted-LAN-only and is never a general proxy.
-- Hardware capabilities are probed and verified rather than inferred.
-
-## Migration rule
-
-During the C64U-only migration, old code may coexist with the new architecture only long enough to provide a safe replacement path.
-
-Do not preserve:
-
-- conventional-C64 release compatibility;
-- 128 KiB minimum-REU assumptions;
-- software-IEC chaining;
-- $C800-$CBFF as a permanent production reservation;
-- old RAM-headroom gates whose only purpose is original-C64 compatibility.
-
-Current unresolved engineering and validation work belongs in todo.md.
+Remove code only when its callers are traced, a smaller implementation is measured, the new package passes all applicable tests, and hardware proves the changed bootstrap or I/O path. No managed-runtime redesign, WordPress expansion, general HTML browsing, large-document refactor or new REU allocator is part of the MVP.
