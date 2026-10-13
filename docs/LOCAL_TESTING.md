@@ -2,6 +2,8 @@
 
 **Purpose:** Reproduce and accept the **independent eleven-file C64U application package** and flat-file PHP website. This is a runbook, not a chronology. Historical managed-runtime test campaigns and one-off receipts remain in Git history. `todo.md` is the only live work queue; passing a past commit does not certify a rebuilt package.
 
+**Codex hardware execution:** [CODEX-MVP-HARDWARE-ACCEPTANCE.md](CODEX-MVP-HARDWARE-ACCEPTANCE.md) contains the bounded autonomous sequence, fixture isolation, evidence and stop rules. Use this runbook for the detailed implementation checks; the handover does not authorise modification of user files or live sites.
+
 ## 1. Test environment and safety
 
 - Read root `AGENTS.md`, current `todo.md` and [C64U-RUNTIME.md](C64U-RUNTIME.md) before changing runtime behaviour.
@@ -39,7 +41,7 @@ Use supported local C64 ROMs; old pinned Open ROM test material is not a substit
 
 ## 4. Integrated first-user real-C64U acceptance — required for public beta
 
-Use the actual instructions in [FIRST-PAGE.md](FIRST-PAGE.md) and the PHP site's six-step `start.php` walkthrough, not developer shortcuts. Start with a disposable, unconfigured site and test installation. Use the **native physical keyboard** for acceptance:
+Use the actual instructions in [FIRST-PAGE.md](FIRST-PAGE.md) and the PHP site's six-step `start.php` walkthrough, not developer shortcuts. Start with a disposable, unconfigured site and test installation. For the **automated C64U acceptance gate**, drive inputs through the existing bounded key-injection harness and record the method explicitly. A native physical-keyboard usability run is a separate manual observation, not simulated by remote keys:
 
 1. Enable C64U prerequisites, verify the 16 MiB REU and app folder, and copy the complete matching eleven-file package.
 2. Configure the PHP site with `setup.php`, pair using HTTPS `pair.php`, import or manually enter the dedicated key using `S64CFG.PRG`, explicitly consent to plain HTTP publishing, save, restart/relaunch and confirm Settings persistence.
