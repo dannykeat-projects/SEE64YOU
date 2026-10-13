@@ -5,6 +5,7 @@ on:
     branches:
       - integration-validation-2026-09-24
       - feature/c64u-publisher-chain
+      - 'maintenance/**'
   workflow_dispatch:
 
 concurrency:
@@ -25,6 +26,7 @@ jobs:
           php site/tests/run.php
           php site/tests/browser.php
           sh site/tests/http.sh
+          php tools/package-site.php
 
       - name: Check public-browser host protocol and HTTP transport
         run: |
@@ -37,6 +39,17 @@ jobs:
           cc -std=c89 -Wall -Wextra -Werror -Iclient/src \
             client/tests/browser_http_test.c client/src/browser/http.c \
             client/src/charset.c -o "$tmp"
+          "$tmp"
+
+      - name: Check independent documents, settings and authenticated publishing (host)
+        run: |
+          tmp=$(mktemp)
+          trap 'rm -f "$tmp"' EXIT
+          cc -std=c99 -Wall -Wextra -Iclient/src client/tests/local_documents_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/dos.c client/src/storage/local.c -o "$tmp"
+          "$tmp"
+          cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src client/tests/publisher_settings_store_test.c client/src/charset.c client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c client/src/publisher/settings_store.c -o "$tmp"
+          "$tmp"
+          cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_direct_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/network.c client/src/crypto/sha256.c client/src/publisher/direct_key.c client/src/publisher/direct_key_store.c client/src/publisher/direct_auth.c client/src/publisher/workspace.c client/src/publisher/standalone_direct.c -o "$tmp"
           "$tmp"
 
       - name: Install C64 compiler
@@ -54,7 +67,11 @@ jobs:
           path: client/build/independent-package/SEE64YOU/
           if-no-files-found: error
 
+  # Keep the old deep validation job on its established branches until the
+  # independent package is accepted; do not run managed-runtime targets on
+  # the maintenance-only software-validation branch.
   validate:
+    if: ${{ !startsWith(github.ref, 'refs/heads/maintenance/') }}
     runs-on: [self-hosted, linux, x64, terra64]
     timeout-minutes: 20
     steps:
