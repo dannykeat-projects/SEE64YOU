@@ -2,6 +2,8 @@
 
 **Only active work queue.** The product is frozen to a small public beta; shelve non-MVP features until real user feedback. Historical investigations live in Git history, not in this queue.
 
+**Codex next execution:** [bounded MVP hardware acceptance handover](docs/CODEX-MVP-HARDWARE-ACCEPTANCE.md). Follow its backup, software/VICE, disposable-site, C64U and restoration gates in order. Record virtual-key vs physical-key evidence separately.
+
 ## Scope (four independently launched programs)
 
 - **Editor** (`SEE64YOU.PRG` with private assets): edit and save/reopen canonical `.s64` source files in `/sd/SEE64YOU/`, useful offline; return cleanly to BASIC.
@@ -15,7 +17,7 @@ Programs share only ordinary on-disk source/configuration, **not** live applicat
 ## P0 — decisions and acceptance before release
 
 - [ ] **Reproduce current candidate:** pin one development commit, run complete eleven-file `make -C client independent-package`, manifests/memory guards, host/PHP tests and the applicable packaged VICE gates. Record exact commit, package SHA-256 and test outcomes. Do not confuse earlier hardware receipts with validation of a rebuilt package.
-- [ ] **First-user walkthrough on backed-up real C64U:** from an unconfigured disposable PHP website and test SD installation, follow `site/start.php` and `docs/FIRST-PAGE.md` with the physical C64 keyboard: configure prerequisites, HTTPS-pair key, save/reopen Settings after cold start, create/save `FIRST.S64`, publish, verify ordinary-browser HTML, download/reopen/edit/update, then return to responsive BASIC. Record friction, screen messages, source integrity, SD contents and original machine settings. Fix only concrete blocking defects.
+- [ ] **First-user workflow on backed-up real C64U:** from an unconfigured disposable PHP website and test SD installation, Codex follows `site/start.php` and `docs/FIRST-PAGE.md` with bounded automated key input: configure prerequisites, HTTPS-pair key, save/reopen Settings after cold start, create/save `FIRST.S64`, publish, verify ordinary-browser HTML, download/reopen/edit/update, then return to responsive BASIC. Record input method, friction, screen messages, source integrity, SD contents and original machine settings. Fix only concrete blocking defects. Separate physical-keyboard usability and true cold power-cycle acceptance as human/manual or unverified; do not infer these from remote key injection/reset.
 - [ ] **Browser/theme acceptance:** run current PHP/theme/browser regression suite and built-package VICE checks, then visit two independent public SEE64YOU sites with different C64 colour settings on real C64U; verify correct colours, URL/link navigation, legacy v1 fallback, restoration of screen colours and clean BASIC return.
 - [ ] **Release safety:** verify no data loss under existing bounded negative cases (existing destination refusal, partial response, config errors), exact documents and configuration, machine restoration and stable startup/exit. Document remaining hardware gaps explicitly; USB keyboard and uncontrolled power/SD removal are deferred, not passed.
 - [ ] **Go/no-go:** if ordinary first publication still needs developer intervention or a major architecture rewrite, stop and evaluate shelving. No further broad redesign to save the MVP.
