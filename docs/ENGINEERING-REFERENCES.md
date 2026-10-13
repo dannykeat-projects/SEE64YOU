@@ -1,191 +1,33 @@
-# External C64U engineering references
+# External engineering references — MVP only
 
-This document records external projects/specifications, licence boundaries and the evidence they provide.
+External software is **reference material**, not a new SEE64YOU workstream. Do not import code, dependencies, protocols or hosting requirements before the independent MVP is usable. A replacement must demonstrably reduce total runtime complexity without breaking `.s64`, PHP hosting, published HTML, C64 browser links, recovery or hardware restoration.
 
-See64You is now C64 Ultimate-only with a required 16 MiB REU. References are evaluated against that product direction rather than original-C64 compatibility.
+## Established C64U platform references
 
-Unresolved implementation belongs in todo.md.
+- [Official Ultimate documentation](https://github.com/GideonZ/1541u-documentation) is the authoritative intent for Ultimate-DOS, Network/Control targets, REU, turbo and runtime capabilities. **Actual firmware-1.1 hardware tests override assumed availability**.
+- Tested C64U: UCI `$DF1C..$DF1F`, Ultimate-DOS `$01`/`$02`, Network `$03`, required 16 MiB REU, HTTP `$06` absent. Use capability detection and preserve user's settings.
+- [JC-000/c64-test-harness](https://github.com/JC-000/c64-test-harness) and [barryw/vice-mcp](https://github.com/barryw/vice-mcp) can help automate focused emulator/real-hardware acceptance **outside** production runtime. Adoption is optional; the current repo already has accepted harnesses.
+- [barryw/sim6502](https://github.com/barryw/sim6502), [xlar54/ultimateii-dos-lib](https://github.com/xlar54/ultimateii-dos-lib), and [JC-000/c64-https](https://github.com/JC-000/c64-https) are engineering research references only. Do not add GPL library code into shipping clients without an explicit licensing decision.
 
-## Decision rules
+## Alternatives evaluated for product scope
 
-- Prefer official Ultimate documentation for intended UCI/Ultimate behaviour.
-- Verify important firmware/timing/input behaviour on real C64U hardware.
-- Treat third-party projects as evidence/tooling unless deliberately adopted.
-- Do not copy GPL client/library code into the shipping client unless the project deliberately changes licensing.
-- Prefer external host/test tooling over adding unnecessary resident client complexity.
-- Any imported code must be licence-compatible, bounded, measured and tested.
-- Capability claims should describe the tested hardware/firmware when behaviour may vary.
+| Project | Relevant lesson | Why no wholesale replacement now |
+| --- | --- | --- |
+| [Compunet Reborn](https://github.com/tgreaves/compunet-reborn) | Small C64 client, server-driven page model, separate C64 and modern wire interfaces, protocol conformance testing | Compunet application model and historical C64 networking protocol differ; its Python services add hosting complexity relative to our working flat-file PHP site |
+| [Commodore Markup Language (CML)](https://github.com/eightbitswide/CML) | Plain hosted HTML can contain C64-specific content | Requires different authoring/display semantics; remote machine commands are outside our read-only browser trust model; code licence needs independent verification |
+| [Contiki C64](https://github.com/oliverschmidt/contiki) | Simple HTML can be read on vintage hardware | Browser/transport/setup are not a verified drop-in replacement for our published link/colour format or C64U interface |
+| [HDN Shell](https://hdn.sh/) | Complex modern pages can be transcoded off-device | Requires different external browser/server design, not our independently hosted dual-presentation output |
+| [drericflores/AdveditC64](https://github.com/drericflores/AdveditC64) | Compact editor implementation patterns | Our Editor and `.s64` round-trips already work; wholesale editor rewrite is unjustified |
 
-## Primary platform references
+Compunet Reborn's [MIT licence](https://github.com/tgreaves/compunet-reborn/blob/main/LICENSE) covers its modern recreation but explicitly excludes historical and third-party material. Maintain provenance and required licence/copyright notices for any later selective code import. Code from CML or other projects is **not** assumed reusable without licence review.
 
-Authoritative platform sources:
+## Adoption gate (only after MVP validation)
 
-- GideonZ/1541u-documentation
-- Ultimate-DOS UCI target documentation
-- Network Target documentation
-- Control Target documentation
-- Turbo mode/register documentation
-- HTTP Target documentation
-- bdgscotland/c64-kb for C64/6510/VIC/CIA/KERNAL details
+1. Identify a **measured** release problem in SEE64YOU; don't replace code just because another design is interesting.
+2. Trace actual call paths, build targets, tests and source/file compatibility contracts.
+3. Establish licence compatibility and precise external source revision.
+4. Prototype a **single bounded component** on a disposable branch with a clear rollback.
+5. Compare shipping code size, dependencies, configuration work, memory fit, reliability, maintainability and user workflow against the existing implementation.
+6. Pass source/host/PHP/VICE and affected real-C64U checks before removal.
 
-Key architectural facts now used by See64You:
-
-- Ultimate-DOS provides independent targets $01 and $02.
-- DOS_CMD_LOAD_REU ($21) can load an opened file directly into REU and explicitly assumes a 16 MiB REU configuration.
-- the U64 can expose software-controlled turbo registers when configured for register control;
-- Control Target $04 exposes hardware-management/runtime functions;
-- Network Target $03 provides the firmware-1.1 direct TCP path;
-- HTTP Target $06 is not available on the tested firmware-1.1 machine and is therefore optional capability-detected functionality.
-
-## Established real-hardware evidence
-
-On the tested C64 Ultimate firmware 1.1:
-
-- UCI $DF1C-$DF1F works;
-- DOS $01 works;
-- Network $03 works for DNS/TCP/raw HTTP;
-- HTTP $06 is absent;
-- transactional settings save/readback works;
-- configuration survives a full physical power cycle;
-- persisted direct authentication succeeds;
-- full current companion PRGs can be streamed through Ultimate-DOS;
-- the resident replacement-loader diagnostic successfully overwrote the running program, entered cc65 startup, ran the target and returned.
-
-The last two points are evidence for executable overlay work, not a mandate to preserve the old $C800-$CBFF production design.
-
-## REU/module-cache architecture
-
-The new product requires 16 MiB and should use native DOS→REU loading for module preload where practical.
-
-External references should now help answer:
-
-- allocator/ownership design;
-- fast verified REU transfers;
-- tiny overwrite-safe executable replacement;
-- state restoration;
-- package/manifest integrity;
-- hardware automation.
-
-JC-000/c64-lib-contract is useful as a pattern for machine-readable ownership and map-based contracts.
-
-## System-state/turbo references
-
-Use official turbo/control documentation first.
-
-See64You should capture and restore temporary runtime settings rather than permanently forcing performance settings.
-
-Third-party demos such as xahmol/UltimateDemo2026 may provide implementation evidence, but GPL code remains reference-only unless licensing changes deliberately.
-
-## Ultimate-DOS/UCI testing
-
-Useful projects:
-
-- barryw/sim6502 / u64sim — deterministic UCI/Ultimate-DOS external CI, GPL-3.0 process/tool boundary;
-- xlar54/ultimateii-dos-lib — mature cc65 patterns, GPL-3.0 reference only;
-- sandlbn/ultimate64-manager — MIT host-side REST/FTP/memory reference.
-
-Real hardware remains the final gate.
-
-## Hardware automation
-
-Preferred reusable lane:
-
-build → validate → upload/run → inject bounded input → inspect screen/memory/diagnostics → record result
-
-JC-000/c64-test-harness remains the preferred evaluation because it spans VICE and real Ultimate hardware and documents firmware-1.1 REST /Temp hygiene.
-
-Manual SD copying should become the exception during development.
-
-## Editor/input references
-
-Keep deterministic host/VICE tests, but C64U USB/native keyboard behaviour must be established on hardware.
-
-Useful references:
-
-- JC-000/c64-test-harness;
-- drericflores/AdveditC64 (MIT);
-- nschneir/Project64;
-- barryw/vice-mcp.
-
-Editor references may teach compact algorithms without imposing original-C64 memory ceilings on the product.
-
-## UCI register-window compatibility
-
-The tested firmware-1.1 C64U works at $DF1C-$DF1F.
-
-Other projects report $DE1C-$DE1F in some Ultimate configurations. Treat that as a compatibility investigation requiring safe probing/identity validation.
-
-Do not change the known-working path solely because third-party code uses another window.
-
-## HTTPS/crypto research
-
-JC-000/c64-https demonstrates TLS work over Ultimate networking and includes MIT-licensed optimized 6502 material. It remains research rather than the active production TLS path until its security, integration, resource and maintenance properties are deliberately accepted.
-
-Current direct Standalone publishing remains challenge + HMAC-SHA256 over Network $03 with explicit plaintext-HTTP consent.
-
-The trusted-LAN relay remains the practical HTTPS compatibility path.
-
-## Adoption priorities
-
-Evaluate next:
-
-1. JC-000/c64-test-harness for repeatable real-hardware cycles.
-2. barryw/sim6502 / u64sim for external UCI/DOS CI.
-3. Native DOS_CMD_LOAD_REU module-cache implementation.
-4. A minimal overwrite-safe cached-module transition.
-5. C64U system-state/turbo capture and restoration.
-6. Safe alternate UCI-window probing.
-
-Reference-only unless deliberately adopted:
-
-- xlar54/ultimateii-dos-lib — GPL-3.0.
-- c64uploader/c64uploader — mixed host/native licensing.
-- drericflores/AdveditC64 — MIT.
-- sandlbn/ultimate64-manager — MIT.
-- nschneir/Project64 / barryw/vice-mcp — tooling patterns.
-- xahmol/UltimateDemo2026 — GPL-3.0 implementation evidence.
-
-Research:
-
-- JC-000/c64-https and related crypto work.
-- Oscar64 only as a measured future compiler experiment, not an assumed migration.
-
-## External-adoption gate
-
-An external project is not adopted until:
-
-1. licence/boundary is recorded;
-2. its role is narrow and explicit;
-3. setup is reproducible;
-4. a See64You-specific test proves value;
-5. existing validation still passes;
-6. hardware-dependent behaviour is verified appropriately;
-7. rollback/removal is straightforward.
-
-## Source list
-
-- https://github.com/GideonZ/1541u-documentation
-- https://1541u-documentation.readthedocs.io/en/master/uci/ultimate_dos_target.html
-- https://1541u-documentation.readthedocs.io/en/latest/uci/network_target.html
-- https://1541u-documentation.readthedocs.io/en/latest/uci/control_target.html
-- https://1541u-documentation.readthedocs.io/en/latest/config/turbo_mode.html
-- https://1541u-documentation.readthedocs.io/en/latest/uci/http_target.html
-- https://github.com/bdgscotland/c64-kb
-- https://github.com/JC-000/c64-test-harness
-- https://github.com/JC-000/c64-https
-- https://github.com/JC-000/c64-lib-contract
-- https://github.com/barryw/sim6502
-- https://github.com/barryw/vice-mcp
-- https://github.com/sandlbn/ultimate64-manager
-- https://github.com/c64uploader/c64uploader
-- https://github.com/xlar54/ultimateii-dos-lib
-- https://github.com/drericflores/AdveditC64
-- https://github.com/nschneir/Project64
-- https://github.com/xahmol/UltimateDemo2026
-# Website C64 font
-
-The custom-theme C64 font is `zeiche/c64font`'s unmodified `c64.ttf`, retrieved 2026-10-04 from https://github.com/zeiche/c64font (CC0 1.0 Universal; upstream LICENSE.md is bundled beside it). SHA256: `60f16bd2384ee6f8fd1dc1d1ea642de41143bb0fbb50710a5404934b4f66da2c`. Upstream documents Basic Latin, PETSCII legacy-computing/box/block mappings and private-use reverse characters. The UI uses normal Unicode text; glyph shape/metrics still require browser visual acceptance.
-
-Style64 C64 Pro Mono was also evaluated: https://style64.org/c64-truetype/license permits unchanged webfont embedding but software redistribution is restricted to freely provided software. CC0 avoids that distribution condition. No Style64 asset is bundled.
-
-Format support: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@font-face documents local font sources and browser compatibility. We ship TrueType only, use `format('truetype')`, and provide Courier/monospace fallbacks. Older IE's EOT path is deliberately a fallback, not a supported custom-font path. Neither custom font loading nor rounded corners is a functional prerequisite.
+If no candidate clearly improves all relevant trade-offs, retain the existing implementation. **No further external-tech evaluation is required for beta.** The release/stop decisions are in [`todo.md`](../todo.md).
