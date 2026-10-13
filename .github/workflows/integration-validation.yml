@@ -60,11 +60,25 @@ jobs:
       - name: Build complete eleven-file independent C64U package
         run: make -C client independent-package
 
+      - name: Package provisional client and PHP website ZIPs
+        run: |
+          mkdir -p dist
+          test "$(find client/build/independent-package/SEE64YOU -maxdepth 1 -type f | wc -l)" -eq 11
+          test ! -e dist/see64you-site/config.php
+          test ! -d dist/see64you-site/tests
+          (cd client/build/independent-package && python3 -m zipfile -c ../../../dist/see64you-c64u-candidate.zip SEE64YOU)
+          (cd dist && python3 -m zipfile -c see64you-site-candidate.zip see64you-site)
+          python3 -m zipfile -t dist/see64you-c64u-candidate.zip
+          python3 -m zipfile -t dist/see64you-site-candidate.zip
+          sha256sum dist/see64you-c64u-candidate.zip dist/see64you-site-candidate.zip
       - name: Upload provisional complete C64U package for hardware testing
         uses: actions/upload-artifact@v4
         with:
           name: see64you-independent-palette-candidate-not-hardware-verified
-          path: client/build/independent-package/SEE64YOU/
+          path: |
+            client/build/independent-package/SEE64YOU/
+            dist/see64you-c64u-candidate.zip
+            dist/see64you-site-candidate.zip
           if-no-files-found: error
 
   # Keep the old deep validation job on its established branches until the
