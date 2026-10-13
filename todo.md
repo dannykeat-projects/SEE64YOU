@@ -23,9 +23,14 @@ Programs share only ordinary on-disk source/configuration, **not** live applicat
 ## P1 — bounded cleanup and beta publication
 
 - [ ] **Remove provably dead build/runtime paths** only after P0: trace references and release dependencies first. In particular, assess unused Publisher/Settings preloads in the Editor launcher and old cross-program transition targets. Never remove the working Launcher→Editor bootstrap, journal/recovery, UCI transport, protocol, integrity gates or protected hardware restoration merely to shrink the tree.
-- [ ] **Retire stale generated diagnostics and consolidate documentation.** Keep one live runbook, minimal README, current architecture and only meaningful required tests. Preserve unique verified recovery procedures in their owning technical docs; use Git history for superseded experiments.
+- [ ] **Retire remaining dead source/build/diagnostic targets** after acceptance, with caller tracing and regression evidence. The active integration workflow still builds some superseded managed-runtime targets; remove them only when no live safety checks rely on them.
 - [ ] **Reconcile development with `main`** without rewriting history or dropping the main-only README change; review full diff and validation on the intended release commit.
 - [ ] **Publish versioned artifacts only after acceptance:** eleven-file C64U package and standalone PHP website ZIP as GitHub Release assets; include immutable commit, SHA-256 hashes, basic install/first-page instructions, exact known limitations. No deployment or merge solely because CI is green.
+
+## Completed scope-freeze work (2026-10-13)
+
+- [x] Reduce the active README, architecture, C64U-runtime, testing, third-party references and TODO documents; preserve current release contracts and recoverable historical Git records.
+- [x] Remove only the two superseded `workflow_dispatch`-only persistent-runtime GitHub Actions workflows. No shipping C64 source or active CI validation has been removed.
 
 ## Established evidence (not new validation)
 
