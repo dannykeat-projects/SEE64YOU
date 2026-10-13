@@ -32,6 +32,12 @@ Programs share only ordinary on-disk source/configuration, **not** live applicat
 - [x] Reduce the active README, architecture, C64U-runtime, testing, third-party references and TODO documents; preserve current release contracts and recoverable historical Git records.
 - [x] Remove only the two superseded `workflow_dispatch`-only persistent-runtime GitHub Actions workflows. No shipping C64 source or active CI validation has been removed.
 
+## Completed pre-hardware preparation (2026-10-13)
+
+- [x] Extend the hosted independent-package smoke workflow to maintenance branches without running legacy managed-runtime validation there; add existing independent source/config/auth host tests.
+- [x] Generate provisional eleven-file C64U and standalone PHP website ZIP artifacts in CI, verify ZIP integrity, exclude local website configuration/tests and print archive checksums. This is **not** a public GitHub Release or a passing-run claim.
+- [ ] Confirm the updated hosted CI job actually passes on this branch and record the run/commit. Exact candidate ZIPs and SHA-256 remain unverified until that run completes.
+
 ## Established evidence (not new validation)
 
 - Three functional real-C64U edit/publish/download/update round trips and bounded storage/network failures were recorded 2026-10-10/11; the tested native keyboard workflow was not a complete fresh-user setup.
