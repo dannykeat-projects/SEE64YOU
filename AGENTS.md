@@ -20,19 +20,20 @@ Read docs/C64U-RUNTIME.md before platform/runtime work.
 8. Keep canonical content recoverable from ordinary files.
 9. Prefer small, measured solutions over speculative abstractions.
 
-## MVP-first execution
+## Frozen MVP and stop rules
 
-The ordered acceptance plan in todo.md governs current work. Deliver the three-independent-program, file-based MVP chosen 2026-10-09 before expanding features or broad cleanup. Editor saves/reopens canonical .s64 source; Publisher independently reads .s64, publishes and downloads remote source to a new .s64; Settings independently reads/writes the canonical disk configuration. Each executable launches fresh and exits to BASIC. No document, undo, clipboard or session state crosses program boundaries. Keep one live queue in todo.md.
+The **only current product scope** is the independent Editor (`SEE64YOU.PRG`), Publisher (`S64PUB.PRG`), Settings (`S64CFG.PRG`) and optional read-only public Browser (`S64WEB.PRG`), plus the existing standalone flat-file PHP site. Editor saves/reopens canonical `.s64` files; Publisher loads/publishes and downloads to a new `.s64`; Settings owns disk config; Browser follows public SEE64YOU text/link pages. Each program launches independently and returns to BASIC. No cross-program live state, history, clipboard, or REU handoff.
 
-Preserve the proven Launcher → Editor bootstrap and BASIC-return path. Do not remove the whole-PRG fallback before independent hardware acceptance. Internal overlays may remain, but cross-program adoption/chaining is superseded. Hard stop if a complete Publisher with real file/config/download paths cannot meet the existing 1 KiB guard without another substantial architecture exercise.
+Deliver the first-time user workflow in `todo.md` before cleanup that changes executable behaviour. Preserve documented hardware-tested Launcher→Editor bootstrap, direct HMAC publishing, URL/browser protocols, disk recovery, state restoration and existing guardrails. Explicitly test any necessary replacements against current behaviour. Retain still-used overlay machinery; don't rewrite it solely for aesthetic simplicity.
 
-Use existing services and small explicit boundaries. Do not weaken memory/integrity/restore guards, add speculative abstractions, rewrite persisted formats or undertake another architecture pivot merely to fit deferred scope. Report user-visible progress and exact validation scope.
+Do **not** add WordPress publishing, non-SEE64YOU/HTML browsing, ordinary-C64 compatibility, new editor controls/appearance, joystick/mouse, USB keyboard acceptance, TLS redesign, large-document redesign, general accounts/chat, new formats, or more external integrations before first-publication acceptance. Deferred means no TODO queue and no work until user feedback or a verified blocker.
 
+Stop if a fix needs another major cross-program runtime/loader architecture. Two bounded attempts at the same blocker without progress trigger go/no-go reassessment, potentially shelving the project rather than expanding it. Fix existing correctness problems only with the smallest validated changes. Don't weaken fit, disk-integrity or machine-restoration gates.
 ## C64U runtime rules
 
 - 40x25 text mode remains the baseline application UI.
 - Keyboard operation is mandatory; mouse support is an enhancement.
-- Modern USB keyboard users and the machine's native C64 keyboard are both first-class input targets.
+- The native C64 keyboard is the MVP acceptance input. Existing USB-keyboard support must not regress, but new USB acceptance work is deferred until feedback.
 - The 16 MiB REU is the primary extended workspace. Introduce a central allocator rather than scattering fixed ad-hoc banks.
 - Keep only small hot buffers and currently executing code in conventional C64 RAM when REU-backed storage is more appropriate.
 - Prefer Ultimate-DOS and native UCI transfers over IEC/KERNAL file loading.
@@ -74,8 +75,7 @@ If a prerequisite cannot safely be enabled by software, guide the user through t
 
 - Keep editor/model logic platform-light enough for host tests.
 - Avoid heap allocation in hot paths when bounded structures are simpler, but do not preserve tiny original-C64 limits that no longer serve the product.
-- Evolve document/history/clipboard storage toward the shared REU allocator.
-- Large-document design should use paging/pieces/chunks rather than repeatedly shifting an enormous flat REU region.
+- Preserve current REU-backed editing/document behaviour; new allocator, large-document and history work is deferred beyond the MVP.
 - Generated HTML is never the editing source.
 
 ## Web rules
@@ -90,13 +90,9 @@ If a prerequisite cannot safely be enabled by software, guide the user through t
 - The firmware-1.1 direct path may use explicit plaintext HTTP only with the dedicated challenge/HMAC protocol; never silently downgrade HTTPS.
 - Writes should be transactional/atomic where the storage environment permits.
 
-## WordPress rules
+## Deferred integrations
 
-- Prefer WordPress-native authentication and permissions.
-- Never store a user's normal WordPress password.
-- Preserve See64You source in post metadata so editing round-trips exactly.
-- Generated HTML is derived from source and can be replaced on every publish.
-
+The existing WordPress adapter and trusted relay are outside the initial release acceptance scope. Do not expand or refactor these integrations just for completeness. Preserve credential safety and established on-disk formats if an MVP fix touches common code.
 ## Documentation ownership
 
 - todo.md is the **only live work queue**.
@@ -105,7 +101,7 @@ If a prerequisite cannot safely be enabled by software, guide the user through t
 - docs/LOCAL_TESTING.md contains only current reproducible validation procedures.
 - docs/ENGINEERING-REFERENCES.md records external evidence, licences and adoption boundaries.
 - When behaviour, interfaces, package names, key mappings, transport, storage, resource ownership, setup or validation expectations change, update the corresponding canonical doc in the same change.
-- Remove superseded plans rather than leaving contradictory active documentation; Git history is the archive.
+- Keep README, architecture and current validation procedures concise. Retire contradictory managed-runtime prose; Git history preserves obsolete experiments. Do not discard unique recovery or validation instructions before checking their active callers.
 
 ## Workflow
 
@@ -114,6 +110,6 @@ If a prerequisite cannot safely be enabled by software, guide the user through t
 - Re-check the branch head immediately before a write because local/Codex work may advance it concurrently.
 - Update todo.md when work is completed, deferred, discovered or reprioritised.
 - Validate the smallest relevant scope first, then the full available validation required by risk.
-- The target deliverable is one verified package with independently launched Editor, Publisher and Settings PRGs (and required assets). The current managed package remains a fallback, not the accepted independent candidate.
-- Do not merge/main/deploy solely because CI is green; follow the explicit delivery instruction.
+- The target deliverable is one verified eleven-file independent client package including Editor, Publisher, Settings and optional Browser plus a separate PHP website package. Managed runtime targets are historical fallbacks, not release outputs.
+- Do not merge, deploy, create a public release or touch existing SD data solely because CI is green; follow explicit delivery authorization.
 - Do not claim real-hardware validation unless it actually ran on real C64U hardware.
