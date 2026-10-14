@@ -37,8 +37,8 @@ def key(monitor, value):
     monitor.resume()
 
 
-def run(filename, prompt, exit_key, port, rom_dir, checks=()):
-    package = ROOT / "client/build/independent-package/SEE64YOU"
+def run(filename, prompt, exit_key, port, rom_dir, checks=(), package_dir=None):
+    package = package_dir or ROOT / "client/build/independent-package/SEE64YOU"
     out = ROOT / "client/build/independent-vice"
     out.mkdir(parents=True, exist_ok=True)
     command = ["xvfb-run", "-a", "x64sc", "+sound", "-reu", "-reusize", "16384",
@@ -172,6 +172,10 @@ if __name__ == "__main__":
     parser.add_argument("--rom-dir", type=Path, required=True,
                         help="Compatible locally provided C64 ROM directory")
     args = parser.parse_args()
+    subprocess.run(["make", "-C", str(ROOT / "client"), "browser-palette-native-test"], check=True)
+    run("PALTEST.PRG", "Native palette tests passed", ord("X"), 6548, args.rom_dir,
+        ((ord("R"), "SEE64YOU PUBLIC BROWSER"), (3, "Native colour restore passed")),
+        package_dir=ROOT / "client/build/browser-native-vice")
     run("SEE64YOU.PRG", "R RECHECK    X EXIT", ord("X"), 6544, args.rom_dir)
     run("S64PUB.PRG", "RUN/STOP  EXIT TO BASIC", 3, 6545, args.rom_dir,
         ((ord("3"), "Load .S64 or open remote first"),

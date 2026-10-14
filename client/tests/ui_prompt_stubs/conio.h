@@ -4,6 +4,7 @@
 #define CH_ENTER 13
 #define CH_DEL 20
 #define COLOR_BLACK 0
+#define COLOR_WHITE 1
 #define COLOR_GREEN 5
 void clrscr(void);
 void cputs(const char* text);

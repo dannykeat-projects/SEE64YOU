@@ -219,6 +219,11 @@ independent-editor-overlay-fit:
 
 INDEPENDENT_PACKAGE_DIR := build/independent-package/SEE64YOU
 INDEPENDENT_BROWSER_SOURCES := src/browser/main.c src/browser/protocol.c src/browser/http.c src/charset.c src/platform/uci.c src/platform/network.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/reu_runtime.c src/platform/reu_runtime_build.c src/platform/reu_runtime_allocate.c src/platform/reu_runtime_write.c src/publisher/settings_exchange.c src/publisher/settings_validate.c src/publisher/settings_store.c src/platform/basic_workspace_reset.s
+
+.PHONY: browser-palette-native-test
+browser-palette-native-test:
+	@mkdir -p build/browser-native-vice
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -o build/browser-native-vice/PALTEST.PRG tests/browser_palette_native_test.c $(filter-out src/browser/main.c,$(INDEPENDENT_BROWSER_SOURCES))
 .PHONY: independent-browser
 independent-browser: build/independent/S64WEB.PRG
 

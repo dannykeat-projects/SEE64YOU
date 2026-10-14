@@ -55,7 +55,8 @@ static uint8_t record(uint8_t kind, const char* text, const char* link, void* co
         uint8_t colours[3], i, c;
         for (i = 0u; i < 3u; ++i) {
             c = (uint8_t)text[i];
-            colours[i] = c <= '9' ? (uint8_t)(c - '0') : (uint8_t)(c - 'A' + 10u);
+            if (c <= 0x39u) colours[i] = (uint8_t)(c - 0x30u);
+            else colours[i] = (uint8_t)(c - 0x37u);
         }
         next_background = colours[0];
         next_text = colours[1];
@@ -202,15 +203,16 @@ int main(void)
     static const char index_path[] = {105,110,100,101,120,46,112,104,112,0};
     uint16_t i;
     uint8_t key, ascii;
-    clrscr(); textcolor(COLOR_WHITE); cursor(0);
+    previous_text = textcolor(COLOR_WHITE);
+    clrscr(); cursor(0);
     cputs("SEE64YOU PUBLIC BROWSER\r\nChecking Ultimate/16 MB REU...");
     if (!s64_reu_probe() || s64_reu_probe_banks() != 256u) {
-        cputs("\r\n16 MB REU required\r\n"); return 1;
+        cputs("\r\n16 MB REU required\r\n"); textcolor(previous_text); return 1;
     }
     s64_reu_runtime_init(&control, 1u, 1UL);
     if (!s64_reu_runtime_allocate(&control, S64_REU_OWNER_PREVIEW, 65536UL, 256u, &row_store)
         || !s64_reu_runtime_allocate(&control, S64_REU_OWNER_PREVIEW, 65536UL, 256u, &link_store)) {
-        cputs("\r\nBrowser workspace unavailable\r\n"); return 1;
+        cputs("\r\nBrowser workspace unavailable\r\n"); textcolor(previous_text); return 1;
     }
     s64_net_init(&network, s64_uci_execute);
     network_ready = s64_uci_probe_target(3u);
@@ -218,7 +220,6 @@ int main(void)
     page_background = COLOR_BLUE; page_text = COLOR_WHITE; page_link = COLOR_YELLOW;
     previous_background = bgcolor(page_background);
     previous_border = bordercolor(page_background);
-    previous_text = textcolor(COLOR_WHITE);
     if (s64_settings_store_load(&dos, &settings) == S64_SETTINGS_STORE_OK) {
         for (i = 0; settings.base_url[i]; ++i) {
             if (!s64_charset_native_to_ascii((uint8_t)settings.base_url[i], &ascii)) break;

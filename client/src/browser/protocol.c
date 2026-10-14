@@ -188,9 +188,10 @@ static S64BrowserProtocolResult record(S64BrowserParser* parser)
     if ((uint8_t)parser->line[0] == 0x43u) {
         if (parser->version != 2u || parser->style_seen || parser->length != 5u)
             return S64_BROWSER_PROTOCOL_INVALID;
+        /* Network ASCII must not use cc65's PETSCII character constants. */
         for (i = 2u; i < 5u; ++i)
-            if (!((parser->line[i] >= '0' && parser->line[i] <= '9')
-                || (parser->line[i] >= 'A' && parser->line[i] <= 'F')))
+            if (!(((uint8_t)parser->line[i] >= 0x30u && (uint8_t)parser->line[i] <= 0x39u)
+                || ((uint8_t)parser->line[i] >= 0x41u && (uint8_t)parser->line[i] <= 0x46u)))
                 return S64_BROWSER_PROTOCOL_INVALID;
         parser->style_seen = 1u;
         return parser->sink && parser->sink(0x43u, parser->line + 2u, 0, parser->context)

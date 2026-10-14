@@ -37,6 +37,15 @@ python3 tools/test_independent_programs_vice.py --rom-dir LOCAL_ROM_DIRECTORY
 python3 tools/test_basic_return_vice.py --rom-dir LOCAL_ROM_DIRECTORY
 ```
 
+The independent-program script also builds `browser-palette-native-test` in
+`client/build/browser-native-vice/` and runs it with the same ROMs. It feeds raw
+ASCII palettes through the real browser parser/REU callback: all 16 values in
+each colour slot, both one-byte and whole-record chunks (96 cases), malformed
+digits and a text row. The same probe enters/exits Browser with green text and
+requires that original colour to survive. `PALTEST.PRG` is a test fixture and
+is excluded from the eleven shipping files. These native checks are necessary
+because host character constants do not reproduce cc65's PETSCII mapping.
+
 Use supported local C64 ROMs; old pinned Open ROM test material is not a substitute when conio startup differs. Require all four entry/exit paths and numeric **and string** BASIC commands. Check absent UCI/DOS/network paths, URL refusal, Settings wizard required fields/consent/cancel, browser stale-link guards and returned memory state. VICE does **not** prove UCI, physical disk/network, real key input or cold persistence.
 
 ## 4. Integrated first-user real-C64U acceptance — required for public beta
@@ -79,10 +88,110 @@ The runner checks public home/page/archive/post navigation, paging, delay/cancel
 
 ## 7. Existing evidence and remaining gaps
 
+Current guided hardware receipt: `client/build/mvp-acceptance-20261014-4a714a4/hardware-guided-5/`.
+`continuation-state.json` records native Editor create/save/reopen and downloaded
+edit/save, automated fresh Publisher auth/publish/download/update, exact source
+and metadata, existing-destination refusal and actual browser HTML changing from
+`test` to `updated test`. Numerical/string BASIC, IRQ/drives/clock/turbo pass.
+`restoration-final.json` verifies all 39 original app-folder files and machine
+baseline after recovering an interrupted FTP readback check. Original installation
+is restored; candidate is not staged. Physical wizard/cold power-cycle and full
+native Publisher input are not inferred from this mixed-input run.
+
+Browser resume fixes the captured `site-b-wire.txt` failure: cc65's native
+`A`/`F` constants differ from wire ASCII, so palette validation/decoding uses
+numeric ASCII values. The integrated native regression fails on original code
+and passes on the fix. Capture original text before changing it to white; the
+previous order restored white rather than the caller's text on normal exit.
+The green-text VICE check and real CPU-executed colour checks cover restoration.
+Host/PHP/HTTP tests, complete package/manifests/guards and packaged VICE pass.
+Browser headroom is recorded in `receipts/palette-package.log`; only its PRG
+changes among the eleven package files. Fixed candidate ZIP and exact hashes
+are under the same ignored receipt root in `palette-package-verification.json`.
+`hardware-browser-palette-7/state.json` records passing cross-site `01D`, paging,
+legacy v1, error/cancel/reopen, BASIC/IRQ/drives/clock/turbo and live colour parity.
+User confirmed both physical palettes on 2026-10-14. The final physical exit
+check found Browser still open, so native RUN/STOP exit remains unverified;
+the earlier automated exit passed. Cleanup restored original Browser/config and
+machine baseline (`active=false`, `restored=true`); the receipt retains the final
+exit-check failure. Session 6 also restored originals after the text-colour defect.
+
+### Pinned software gate (2026-10-14)
+
+Clean Git archive `4a714a4c5c0a931003ff57c57bac78942f313632` built with cc65
+V2.18 (Ubuntu package 2.19), PHP 8.5.4 and VICE 3.9. Complete independent
+package, both manifests and existing guards pass: Publisher 1,046 B, Launcher
+1,032 B, Settings 4,009 B and Browser 17,235 B spare; Editor resident BSS ends
+at `$8A95` before `$8C00`. All eleven output files match hosted CI run
+[38372951631](https://github.com/dannykeat-projects/SEE64YOU/actions/runs/38372951631)
+and its client ZIP byte-for-byte. Both ZIP integrity checks, exclusions and
+published hashes verify:
+
+- Client ZIP SHA-256: `632ab64140494459bc71898bad183f62304765d0d70bddb95e40a47803bdf444`.
+- Website ZIP SHA-256: `0f2af35bcc02dd500fcc4374057e03e004411641eb72ad1d4a5443ec04f5fe3c`.
+
+The section 2 commands ran in an isolated LF-shell-script copy. Initial shell
+failures were CRLF invocation errors; corrected runs pass PHP/backend,
+browser/theme, HTTP and site packaging checks. Broad host validation initially
+found a missing `COLOR_WHITE` in `ui_prompt_stubs/conio.h`; the bounded stub fix
+allows every host gate and cc65 module compile check to pass. The broad validator
+then fails on the historical managed Publisher overlay's `NETWORK_RODATA`
+overflow of 133 B. `independent-package` does not depend on that target; its
+full shipping build passes. Subsequent broad diagnostic gates were not executed.
+Both section 3 VICE commands pass using the local compatible ROMs, including
+all four program entry/exit paths, Settings wizard/refusal cases, browser URL
+guards and numerical/string BASIC commands. No shipping source changed.
+
+Ignored receipts and downloaded CI archives:
+`client/build/mvp-acceptance-20261014-4a714a4/`. Read-only C64U observation found
+idle BASIC and firmware 1.1.0/FPGA 122/core 1.49, with existing user config/key,
+recovery and journals. The user subsequently authorised changes to everything
+inside `/sd/SEE64YOU/` for the backed-up disposable workflow. Hardware outcomes
+are recorded separately; physical input and cold power-cycle gates are not
+inferred from automated key input or reset/relaunch.
+
+### Fresh setup and input-driver boundary (2026-10-14)
+
+After explicit user authorisation to change the app folder, complete recursive
+SD backups passed exact hashes. The candidate's eleven installed files passed
+readback. Two new disposable site instances were configured using normal
+`setup.php` forms; site A's dedicated key came from `pair.php` over an actual
+local TLS connection (temporary self-signed certificate, test trust exception).
+Fresh independent Settings imported it, required explicit HTTP consent, saved
+with verification, returned to numerical/string BASIC and independently
+reloaded/cancelled without changing the saved config. IRQ, drives, clock and
+CPU-executed live turbo 0 passed. Neither reset/relaunch nor injected keys count
+as physical cold-start or keyboard acceptance.
+
+The Editor displayed the entered public test text, but the end-to-end driver
+did not complete saving. Attempt one injected during launcher preflight;
+attempt two correctly waited for the Editor menu but injected byte 19 without
+the required Control modifier, so the input decoder correctly treated it as
+Home. This is a driver failure, not evidence that physical Ctrl+S is broken.
+The reviewed source requires the Control bit in `$028D` for those shortcuts;
+this firmware returned 404 for `GET /v1/machine:input`, the documented native
+[REST chord endpoint](https://github.com/GideonZ/1541u-documentation/blob/master/api/api_calls.rst).
+No modifier-forcing or IRQ patch was attempted. Further automated Editor work
+requires a proven supported chord mechanism, or a separately labelled human
+Editor segment. Publication/download/update, two-site palette/navigation and
+current-package broader hardware negatives remain unverified.
+
+Both bounded sessions returned to BASIC and restored the original complete app
+folder byte-for-byte, preserved root inventory, and verified IRQ/drives/live
+turbo/screen colours with working number/string BASIC and no emergency reset.
+Receipts: `hardware-first-user-2/state.json` and
+`hardware-first-user-3/state.json` under the ignored software receipt directory;
+both record `restored=true`, `active=false` and the precise driver failure.
+An initial TLS setup attempt rejected the old local certificate as too weak
+before any SD writes; a temporary RSA-2048 test certificate resolved it. A
+separate proposed config copy for continuation was rejected by automatic
+approval review and was not made or indirectly reused. Private backups remain
+in the access-denied receipt directory; secrets are absent from these docs.
+
 - Independent Editor/Publisher/Settings package: three bounded functional edit/publish/download/update real-C64U round trips on 2026-10-10/11; exact metadata/body, truncated-response rejection, storage/config fault handling, BASIC and turbo 0/15 restoration checked. These were not three fresh-install manual sessions.
 - Public browser: separate bounded real-C64U result on 2026-10-11 (`client/build/hardware-browser-final-20261011/state.json`), nine checks passed, original SD restored and IRQ/drives/turbo 0 parity recorded.
 - SD-folder package install/journal migration and settings first-run/import/consent/readback were hardware tested in scoped 2026-10-11 receipts. The physical wizard key path plus complete cold first-publication walkthrough remain **unverified**.
-- New v2 site palette/browser code and eleven-file candidate passed automated PHP/host/cc65 validation 2026-10-12, but full current package VICE and two-site physical C64U colour acceptance remain **unverified**.
+- Fixed v2 palette/browser candidate passes PHP/host/HTTP/cc65 and packaged VICE checks on 2026-10-14. Two-site real-C64U colours are user-confirmed; navigation, v1 fallback, automated exit and original colour restoration pass. Final native RUN/STOP exit remains **unverified**. Original Browser/config and machine baseline are restored.
 - USB keyboard acceptance and uncontrolled SD removal/power interruption are user-deferred; do not claim them passed.
 
 Do not ship solely from prior recorded outcomes. Gate public artifacts on section 4, relevant section 5/6 checks and the **exact** current release binary identities. Archive old detailed receipt narratives in Git history rather than duplicating them here.
