@@ -249,8 +249,8 @@ int main(void)
     s64_document_init(&document, &body);
     insert_text(&body, "New local body");
     file_exists = 0u;
-    result = s64_local_save_as(&local, "My Note.s64", 0u);
-    require(result == S64_LOCAL_OK, "save as succeeds");
+    result = s64_local_save_as(&local, "My Note", 0u);
+    require(result == S64_LOCAL_OK, "extensionless save as succeeds");
     require(strcmp(local.filename, "My Note.s64") == 0, "save as remembers filename");
     require(strcmp(document.title, "My Note") == 0, "save as derives title");
     require(strcmp(document.slug, "my-note") == 0, "save as derives slug");
@@ -264,8 +264,8 @@ int main(void)
 
     document.title[0] = '\0';
     document.slug[0] = '\0';
-    result = s64_local_save_as(&local, "My Note.s64", 0u);
-    require(result == S64_LOCAL_EXISTS, "save as detects overwrite");
+    result = s64_local_save_as(&local, "My Note", 0u);
+    require(result == S64_LOCAL_EXISTS, "extensionless save as detects suffixed collision");
     require(!temporary_exists, "overwrite refusal creates no temp file");
     require(document.title[0] == '\0' && document.slug[0] == '\0',
         "overwrite refusal does not mutate metadata");
@@ -293,8 +293,8 @@ int main(void)
     file_exists = 0u;
     stat_count = 0u;
     appear_on_second_stat = 1u;
-    result = s64_local_save_as(&local, "My Note.s64", 0u);
-    require(result == S64_LOCAL_EXISTS, "second stat preserves new-only save policy");
+    result = s64_local_save_as(&local, "My Note", 0u);
+    require(result == S64_LOCAL_EXISTS, "second stat preserves suffixed new-only save policy");
     require(file_exists && !temporary_exists && file_checksum() == saved_checksum,
         "late overwrite refusal preserves existing bytes without temp output");
     appear_on_second_stat = 0u;
@@ -360,6 +360,55 @@ int main(void)
             == S64_LOCAL_INVALID_ARGUMENT,
         "normal save cannot overwrite reserved recovery file"
     );
+
+    /* Ordinary Save must preserve explicitly opened legacy extensionless files. */
+    set_file("legacy", opened_wire);
+    result = s64_local_open(&local, "legacy", 1u);
+    require(result == S64_LOCAL_OK, "legacy source opens without extension");
+    insert_text(&body, " updated");
+    result = s64_local_save(&local);
+    require(result == S64_LOCAL_OK, "legacy source saves");
+    require(strcmp(local.filename, "legacy") == 0
+        && strcmp(file_name, "legacy") == 0, "Save keeps legacy origin");
+
+    require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "reset for path save");
+    insert_text(&body, "Path body");
+    file_exists = 0u;
+    result = s64_local_save_as(&local, "archive.v1/New Page", 0u);
+    require(result == S64_LOCAL_OK, "path basename gets extension");
+    require(strcmp(local.filename, "archive.v1/New Page.s64") == 0
+        && strcmp(file_name, "archive.v1/New Page.s64") == 0,
+        "parent directory dot does not block extension");
+
+    require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "reset for explicit extension");
+    insert_text(&body, "Uppercase body");
+    file_exists = 0u;
+    result = s64_local_save_as(&local, "UPPER.S64", 0u);
+    require(result == S64_LOCAL_OK && strcmp(file_name, "UPPER.S64") == 0,
+        "explicit uppercase .S64 not duplicated");
+
+    require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "reset for other extension");
+    insert_text(&body, "Other extension body");
+    file_exists = 0u;
+    result = s64_local_save_as(&local, "other.txt", 0u);
+    require(result == S64_LOCAL_OK && strcmp(file_name, "other.txt") == 0,
+        "explicit other extension preserved");
+
+    require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "reset for capacity boundary");
+    insert_text(&body, "Boundary body");
+    file_exists = 0u;
+    result = s64_local_save_as(&local, "12345678901234567890123456789", 0u);
+    require(result == S64_LOCAL_OK
+        && strlen(file_name) == S64_LOCAL_FILENAME_CAPACITY - 1u,
+        "extension fits exact filename capacity");
+
+    require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "reset for long filename refusal");
+    insert_text(&body, "Long name body");
+    file_exists = 0u;
+    result = s64_local_save_as(&local, "123456789012345678901234567890", 0u);
+    require(result == S64_LOCAL_INVALID_ARGUMENT
+        && !file_exists && !temporary_exists && !s64_local_has_filename(&local),
+        "extension overflow refused before filesystem writes");
 
     puts("local document tests passed");
     return 0;

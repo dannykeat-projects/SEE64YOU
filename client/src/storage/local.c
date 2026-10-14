@@ -25,6 +25,29 @@ static uint8_t filename_copy(char* destination, const char* filename)
     return 1u;
 }
 
+/* Complete only extensionless source basenames; dots in parent directories
+ * do not count as an extension on the file itself. */
+static uint8_t source_filename_copy(char* destination, const char* filename)
+{
+    const char* base;
+    const char* cursor;
+    uint16_t length;
+
+    if (!filename_copy(destination, filename)) return 0u;
+    base = destination;
+    for (cursor = destination; *cursor != '\0'; ++cursor) {
+        if (*cursor == '/' || *cursor == '\\' || *cursor == ':') base = cursor + 1;
+    }
+    if (*base == '\0') return 0u;
+    for (cursor = base; *cursor != '\0'; ++cursor) {
+        if (*cursor == '.') return 1u;
+    }
+    length = (uint16_t)strlen(destination);
+    if (length + sizeof(".s64") > S64_LOCAL_FILENAME_CAPACITY) return 0u;
+    memcpy(destination + length, ".s64", sizeof(".s64"));
+    return 1u;
+}
+
 static void clear_document(S64LocalDocument* local)
 {
     S64Buffer* body = local->document->body;
@@ -281,16 +304,11 @@ S64LocalResult s64_local_open(
     return S64_LOCAL_OK;
 }
 
-S64LocalResult s64_local_save(S64LocalDocument* local)
-{
-    if (!s64_local_has_filename(local)) return S64_LOCAL_NO_FILENAME;
-    return s64_local_save_as(local, local->filename, 1u);
-}
-
-S64LocalResult s64_local_save_as(
+static S64LocalResult save_named(
     S64LocalDocument* local,
     const char* filename,
-    uint8_t overwrite
+    uint8_t overwrite,
+    uint8_t add_extension
 )
 {
     S64LocalResult result;
@@ -300,7 +318,9 @@ S64LocalResult s64_local_save_as(
 
     if (local == 0 || local->dos == 0 || local->document == 0
         || local->document->body == 0
-        || !filename_copy(checked_filename, filename)
+        || !(add_extension
+            ? source_filename_copy(checked_filename, filename)
+            : filename_copy(checked_filename, filename))
         || strcmp(checked_filename, S64_LOCAL_RECOVERY_FILENAME) == 0) {
         return S64_LOCAL_INVALID_ARGUMENT;
     }
@@ -328,6 +348,22 @@ S64LocalResult s64_local_save_as(
         strcpy(local->filename, checked_filename);
     }
     return result;
+}
+
+S64LocalResult s64_local_save(S64LocalDocument* local)
+{
+    if (!s64_local_has_filename(local)) return S64_LOCAL_NO_FILENAME;
+    /* Explicitly opened legacy sources may have no extension. */
+    return save_named(local, local->filename, 1u, 0u);
+}
+
+S64LocalResult s64_local_save_as(
+    S64LocalDocument* local,
+    const char* filename,
+    uint8_t overwrite
+)
+{
+    return save_named(local, filename, overwrite, 1u);
 }
 
 S64LocalResult s64_local_recovery_exists(
