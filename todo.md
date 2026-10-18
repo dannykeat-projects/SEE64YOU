@@ -2,7 +2,7 @@
 
 **Only active work queue.** The product is frozen to a small public beta; shelve non-MVP features until real user feedback. Historical investigations live in Git history, not in this queue.
 
-**Codex next execution:** [bounded MVP hardware acceptance handover](docs/CODEX-MVP-HARDWARE-ACCEPTANCE.md). Follow its backup, software/VICE, disposable-site, C64U and restoration gates in order. Record virtual-key vs physical-key evidence separately.
+**Codex next execution:** [direct-publishing simplification decision and bounded MVP hardware acceptance handover](docs/CODEX-MVP-HARDWARE-ACCEPTANCE.md). The existing UCI `$03` + direct challenge/HMAC + PHP path already produced hardware round trips; **do not replace it with modem emulation, unauthenticated PHP writes or an unverified HTTP `$06`/TLS stack**. Verify the exact current build, first-user workflow and remaining blockers before attempting cleanup. Follow backup, local software/VICE, disposable-site, C64U and restoration gates; distinguish automated key injection from physical-key/cold-start evidence.
 
 ## Scope (four independently launched programs)
 
@@ -13,6 +13,12 @@
 - **Website**: independent flat-file PHP 8.1+ hosting; public HTML for normal browsers and a compact public text/link representation for C64U; user-adjustable C64-palette colours and saved themes.
 
 Programs share only ordinary on-disk source/configuration, **not** live application state or REU handoffs. Preserve the existing document, browser and authentication protocol versions. C64 Ultimate with UCI, DOS, required 16 MiB REU and Network Target $03 is the tested platform. The browser and Publisher use direct HTTP; HTTPS is never silently downgraded. Direct challenge/HMAC protects authenticated writes but does **not** encrypt content.
+
+## P0 — simplification decision (2026-10-19)
+
+- [ ] **Codex read-only audit:** trace actual shipping Publisher transport, HMAC/auth, PHP endpoint and launcher/build references. Quantify any demonstrable redundant logic or costly user steps. Keep the established four independent programs, eleven-file package, canonical `.s64`, Network `$03` and direct-auth protocol intact. Check actual hosting HTTP reachability/redirect behaviour; don't assume `$06` or TLS exists on firmware 1.1. Existing code/hardware evidence supersedes Google AI's nonfunctional BASIC example.
+- [ ] **Finish validation and first-user release gates before cleanup:** run local package, focused source/auth/storage/PHP/HTTP tests and packaged VICE, then the backed-up disposable-site real-C64U flow in the linked handover. Verify the unvalidated `.s64` filename change, existing security and data safety, exact tested binary hashes, independent BASIC return and machine restoration; separately record physical keyboard and true cold-start gaps.
+- [ ] **Conditional cleanup after acceptance only:** trace callers, measure benefit, make the smallest reversible removal of provably unused managed-runtime/build paths or redundant preload checks, and rerun affected host/VICE/hardware gates. Skip low-benefit cleanup. Two failed bounded attempts or another major loader/transport redesign trigger a go/no-go review rather than expansion. No merge, production publish or public release without explicit approval.
 
 ## P0 — decisions and acceptance before release
 
@@ -42,7 +48,7 @@ Programs share only ordinary on-disk source/configuration, **not** live applicat
 
 ## Current execution checkpoint (2026-10-14)
 
-- [ ] User-requested save convenience: automatically supply the `.s64` extension for new source saves/downloads when the user enters a basename, so it need not be typed each time. Verify current filename handling before implementation; preserve existing-file Save origin, explicit paths, collision refusal and recoverable temporary-file behaviour. Requested during guided acceptance; implement as a bounded follow-up.
+- [ ] **Validate new `.s64` filename convenience before hardware acceptance.** Implemented and pushed as source commit [`fa89d569`](https://github.com/dannykeat-projects/SEE64YOU/commit/fa89d5697febf757bb96d026dc964736817757d7), with focused regressions; **full independent-package/VICE/current-C64U validation is still unverified** (hosted Actions quota exhausted). Confirm extension on new basename Save As/download, unchanged explicit extensions/paths and normal Save origin, collision refusal, exact bytes and recoverable `.tmp` after failure. Mark accepted only after relevant tests and hardware evidence.
 
 - [x] Guided driver correction: session 4 rejected the saved body against an unnecessarily exact phrase and removed the disposable source before retaining bytes; originals were restored. Session 5 instead accepted nonempty source and retained its bytes before further checks. Native creation/save/reopen and edit/save subsequently passed, with Publisher results below. Keep driver errors distinct from product defects.
 - [x] Guided session 5 continuation: human `MVP14E.S64` save/reopen confirmed, canonical `test` body retained; fresh Publisher load/auth/publish and actual ordinary-browser HTML match. Remote list Next/confirmed open, existing-destination refusal and new `MVP14F.S64` download pass with exact body/title/slug/type/published-state parity and unchanged original source. Each completed exit passes BASIC number/string, IRQ/drives/clock/live turbo 0. Receipts: `hardware-guided-5/continuation-state.json`, public source copies and rendered HTML in the same ignored directory.
