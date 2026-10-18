@@ -88,6 +88,87 @@ The runner checks public home/page/archive/post navigation, paging, delay/cancel
 
 ## 7. Existing evidence and remaining gaps
 
+### Current candidate checkpoint (2026-10-19)
+
+Tested `codex/browser-palette-fix` at
+`c723589e1fe539b44a0939db28d4b3e952851312` (includes source change
+`fa89d5697febf757bb96d026dc964736817757d7`). The checkout was clean before
+fast-forward from `0a42999`; no existing work was discarded. No PR currently
+uses this branch as its head. Refreshed `origin/main` retains the main-only README
+commit `271500e`; no reconciliation/merge was attempted.
+
+An isolated Git archive under ignored
+`client/build/mvp-acceptance-20261019-c723589/` uses cc65 V2.18 (Ubuntu 2.19),
+PHP 8.5.4, Python 3.14.4 and VICE 3.9. Only shell-script line endings were
+normalised in the disposable source copy. Logs, exact command/exit records,
+source archive, website ZIP/checksum and discarded sizing experiments remain
+there; these are local developer receipts, not approved release artifacts.
+
+- **PASS:** focused `local_documents_test.c` compilation/run: basename suffix,
+  explicit extensions and dotted parent path, ordinary extensionless Save
+  origin, filename capacity, collision/second existence check, wire readback
+  and completed temporary retention on rename failure.
+- **PASS:** `php site/tests/run.php`, `php site/tests/browser.php`,
+  `php site/tests/themes.php`, `sh site/tests/http.sh` and
+  `php tools/package-site.php` (each exit 0; `results.json`).
+- **PASS, limited fixture:** `python3 tools/test_basic_return_vice.py --rom-dir
+  /mnt/c/site/SEE64YOU/client/build/private-vice-roms` (exit 0) verifies the
+  synthetic original frame, SP/ZP/map/interrupt mask and cleared screen. It
+  does not certify the unbuildable current package's entry/exit paths.
+- **FAIL, historical target:** `sh tools/validate.sh` (exit 2) passes its host
+  gates, including source/storage/config, UCI network, SHA/HMAC and direct
+  Publisher tests, and cc65 module compile checks; it then stops at old managed
+  Publisher `NETWORK_RODATA` overflow **133 bytes**. Later broad diagnostic
+  gates were not run. This is distinct from the shipping failures below.
+- **FAIL, shipping:** `make -C client independent-package` fails with FILE
+  overlay overflow **318 bytes**. Separately,
+  `make -C client independent-publisher` exits 2: BSS ends at `$C93F`,
+  **704 bytes** free before `$CC00`, below the unchanged **1,024-byte** guard.
+  No valid current eleven-file candidate ZIP or matching package hardware
+  acceptance can be claimed.
+- **Causal control:** substituting only `0a42999:client/src/storage/local.c`
+  in the disposable archive makes the complete independent package and both
+  manifests pass: FILE 15,341/15,360 bytes, Publisher 1,046 bytes spare.
+  This is an experimental predecessor-storage package, not the current
+  candidate. It was never installed on hardware.
+- **Bounded attempts, not retained:** single-pass filename validation reduced
+  FILE overflow to 124 bytes; additionally narrowing filename-derived counters
+  (bounded to 33 bytes) reduced it to 39. Host source tests passed both, but
+  neither passed package fit. Original candidate source is retained unchanged.
+  Stop for go/no-go reassessment before another implementation attempt; do
+  not expand loader architecture, weaken guards or start pre-acceptance cleanup.
+- **BLOCKED:** exact current packaged VICE and all new C64U first-user,
+  publish/download/update, Browser and restoration gates, because software
+  Gate A fails. C64U was not requested on and no SD/machine writes were made.
+  Physical keyboard, physical RUN/STOP and true cold restart remain unverified;
+  USB/uncontrolled interruption remain deferred. Hosted Actions were not run.
+
+Read-only publishing audit: independent Makefile source filters exclude generic
+HTTP `$06`, relay, old standalone login and cross-program handoff services.
+`publisher/standalone_direct.c` owns bounded HTTP/1.0 framing, streaming body
+hashing, challenge requests, response parsing and socket closure;
+`platform/network.c` owns UCI `$03` TCP/read/write. `publisher/direct_auth.c`
+and `crypto/sha256.c` implement `see64you-direct/1` canonical HMAC.
+`site/lib/DirectAuth.php` validates/consumes expiring challenges under a lock;
+`site/api.php` authenticates writes; `Documents.php` validates canonical source
+and writes temporary files before rename. `pair.php` requires HTTPS/password
+verification for dedicated key provisioning; Settings imports exactly 64 hex
+characters. No site password/bearer is sent over direct HTTP. Direct transport,
+network, signing and SHA/HMAC occupy 629/410/89/224 source lines respectively;
+these counts describe source complexity, not binary residency. The only proven
+redundant statements were duplicate `$consume` assignments in DirectAuth; no
+deletion is justified before acceptance. The managed-named launcher remains an
+active shipping package dependency, so its name is not evidence of dead code.
+
+The previously documented disposable endpoint
+`http://192.168.1.111/SEE64YOU/client/build/mvp14c/a/api.php?action=challenge`
+returned HTTP **200**, with no redirect (bounded curl request, no redirect
+following). This checks that existing fixture host only; no production-host
+HTTP/TLS claim or deployment is implied. Existing redirects remain errors in
+the client; HTTPS is never silently downgraded. No new transport/authentication
+architecture is justified by this audit. **First public beta: NO-GO** until a
+valid matching package and the remaining automated hardware gates pass.
+
 Current guided hardware receipt: `client/build/mvp-acceptance-20261014-4a714a4/hardware-guided-5/`.
 `continuation-state.json` records native Editor create/save/reopen and downloaded
 edit/save, automated fresh Publisher auth/publish/download/update, exact source
