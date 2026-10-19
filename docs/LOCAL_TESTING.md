@@ -88,6 +88,20 @@ The runner checks public home/page/archive/post navigation, paging, delay/cancel
 
 ## 7. Existing evidence and remaining gaps
 
+### Early-alpha distribution (2026-10-20)
+
+The user explicitly authorised `v0.1.0-alpha.1` as an experimental GitHub
+prerelease despite incomplete beta acceptance. Both ZIPs include early-version
+warnings, installation instructions and the first-page checklist. The C64U ZIP
+contains exactly eleven installed payload files, unchanged from `c67f19f` and
+checked against `packages/c64u/BUILD.json` and both manifests. The separate PHP
+installation ZIP comes from a clean Git archive through `tools/package-site.php`,
+with its intentional fresh-install `ENABLE_SETUP`, starter content and hidden
+access-control files; no local configuration, sessions or test suite. Archive
+integrity, exact client hashes and PHP/package/HTTP checks are required before
+publishing. Release notes and `SHA256SUMS` identify both asset hashes and the
+tagged commit. This distribution authorisation does not mark beta gates passed.
+
 ### Current candidate checkpoint (2026-10-19)
 
 The user authorised continuation after the `c723589e` filename implementation

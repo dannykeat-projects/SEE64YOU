@@ -2,6 +2,14 @@
 
 **Write on a Commodore 64 Ultimate. Publish to the web. Browse compatible sites on the C64U.**
 
+**Early alpha — v0.1.0-alpha.1.** This is experimental software and may not work
+on your setup. Bugs and incomplete testing may cause failures or data loss.
+Keep backups and use test copies of documents, SD installations and websites.
+Native Editor reopen/edit/update and some physical-hardware checks remain
+unverified. This prerelease is for early testing, not dependable daily use.
+Download the separate C64U and PHP installation ZIPs from the
+[GitHub prerelease](https://github.com/dannykeat-projects/SEE64YOU/releases/tag/v0.1.0-alpha.1).
+
 SEE64YOU is a C64 Ultimate-only text editor, standalone publisher and optional public-site reader. It publishes simple, independently hosted websites viewable in modern browsers without C64-specific software. The C64U reader displays a compact representation of the same public content.
 
 ## MVP: four independent programs
@@ -37,7 +45,7 @@ Each is launched separately and returns to BASIC. Programs communicate through o
 - The C64 browser reads the **SEE64YOU public text/link protocol**, not arbitrary HTML, CSS or JavaScript. It rejects HTTPS rather than downgrading it.
 - Firmware-1.1 direct publication uses HTTP with challenge/HMAC authentication. Requests have authenticity, integrity and replay protection, **not confidentiality**: document contents can be observed on the network. The normal website password is not sent via direct C64U HTTP. Explicit consent is required; configure an appropriate trusted relay if confidentiality is required.
 - The public site can customise its layout/fonts and choose from the 16 C64 palette colours. Only the website edits theme colours; C64U Editor-side colour editing is outside the MVP.
-- This is a **release candidate, not a hardware-accepted public beta**. Remaining first-user and physical-hardware observations are recorded in [todo.md](todo.md). USB keyboard and uncontrolled power/SD interruption acceptance are deferred and must not be implied to have passed.
+- This is an **early alpha prerelease, not a hardware-accepted public beta**. Remaining first-user and physical-hardware observations are recorded in [todo.md](todo.md). USB keyboard and uncontrolled power/SD interruption acceptance are deferred and must not be implied to have passed.
 
 ## Build and validate
 
