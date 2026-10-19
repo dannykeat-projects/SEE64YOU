@@ -41,6 +41,12 @@ Each is launched separately and returns to BASIC. Programs communicate through o
 
 ## Build and validate
 
+The [precompiled candidate](packages/c64u/README.md) contains all four programs
+and their matching internal assets. Copy all eleven files from
+`packages/c64u/SEE64YOU/` together; its build record and SHA-256 checksums identify
+the source. This is a development candidate with the acceptance limits documented
+there, not a hardware-accepted public beta.
+
 With cc65 installed, from the repository root:
 
 ```sh
