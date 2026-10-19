@@ -128,17 +128,26 @@ the isolated source copy. Compatible ROMs are in `client/build/private-vice-roms
   relaunch; Editor enters basename `MV19A` through documented dirty-exit Save
   and creates `.s64` with exact canonical body; fresh Publisher loads it,
   authenticates through HMAC, publishes and produces matching ordinary HTML.
-  Numeric/string BASIC, IRQ/drives/clock/turbo checks pass after each exit.
-- **Driver failure, not product defect:** remote list displayed valid
-  `O=OPEN  OTHER=NEXT`; harness incorrectly awaited `O OPEN`. Download/collision,
-  downloaded Editor reopen/edit/update and current Browser gates remain
-  **UNVERIFIED**. Correct the caption and wait for the target title after Next
-  before resuming; do not change the product to accommodate the driver.
+  Remote list/confirmed open, basename download, suffixed collision refusal,
+  exact downloaded body/title/slug/type/published state and unchanged original
+  source now pass. Numeric/string BASIC, IRQ/drives/clock/turbo pass after each
+  exit. The tracked eleven-file candidate in `packages/c64u/SEE64YOU/` matches
+  these binaries; Git blob hashes, checksums and both manifests validate.
+- **Resolved driver failures, not product defects:** session A awaited
+  `O OPEN` instead of `O=OPEN`; B consumed the fetch timeout while awaiting the
+  documented replacement confirmation. Final session C waits for the selected
+  title, answers Y immediately and times the fetch separately; it completes
+  without failure. No product patch was needed. Native Editor reopen/edit/update
+  remains **UNVERIFIED**; the user requested automated-only input for this run.
+  The Browser PRG matches the earlier palette-tested binary byte-for-byte;
+  Browser hardware checks were not rerun in this session.
 - **PASS restoration:** all 38 original app-folder files and root inventory
   match; BASIC, original live turbo/colours, IRQ/drives and persistent machine
   configuration verify. Protected ignored receipt:
-  `client/build/mvp-acceptance-20261014-4a714a4/hardware-extension-20261019/state.json`
-  records `restored=true`, `active=false` and retains the exact driver failure.
+  `client/build/mvp-acceptance-20261014-4a714a4/hardware-extension-20261019c/state.json`
+  records `restored=true`, `active=false`, completed automated checks and no
+  failure. Sessions A/B remain beside it with their original driver failures
+  and successful restoration records.
   Input was REST keyboard-buffer injection, not physical keyboard/cold power.
   USB/uncontrolled interruption remain deferred. **Beta remains NO-GO.**
 - Repository is now public. The shared self-hosted job requires

@@ -37,7 +37,7 @@ Each is launched separately and returns to BASIC. Programs communicate through o
 - The C64 browser reads the **SEE64YOU public text/link protocol**, not arbitrary HTML, CSS or JavaScript. It rejects HTTPS rather than downgrading it.
 - Firmware-1.1 direct publication uses HTTP with challenge/HMAC authentication. Requests have authenticity, integrity and replay protection, **not confidentiality**: document contents can be observed on the network. The normal website password is not sent via direct C64U HTTP. Explicit consent is required; configure an appropriate trusted relay if confidentiality is required.
 - The public site can customise its layout/fonts and choose from the 16 C64 palette colours. Only the website edits theme colours; C64U Editor-side colour editing is outside the MVP.
-- This is a **release candidate, not a hardware-accepted public beta**. An unassisted first-time setup and the final cross-site C64 colour test remain outstanding. USB keyboard and uncontrolled power/SD interruption acceptance are deferred and must not be implied to have passed.
+- This is a **release candidate, not a hardware-accepted public beta**. Remaining first-user and physical-hardware observations are recorded in [todo.md](todo.md). USB keyboard and uncontrolled power/SD interruption acceptance are deferred and must not be implied to have passed.
 
 ## Build and validate
 
