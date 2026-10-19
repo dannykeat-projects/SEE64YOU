@@ -102,6 +102,15 @@ integrity, exact client hashes and PHP/package/HTTP checks are required before
 publishing. Release notes and `SHA256SUMS` identify both asset hashes and the
 tagged commit. This distribution authorisation does not mark beta gates passed.
 
+Published release: [v0.1.0-alpha.1](https://github.com/dannykeat-projects/SEE64YOU/releases/tag/v0.1.0-alpha.1),
+tagged commit `0d2d77b070f82c6e39c6ad9e40dc2edc8bf1c164`. All eight targeted
+package/PHP/browser/theme/HTTP/manifest commands exited 0. Both uploaded ZIPs
+were downloaded and verified against their local hashes and ZIP integrity.
+Ignored build/validation/upload receipts: `client/build/release-v0.1.0-alpha.1/`.
+
+- C64U ZIP SHA-256: `1496c42208ff137f176d80689d8a3fd365f77fe47bca2c04339a0552faf1bb3f`.
+- PHP ZIP SHA-256: `968c1671a04c181129e5f7b8c8bc091c7b7a2afa1031eaa3396eeeb6b3cb1f57`.
+
 ### Current candidate checkpoint (2026-10-19)
 
 The user authorised continuation after the `c723589e` filename implementation
