@@ -410,6 +410,43 @@ int main(void)
         && !file_exists && !temporary_exists && !s64_local_has_filename(&local),
         "extension overflow refused before filesystem writes");
 
+    {
+        static const char* invalid_names[] = {
+            "", "archive.v1/", "disk:", "dir\\", "bad\nname", "bad\rname"
+        };
+        static const char* path_names[] = { "/sd/New", "disk:New", "dir\\New" };
+        static const char* completed_paths[] = {
+            "/sd/New.s64", "disk:New.s64", "dir\\New.s64"
+        };
+        char oversized[300];
+        unsigned int index;
+
+        for (index = 0u; index < sizeof(invalid_names) / sizeof(invalid_names[0]); ++index) {
+            result = s64_local_save_as(&local, invalid_names[index], 0u);
+            require(result == S64_LOCAL_INVALID_ARGUMENT
+                && !file_exists && !temporary_exists && !s64_local_has_filename(&local),
+                "empty basename or line break refused before filesystem writes");
+        }
+        memset(oversized, 'x', sizeof(oversized) - 1u);
+        oversized[sizeof(oversized) - 1u] = '\0';
+        result = s64_local_save_as(&local, oversized, 0u);
+        require(result == S64_LOCAL_INVALID_ARGUMENT
+            && !file_exists && !temporary_exists && !s64_local_has_filename(&local),
+            "oversized filename rejected before byte counter can wrap");
+
+        for (index = 0u; index < sizeof(path_names) / sizeof(path_names[0]); ++index) {
+            require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "reset for path separators");
+            insert_text(&body, "Path separators body");
+            file_exists = 0u;
+            result = s64_local_save_as(&local, path_names[index], 0u);
+            require(result == S64_LOCAL_OK && strcmp(file_name, completed_paths[index]) == 0,
+                "explicit path preserved while completing basename");
+            result = s64_local_open(&local, completed_paths[index], 1u);
+            require(result == S64_LOCAL_OK, "completed path reopens canonical source");
+            require_body(&body, "Path separators body", "completed path preserves exact body");
+        }
+    }
+
     puts("local document tests passed");
     return 0;
 }

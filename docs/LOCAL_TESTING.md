@@ -90,84 +90,63 @@ The runner checks public home/page/archive/post navigation, paging, delay/cancel
 
 ### Current candidate checkpoint (2026-10-19)
 
-Tested `codex/browser-palette-fix` at
-`c723589e1fe539b44a0939db28d4b3e952851312` (includes source change
-`fa89d5697febf757bb96d026dc964736817757d7`). The checkout was clean before
-fast-forward from `0a42999`; no existing work was discarded. No PR currently
-uses this branch as its head. Refreshed `origin/main` retains the main-only README
-commit `271500e`; no reconciliation/merge was attempted.
+The user authorised continuation after the `c723589e` filename implementation
+failed Editor FILE fit by 318 bytes and left only 704 Publisher bytes against
+the unchanged 1,024 minimum. The correction on top of `1d36ad7` combines bounded
+filename validation/extension detection in one scan, uses byte-sized counters
+for lengths bounded to 33, and expresses the same capacity checks as direct
+threshold comparisons. Explicit extensions/paths, ordinary Save origin,
+collision refusal and recoverable completed temporary files are preserved.
+No transport, loader, memory guard or protocol changes are involved.
 
-An isolated Git archive under ignored
-`client/build/mvp-acceptance-20261019-c723589/` uses cc65 V2.18 (Ubuntu 2.19),
-PHP 8.5.4, Python 3.14.4 and VICE 3.9. Only shell-script line endings were
-normalised in the disposable source copy. Logs, exact command/exit records,
-source archive, website ZIP/checksum and discarded sizing experiments remain
-there; these are local developer receipts, not approved release artifacts.
+Ignored receipts: `client/build/mvp-extension-fit-20261019/`. `measurement.json`,
+`validation.json` and `site-validation.json` record exact commands and exits;
+`package-sha256.json` records all eleven output sizes/hashes and the verified
+client ZIP. The website ZIP and its checksum are recorded separately. These are
+local developer artifacts, not a public release. Environment: cc65 V2.18
+(Ubuntu 2.19), PHP 8.5.4, Python 3.14.4 and VICE 3.9; shell scripts use LF in
+the isolated source copy. Compatible ROMs are in `client/build/private-vice-roms/`.
 
-- **PASS:** focused `local_documents_test.c` compilation/run: basename suffix,
-  explicit extensions and dotted parent path, ordinary extensionless Save
-  origin, filename capacity, collision/second existence check, wire readback
-  and completed temporary retention on rename failure.
-- **PASS:** `php site/tests/run.php`, `php site/tests/browser.php`,
-  `php site/tests/themes.php`, `sh site/tests/http.sh` and
-  `php tools/package-site.php` (each exit 0; `results.json`).
-- **PASS, limited fixture:** `python3 tools/test_basic_return_vice.py --rom-dir
-  /mnt/c/site/SEE64YOU/client/build/private-vice-roms` (exit 0) verifies the
-  synthetic original frame, SP/ZP/map/interrupt mask and cleared screen. It
-  does not certify the unbuildable current package's entry/exit paths.
-- **FAIL, historical target:** `sh tools/validate.sh` (exit 2) passes its host
-  gates, including source/storage/config, UCI network, SHA/HMAC and direct
-  Publisher tests, and cc65 module compile checks; it then stops at old managed
-  Publisher `NETWORK_RODATA` overflow **133 bytes**. Later broad diagnostic
-  gates were not run. This is distinct from the shipping failures below.
-- **FAIL, shipping:** `make -C client independent-package` fails with FILE
-  overlay overflow **318 bytes**. Separately,
-  `make -C client independent-publisher` exits 2: BSS ends at `$C93F`,
-  **704 bytes** free before `$CC00`, below the unchanged **1,024-byte** guard.
-  No valid current eleven-file candidate ZIP or matching package hardware
-  acceptance can be claimed.
-- **Causal control:** substituting only `0a42999:client/src/storage/local.c`
-  in the disposable archive makes the complete independent package and both
-  manifests pass: FILE 15,341/15,360 bytes, Publisher 1,046 bytes spare.
-  This is an experimental predecessor-storage package, not the current
-  candidate. It was never installed on hardware.
-- **Bounded attempts, not retained:** single-pass filename validation reduced
-  FILE overflow to 124 bytes; additionally narrowing filename-derived counters
-  (bounded to 33 bytes) reduced it to 39. Host source tests passed both, but
-  neither passed package fit. Original candidate source is retained unchanged.
-  Stop for go/no-go reassessment before another implementation attempt; do
-  not expand loader architecture, weaken guards or start pre-acceptance cleanup.
-- **BLOCKED:** exact current packaged VICE and all new C64U first-user,
-  publish/download/update, Browser and restoration gates, because software
-  Gate A fails. C64U was not requested on and no SD/machine writes were made.
-  Physical keyboard, physical RUN/STOP and true cold restart remain unverified;
-  USB/uncontrolled interruption remain deferred. Hosted Actions were not run.
+- **PASS:** `make -C client independent-package`, both manifests, all unchanged
+  guards. FILE 15,347/15,360 bytes; Publisher 1,040 bytes spare; Launcher 1,032;
+  Editor resident BSS ends at `$8A95` before `$8C00`.
+- **PASS:** focused source tests with `-Wall -Wextra -Werror`, including new
+  empty-basename/line-break/299-byte overflow refusals and explicit absolute,
+  colon and backslash paths with exact source reopen. Existing normal Save,
+  filename-capacity, collision/second-stat and rename-recovery cases pass.
+- **PASS:** both section 3 VICE commands, all four actual packaged program
+  startup/refusal/exit paths, numerical/string BASIC, Settings wizard and
+  native Browser palette/colour restoration. The separate BASIC-return probe
+  also passes; VICE still does not prove physical UCI/network/storage.
+- **PASS:** all section 2 PHP/backend/browser/theme/HTTP and site-package checks.
+- **FAIL, historical target only:** `sh tools/validate.sh` exits 2 after all
+  host gates and cc65 module checks pass, at managed Publisher `NETWORK_RODATA`
+  overflow 133 bytes. Later broad diagnostics were not run. The independent
+  shipping package above passes and has no dependency on that target.
+- **UNVERIFIED:** this correction's real-C64U fresh Settings/Editor save/reopen,
+  publish/download/update, Browser and machine/file restoration. Hardware was
+  requested on after software/packaged VICE passed; no hardware writes have
+  been made for this candidate. Physical keyboard, RUN/STOP and cold restart
+  remain separate observations; USB/uncontrolled interruption remain deferred.
+  Actions were not run. **Beta remains NO-GO until matching hardware gates pass.**
 
-Read-only publishing audit: independent Makefile source filters exclude generic
-HTTP `$06`, relay, old standalone login and cross-program handoff services.
-`publisher/standalone_direct.c` owns bounded HTTP/1.0 framing, streaming body
-hashing, challenge requests, response parsing and socket closure;
-`platform/network.c` owns UCI `$03` TCP/read/write. `publisher/direct_auth.c`
-and `crypto/sha256.c` implement `see64you-direct/1` canonical HMAC.
-`site/lib/DirectAuth.php` validates/consumes expiring challenges under a lock;
-`site/api.php` authenticates writes; `Documents.php` validates canonical source
-and writes temporary files before rename. `pair.php` requires HTTPS/password
-verification for dedicated key provisioning; Settings imports exactly 64 hex
-characters. No site password/bearer is sent over direct HTTP. Direct transport,
-network, signing and SHA/HMAC occupy 629/410/89/224 source lines respectively;
-these counts describe source complexity, not binary residency. The only proven
-redundant statements were duplicate `$consume` assignments in DirectAuth; no
-deletion is justified before acceptance. The managed-named launcher remains an
-active shipping package dependency, so its name is not evidence of dead code.
-
-The previously documented disposable endpoint
+Read-only publishing audit at `c723589e` found no redesign requirement. The
+independent Makefile excludes generic HTTP `$06`, relay, old login and handoff
+services; the managed-named Launcher remains an active bootstrap dependency.
+`standalone_direct.c` owns bounded HTTP/1.0, streaming hashes, response parsing
+and socket cleanup; `platform/network.c` owns UCI `$03` TCP. `direct_auth.c` /
+`crypto/sha256.c` match PHP `DirectAuth.php`'s expiring single-use challenge/HMAC.
+`api.php` authenticates writes; `Documents.php` validates source and uses
+write-temporary/rename. HTTPS/password-gated `pair.php` provisions the dedicated
+key; Settings validates 64 imported hex characters. No reusable site password
+or bearer goes over direct HTTP. Direct transport/network/signing/SHA source
+counts were 629/410/89/224 lines; they are not residency measurements. Only
+harmless duplicate `$consume` assignments were proven redundant; cleanup waits.
+The documented disposable challenge endpoint at
 `http://192.168.1.111/SEE64YOU/client/build/mvp14c/a/api.php?action=challenge`
-returned HTTP **200**, with no redirect (bounded curl request, no redirect
-following). This checks that existing fixture host only; no production-host
-HTTP/TLS claim or deployment is implied. Existing redirects remain errors in
-the client; HTTPS is never silently downgraded. No new transport/authentication
-architecture is justified by this audit. **First public beta: NO-GO** until a
-valid matching package and the remaining automated hardware gates pass.
+answered 200 without redirect. This does not certify production hosting or TLS.
+Refreshed `main` retains README-only commit `271500e`; no open PR uses this
+branch as head. No merge, deployment or release was attempted.
 
 Current guided hardware receipt: `client/build/mvp-acceptance-20261014-4a714a4/hardware-guided-5/`.
 `continuation-state.json` records native Editor create/save/reopen and downloaded

@@ -7,44 +7,37 @@ typedef struct {
     S64DosResult result;
 } S64LocalWriteSink;
 
-static uint8_t filename_copy(char* destination, const char* filename)
+static uint8_t filename_copy(char* destination, const char* filename, uint8_t add_extension)
 {
-    uint16_t length = 0u;
+    uint8_t length = 0u;
+    uint8_t basename = 0u;
+    uint8_t has_extension = 0u;
+    char value;
 
     if (destination == 0 || filename == 0 || filename[0] == '\0') return 0u;
 
-    while (filename[length] != '\0') {
-        if (length + 1u >= S64_LOCAL_FILENAME_CAPACITY
-            || filename[length] == '\r' || filename[length] == '\n') {
+    while ((value = filename[length]) != '\0') {
+        if (length >= S64_LOCAL_FILENAME_CAPACITY - 1u
+            || value == '\r' || value == '\n') {
             return 0u;
+        }
+        if (value == '/' || value == '\\' || value == ':') {
+            basename = length + 1u;
+            has_extension = 0u;
+        } else if (value == '.') {
+            has_extension = 1u;
         }
         ++length;
     }
 
-    memcpy(destination, filename, length + 1u);
-    return 1u;
-}
-
-/* Complete only extensionless source basenames; dots in parent directories
- * do not count as an extension on the file itself. */
-static uint8_t source_filename_copy(char* destination, const char* filename)
-{
-    const char* base;
-    const char* cursor;
-    uint16_t length;
-
-    if (!filename_copy(destination, filename)) return 0u;
-    base = destination;
-    for (cursor = destination; *cursor != '\0'; ++cursor) {
-        if (*cursor == '/' || *cursor == '\\' || *cursor == ':') base = cursor + 1;
+    strcpy(destination, filename);
+    if (add_extension) {
+        if (basename == length) return 0u;
+        if (!has_extension) {
+            if (length > S64_LOCAL_FILENAME_CAPACITY - sizeof(".s64")) return 0u;
+            strcpy(destination + length, ".s64");
+        }
     }
-    if (*base == '\0') return 0u;
-    for (cursor = base; *cursor != '\0'; ++cursor) {
-        if (*cursor == '.') return 1u;
-    }
-    length = (uint16_t)strlen(destination);
-    if (length + sizeof(".s64") > S64_LOCAL_FILENAME_CAPACITY) return 0u;
-    memcpy(destination + length, ".s64", sizeof(".s64"));
     return 1u;
 }
 
@@ -74,9 +67,10 @@ static uint8_t default_metadata(S64Document* document, const char* filename)
 {
     const char* base = filename;
     const char* cursor = filename;
-    uint16_t base_length;
-    uint16_t i;
-    uint16_t slug_length = 0u;
+    /* All lengths are bounded by the validated 33-byte source filename. */
+    uint8_t base_length;
+    uint8_t i;
+    uint8_t slug_length = 0u;
     uint8_t separator = 0u;
     char title[S64_DOCUMENT_TITLE_CAPACITY];
     char slug[S64_DOCUMENT_SLUG_CAPACITY];
@@ -87,9 +81,9 @@ static uint8_t default_metadata(S64Document* document, const char* filename)
         ++cursor;
     }
 
-    base_length = (uint16_t)strlen(base);
+    base_length = (uint8_t)strlen(base);
     if (base_length > 4u && strcmp(base + base_length - 4u, ".s64") == 0) {
-        base_length = (uint16_t)(base_length - 4u);
+        base_length = (uint8_t)(base_length - 4u);
     }
     if (base_length == 0u || base_length >= S64_DOCUMENT_TITLE_CAPACITY) return 0u;
 
@@ -102,11 +96,11 @@ static uint8_t default_metadata(S64Document* document, const char* filename)
 
         if ((value >= 'a' && value <= 'z') || (value >= '0' && value <= '9')) {
             if (separator && slug_length != 0u) {
-                if (slug_length + 1u >= S64_DOCUMENT_SLUG_CAPACITY) return 0u;
+                if (slug_length >= S64_DOCUMENT_SLUG_CAPACITY - 1u) return 0u;
                 slug[slug_length++] = '-';
             }
             separator = 0u;
-            if (slug_length + 1u >= S64_DOCUMENT_SLUG_CAPACITY) return 0u;
+            if (slug_length >= S64_DOCUMENT_SLUG_CAPACITY - 1u) return 0u;
             slug[slug_length++] = value;
         } else if (slug_length != 0u) {
             separator = 1u;
@@ -254,7 +248,7 @@ S64LocalResult s64_local_open(
 
     if (local == 0 || local->dos == 0 || local->document == 0
         || local->document->body == 0
-        || !filename_copy(checked_filename, filename)) {
+        || !filename_copy(checked_filename, filename, 0u)) {
         return S64_LOCAL_INVALID_ARGUMENT;
     }
     if (!discard_dirty) return S64_LOCAL_DIRTY;
@@ -318,9 +312,7 @@ static S64LocalResult save_named(
 
     if (local == 0 || local->dos == 0 || local->document == 0
         || local->document->body == 0
-        || !(add_extension
-            ? source_filename_copy(checked_filename, filename)
-            : filename_copy(checked_filename, filename))
+        || !filename_copy(checked_filename, filename, add_extension)
         || strcmp(checked_filename, S64_LOCAL_RECOVERY_FILENAME) == 0) {
         return S64_LOCAL_INVALID_ARGUMENT;
     }
