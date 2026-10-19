@@ -123,12 +123,27 @@ the isolated source copy. Compatible ROMs are in `client/build/private-vice-roms
   host gates and cc65 module checks pass, at managed Publisher `NETWORK_RODATA`
   overflow 133 bytes. Later broad diagnostics were not run. The independent
   shipping package above passes and has no dependency on that target.
-- **UNVERIFIED:** this correction's real-C64U fresh Settings/Editor save/reopen,
-  publish/download/update, Browser and machine/file restoration. Hardware was
-  requested on after software/packaged VICE passed; no hardware writes have
-  been made for this candidate. Physical keyboard, RUN/STOP and cold restart
-  remain separate observations; USB/uncontrolled interruption remain deferred.
-  Actions were not run. **Beta remains NO-GO until matching hardware gates pass.**
+- **PASS, bounded real C64U at `c67f19f`:** fresh disposable site setup and local
+  HTTPS pairing; Settings wizard import/consent/verified save/independent
+  relaunch; Editor enters basename `MV19A` through documented dirty-exit Save
+  and creates `.s64` with exact canonical body; fresh Publisher loads it,
+  authenticates through HMAC, publishes and produces matching ordinary HTML.
+  Numeric/string BASIC, IRQ/drives/clock/turbo checks pass after each exit.
+- **Driver failure, not product defect:** remote list displayed valid
+  `O=OPEN  OTHER=NEXT`; harness incorrectly awaited `O OPEN`. Download/collision,
+  downloaded Editor reopen/edit/update and current Browser gates remain
+  **UNVERIFIED**. Correct the caption and wait for the target title after Next
+  before resuming; do not change the product to accommodate the driver.
+- **PASS restoration:** all 38 original app-folder files and root inventory
+  match; BASIC, original live turbo/colours, IRQ/drives and persistent machine
+  configuration verify. Protected ignored receipt:
+  `client/build/mvp-acceptance-20261014-4a714a4/hardware-extension-20261019/state.json`
+  records `restored=true`, `active=false` and retains the exact driver failure.
+  Input was REST keyboard-buffer injection, not physical keyboard/cold power.
+  USB/uncontrolled interruption remain deferred. **Beta remains NO-GO.**
+- Repository is now public. The shared self-hosted job requires
+  `github.event.repository.private == true`; public repositories cannot schedule
+  it. No Actions were dispatched; all current validation was local.
 
 Read-only publishing audit at `c723589e` found no redesign requirement. The
 independent Makefile excludes generic HTTP `$06`, relay, old login and handoff

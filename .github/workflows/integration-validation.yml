@@ -86,7 +86,7 @@ jobs:
   # independent package is accepted; do not run managed-runtime targets on
   # the maintenance-only software-validation branch.
   validate:
-    if: ${{ !startsWith(github.ref, 'refs/heads/maintenance/') }}
+    if: ${{ github.event.repository.private == true && !startsWith(github.ref, 'refs/heads/maintenance/') }}
     runs-on: [self-hosted, linux, x64, terra64]
     timeout-minutes: 20
     steps:
