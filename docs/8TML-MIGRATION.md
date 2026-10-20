@@ -4,7 +4,7 @@
 
 ## Source and legal boundary
 
-The user supplied `specs.zip` containing `spec/8tml-1.md`, `spec/examples/*.8tml`, optional `.8ss` files and `tools/8tml` with Python parsing/rendering tooling. Use these as normative development references. Do **not** copy the reference code or extensive examples into the public repository without licence clarification. Independently written, minimal test fixtures and byte-level tests are acceptable; verify against the external validator in the local test environment.
+The user supplied `specs.zip` containing `specs/spec/8tml-1.md`, `specs/spec/examples/*.8tml`, optional `.8ss` files and `specs/tools/8tml` with Python parsing/rendering tooling. Use these as normative development references. Do **not** copy the reference code or extensive examples into the public repository without licence clarification. Independently written, minimal test fixtures and byte-level tests are acceptable; verify against the external validator in the local test environment.
 
 ## Format fundamentals to implement first
 
@@ -43,3 +43,37 @@ Publish the exact file bytes via an authenticated SEE64YOU service to our self-h
 - The supplied reference implementation's licence is unresolved.
 - `main/client/src/main.c` currently displays `Save: storage layer next` on save. Confirmed `codex/browser-palette-fix` and `feature/c64u-reu-editor` instead call `save_document()` and `save_as_document()`; **inspect their storage implementations, tests and relative commit histories before selecting a source branch**. Do not copy entire branches indiscriminately.
 - No tested C64U build, hardware I/O or end-to-end publishing is established by this migration planning commit.
+
+## Verified working-branch code inventory (20 October 2026)
+
+This section records **repository inspection**, not a completed conversion. On `codex/browser-palette-fix`:
+
+| Function / file | Existing behaviour | Required change |
+|---|---|---|
+| `client/src/main.c` | `open_document()`, `save_document()` and `save_as_document()` call local storage | Keep command flow and prompts; route new documents through 8TML serialization |
+| `client/src/storage/local.c` | Adds `.s64` where a filename has no extension; derives metadata from `.s64` | Default to `.8tml`, explicitly reject unintended extensions as appropriate, preserve overwrite/error behaviour |
+| `client/src/document.c` | `s64_document_write_wire()` emits `SEE64YOU/1`, `Type`, `Slug`, `Title`, `Status`, `Date`, `Order` then body | Replace wire format with `---\n8tml: 1\n...
+---\n` plus body; do not place site-specific publishing fields into 8TML without format support |
+| `client/src/document.c` | Converts native strings/body into ASCII through `s64_charset_native_to_ascii()` | Reuse and test conversion; ensure LF output, reject unsupported characters safely |
+| `client/Makefile` | Working branch builds independent Editor/Publisher/Settings and references `src/storage/local.c`, `src/document.c` | Reuse existing build/tests after branch ancestry and size constraints are checked |
+
+**Do not patch the default branch's placeholder `main.c`**: it is not the intended starting point. Compare branch ancestry and inspect `document.h`, `storage/local.h`, any storage tests and the actual independent editor build before choosing which branch to migrate. No PRs were open during the preceding inspection, but refresh immediately before editing.
+
+### Specific traps to avoid
+
+- The 8TML header is recognized only when `---` is the first line and `8tml` is the first header key. The original `SEE64YOU/1` header is incompatible.
+- Preserve unknown header keys and unsupported tags literally. A parser restricted to today's own generated fields is **not** a correct round-trip editor.
+- A fresh `.8tml` file needs valid header/body boundaries even if the body is empty.
+- The editor must reject or explicitly handle invalid ASCII before altering a destination file; preserve the existing safe-save/overwrite path.
+- Do not silently port former post/page, status, slug or ordering metadata into invented 8TML header fields; maintain these at the publishing-service level if needed.
+- Verify actual C64 disk filename/device behaviour with the longer `.8tml` suffix; do not assume PC filesystem semantics.
+- The supplied spec identifies itself as an **internal draft**; interoperability is provisional until confirmed by the format maintainer.
+
+### Minimal next execution checklist
+
+1. Diff the maintained editor branch against `main` and the migration branch. Identify the smallest safe integration approach; preserve unrelated branch work.
+2. Reproduce baseline save/open tests before edits.
+3. Update the serializer and reader together, then extension handling, using a small self-contained set of C tests; include unknown-header round-trip and bad-file failures.
+4. Run the independent Editor build and relevant host/VICE tests. Invoke the supplied external validator on emitted files.
+5. Inspect diff, record byte-level outputs and failures, commit to a task branch only after tests; defer the hardware gate.
+
