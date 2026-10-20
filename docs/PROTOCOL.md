@@ -1,5 +1,8 @@
 # Publishing protocol
 
+> **Legacy alpha contract, not the future 8TML standard.** This document describes the released SEE64YOU/1 / `.s64` implementation. New work follows [8TML direction](8TML-ROADMAP.md); the existing code, files and safety contracts remain in force until replacement and migration are verified. Do not treat this as an 8TML specification.
+
+
 The standalone backend defines the reference See64You document operations. The WordPress adapter exposes equivalent semantics where WordPress permits them.
 
 The C64 client is now a C64 Ultimate-only product, but the wire/backend contracts remain deliberately platform-independent.

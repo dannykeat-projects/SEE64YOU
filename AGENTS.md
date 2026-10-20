@@ -20,13 +20,19 @@ Read docs/C64U-RUNTIME.md before platform/runtime work.
 8. Keep canonical content recoverable from ordinary files.
 9. Prefer small, measured solutions over speculative abstractions.
 
-## Frozen MVP and stop rules
+## 8TML-first product direction (approved 2026-10-20)
 
-The **only current product scope** is the independent Editor (`SEE64YOU.PRG`), Publisher (`S64PUB.PRG`), Settings (`S64CFG.PRG`) and optional read-only public Browser (`S64WEB.PRG`), plus the existing standalone flat-file PHP site. Editor saves/reopens canonical `.s64` files; Publisher loads/publishes and downloads to a new `.s64`; Settings owns disk config; Browser follows public SEE64YOU text/link pages. Each program launches independently and returns to BASIC. No cross-program live state, history, clipboard, or REU handoff.
+Read [docs/8TML-ROADMAP.md](docs/8TML-ROADMAP.md) and [todo.md](todo.md) before design work. **8TML is the long-term canonical publishing format even if T8WN stops.** The Editor must work offline with independently readable files and independent hosting. The existing alpha remains `.s64`/SEE64YOU/1, not 8TML. Pin an authoritative 8TML version, encoding rules and fixtures before implementing parsing. Preserve old source without destructive conversion; keep legacy compatibility until proven migration/rollback. Do not couple the core editor to VVV, any third-party API or PHP.
+
+Format conformance and source-to-HTML hosting are the next prioritised milestones, replacing the earlier prohibition on adding formats. Publisher integration is separate from static file serving and requires secure, portable authentication. Legacy website/browser/WordPress features are frozen, not deleted. No code retirement without caller trace, affected tests and applicable real-C64U gates.
+
+## Legacy alpha MVP and stop rules
+
+The **currently shipped alpha scope** is the independent Editor (`SEE64YOU.PRG`), Publisher (`S64PUB.PRG`), Settings (`S64CFG.PRG`) and optional read-only public Browser (`S64WEB.PRG`), plus the existing standalone flat-file PHP site. Editor saves/reopens canonical `.s64` files; Publisher loads/publishes and downloads to a new `.s64`; Settings owns disk config; Browser follows public SEE64YOU text/link pages. Each program launches independently and returns to BASIC. No cross-program live state, history, clipboard, or REU handoff.
 
 Deliver the first-time user workflow in `todo.md` before cleanup that changes executable behaviour. Preserve documented hardware-tested Launcher→Editor bootstrap, direct HMAC publishing, URL/browser protocols, disk recovery, state restoration and existing guardrails. Explicitly test any necessary replacements against current behaviour. Retain still-used overlay machinery; don't rewrite it solely for aesthetic simplicity.
 
-Do **not** add WordPress publishing, non-SEE64YOU/HTML browsing, ordinary-C64 compatibility, new editor controls/appearance, joystick/mouse, USB keyboard acceptance, TLS redesign, large-document redesign, general accounts/chat, new formats, or more external integrations before first-publication acceptance. Deferred means no TODO queue and no work until user feedback or a verified blocker.
+Do **not** expand WordPress publishing, general HTML browsing, ordinary-C64 compatibility, joystick/mouse, TLS redesign, broad runtime rewrites or unrelated integrations. Controlled 8TML migration and necessary editor formatting/format IO changes are now authorised by the new roadmap; first preserve alpha behaviour and add conformance fixtures.
 
 Stop if a fix needs another major cross-program runtime/loader architecture. Two bounded attempts at the same blocker without progress trigger go/no-go reassessment, potentially shelving the project rather than expanding it. Fix existing correctness problems only with the smallest validated changes. Don't weaken fit, disk-integrity or machine-restoration gates.
 ## C64U runtime rules
@@ -95,7 +101,7 @@ If a prerequisite cannot safely be enabled by software, guide the user through t
 The existing WordPress adapter and trusted relay are outside the initial release acceptance scope. Do not expand or refactor these integrations just for completeness. Preserve credential safety and established on-disk formats if an MVP fix touches common code.
 ## Documentation ownership
 
-- todo.md is the **only live work queue**.
+- todo.md is the **only live work queue**; historical MVP work is archived under docs/archive and not active.
 - README and subsystem docs describe durable architecture, current contracts and explicitly labelled migration state.
 - docs/C64U-RUNTIME.md owns hardware/resource/system-state architecture.
 - docs/LOCAL_TESTING.md contains only current reproducible validation procedures.
@@ -110,6 +116,6 @@ The existing WordPress adapter and trusted relay are outside the initial release
 - Re-check the branch head immediately before a write because local/Codex work may advance it concurrently.
 - Update todo.md when work is completed, deferred, discovered or reprioritised.
 - Validate the smallest relevant scope first, then the full available validation required by risk.
-- The target deliverable is one verified eleven-file independent client package including Editor, Publisher, Settings and optional Browser plus a separate PHP website package. Managed runtime targets are historical fallbacks, not release outputs.
-- Do not merge, deploy, create a public release or touch existing SD data solely because CI is green; follow explicit delivery authorization.
+- The existing alpha target is its version-matched eleven-file independent package plus legacy PHP website. Future 8TML packages follow the staged migration gates, and must not overwrite alpha artifacts. Managed runtime targets remain historical fallbacks, not release outputs.
+- Do not merge, deploy, replace a public release/tag/assets or touch existing SD data solely because CI is green; follow explicit delivery authorization.
 - Do not claim real-hardware validation unless it actually ran on real C64U hardware.

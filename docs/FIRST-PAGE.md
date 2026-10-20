@@ -1,5 +1,7 @@
 # From setup to your first page or post
 
+> **For the legacy v0.1.0-alpha.1 release only.** This procedure creates `.s64` documents on the existing PHP backend, not `.8tml` files or T8WN pages. See [alpha guide](releases/v0.1.0-alpha.1.md) and [8TML roadmap](8TML-ROADMAP.md).
+
 Keep your website's `start.php` open in a browser for the step-by-step wizard. It links to website setup and HTTPS pairing, and tells you exactly which C64U keys to press. Settings points back to the browser guide. This checklist covers the independent publishing workflow and offers an optional check using the separate C64U browser.
 
 1. **Prepare the C64U.** Back up existing SD files and configuration. Copy all eleven files from the matching independent package into `/sd/SEE64YOU/`. Enable Ultimate Command Interface and, in Ultimate menu â†’ C64 and Cartridge Settings, RAM Expansion Unit = Enabled and REU Size = 16 MB. Connect the C64U to your network. Editor's prerequisite screen offers R to recheck after changes.

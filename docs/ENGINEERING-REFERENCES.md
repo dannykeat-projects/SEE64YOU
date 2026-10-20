@@ -1,4 +1,6 @@
-# External engineering references — MVP only
+# External engineering references — previous alpha research
+
+> **Historical reference constraints only.** The approved 8TML direction supersedes the earlier blanket prohibition on new formats. Follow [8TML roadmap](8TML-ROADMAP.md); reuse outside code/spec text only after verifying its licence and compatibility.
 
 External software is **reference material**, not a new SEE64YOU workstream. Do not import code, dependencies, protocols or hosting requirements before the independent MVP is usable. A replacement must demonstrably reduce total runtime complexity without breaking `.s64`, PHP hosting, published HTML, C64 browser links, recovery or hardware restoration.
 

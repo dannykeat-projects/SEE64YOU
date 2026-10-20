@@ -1,5 +1,8 @@
 # Standalone site
 
+> **Legacy alpha contract, not the future 8TML standard.** This document describes the released SEE64YOU/1 / `.s64` implementation. New work follows [8TML direction](8TML-ROADMAP.md); the existing code, files and safety contracts remain in force until replacement and migration are verified. Do not treat this as an 8TML specification.
+
+
 The standalone backend is intentionally understandable by opening the folder in a file manager. It requires PHP but no database and no URL rewriting.
 
 The current client is C64 Ultimate-only, but the site itself remains an ordinary web application with no dependency on C64U-specific server software.
