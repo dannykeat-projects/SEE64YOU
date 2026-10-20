@@ -13,7 +13,7 @@
 - `client/` is the cc65 C64/C64U application.
 - `site/` is a self-contained flat-file PHP site and API.
 - `wordpress/` is the WordPress adapter.
-- Documents are canonical source text. Generated HTML is never the editing source.
+- New documents are canonical ASCII/LF 8TML 1 (.8tml) source. No .s64 compatibility work or new .s64 documents. Generated HTML is never the editing source. Preserve unknown 8TML metadata and markup on round trips.
 - Network/publisher code must sit behind a narrow interface so offline editing remains usable.
 - Reuse generic design lessons from Terra64, but do not couple either repository or copy game-specific code.
 
@@ -52,3 +52,10 @@
 - Keep documentation concise and authoritative; do not create duplicate planning files.
 - Validate the smallest relevant scope first, then run the full available validation.
 - Do not claim C64U hardware validation unless it actually ran on C64U hardware.
+
+## 8TML migration
+
+- Follow `docs/8TML-MIGRATION.md` and `todo.md`; the externally supplied 2026-10-20 8TML 1 draft governs format behavior.
+- Do not copy the externally supplied reference implementation until its licence is clarified.
+- Reconcile actual maintained C64U builds/branches before modifying save/open. Do not assume the default-branch placeholder is the latest working editor.
+- Require ASCII/LF byte-level tests and independent validator output before declaring a new document compatible; hardware confirmation is a separate gate.
