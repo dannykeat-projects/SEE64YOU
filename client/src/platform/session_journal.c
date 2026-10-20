@@ -187,7 +187,7 @@ static S64SessionJournalResult select_storage(S64Dos* dos)
     if (dos == 0) return S64_SESSION_JOURNAL_INVALID;
 #ifdef S64_CODE_ASSET_LAUNCHER
     /* Settings resolves and backs up legacy ownership before Editor can run. */
-    if (s64_dos_change_dir(dos, "/sd/") != S64_DOS_OK)
+    if (s64_dos_change_dir(dos, S64_STORAGE_ROOT_DIRECTORY) != S64_DOS_OK)
         return S64_SESSION_JOURNAL_IO_ERROR;
     for (slot = 0u; slot < 2u; ++slot) {
         if (s64_dos_file_exists(dos, slot_filename(slot), &exists) != S64_DOS_OK)

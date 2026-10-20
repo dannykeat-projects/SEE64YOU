@@ -72,9 +72,7 @@ static void show_preflight_problem(const S64PlatformPreflight* preflight)
             break;
 
         case S64_PLATFORM_READY:
-            cputs("SD STORAGE NOT READY\r\n\r\n");
-            cputs("CHECK SD CARD IS INSERTED\r\n");
-            cputs("AND WRITABLE, THEN RECHECK\r\n");
+            cputs("STORAGE NOT READY\r\n\r\nCHECK DEVICE / FOLDER / FREE SPACE\r\n");
             break;
     }
 

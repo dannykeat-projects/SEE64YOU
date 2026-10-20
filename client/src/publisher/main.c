@@ -1288,7 +1288,7 @@ static void load_local_source(void)
         return;
     }
     if (s64_dos_change_dir(&dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK) {
-        set_status("Cannot access /sd/");
+        set_status("Storage not ready");
         return;
     }
     print_value(STATUS_ROW, "", "Loading...");
@@ -1324,7 +1324,7 @@ static void save_remote_source(void)
         return;
     }
     if (s64_dos_change_dir(&dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK) {
-        set_status("Cannot access /sd/");
+        set_status("Storage not ready");
         return;
     }
     print_value(STATUS_ROW, "", "Saving...");

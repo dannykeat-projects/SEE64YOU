@@ -4,6 +4,8 @@
 
 The approved 8TML migration in `docs/8TML-MIGRATION.md` supersedes the historical `.s64` format references below. Independent Editor persistence now uses complete ASCII/LF `.8tml` source, including editable headers and unknown markup. No legacy importer or fallback. Publisher/Browser conversion is a later milestone; preserve their existing implementations until then.
 
+Storage may be SD or USB: the complete build selects `STORAGE_ROOT` (default `/sd/`) and derives all package/recovery paths in `platform/package_paths.h`. Treat SD-specific paths below as defaults, not an SD-card prerequisite. Force a complete rebuild when changing the root; never mix packages or fall back to another device's config/journals automatically.
+
 See64You is a **C64 Ultimate-only** application. The supported product architecture requires a **16 MiB REU** and deliberately uses Ultimate-specific facilities.
 
 Do not constrain product design to preserve ordinary-C64 compatibility, 64 KiB-only operation, software-IEC loading, original-drive timing or an original-C64 release artifact. Conventional-C64 code may remain temporarily during migration only where it still helps regression testing.

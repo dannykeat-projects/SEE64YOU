@@ -12,6 +12,16 @@ Publisher, Browser and the PHP site retain their historical protocols and do not
 
 See [migration and acceptance criteria](docs/8TML-MIGRATION.md) and the [authoritative work queue](todo.md).
 
+## USB-only installations
+
+Choose the storage mount when building the complete package. For example:
+
+```sh
+make -B -C client STORAGE_ROOT=/Usb0/ independent-package
+```
+
+Replace `/Usb0/` with the actual USB mount shown by your Ultimate browser, including the final slash. Copy **all eleven files** from `client/build/independent-package/SEE64YOU/` into that device's `SEE64YOU` folder. `-B` rebuilds every program and both manifests with the same root. The default is `/sd/`; there is no automatic device search or cross-device fallback. Startup, document/configuration storage, asset loading and recovery journals all use the selected root. USB-root host/build checks pass; a real USB-only hardware run remains pending.
+
 ## Repository layout
 
 - `client/`: cc65 editor and C64U client code

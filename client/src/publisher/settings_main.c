@@ -178,7 +178,7 @@ static void end_save_trace(const char* stage, uint8_t result)
             case 4: label = "READ FINAL FILE"; break;
             case 5: label = "WRITE (GATE)"; break;
             case 8: label = "STAT FINAL FILE"; break;
-            case 17: label = "SELECT /SD/"; break;
+            case 17: label = "SELECT STORAGE"; break;
             case 9: label = entry->final_file ? "DELETE CFG (BEST EFFORT)"
                 : "DELETE TEMP (BEST EFFORT)"; break;
             case 10: label = "RENAME TEMP TO CFG (GATE)"; break;
@@ -322,7 +322,7 @@ static void render_setup(void)
         cputs("Create your site in a web browser.\r\nOpen start.php for the full guide.\r\n\r\nUse the site folder URL, not api.php.\r\n1 ENTER WEBSITE\r\n");
         print_value(9u, "Website: ", settings.base_url);
     } else if (setup_step == 2u) {
-        cputs("In a browser use HTTPS pair.php.\r\nCopy key to:\r\n/sd/SEE64YOU/SEE64KEY.TXT\r\nor type the 64 hex characters here.\r\nKeep the file/key private.\r\nNever enter your site password here.\r\n\r\n1 IMPORT KEY FILE\r\n2 TYPE / REPLACE KEY\r\n");
+        cputs("In a browser use HTTPS pair.php.\r\nCopy key to:\r\n" S64_PACKAGE_DIRECTORY "SEE64KEY.TXT\r\nor type the 64 hex characters here.\r\nKeep the file/key private.\r\nNever enter your site password here.\r\n\r\n1 IMPORT KEY FILE\r\n2 TYPE / REPLACE KEY\r\n");
         print_value(12u, "Key: ", settings.direct_key[0] ? "configured" : "not set");
     } else {
         cputs("Direct publishing uses HTTP.\r\nDocument text is not encrypted.\r\n1 CHANGE HTTP CONSENT\r\n\r\nS SAVE VERIFIED SETTINGS\r\nThen launch SEE64YOU.PRG, write text,\r\nsave FIRST.S64 and exit to BASIC.\r\nLaunch S64PUB.PRG: L FIRST.S64,\r\n2 connect, T page/post, 4 published,\r\n3 publish. Wait for success.\r\nCheck the page/post in your browser.\r\n");
@@ -392,7 +392,7 @@ static void migrate_session_files(void)
     }
     clrscr();
     if (result == S64_SESSION_JOURNAL_OK) {
-        cputs("SESSION FILES MOVED AND VERIFIED\r\n\r\nNew sessions use /sd/SEE64YOU/.\r\nOriginal root backups are retained:\r\nS64OLD0.DAT / S64OLD1.DAT\r\nwhen those original slots existed.");
+        cputs("SESSION FILES MOVED AND VERIFIED\r\n\r\nNew sessions use " S64_PACKAGE_DIRECTORY ".\r\nOriginal root backups are retained:\r\nS64OLD0.DAT / S64OLD1.DAT\r\nwhen those original slots existed.");
         set_status("Session migration complete");
     } else {
         cprintf("SESSION MIGRATION STOPPED: %u\r\n\r\n", result);

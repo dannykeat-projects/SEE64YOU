@@ -13,6 +13,8 @@ Both arguments are optional: without them, the script runs strict host codec/loc
 
 The migration package builds all eleven files and both manifests, but Publisher/Browser/site still implement the historical format. Do not use it as an end-to-end 8TML release.
 
+For storage-root regressions, run `python3 tools/test_storage_paths.py`. It exercises preflight, temporary-file cleanup, document origin, independent DOS contexts and journals with SD-only and USB-only mock namespaces, each in ordinary and Launcher mode, then configuration persistence and journal migration on both roots. Build an actual USB-root package with `make -B -C client STORAGE_ROOT=/Usb0/ independent-package`; select the actual mount and include its trailing slash. Always force the whole build when changing roots so cached binaries cannot retain another device. All existing memory/manifest guards apply. The hardware harness below currently targets the default `/sd/SEE64YOU/` installation; it does not certify a USB-only machine.
+
 With explicit authorization for hardware/file changes, the automated hardware check requires idle BASIC with no program and reserved fixture names absent:
 
 ```sh

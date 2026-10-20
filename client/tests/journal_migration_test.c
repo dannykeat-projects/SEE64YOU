@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "platform/journal_migration.h"
+#include "platform/package_paths.h"
 
 typedef struct {
     uint8_t bytes[24];
@@ -61,8 +62,10 @@ static S64UciResult execute(const S64UciCommandPart* parts,
     opcode = parts[0].data[1];
     if (opcode == 0x11u) {
         if (count != 2u) return S64_UCI_PROTOCOL_ERROR;
-        if (parts[1].length == 4u && !memcmp(parts[1].data, "/sd/", 4u)) directory = 0;
-        else if (parts[1].length == 13u && !memcmp(parts[1].data, "/sd/SEE64YOU/", 13u)) directory = 1;
+        if (parts[1].length == strlen(S64_STORAGE_ROOT_DIRECTORY)
+            && !memcmp(parts[1].data, S64_STORAGE_ROOT_DIRECTORY, parts[1].length)) directory = 0;
+        else if (parts[1].length == strlen(S64_PACKAGE_DIRECTORY)
+            && !memcmp(parts[1].data, S64_PACKAGE_DIRECTORY, parts[1].length)) directory = 1;
         else return S64_UCI_PROTOCOL_ERROR;
     }
     if (opcode == 0x08u || opcode == 0x02u || opcode == 0x09u) {

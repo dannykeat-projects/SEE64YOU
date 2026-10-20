@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "platform/dos.h"
+#include "platform/package_paths.h"
 #include "platform/system_state.h"
 
 #define S64_SESSION_JOURNAL_FORMAT_VERSION 1u
@@ -11,7 +12,7 @@
 #define S64_SESSION_JOURNAL_RESTORE_TURBO 0x01u
 #define S64_SESSION_JOURNAL_FILENAME_0 "S64JRN0.DAT"
 #define S64_SESSION_JOURNAL_FILENAME_1 "S64JRN1.DAT"
-#define S64_SESSION_JOURNAL_STORAGE_PATH "/sd/SEE64YOU/"
+#define S64_SESSION_JOURNAL_STORAGE_PATH S64_PACKAGE_DIRECTORY
 
 typedef enum {
     S64_SESSION_STATE_ACTIVE = 1,

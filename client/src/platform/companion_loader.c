@@ -1,6 +1,8 @@
 #include "companion_loader.h"
 
-#define S64_COMPANION_STORAGE_PATH "/sd/"
+#include "platform/package_paths.h"
+
+#define S64_COMPANION_STORAGE_PATH S64_STORAGE_ROOT_DIRECTORY
 #define S64_COMPANION_MIN_PAYLOAD \
     ((uint16_t)(S64_COMPANION_START_ADDRESS - S64_COMPANION_LOAD_ADDRESS + 1u))
 #define S64_COMPANION_MAX_PAYLOAD \

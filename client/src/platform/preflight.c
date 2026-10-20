@@ -1,10 +1,11 @@
 #include "platform/preflight.h"
 
 #include "platform/dos.h"
+#include "platform/package_paths.h"
 #include "platform/reu.h"
 #include "platform/uci.h"
 
-#define S64_PREFLIGHT_STORAGE_PATH "/sd/SEE64YOU/"
+#define S64_PREFLIGHT_STORAGE_PATH S64_PACKAGE_DIRECTORY
 #define S64_PREFLIGHT_TEMP_ATTEMPTS 10u
 
 typedef struct {

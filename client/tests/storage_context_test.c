@@ -4,6 +4,8 @@
 #include "document.h"
 #include "storage/local.h"
 #include "platform/session_journal.h"
+#include "platform/package_paths.h"
+#include "platform/preflight.h"
 
 #define FILES 8
 #define BYTES 512
@@ -66,8 +68,8 @@ static S64UciResult execute(const S64UciCommandPart* parts, uint8_t count, S64Uc
         }
         check(count == 2, "change directory shape");
         resolve(path, context, &parts[1]);
-        if (!strcmp(path, "/sd/")) context->cwd = "/sd/";
-        else if (!strcmp(path, "/sd/SEE64YOU/")) context->cwd = "/sd/SEE64YOU/";
+        if (!strcmp(path, S64_STORAGE_ROOT_DIRECTORY)) context->cwd = S64_STORAGE_ROOT_DIRECTORY;
+        else if (!strcmp(path, S64_PACKAGE_DIRECTORY)) context->cwd = S64_PACKAGE_DIRECTORY;
         else { status(reply, "87,ACCESS DENIED"); return S64_UCI_OK; }
     } else if (op == 0x08 || op == 0x02 || op == 0x09 || op == 0x0a) {
         check(count >= 2, "filename part"); resolve(path, context, &parts[1]);
@@ -81,7 +83,7 @@ static S64UciResult execute(const S64UciCommandPart* parts, uint8_t count, S64Uc
             strcpy(files[slot].path, destination);
         } else {
             context->writing = parts[0].data[2] != 1;
-            if (!context->writing && fail_folder_open && !strcmp(path, "/sd/SEE64YOU/LEGACY.S64")) {
+            if (!context->writing && fail_folder_open && !strcmp(path, S64_PACKAGE_DIRECTORY "LEGACY.S64")) {
                 status(reply, "87,ACCESS DENIED"); return S64_UCI_OK;
             }
             if (!context->writing && slot < 0) { status(reply, "88,FILE NOT FOUND"); return S64_UCI_OK; }
@@ -115,6 +117,20 @@ static S64UciResult execute(const S64UciCommandPart* parts, uint8_t count, S64Uc
     status(reply, "00,OK"); return S64_UCI_OK;
 }
 
+S64UciResult s64_uci_execute(const S64UciCommandPart* parts, uint8_t count, S64UciReply* reply)
+{
+    return execute(parts, count, reply);
+}
+
+void s64_uci_probe_capabilities(S64UciCapabilities* capabilities)
+{
+    memset(capabilities, 0, sizeof(*capabilities));
+    capabilities->interface_present = 1u;
+    capabilities->dos_target = 1u;
+}
+
+uint8_t s64_reu_probe(void) { return 1u; }
+uint16_t s64_reu_probe_banks(void) { return S64_PLATFORM_REQUIRED_REU_BANKS; }
 static void seed(const char* path, const char* body)
 {
     static const char header[] = "SEE64YOU/1\nType: post\nSlug: legacy\nTitle: Legacy\nStatus: draft\nDate: \nOrder: 0\n\n";
@@ -133,6 +149,7 @@ static void body_is(const S64Buffer* body, const char* expected)
 
 int main(void)
 {
+    S64PlatformPreflight preflight;
     S64Dos documents, journal_dos;
     S64Buffer body;
     S64Document document;
@@ -142,17 +159,28 @@ int main(void)
     File root_before, folder_before;
     int root_slot, folder_slot, secondary_handle;
     memset(contexts, 0, sizeof(contexts));
-    contexts[0].cwd = contexts[1].cwd = "/sd/";
+    contexts[0].cwd = contexts[1].cwd = S64_STORAGE_ROOT_DIRECTORY;
     contexts[0].opened = contexts[1].opened = -1;
-    seed("/sd/LEGACY.S64", "Root source"); seed("/sd/SEE64YOU/LEGACY.S64", "Folder source");
-    root_slot = find("/sd/LEGACY.S64", 0); folder_slot = find("/sd/SEE64YOU/LEGACY.S64", 0);
+    s64_platform_preflight_run(&preflight);
+    check(preflight.requirement == S64_PLATFORM_READY && preflight.storage_ready,
+        "preflight verifies selected storage device");
+    check(!strcmp(contexts[0].cwd, S64_PACKAGE_DIRECTORY),
+        "preflight uses selected package folder on primary target");
+    check(contexts[0].opened == -1 && contexts[1].opened == -1,
+        "preflight closes its temporary file");
+    check(find(S64_PACKAGE_DIRECTORY "S64CHK0.TMP", 0) < 0,
+        "preflight removes its temporary file");
+    check(!strcmp(contexts[1].cwd, S64_STORAGE_ROOT_DIRECTORY),
+        "preflight preserves secondary context");
+    seed(S64_STORAGE_ROOT_DIRECTORY "LEGACY.S64", "Root source"); seed(S64_PACKAGE_DIRECTORY "LEGACY.S64", "Folder source");
+    root_slot = find(S64_STORAGE_ROOT_DIRECTORY "LEGACY.S64", 0); folder_slot = find(S64_PACKAGE_DIRECTORY "LEGACY.S64", 0);
     root_before = files[root_slot]; folder_before = files[folder_slot];
     s64_dos_init(&documents, execute, S64_DOS_TARGET_SECONDARY);
     s64_dos_init(&journal_dos, execute, S64_DOS_TARGET_PRIMARY);
-    check(s64_dos_change_dir(&documents, "/sd/SEE64YOU/") == S64_DOS_OK, "document folder selected");
+    check(s64_dos_change_dir(&documents, S64_PACKAGE_DIRECTORY) == S64_DOS_OK, "document folder selected");
     s64_buffer_init(&body); s64_document_init(&document, &body); s64_local_init(&local, &documents, &document);
-    check(s64_local_open(&local, "/sd/LEGACY.S64", 1) == S64_LOCAL_OK, "explicit legacy root opens");
-    check(!strcmp(local.filename, "/sd/LEGACY.S64"), "absolute identity retained"); body_is(&body, "Root source");
+    check(s64_local_open(&local, S64_STORAGE_ROOT_DIRECTORY "LEGACY.S64", 1) == S64_LOCAL_OK, "explicit legacy root opens");
+    check(!strcmp(local.filename, S64_STORAGE_ROOT_DIRECTORY "LEGACY.S64"), "absolute identity retained"); body_is(&body, "Root source");
 
     check(s64_dos_open_read(&documents, "LEGACY.S64") == S64_DOS_OK, "secondary handle opened");
     secondary_handle = contexts[1].opened;
@@ -160,40 +188,40 @@ int main(void)
     check(s64_session_journal_prepare(&journal, 12, 1, 0, &snapshot), "prepare journal");
     check(s64_session_journal_store_save(&journal_dos, &journal) == S64_SESSION_JOURNAL_IO_ERROR,
         "simulated busy firmware refuses journal context changes while a document handle is open");
-    check(contexts[1].opened == secondary_handle && !strcmp(contexts[1].cwd, "/sd/SEE64YOU/"),
+    check(contexts[1].opened == secondary_handle && !strcmp(contexts[1].cwd, S64_PACKAGE_DIRECTORY),
         "journal context changes preserve secondary directory and open handle");
     check(s64_dos_close(&documents) == S64_DOS_OK, "secondary handle closes independently");
     check(s64_session_journal_store_save(&journal_dos, &journal) == S64_SESSION_JOURNAL_OK,
         "journal saves after the synchronous document operation closes");
-    check(s64_dos_change_dir(&journal_dos, "/sd/") == S64_DOS_OK, "primary legacy context selected");
-    check(!strcmp(contexts[1].cwd, "/sd/SEE64YOU/"), "closed secondary directory remains isolated");
+    check(s64_dos_change_dir(&journal_dos, S64_STORAGE_ROOT_DIRECTORY) == S64_DOS_OK, "primary legacy context selected");
+    check(!strcmp(contexts[1].cwd, S64_PACKAGE_DIRECTORY), "closed secondary directory remains isolated");
     check(s64_buffer_move_cursor(&body, s64_buffer_length(&body)), "root end cursor");
     check(s64_buffer_insert(&body, '!'), "root edit");
     check(s64_local_save(&local) == S64_LOCAL_OK, "root origin save");
-    check(!strcmp(last_temporary, "/sd/LEGACY.S64.tmp"), "root temporary keeps original path");
+    check(!strcmp(last_temporary, S64_STORAGE_ROOT_DIRECTORY "LEGACY.S64.tmp"), "root temporary keeps original path");
     check(!memcmp(&folder_before, &files[folder_slot], sizeof(File)), "same-name folder collision unchanged");
-    check(s64_local_open(&local, "/sd/LEGACY.S64", 1) == S64_LOCAL_OK, "reopen saved root"); body_is(&body, "Root source!");
-    root_before = files[find("/sd/LEGACY.S64", 0)];
+    check(s64_local_open(&local, S64_STORAGE_ROOT_DIRECTORY "LEGACY.S64", 1) == S64_LOCAL_OK, "reopen saved root"); body_is(&body, "Root source!");
+    root_before = files[find(S64_STORAGE_ROOT_DIRECTORY "LEGACY.S64", 0)];
     check(s64_local_open(&local, "LEGACY.S64", 1) == S64_LOCAL_OK, "bare name opens folder"); body_is(&body, "Folder source");
     check(s64_buffer_move_cursor(&body, s64_buffer_length(&body)), "folder end cursor");
     check(s64_buffer_insert(&body, '!'), "folder edit");
     check(s64_local_save(&local) == S64_LOCAL_OK, "folder save");
-    check(!strcmp(last_temporary, "/sd/SEE64YOU/LEGACY.S64.tmp"), "folder temporary contained");
-    check(!memcmp(&root_before, &files[find("/sd/LEGACY.S64", 0)], sizeof(File)), "folder save leaves root byte exact");
+    check(!strcmp(last_temporary, S64_PACKAGE_DIRECTORY "LEGACY.S64.tmp"), "folder temporary contained");
+    check(!memcmp(&root_before, &files[find(S64_STORAGE_ROOT_DIRECTORY "LEGACY.S64", 0)], sizeof(File)), "folder save leaves root byte exact");
     check(s64_local_open(&local, "LEGACY.S64", 1) == S64_LOCAL_OK, "reopen folder"); body_is(&body, "Folder source!");
     fail_folder_open = 1;
     check(s64_local_open(&local, "LEGACY.S64", 1) == S64_LOCAL_IO_ERROR, "folder I/O fails explicitly");
     body_is(&body, "Folder source!"); fail_folder_open = 0;
-    folder_slot = find("/sd/SEE64YOU/LEGACY.S64", 0);
+    folder_slot = find(S64_PACKAGE_DIRECTORY "LEGACY.S64", 0);
     files[folder_slot].bytes[0] = 'X';
     check(s64_local_open(&local, "LEGACY.S64", 1) == S64_LOCAL_INVALID_DOCUMENT, "corrupt folder never falls back to root");
     check(!s64_local_has_filename(&local), "corrupt document does not retain root identity");
-    check(!memcmp(&root_before, &files[find("/sd/LEGACY.S64", 0)], sizeof(File)), "failure leaves legacy root unchanged");
+    check(!memcmp(&root_before, &files[find(S64_STORAGE_ROOT_DIRECTORY "LEGACY.S64", 0)], sizeof(File)), "failure leaves legacy root unchanged");
 #ifdef S64_CODE_ASSET_LAUNCHER
-    seed("/sd/S64JRN0.DAT", "Legacy journal must block even when malformed");
+    seed(S64_STORAGE_ROOT_DIRECTORY "S64JRN0.DAT", "Legacy journal must block even when malformed");
     check(s64_session_journal_store_load(&journal_dos, &journal) == S64_SESSION_JOURNAL_INVALID,
         "Launcher refuses every legacy root journal before folder ownership");
-    check(find("/sd/S64JRN0.DAT", 0) >= 0, "legacy slot retained after refusal");
+    check(find(S64_STORAGE_ROOT_DIRECTORY "S64JRN0.DAT", 0) >= 0, "legacy slot retained after refusal");
 #endif
     puts("storage context tests passed"); return 0;
 }

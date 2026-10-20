@@ -14,6 +14,8 @@
 
 ## 2. User file layout and DOS ownership
 
+The following paths show the default SD build. `make -B -C client STORAGE_ROOT=/Usb0/ independent-package` selects another absolute mount (use its actual Ultimate name and retain the trailing slash). `platform/package_paths.h` derives the app directory from that root; preflight, loader, Editor, settings, journals and root-journal checks use it consistently. Install the entire matching package on the chosen device. Do not mix binaries/manifests from different roots. Selection is explicit at build time; no automatic root search/fallback, persistent Ultimate home-directory change or migration across devices is performed. SD regression and USB-root host/package guards are separate from USB hardware acceptance, which remains pending.
+
 ```text
 /sd/SEE64YOU/
     SEE64YOU.PRG       # Editor user launch

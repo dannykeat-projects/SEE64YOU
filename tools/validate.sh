@@ -414,13 +414,7 @@ cc -std=c99 -Wall -Wextra -Iclient/src client/tests/local_documents_test.c clien
 "$TMP_BIN"
 
 echo "== Host document and journal DOS context tests =="
-for storage_define in "" "-DS64_CODE_ASSET_LAUNCHER=1"; do
-    cc -std=c99 -Wall -Wextra -Werror $storage_define -Iclient/src \
-        client/tests/storage_context_test.c client/src/buffer.c client/src/document.c \
-        client/src/charset.c client/src/platform/dos.c client/src/storage/local.c \
-        client/src/platform/session_journal.c client/src/platform/session_journal_start.c -o "$TMP_BIN"
-    "$TMP_BIN"
-done
+python3 tools/test_storage_paths.py
 
 echo "== Host Editor failed recovery preservation tests =="
 cc -std=c99 -Wall -Wextra -Werror -D__fastcall__= -ffunction-sections -fdata-sections \

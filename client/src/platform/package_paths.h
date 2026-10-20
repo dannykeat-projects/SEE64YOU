@@ -6,10 +6,13 @@
  * Runtime package files are absolute so module transitions never depend on the
  * current Ultimate-DOS working directory left by documents/settings activity.
  *
- * Persistent SEE64YOU.CFG and session journals deliberately remain at their
- * hardware-proven locations until their separate transactional migration.
+ * Keep all programs, prerequisite checks and recovery on the same device.
+ * The build may select a USB mount; the root must end in a slash.
  */
-#define S64_SD_ROOT_DIRECTORY "/sd/"
-#define S64_PACKAGE_DIRECTORY "/sd/SEE64YOU/"
+#ifndef S64_STORAGE_ROOT_DIRECTORY
+#define S64_STORAGE_ROOT_DIRECTORY "/sd/"
+#endif
+#define S64_SD_ROOT_DIRECTORY S64_STORAGE_ROOT_DIRECTORY
+#define S64_PACKAGE_DIRECTORY S64_STORAGE_ROOT_DIRECTORY "SEE64YOU/"
 
 #endif
