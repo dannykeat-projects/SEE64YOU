@@ -1,53 +1,31 @@
-# See64You
+# SEE64YOU
 
-**Publish to the web from the Commodore 64 Ultimate, and browse from it too**
+**Create and publish 8TML pages from the Commodore 64 Ultimate, and browse them from the C64U too.**
 
-See64You is a text editor and publishing system for the Commodore 64 Ultimate (C64U). 
+## Format direction (20 October 2026)
 
-The publishing layer keeps web complexity on the server, which hosts a tiny database-free website.
+SEE64YOU is moving to the external **8TML 1 draft** for all new documents (`.8tml`), with optional `.8ss` stylesheets. The legacy `.s64` document format is retired; no compatibility layer or conversion is planned. The user-supplied external specification and validator are our reference; they are not bundled until licensing is clarified.
 
-The text editor should be familiar to modern users, mimicking modern basic text editors in function.
+**This migration is in progress.** The current default-branch editor has a placeholder for saving documents, and an existing working storage implementation must be reconciled from feature work before 8TML support can be marked implemented. Do not infer compatibility or hardware validation from this README.
 
-Use Markdown to format text.
-
-Browse websites built with See64You from the C64U.
-
-The websites generated are extremely simple and should work on ancient browsers available on other systems.
-
+See [migration and acceptance criteria](docs/8TML-MIGRATION.md) and the [authoritative work queue](todo.md).
 
 ## Repository layout
 
-```
-client/       C64/C64U editor client (cc65)
-site/         Standalone flat-file PHP site and publishing API
-wordpress/    WordPress publishing plugin
-docs/         Architecture, editor, protocol and deployment notes
-tools/        Local validation/development helpers
-```
+- `client/`: cc65 editor and C64U client code
+- `site/`: standalone flat-file PHP site and publishing API
+- `wordpress/`: historical WordPress integration, subject to MVP scope review
+- `docs/`: project architecture and migration guidance
+- `tools/`: local validation and development helpers
 
-## Current status
+The intended MVP preserves separate Editor, Publisher and Settings programs, plus an independent 8TML browser. Source files remain unchanged when the web server generates HTML for modern browsers. Publishing transport and authentication are SEE64YOU services, not extensions to the 8TML document standard.
 
-The project is in its first implementation phase. The repository includes the initial editor core, flat-file web backend and WordPress integration scaffold. See `todo.md` for the authoritative work queue.
+## Running the existing standalone site locally
 
-## Design principle
-
-The C64 client works with documents, not HTML:
-
-```
-Document -> Publisher interface -> Standalone PHP site
-                             \-> WordPress plugin
-```
-
-A document has a title, body, type (page/post), status, slug and metadata. Publishing backends are responsible for storage and HTML rendering on the live site.
-
-## Running the standalone site locally
-
-Requires PHP 8.1+.
+Requires PHP 8.1+:
 
 ```sh
 php -S 127.0.0.1:8080 -t site
 ```
 
-Then open `http://127.0.0.1:8080/`.
-
-For publishing/API access, open `http://127.0.0.1:8080/setup.php` and complete the one-time setup form. It creates `config.php` with a password hash and random token-signing secret. Manual setup using `config.example.php` remains available.
+Visit `http://127.0.0.1:8080/`. For the existing API, visit `http://127.0.0.1:8080/setup.php` for one-time configuration. **This is the existing backend, not yet an 8TML interoperability demonstration.**
