@@ -41,5 +41,5 @@ Publish the exact file bytes via an authenticated SEE64YOU service to our self-h
 
 - The draft can change. Record the spec date in tests and review changes before final release.
 - The supplied reference implementation's licence is unresolved.
-- `main/client/src/main.c` currently displays `Save: storage layer next` on save: functionality must be located and reconciled from other branches before modifying it.
+- `main/client/src/main.c` currently displays `Save: storage layer next` on save. Confirmed `codex/browser-palette-fix` and `feature/c64u-reu-editor` instead call `save_document()` and `save_as_document()`; **inspect their storage implementations, tests and relative commit histories before selecting a source branch**. Do not copy entire branches indiscriminately.
 - No tested C64U build, hardware I/O or end-to-end publishing is established by this migration planning commit.
