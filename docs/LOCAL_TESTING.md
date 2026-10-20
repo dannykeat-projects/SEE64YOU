@@ -11,7 +11,17 @@ make -C client independent-package
 
 Both arguments are optional: without them, the script runs strict host codec/local-disk tests and the same codec tests with the actual REU buffer and a simulated DMA backend (61,440-byte capacity). `--reference-tools` invokes the supplied `8tml check -v` against generated empty and source-preservation fixtures in `client/build/`. The pinned reference is the internal 8TML 1 draft reviewed 2026-10-20, not bundled code. Unknown markup generates informational diagnostics and the exhaustive printable-character fixture deliberately produces an unclosed-emphasis warning; require zero errors. `--rom-dir` compiles the codec for the C64 with real PETSCII constants, tests under VICE and checks responsive BASIC after exit. Host tests check every chunk split; native tests sample splits to bound 6502 execution time.
 
-The migration package builds all eleven files and both manifests, but Publisher/Browser/site still implement the historical format. Do not use it as an end-to-end 8TML release. Physical C64U create/save/reopen/edit/resave, maximum filename/suffix, failed disk operation/recoverable temporary source and clean-exit restoration remain separate acceptance gates. Use native keyboard input and a backed-up disposable test location; do not modify existing SD data without explicit authorization.
+The migration package builds all eleven files and both manifests, but Publisher/Browser/site still implement the historical format. Do not use it as an end-to-end 8TML release.
+
+With explicit authorization for hardware/file changes, the automated hardware check requires idle BASIC with no program and reserved fixture names absent:
+
+```sh
+python3 tools/test_8tml_c64u.py --host C64U_IP --output client/build/NEW-8tml-hardware-receipt --reference-tools client/build/8tml-reference/specs/tools
+```
+
+It validates both manifests, builds a disposable native probe, backs up every app-folder file with hashes, captures firmware/configuration/drives/IRQ/live turbo/colours and both DOS paths, then stages/readbacks the exact package. The shipping Editor is driven by REST typing and its RUN/STOP → Save flow; reopening uses the existing recovery prompt. The separately compiled native probe uses the actual REU/codec/local-storage/UCI implementation for explicit file open/edit/save, unknown source preservation, CRLF normalization, empty source and 33-character final filenames. WRITE/RENAME faults are injected transport failures around actual SD operations, not physical disk faults. Full folder/configuration, DOS contexts and machine baseline are restored and verified afterward; failures retain receipts/backups and do not reset the machine.
+
+This does not certify physical keyboard feel, the Editor's modifier-key Open shortcut, cold power restart, USB input or uncontrolled interruption. Keep those separate from REST-assisted real-hardware evidence. Receipt backups/configuration are private ignored build material; do not commit or upload them.
 
 The remaining runbook describes the historical alpha validation pipeline.
 

@@ -1,6 +1,6 @@
 # C64 Ultimate runtime contract — MVP
 
-**8TML migration:** the independent Editor now keeps the complete `.8tml` header/body in the existing 61,440-byte REU document region. Its disk format is ASCII/LF; no new allocator, handoff or temporary machine setting is introduced. Publisher/Browser retain historical protocols until their later migration. Resource ownership, bootstrap, recovery and restoration rules below remain binding. Physical C64U acceptance must be repeated for the new Editor format.
+**8TML migration:** the independent Editor now keeps the complete `.8tml` header/body in the existing 61,440-byte REU document region. Its disk format is ASCII/LF; no new allocator, handoff or temporary machine setting is introduced. Publisher/Browser retain historical protocols until their later migration. Resource ownership, bootstrap, recovery and restoration rules below remain binding. REST-assisted real-C64U Editor/recovery/native-storage checks passed on 2026-10-21 with verified folder, configuration, DOS-path and machine-baseline restoration; physical keyboard and cold restart remain unverified.
 
 **Current hardware/resource/safety authority.** SEE64YOU is C64 Ultimate-only with a required 16 MiB REU. The shipped candidate has independently launched Editor, Publisher, Settings and optional Browser programs. Old persistent-runtime adoption, managed Publisher/Settings transitions and one-owner REU session proposals are superseded design experiments retained in Git history, not active requirements.
 

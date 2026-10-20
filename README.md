@@ -8,7 +8,7 @@ SEE64YOU is moving to the external **8TML 1 draft** for all new documents (`.8tm
 
 **Editor persistence is implemented on this development branch.** The maintained C64U Editor creates, saves and reopens ASCII/LF `.8tml` source using the existing disk/recovery path. The complete header is editable; new documents start below a minimal header. Unknown metadata and markup survive unchanged, except CR/CRLF input is normalized to LF. Save As adds `.8tml` to a basename and refuses other explicit extensions. Invalid headers or unsupported bytes are rejected before writing.
 
-Publisher, Browser and the PHP site retain their historical protocols and do not yet consume the Editor's 8TML files. The committed alpha binaries are historical `.s64` builds; build the migration sources for testing. Physical C64U acceptance of the new format is pending. There is no old-format importer or compatibility fallback in the independent Editor.
+Publisher, Browser and the PHP site retain their historical protocols and do not yet consume the Editor's 8TML files. The committed alpha binaries are historical `.s64` builds; build the migration sources for testing. REST-assisted real-C64U creation, recovery reopen/edit/save and native storage checks pass, with zero errors/warnings from the supplied validator. Physical-keyboard Open and cold restart remain unverified. There is no old-format importer or compatibility fallback in the independent Editor.
 
 See [migration and acceptance criteria](docs/8TML-MIGRATION.md) and the [authoritative work queue](todo.md).
 
