@@ -1,6 +1,15 @@
 #include "storage/local.h"
+#ifdef S64_INDEPENDENT_EDITOR
+#include "charset.h"
+#endif
 
 #include <string.h>
+
+#ifdef S64_INDEPENDENT_EDITOR
+#define SOURCE_EXTENSION ".8tml"
+#else
+#define SOURCE_EXTENSION ".s64"
+#endif
 
 typedef struct {
     S64Dos* dos;
@@ -34,10 +43,25 @@ static uint8_t filename_copy(char* destination, const char* filename, uint8_t ad
     if (add_extension) {
         if (basename == length) return 0u;
         if (!has_extension) {
-            if (length > S64_LOCAL_FILENAME_CAPACITY - sizeof(".s64")) return 0u;
-            strcpy(destination + length, ".s64");
+            if (length > S64_LOCAL_FILENAME_CAPACITY - sizeof(SOURCE_EXTENSION)) return 0u;
+            strcpy(destination + length, SOURCE_EXTENSION);
         }
     }
+#ifdef S64_INDEPENDENT_EDITOR
+    /* Enforce the new-source suffix while allowing Open of retained .tmp files. */
+    if (add_extension) {
+        const char* extension = SOURCE_EXTENSION;
+        uint8_t position;
+        uint8_t ascii;
+        length = (uint8_t)strlen(destination);
+        if (length < basename + sizeof(SOURCE_EXTENSION)) return 0u;
+        for (position = 0u; position < sizeof(SOURCE_EXTENSION) - 1u; ++position) {
+            if (!s64_charset_native_to_ascii((uint8_t)destination[
+                    length - (sizeof(SOURCE_EXTENSION) - 1u) + position], &ascii)
+                || (ascii | 32u) != ((uint8_t)extension[position] | 32u)) return 0u;
+        }
+    }
+#endif
     return 1u;
 }
 
@@ -63,6 +87,7 @@ static uint8_t write_sink(const uint8_t* data, uint16_t length, void* context)
     return sink->result == S64_DOS_OK;
 }
 
+#ifndef S64_INDEPENDENT_EDITOR
 static uint8_t default_metadata(S64Document* document, const char* filename)
 {
     const char* base = filename;
@@ -114,6 +139,8 @@ static uint8_t default_metadata(S64Document* document, const char* filename)
     if (document->slug[0] == '\0' && !s64_document_set_slug(document, slug)) return 0u;
     return 1u;
 }
+
+#endif
 
 static S64LocalResult write_document_file(
     S64LocalDocument* local,
@@ -326,9 +353,11 @@ static S64LocalResult save_named(
         return S64_LOCAL_EXISTS;
     }
 
+#ifndef S64_INDEPENDENT_EDITOR
     if (!default_metadata(local->document, checked_filename)) {
         return S64_LOCAL_INVALID_DOCUMENT;
     }
+#endif
 
     result = write_document_file(
         local,
@@ -345,7 +374,7 @@ static S64LocalResult save_named(
 S64LocalResult s64_local_save(S64LocalDocument* local)
 {
     if (!s64_local_has_filename(local)) return S64_LOCAL_NO_FILENAME;
-    /* Explicitly opened legacy sources may have no extension. */
+    /* Preserve the identity of explicitly opened sources, including recovery. */
     return save_named(local, local->filename, 1u, 0u);
 }
 

@@ -1,5 +1,11 @@
 # SEE64YOU — current MVP architecture
 
+## Current Editor migration
+
+The independent Editor (`S64_INDEPENDENT_EDITOR`) now retains the complete 8TML 1 source in its existing REU gap buffer, including the editable header. New source has a minimal version/title header and starts the cursor in the body. Disk reads normalize CR/CRLF to LF, convert ASCII to native characters and reject unsupported bytes; disk writes preflight the complete header/source, convert back to ASCII and retain the existing temporary-file transaction and recovery snapshot. Header keys and body markup are never reconstructed or rendered during persistence. The header occupies part of the existing 61,440-byte capacity.
+
+Save As defaults to `.8tml` and rejects other explicit extensions. Open identifies source by its header and permits retained `.tmp` files for recovery. No `.s64` parser runs in this Editor build. The shared legacy metadata structure remains for unmigrated Publisher/diagnostics; it is not written into 8TML. Publisher/Browser/site conversion remains pending; the flow below describes the historical alpha, not interoperability with this Editor.
+
 > **Historical alpha reference only, not future 8TML requirements.** The released version described here used `.s64`/SEE64YOU/1. The next build supports only `.8tml`, with no old-file migration, importer or compatibility support. Reuse applicable hardware safety rules when replacing code; see [8TML direction](8TML-ROADMAP.md).
 
 

@@ -37,7 +37,8 @@ def key(monitor, value):
     monitor.resume()
 
 
-def run(filename, prompt, exit_key, port, rom_dir, checks=(), package_dir=None):
+def run(filename, prompt, exit_key, port, rom_dir, checks=(), package_dir=None,
+        prompt_timeout=30):
     package = package_dir or ROOT / "client/build/independent-package/SEE64YOU"
     out = ROOT / "client/build/independent-vice"
     out.mkdir(parents=True, exist_ok=True)
@@ -55,7 +56,7 @@ def run(filename, prompt, exit_key, port, rom_dir, checks=(), package_dir=None):
         monitor = None
         try:
             monitor = wait_for_monitor("127.0.0.1", port, 20)
-            wait_text(monitor, prompt)
+            wait_text(monitor, prompt, timeout=prompt_timeout)
             if filename == "S64WEB.PRG":
                 for url, expected in ((b"HTTPS://EXAMPLE.COM/", "HTTPS unavailable"),
                                       (b"HTTP://EXAMPLE.COM/", "Ultimate network unavailable"),

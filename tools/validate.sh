@@ -4,6 +4,9 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 
+echo "== 8TML Editor host/REU source and storage tests =="
+python3 tools/test_8tml.py
+
 echo "== PHP syntax =="
 find site wordpress -name '*.php' -type f | while IFS= read -r file; do
     php -l "$file" >/dev/null

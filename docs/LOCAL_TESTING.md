@@ -1,5 +1,20 @@
 # SEE64YOU — current MVP validation runbook
 
+## 8TML Editor migration checks
+
+Run from the repository root under Linux/WSL with cc, cc65 and Python. Keep the supplied reference archive outside tracked source until licensing is resolved:
+
+```sh
+python3 tools/test_8tml.py --reference-tools client/build/8tml-reference/specs/tools --rom-dir client/build/private-vice-roms
+make -C client independent-package
+```
+
+Both arguments are optional: without them, the script runs strict host codec/local-disk tests and the same codec tests with the actual REU buffer and a simulated DMA backend (61,440-byte capacity). `--reference-tools` invokes the supplied `8tml check -v` against generated empty and source-preservation fixtures in `client/build/`. The pinned reference is the internal 8TML 1 draft reviewed 2026-10-20, not bundled code. Unknown markup generates informational diagnostics and the exhaustive printable-character fixture deliberately produces an unclosed-emphasis warning; require zero errors. `--rom-dir` compiles the codec for the C64 with real PETSCII constants, tests under VICE and checks responsive BASIC after exit. Host tests check every chunk split; native tests sample splits to bound 6502 execution time.
+
+The migration package builds all eleven files and both manifests, but Publisher/Browser/site still implement the historical format. Do not use it as an end-to-end 8TML release. Physical C64U create/save/reopen/edit/resave, maximum filename/suffix, failed disk operation/recoverable temporary source and clean-exit restoration remain separate acceptance gates. Use native keyboard input and a backed-up disposable test location; do not modify existing SD data without explicit authorization.
+
+The remaining runbook describes the historical alpha validation pipeline.
+
 **Purpose:** Reproduce and accept the **independent eleven-file C64U application package** and flat-file PHP website. This is a runbook, not a chronology. Historical managed-runtime test campaigns and one-off receipts remain in Git history. `todo.md` is the only live work queue; passing a past commit does not certify a rebuilt package.
 
 **Codex hardware execution:** [CODEX-MVP-HARDWARE-ACCEPTANCE.md](CODEX-MVP-HARDWARE-ACCEPTANCE.md) contains the bounded autonomous sequence, fixture isolation, evidence and stop rules. Use this runbook for the detailed implementation checks; the handover does not authorise modification of user files or live sites.

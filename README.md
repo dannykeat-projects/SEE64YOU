@@ -1,61 +1,33 @@
 # SEE64YOU
 
-**A C64 Ultimate text editor for portable 8TML publishing.**
+**Create and publish 8TML pages from the Commodore 64 Ultimate, and browse them from the C64U too.**
 
-**Direction adopted 20 October 2026:** 8TML is SEE64YOU's long-term content standard, regardless of whether T8WN or the VVV browser continue development. The editor will be useful offline; source files can be independently hosted without a T8WN account. Publishing and static HTML conversion will not depend on one provider.
+## Format direction (20 October 2026)
 
-**IMPORTANT: the current [v0.1.0-alpha.1](https://github.com/dannykeat-projects/SEE64YOU/releases/tag/v0.1.0-alpha.1) does *not* support 8TML.** It is an experimental, C64U-only **legacy `.s64` release**. Do not use it for important or private documents without backups. The complete, current [alpha installation and usage guide](docs/releases/v0.1.0-alpha.1.md) is the starting point for testers.
+SEE64YOU is moving to the external **8TML 1 draft** for all new documents (`.8tml`), with optional `.8ss` stylesheets. The legacy `.s64` document format is retired; no compatibility layer or conversion is planned. The user-supplied external specification and validator are our reference; they are not bundled until licensing is clarified.
 
-The [8TML roadmap](docs/8TML-ROADMAP.md) defines 8TML-only development, independent hosting, conformance and safety gates. **No `.s64` files will be used or migrated**; the next release will not contain a dual-format editor. [todo.md](todo.md) is the sole active execution queue. The pre-pivot queue is [archived](docs/archive/TODO-before-8TML-pivot-2026-10-20.md).
+**Editor persistence is implemented on this development branch.** The maintained C64U Editor creates, saves and reopens ASCII/LF `.8tml` source using the existing disk/recovery path. The complete header is editable; new documents start below a minimal header. Unknown metadata and markup survive unchanged, except CR/CRLF input is normalized to LF. Save As adds `.8tml` to a basename and refuses other explicit extensions. Invalid headers or unsupported bytes are rejected before writing.
 
-## Current alpha: programs and prerequisites
+Publisher, Browser and the PHP site retain their historical protocols and do not yet consume the Editor's 8TML files. The committed alpha binaries are historical `.s64` builds; build the migration sources for testing. Physical C64U acceptance of the new format is pending. There is no old-format importer or compatibility fallback in the independent Editor.
 
-The released C64U ZIP contains **eleven files**. Copy them all together to `/sd/SEE64YOU/`. Enable **Command Interface (UCI)**, **Ultimate-DOS** and a **16 MiB REU** in the C64 Ultimate settings. Firmware 1.1.0 is the tested baseline. Do not launch private `S64EDIT.PRG` on its own.
+See [migration and acceptance criteria](docs/8TML-MIGRATION.md) and the [authoritative work queue](todo.md).
 
-| Launch | Purpose in the current alpha |
-| --- | --- |
-| **`SEE64YOU.PRG`** | **Editor**: create, open and save `.s64` locally and offline (loads private editor assets) |
-| `S64PUB.PRG` | Publisher: authenticated `.s64` publish/update, remote-source download to a new local file |
-| `S64CFG.PRG` | Settings: legacy PHP website URL, dedicated key and persistence |
-| `S64WEB.PRG` | Optional reader for legacy SEE64YOU websites; **not** a general HTML or 8TML reader |
+## Repository layout
 
-Programs launch independently and return to BASIC. See the [step-by-step alpha guide](docs/releases/v0.1.0-alpha.1.md) for Editor keys, PHP host setup, pairing, publisher operation and known limits.
+- `client/`: cc65 editor and C64U client code
+- `site/`: standalone flat-file PHP site and publishing API
+- `wordpress/`: historical WordPress integration, subject to MVP scope review
+- `docs/`: project architecture and migration guidance
+- `tools/`: local validation and development helpers
 
-The alpha's separate PHP 8.1+ website package is **only** for legacy SEE64YOU publishing. Pair its dedicated key over HTTPS using a modern browser. C64U firmware-1.1 direct publishing requires explicit HTTP consent: challenge/HMAC provides authentication and integrity, **not confidentiality**. Never publish sensitive content by that path. A web host that redirects all HTTP to HTTPS won't support that direct transport.
+The intended MVP preserves separate Editor, Publisher and Settings programs, plus an independent 8TML browser. Source files remain unchanged when the web server generates HTML for modern browsers. Publishing transport and authentication are SEE64YOU services, not extensions to the 8TML document standard.
 
-## New direction (not implemented yet)
+## Running the existing standalone site locally
 
-1. Pin a versioned authoritative 8TML profile and conformance fixtures; verify charset/escaping/stylesheets rather than guessing draft syntax.
-2. Make the **offline Editor** create/open/save **only `.8tml`**. Remove `.s64` serializer/metadata from new build targets; no importer or converter.
-3. Demonstrate ordinary static hosting of source and faithful safe conversion to HTML for modern browsers; external VVV support is optional.
-4. Add optional authenticated remote publishing through a provider-neutral, independently self-hostable API or an interoperable third-party endpoint.
-5. Retire the old `.s64`/site/browser/markup code after dependency and safety testing. Keep the original alpha release intact as historical.
+Requires PHP 8.1+:
 
-The editor should remain usable even if upstream APIs, browsers and hosting disappear.
-
-## Repository and development
-
-```text
-client/        cc65 C64U programs and host tests (legacy alpha today)
-site/          current PHP 8.1+ flat-file legacy site/API (frozen features)
-wordpress/     deferred legacy WordPress adapter
-relay/         optional legacy transport relay (deferred)
-docs/          current hardware contracts, 8TML direction and release guidance
-tools/         build, test and package helpers
-packages/c64u/ pinned matching alpha binaries and integrity records
+```sh
+php -S 127.0.0.1:8080 -t site
 ```
 
-The released baseline and detailed build instructions are in [packages/c64u/README.md](packages/c64u/README.md). For source builds with cc65, use `make -C client independent-package`; for the legacy PHP package, use `php tools/package-site.php`. Do not mix matching binary versions. [docs/LOCAL_TESTING.md](docs/LOCAL_TESTING.md) owns test/hardware evidence; passing host/VICE checks is not real C64U acceptance.
-
-The current `main` history diverges substantially from the alpha development branch. Check refs, open PRs and source provenance before integrating; never assume `main` is the latest shipped code.
-
-### Historical contracts (still active for alpha only)
-
-- [C64U runtime and restoration](docs/C64U-RUNTIME.md)
-- [Current alpha architecture](docs/ARCHITECTURE.md)
-- [SEE64YOU/1 protocol](docs/PROTOCOL.md)
-- [See64You Markup v1](docs/MARKUP.md)
-- [Legacy PHP site](docs/SITE.md)
-- [Hardware validation](docs/LOCAL_TESTING.md)
-
-These remain documented to protect existing users, not because they are the future format.
+Visit `http://127.0.0.1:8080/`. For the existing API, visit `http://127.0.0.1:8080/setup.php` for one-time configuration. **This is the existing backend, not yet an 8TML interoperability demonstration.**
