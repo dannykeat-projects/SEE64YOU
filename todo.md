@@ -1,81 +1,30 @@
-# See64You TODO
+# SEE64YOU work queue
 
-This is the authoritative project work queue. Keep completed work concise and move implementation detail into code/docs rather than growing this file indefinitely.
+## Direction (20 October 2026)
 
-## P0 - Foundation
+8TML 1 is the sole format for **new** source documents (`.8tml`). The old `.s64` document model is retired: no importer, exporter, compatibility mode or new `.s64` documents. An `.8ss` stylesheet is optional. Preserve useful existing editor/UI/storage code, but do not preserve obsolete format machinery for its own sake.
 
-- [x] Establish repository structure and project instructions.
-- [x] Define editor/backend separation and canonical source-document model.
-- [x] Add first cc65 editor core and C64 screen shell.
-- [x] Add first standalone flat-file PHP site.
-- [x] Add authenticated standalone publishing API.
-- [x] Add WordPress plugin scaffold using WordPress-native authentication.
-- [ ] Compile and run the C64 client under VICE; fix any cc65/keyboard incompatibilities found.
-- [x] Run the standalone site locally and exercise all API operations end-to-end.
-- [ ] Install the WordPress plugin on a test WordPress instance and exercise REST operations.
+The supplied `specs.zip` includes the **8TML 1 draft (20 October 2026)**, examples, and Python reference validator. It is an external specification, not copied into this repository while its licence is unsettled. The format remains a draft: track changes before declaring compatibility complete.
 
-## P0 - Editor essentials
+## P0 — Inspect and adapt, in small verified steps
 
-- [ ] Incremental screen redraw rather than whole-editor redraw after each input.
-- [x] Accurate vertical cursor movement preserving preferred column.
-- [ ] Word wrap toggle.
-- [x] Home, End, Page Up/Page Down and word-navigation editor commands.
-- [x] Selection model and visible selection.
-- [x] Cut/copy/paste using an application clipboard.
-- [ ] Undo/redo transaction history.
-- [ ] Find / find next / find previous.
-- [ ] Replace / replace all.
-- [ ] Go to line.
-- [ ] New/Open/Save/Save As using C64U-accessible storage.
-- [ ] Dirty-document confirmation before destructive actions.
-- [ ] Recovery/autosave files.
-- [ ] Finish/validate modern USB-keyboard shortcuts and C64-keyboard-friendly mappings (MARK/function-key baseline implemented).
+- [x] Establish 8TML migration branch and authoritative migration queue.
+- [ ] Identify the actual maintained Editor/Publisher/Browser builds and all save/open code across `main` and outstanding feature branches; check PRs and tests before reusing implementations. **Warning:** `main/client/src/main.c` currently has a save placeholder, not working persistence.
+- [ ] Create a minimal compliant `.8tml` document on a C64U-accessible device. First line `---`, first key `8tml: 1`, closing `---`, LF, ASCII, title, body. Treat PETSCII/ASCII conversion at the file boundary; do not export screen character codes raw.
+- [ ] Open and edit the saved `.8tml` source without losing the header, source text or formatting.
+- [ ] Introduce a regression fixture/check that validates produced files with the supplied reference validator (keep the validator external pending licence clearance); add independent byte-level tests for ASCII, line endings, and header.
+- [ ] Compile/test selected editor target with host/VICE tooling, then verify save/reopen and document bytes on a physical C64U.
+- [ ] Adapt Publisher to transfer unchanged 8TML source through a narrow authenticated publishing API. Confirm networking and HTTPS termination separately from document handling.
+- [ ] Adapt Browser to render 8TML, preserve numbered links and C64 palette mapping, and reject unsafe or excessive input.
+- [ ] Test full cycle: C64U edit/save -> publish -> modern web view -> C64U fetch/display -> edit source again.
 
-## P0 - Publishing
+## P1 — Reduce and release
 
-- [ ] Implement C64U HTTP transport behind the publisher interface.
-- [x] Add bounded UCI/HTTP-target capability probe from the published interface.\n- [ ] Verify current C64U UCI HTTP behaviour on target hardware.
-- [ ] Standalone login from C64U and token handling.
-- [ ] List/open/create/update/delete standalone pages.
-- [ ] List/open/create/update/delete standalone posts.
-- [ ] WordPress Application Password configuration and connection test.
-- [ ] Publish/update/unpublish WordPress pages and posts.
-- [ ] Friendly error mapping for network, auth and server failures.
+- [ ] Remove obsolete `.s64` document code and old proprietary rendering only after the relevant new path works; do not delete current functioning code blindly.
+- [ ] Review WordPress integration against the minimal independent MVP; defer or remove it unless justified.
+- [ ] Update README, architecture, release instructions and assets to reflect *actual* validated capabilities, not intended ones.
+- [ ] Keep documentation consolidated and retire superseded planning records after implementation and test evidence are recorded.
 
-## P1 - Document format
+## Boundaries
 
-- [x] Define simple metadata + source-body representation.
-- [x] Implement safe minimal markup rendering on the standalone backend.
-- [ ] Freeze See64You Markup v1 after editor formatting commands are implemented.
-- [ ] Bold / italic / headings / lists / links formatting commands.
-- [ ] C64 preview view.
-- [ ] Preserve unsupported markup as text rather than corrupting it.
-
-## P1 - Standalone site
-
-- [x] Pages and posts stored as ordinary files.
-- [x] Automatic page navigation.
-- [x] Newest-first posts listing.
-- [x] Plain theme requiring neither CSS nor JavaScript.
-- [x] Optional simple/C64-inspired inline styling.
-- [x] Browser-based one-time setup helper.
-- [x] Site-settings API for title/theme/colours.
-- [ ] Draft preview links.
-- [ ] Pagination/archive pages when post count warrants it.
-- [ ] Packaging script producing a self-contained upload directory.
-
-## P1 - C64U enhancements
-
-- [ ] REU-backed document storage for substantially larger files.
-- [ ] Large clipboard backed by REU.
-- [ ] Multi-level undo backed by REU.
-- [ ] Mouse selection/menu support where practical.
-- [ ] Detect capabilities and degrade cleanly on a conventional C64 where possible.
-
-## P2 - Polish
-
-- [ ] Optional spell-check workflow if a sensible server-assisted design emerges.
-- [ ] Multiple saved publishing destinations.
-- [ ] Export/import plain text and See64You source.
-- [ ] Site backup/download command.
-- [ ] Accessibility/readability pass for colour combinations.
+Keep the three-program model (Editor, Publisher, Settings) unless a tested simplification improves it. The Browser remains a separate reader. No mandatory JavaScript or database for the standalone site. No platform-specific extensions to 8TML for MVP; don't fork the format. No hardware or production validation is claimed until it is run.
