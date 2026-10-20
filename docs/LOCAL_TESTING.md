@@ -2,6 +2,15 @@
 
 ## 8TML Editor migration checks
 
+The PHP source-service slice is tested separately from native Publisher migration:
+
+```sh
+php site/tests/eighttml.php
+python3 site/tests/eighttml_http.py
+```
+
+The PHP tests cover exact source, strict input/capacity checks, atomic replacement/failure cleanup, lock failures and a deterministic competing-writer case. The HTTP test creates an isolated temporary site with ephemeral credentials, launches a local PHP server, and verifies existing HMAC authentication, tamper/replay refusal, exact source/metadata, `.8tml` download headers, guarded PHP records (including PHP text in source), HTML escaping, draft privacy and deletion. It does not modify a configured site, deploy, certify HTTPS hosting or exercise native C64 Publisher. Existing site/browser/theme/HTTP/package tests must also pass. The web renderer remains the existing limited escaped subset; source preservation does not certify full rendering coverage.
+
 Run from the repository root under Linux/WSL with cc, cc65 and Python. Keep the supplied reference archive outside tracked source until licensing is resolved:
 
 ```sh
@@ -11,7 +20,7 @@ make -C client independent-package
 
 Both arguments are optional: without them, the script runs strict host codec/local-disk tests and the same codec tests with the actual REU buffer and a simulated DMA backend (61,440-byte capacity). `--reference-tools` invokes the supplied `8tml check -v` against generated empty and source-preservation fixtures in `client/build/`. The pinned reference is the internal 8TML 1 draft reviewed 2026-10-20, not bundled code. Unknown markup generates informational diagnostics and the exhaustive printable-character fixture deliberately produces an unclosed-emphasis warning; require zero errors. `--rom-dir` compiles the codec for the C64 with real PETSCII constants, tests under VICE and checks responsive BASIC after exit. Host tests check every chunk split; native tests sample splits to bound 6502 execution time.
 
-The migration package builds all eleven files and both manifests, but Publisher/Browser/site still implement the historical format. Do not use it as an end-to-end 8TML release.
+The migration package builds all eleven files and both manifests, but native Publisher/Browser still implement the historical format. The PHP service above additionally accepts 8TML; the native clients do not yet use it. Do not use the package as an end-to-end 8TML release.
 
 For storage-root regressions, run `python3 tools/test_storage_paths.py`. It exercises preflight, temporary-file cleanup, document origin, independent DOS contexts and journals with SD-only and USB-only mock namespaces, each in ordinary and Launcher mode, then configuration persistence and journal migration on both roots. Build an actual USB-root package with `make -B -C client STORAGE_ROOT=/Usb0/ independent-package`; select the actual mount and include its trailing slash. Always force the whole build when changing roots so cached binaries cannot retain another device. All existing memory/manifest guards apply. The hardware harness below currently targets the default `/sd/SEE64YOU/` installation; it does not certify a USB-only machine.
 

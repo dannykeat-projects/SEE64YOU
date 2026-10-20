@@ -216,7 +216,18 @@ try {
         if ($document === null) {
             respond(['ok' => false, 'error' => 'not_found'], 404);
         }
+        if (strtolower((string)($_GET['format'] ?? '')) === '8tml') {
+            if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+                respond(['ok' => false, 'error' => 'method_not_allowed'], 405);
+            }
+            if (!isset($document['raw8tml'])) throw new InvalidArgumentException('not_8tml');
+            header('Content-Type: text/8tml; charset=us-ascii');
+            header('Content-Disposition: attachment; filename="' . $document['slug'] . '.8tml"');
+            echo $document['raw8tml'];
+            exit;
+        }
         if (wants_wire()) {
+            if (isset($document['raw8tml'])) throw new InvalidArgumentException('not_s64');
             respond_wire($document);
         }
         respond(['ok' => true, 'document' => $document]);
@@ -226,8 +237,11 @@ try {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             respond(['ok' => false, 'error' => 'method_not_allowed'], 405);
         }
-        $document = $documents->save(input_data($rawBody));
+        $input = input_data($rawBody);
+        if (wants_wire() && array_key_exists('raw8tml', $input)) throw new InvalidArgumentException('not_s64');
+        $document = $documents->save($input);
         if (wants_wire()) {
+            if (isset($document['raw8tml'])) throw new InvalidArgumentException('not_s64');
             respond_wire($document);
         }
         if (wants_ack()) {

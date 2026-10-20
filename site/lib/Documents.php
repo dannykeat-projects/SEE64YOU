@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/EightTml.php';
+
 final class S64Documents
 {
     private const GUARD = '<?php http_response_code(404); exit; ?>';
@@ -14,15 +16,16 @@ final class S64Documents
         $directory = $this->directory($type);
         $documents = [];
 
-        foreach (glob($directory . '/*.s64.php') ?: [] as $path) {
-            $slug = basename($path, '.s64.php');
-            $document = $this->readPath($path, $type, $slug);
+        foreach (array_merge(glob($directory . '/*.s64.php') ?: [], glob($directory . '/*.8tml.php') ?: []) as $path) {
+            $isEightTml = str_ends_with($path, '.8tml.php');
+            $slug = basename($path, $isEightTml ? '.8tml.php' : '.s64.php');
+            $document = $isEightTml ? $this->readEightTml($path, $type, $slug) : $this->readPath($path, $type, $slug);
 
             if ($publishedOnly && $document['status'] !== 'published') {
                 continue;
             }
 
-            unset($document['body']);
+            unset($document['body'], $document['raw8tml']);
             $documents[] = $document;
         }
 
@@ -45,13 +48,32 @@ final class S64Documents
         $slug = $this->validateSlug($slug);
         $path = $this->path($type, $slug);
 
+        $sourcePath = $this->eightTmlPath($type, $slug);
+        if (is_file($path) && is_file($sourcePath)) throw new RuntimeException('format_conflict');
+        if (is_file($sourcePath)) return $this->readEightTml($sourcePath, $type, $slug);
         return is_file($path) ? $this->readPath($path, $type, $slug) : null;
     }
 
     public function save(array $input): array
     {
+        if (array_key_exists('raw8tml', $input)) {
+            foreach (['type', 'slug', 'status', 'date'] as $field) {
+                if (array_key_exists($field, $input) && !is_string($input[$field])) {
+                    throw new InvalidArgumentException('invalid_' . $field);
+                }
+            }
+        }
+        $type = $this->validateType((string)($input['type'] ?? ''));
+        $this->validateSlug((string)($input['slug'] ?? ''));
+        return $this->withWriteLock($type, fn(): array => $this->saveUnlocked($input));
+    }
+
+    private function saveUnlocked(array $input): array
+    {
+        if (array_key_exists('raw8tml', $input)) return $this->saveEightTml($input);
         $type = $this->validateType((string)($input['type'] ?? ''));
         $slug = $this->validateSlug((string)($input['slug'] ?? ''));
+        if (is_file($this->eightTmlPath($type, $slug))) throw new InvalidArgumentException('format_conflict');
         $title = trim((string)($input['title'] ?? ''));
         $body = str_replace(["\r\n", "\r"], "\n", (string)($input['body'] ?? ''));
         $status = (string)($input['status'] ?? 'draft');
@@ -102,15 +124,93 @@ final class S64Documents
 
     public function delete(string $type, string $slug): bool
     {
+        $this->validateSlug($slug);
+        return $this->withWriteLock($type, fn(): bool => $this->deleteUnlocked($type, $slug));
+    }
+
+    private function deleteUnlocked(string $type, string $slug): bool
+    {
         $path = $this->path($type, $this->validateSlug($slug));
 
-        if (!is_file($path)) {
-            return false;
-        }
-
+        $sourcePath = $this->eightTmlPath($type, $slug);
+        if (is_file($path) && is_file($sourcePath)) throw new RuntimeException('format_conflict');
+        if (is_file($sourcePath)) return unlink($sourcePath);
+        if (!is_file($path)) return false;
         return unlink($path);
     }
 
+    private function withWriteLock(string $type, callable $operation): mixed
+    {
+        /* Keep one stable inode per directory: deleting lock files can split
+         * waiting writers across different locks. Source snapshots stay atomic. */
+        $handle = @fopen($this->directory($type) . '/.documents.lock', 'c');
+        if ($handle === false) throw new RuntimeException('storage_unavailable');
+        try {
+            if (!flock($handle, LOCK_EX)) throw new RuntimeException('storage_unavailable');
+            clearstatcache();
+            return $operation();
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+        }
+    }
+    private function eightTmlPath(string $type, string $slug): string
+    {
+        return $this->directory($type) . '/' . $slug . '.8tml.php';
+    }
+
+    private function saveEightTml(array $input): array
+    {
+        $type = $this->validateType((string)($input['type'] ?? ''));
+        $slug = $this->validateSlug((string)($input['slug'] ?? ''));
+        if (!is_string($input['raw8tml'])) throw new InvalidArgumentException('invalid_8tml');
+        $parsed = S64EightTml::parse($input['raw8tml'], $slug);
+        $status = (string)($input['status'] ?? 'draft');
+        if (!in_array($status, ['draft', 'published'], true)) throw new InvalidArgumentException('invalid_status');
+        $date = trim((string)($input['date'] ?? ''));
+        if ($date === '') $date = date(DATE_ATOM);
+        if (strlen($date) > 40) throw new InvalidArgumentException('invalid_date');
+        $document = [
+            'type' => $type, 'slug' => $slug, 'status' => $status, 'date' => $date,
+            'order' => $this->validateOrder($input['order'] ?? 0),
+            'raw8tml' => $input['raw8tml'],
+        ];
+        if (is_file($this->path($type, $slug))) throw new InvalidArgumentException('format_conflict');
+        $path = $this->eightTmlPath($type, $slug);
+        $serialized = self::GUARD . "\n" . json_encode($document, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG);
+        $temporary = $path . '.tmp.' . bin2hex(random_bytes(4)) . '.php';
+        if (file_put_contents($temporary, $serialized, LOCK_EX) !== strlen($serialized)) {
+            @unlink($temporary);
+            throw new RuntimeException('write_failed');
+        }
+        if (!rename($temporary, $path)) {
+            @unlink($temporary);
+            throw new RuntimeException('write_failed');
+        }
+        return $document + $parsed;
+    }
+
+    private function readEightTml(string $path, string $type, string $slug): array
+    {
+        $content = file_get_contents($path);
+        if ($content === false) throw new RuntimeException('read_failed');
+        $prefix = self::GUARD . "\n";
+        if (!str_starts_with($content, $prefix)) throw new RuntimeException('invalid_record');
+        try {
+            $document = json_decode(substr($content, strlen($prefix)), true, 16, JSON_THROW_ON_ERROR);
+            if (!is_array($document) || ($document['type'] ?? null) !== $type
+                || ($document['slug'] ?? null) !== $slug || !is_string($document['raw8tml'] ?? null)
+                || !in_array($document['status'] ?? null, ['draft', 'published'], true)
+                || !is_string($document['date'] ?? null) || strlen($document['date']) > 40) {
+                throw new RuntimeException('invalid_record');
+            }
+            $document['order'] = $this->validateOrder($document['order'] ?? null);
+            $parsed = S64EightTml::parse($document['raw8tml'], $slug);
+            return array_intersect_key($document, array_flip(['type', 'slug', 'status', 'date', 'order', 'raw8tml'])) + $parsed;
+        } catch (JsonException | InvalidArgumentException $error) {
+            throw new RuntimeException('invalid_record', 0, $error);
+        }
+    }
     private function directory(string $type): string
     {
         $type = $this->validateType($type);

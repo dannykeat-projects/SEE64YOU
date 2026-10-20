@@ -49,6 +49,8 @@ Hello, world.
 
 Publish the exact file bytes via an authenticated SEE64YOU service to our self-hosted PHP site; render 8TML for modern browsers without modifying the source. Retrieve the original file with the C64U Browser and show supported 8TML text/links. Keep protocol/auth separate from 8TML parsing. Do not claim compatibility with T8WN services without interoperability testing.
 
+The bounded PHP service foundation is implemented: authenticated JSON `raw8tml` + separate service metadata, atomic guarded JSON `.8tml.php` snapshots, and exact authenticated `.8tml` export. Existing HMAC verification signs the original request body; concurrent format-conflicting writers are serialized and rejected. No old-source conversion is added. Unit/concurrency and real local HTTP/HMAC tests pass; the round-trip fixture passes the supplied validator with zero errors/warnings. Existing safe HTML rendering handles the extracted body subset; full 8TML rendering and native Publisher/Browser integration remain unfinished. The native direct transport currently counts request bodies in 16 bits: streaming JSON escape expansion must be handled when wiring the Publisher, while retaining the existing source capacity and memory guards. See `docs/PROTOCOL.md` and `todo.md` rather than introducing another plan.
+
 ## Current risks and constraints
 
 - The draft can change. Record the spec date in tests and review changes before final release.

@@ -16,6 +16,8 @@ done
 echo "== Standalone backend tests =="
 php site/tests/run.php
 php site/tests/browser.php
+php site/tests/eighttml.php
+python3 site/tests/eighttml_http.py
 
 echo "== Standalone package tests =="
 php tools/tests/package_site_test.php

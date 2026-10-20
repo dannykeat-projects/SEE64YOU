@@ -1,5 +1,17 @@
 # Publishing protocol
 
+## Current 8TML source service
+
+The PHP backend accepts 8TML independently of the still-unmigrated native Publisher. Use the existing authenticated `POST api.php?action=save&ack=1`, with `Content-Type: application/json` and fields `type`, `slug`, `status`, `date`, `order`, and `raw8tml`. The last field is the complete source, including its header. Type/slug/publication state/date/order are service metadata and are never inserted into that header. Source must be ASCII/LF, have a closed version-1 header with `8tml` as its first key, and fit the Editor's 61,440-byte capacity. Invalid input leaves existing source intact. Display title/body are derived from source; title is limited to 80 characters for service summaries without changing the source.
+
+After the existing bearer or challenge/HMAC authentication, `GET api.php?action=get&type=page&slug=example&format=8tml` returns the exact stored source as `text/8tml; charset=us-ascii`, with a `.8tml` attachment filename and `Cache-Control: no-store`. GET without `format` returns JSON metadata plus `raw8tml`; lists omit raw source. Existing delete and backup actions handle the new record. The HMAC remains `see64you-direct/1` over the original method, URI and complete HTTP body before JSON decoding. HTTPS provisioning, explicit direct-HTTP consent and the absence of content encryption remain unchanged.
+
+Each page/post is one guarded JSON service record (`pages/SLUG.8tml.php` or `posts/SLUG.8tml.php`), containing metadata and exact source together. This envelope is storage/transport, not an editing format: canonical `.8tml` export is its unchanged `raw8tml` value. Recovery requires removing the first PHP-guard line and decoding ordinary JSON, or using authenticated export/backup. Save writes a complete temporary guarded `.php` snapshot and atomically renames it; one persistent empty `.documents.lock` per type directory serializes save/delete conflict checks. Do not remove those locks during operation. JSON tag escaping protects records containing PHP examples while decoding to identical source. There is no separate metadata sidecar that can commit independently of source.
+
+Legacy records remain readable through their existing service, but a new-format save cannot replace a legacy identity (or vice versa), and 8TML cannot be retrieved through `format=s64`. No conversion/importer is provided. Public HTML currently uses the existing escaped limited markup subset on the extracted body; full 8TML rendering is not claimed. Native Publisher upload/download still needs to switch to this contract. Its current 16-bit HTTP request byte counter must handle JSON escape expansion when that client work begins; do not truncate valid source to avoid that check.
+
+## Historical alpha protocol
+
 > **Historical alpha reference only, not future 8TML requirements.** The released version described here used `.s64`/SEE64YOU/1. The next build supports only `.8tml`, with no old-file migration, importer or compatibility support. Reuse applicable hardware safety rules when replacing code; see [8TML direction](8TML-ROADMAP.md).
 
 
