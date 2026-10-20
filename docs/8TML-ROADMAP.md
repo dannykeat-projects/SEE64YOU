@@ -1,7 +1,7 @@
-# SEE64YOU: 8TML direction and migration plan
+# SEE64YOU: 8TML-only direction and implementation plan
 
 **Decision date:** 2026-10-20  
-**Status:** Approved product direction; migration **not yet implemented**  
+**Status:** Approved clean break; 8TML implementation **not yet completed**  
 **Source of truth for active work:** [../todo.md](../todo.md)  
 **Shipping alpha:** [v0.1.0-alpha.1](https://github.com/dannykeat-projects/SEE64YOU/releases/tag/v0.1.0-alpha.1), still uses SEE64YOU/1 and `.s64`.
 
@@ -17,16 +17,16 @@ The project is **not** a general-purpose HTML browser, WordPress replacement, ho
 - Users own their content and can back it up, copy it and host it under their own domains.
 - Keep the editor fully useful without a network. A failed or absent publishing service must never make local documents unusable.
 - Treat static **reading** and authenticated remote **writing** as separate problems. A web server serving `.8tml` does not automatically provide a safe publishing API.
-- Preserve all existing user `.s64` documents and the functional v0.1.0-alpha.1 binaries/sites throughout migration. No in-place destructive conversion or silent format reinterpretation.
+- Future builds support **only `.8tml`**. No old `.s64` user documents exist or will be created: **do not add `.s64` import, export, migration, dual-format support, or compatibility tests**. Keep published alpha assets/tag and historical documentation accurate but do not preserve its file-format behaviour in the next release.
 - Do not make external project's draft proposals contractual until backed by an identifiable specification revision and conformance fixtures.
 
 ## 2. Verified baseline vs external dependencies
 
-### Current, released SEE64YOU functionality (legacy)
+### Historical, released alpha (not a future compatibility contract)
 
 The alpha has four independently launched programs: `SEE64YOU.PRG` (Editor via internal assets), `S64PUB.PRG` (Publisher), `S64CFG.PRG` (Settings), `S64WEB.PRG` (read-only SEE64YOU-site browser). It saves `.s64`, uses SEE64YOU/1 source/markup and the SEE64YOU-BROWSE/1,2 wire protocol. A separate PHP 8.1+ flat-file site renders HTML and accepts direct C64U HTTP publishing authenticated using challenge/HMAC; that protects integrity/authentication **not confidentiality**. The alpha **does not support 8TML, VVV, or T8WN publishing**. It requires the matching eleven-file package, UCI/Ultimate-DOS and a 16 MiB REU. This is an early alpha with incomplete physical acceptance; see [releases/v0.1.0-alpha.1.md](releases/v0.1.0-alpha.1.md).
 
-The existing C64U SD storage, PETSCII conversion, editor source buffer, formatting, undo, verified save/restore, network transport and security code are candidates for reuse, not automatic replacements.
+The existing C64U SD storage, PETSCII conversion, buffer, editor formatting/undo, recovery, BASIC return, transport and security code can be reused selectively. The old `.s64` document serializer and page/post envelope are **not** future requirements.
 
 ### External 8TML ecosystem
 
@@ -34,7 +34,7 @@ The external developer described 8TML as a simplified Markdown-like static text 
 
 ### Independence if T8WN stops tomorrow
 
-A document will remain a normal `.8tml` file. We will keep a publicly documented, testable compatibility profile/fixtures (subject to permission to redistribute upstream specification text); our own import/export and validator will not require an online service. For HTML accessibility, a small reproducible local/static conversion tool is a contingency **only if** no maintained compatible converter becomes available. A user should be able to serve source files on any ordinary static host and produce an HTML mirror without depending on T8WN accounts or infrastructure.
+A document will remain a normal `.8tml` file. We will keep a publicly documented, testable compatibility profile/fixtures (subject to permission to redistribute upstream specification text); our own 8TML Editor and validator will not require an online service. For HTML accessibility, a small reproducible local/static conversion tool is a contingency **only if** no maintained compatible converter becomes available. A user should be able to serve source files on any ordinary static host and produce an HTML mirror without depending on T8WN accounts or infrastructure.
 
 Avoid claiming all old machines can request HTTP/HTTPS on every host: networking and TLS vary by client.
 
@@ -59,7 +59,7 @@ C64 Ultimate
 
 **Editor:** preserve modern keyboard conveniences, predictable save/open/recovery, source formatting commands, large-file handling within measured bounds, and reversible document operations. Keep format rules out of input/drawing code; add a small 8TML document/encoding boundary. No markup WYSIWYG renderer required for the first milestone.
 
-**File format:** content is an 8TML source file, not a PHP-guarded or SEE64YOU-specific envelope. Store local-only metadata in a separate sidecar **only if truly needed**; never leak credentials into a publishable document. Don't unilaterally add nonstandard directives. Keep `.s64` import and a legacy export/restore escape route during transition.
+**File format:** content is an 8TML source file, not a PHP-guarded or SEE64YOU-specific envelope. Store local-only metadata in a separate sidecar **only if truly needed**; never leak credentials into a publishable document. Don't unilaterally add nonstandard directives. Do not support `.s64` in the new Editor or add converters, importers, exporters or a compatibility mode.
 
 **Publisher:** optional separately launched client. Read file, select destination, authenticate safely and publish/update with explicit overwrite/version intent. Network transport, destination API and file serialization must be separate modules. Never embed a universal service dependency in the editor.
 
@@ -67,14 +67,14 @@ C64 Ultimate
 
 **Browser:** freeze new features for `S64WEB.PRG` and keep it runnable for alpha users. VVV and other readers are independently maintained. Implement a new reader only if a demonstrated unsupported user need justifies maintaining it.
 
-## 4. Compatibility work before editing format code
+## 4. 8TML conformance before editing format code
 
-1. Obtain a dated/versioned authoritative 8TML specification and representative source/style fixtures from upstream; record URL, hash, licence or permission and known unanswered questions. Request permission before copying upstream prose/code into this repository.
-2. Build a **feature matrix** mapping legacy SEE64YOU Markup v1 to 8TML: headings, emphasis, lists, links, escapes, whitespace, stylesheets/colours, long lines, unknown directives, paths and forms. Mark each as identical / transformable / unsupported / ambiguous, with fixture and expected result. **Do not assume full Markdown compatibility**.
-3. Define and verify the public byte contract: encoding, permitted characters, line endings, case, PETSCII mapping (including inverse), BOM, tabs, controls, filenames, slugs, relative URLs and maximum lengths. The current `.s64` wire uses 7-bit ASCII/LF; that is NOT automatically the 8TML specification. Reject unsupported bytes with an actionable error rather than silently dropping/replacing them.
-4. Define version detection and update policy. Preserve unknown content on open/save and do not silently rewrite files to newer semantics. If the draft changes incompatibly, pin the last verified profile and continue supporting it while assessing migration.
-5. Implement tests that round-trip source **byte-for-byte where defined**, including blank lines, newline endings, escaped characters, PETSCII/ASCII conversions and malformed/missing-markup cases. Add fixtures covering rendering in independent 8TML implementation when available.
-6. Verify coexistence with existing .s64: detect by extension/known envelope, import into a **new** `.8tml` with preview/diff and unconverted-element warnings; keep original unmodified. Don't assume `.s64` can simply be renamed.
+1. Pin a dated/versioned authoritative 8TML specification and example source/styles: URL, revision, content hash, licence or permission, unresolved questions. Keep legally distributable independent fixtures so T8WN shutdown cannot block us.
+2. Define the v1 feature profile: block/inline syntax, links, escaping, whitespace, stylesheets/colours, long lines, unknown directives, relative paths and error handling. **No old-markup mapping or `.s64` conversion is needed.**
+3. Define the source byte contract: encoding, line endings, case, PETSCII inverse mapping, BOM/tabs/controls, filenames, URLs, maximum lengths and representation failures. The old `.s64` ASCII/LF policy does not define 8TML.
+4. Define profile/version detection, unknown-content preservation and explicit handling of incompatible upstream revisions.
+5. Add host-side golden source, charset, save/reopen and independent rendering tests, including malformed/unrepresentable input. Validate native 8TML source, not any old document.
+6. Trace old `.s64` serializer and page/post metadata callers. Retire them from the **new active build** when the 8TML editor can be built and tested; no old-format regression or migration gate is needed.
 
 ## 5. Publishing protocol and security
 
@@ -87,7 +87,7 @@ Do not equate 8TML with a single upload mechanism. A complete deployment may be 
 - Bound memory, request/response sizes, redirects, timeouts and resource use. Validate paths/host allow-lists and prevent traversal/SSRF; publish only explicitly selected files. Fail closed on auth/replay/signature problems and preserve local source.
 - Test failed writes, mid-transfer interruption, unchanged remote content on failure, collision handling and hardware state restoration on exit. Do not expand the auth surface during a simple format change.
 
-## 6. Delivery stages (sequential gates, not dates)
+## 6. Delivery stages (sequential gates; no `.s64` migration)
 
 ### Stage 0 — direction/documentation (this change)
 - [x] Record 8TML-first product decision and independence requirement.
@@ -100,18 +100,18 @@ Do not equate 8TML with a single upload mechanism. A complete deployment may be 
 
 ### Stage 1 — documented 8TML source contract
 - [ ] Pin versioned upstream spec/fixture/licence evidence; request clarification as needed.
-- [ ] Produce feature/encoding matrix and compatibility policy.
+- [ ] Produce native 8TML syntax/encoding feature profile and error policy (no legacy mapping).
 - [ ] Add host-side golden fixtures/validators and bounded error cases without touching shipped binaries.
 
 **Exit:** representative fixtures and byte conversion rules are reproducible without a T8WN service. No unverified parser features.
 
 ### Stage 2 — offline 8TML editing
-- [ ] Minimal change to existing editor to open/create/save/export portable `.8tml`; preserve `.s64` workflow.
+- [ ] Adapt Editor to create/open/save native `.8tml` as its **only** document format; retire legacy `.s64` code from new active build targets.
 - [ ] Add 8TML formatting commands only as verified by the pinned spec; unsupported constructs preserved as source.
-- [ ] Safe `.s64` to `.8tml` *copy* migration, with explicit loss/unsupported warnings; no overwrite by default.
+- [ ] Preserve proven undo, collision refusal, file recovery, BASIC return and machine-state restoration; do not implement old-file conversion.
 - [ ] Rebuild exact matching C64U package with source provenance and hashes.
 
-**Exit:** on real C64U: edit/save/reopen, reboot, round-trip bytes, collision/recovery/error cases, unchanged original .s64 and machine settings all pass. User may already publish `.8tml` manually.
+**Exit:** on real C64U: native 8TML edit/save/reopen, reboot, byte-exact round trip, collision/recovery/error cases and machine settings all pass. User may already publish `.8tml` manually.
 
 ### Stage 3 — independent static presentation
 - [ ] Validate served `.8tml` loads in independent VVV/other browser on its stated hardware, or record as unverified if inaccessible.
@@ -130,26 +130,26 @@ Do not equate 8TML with a single upload mechanism. A complete deployment may be 
 
 ### Stage 5 — simplification and new release
 - [ ] Audit runtime callers, build targets, docs and tests; remove dead paths only with clear proof and affected regression/hardware gates.
-- [ ] Retire standalone SEE64YOU markup, proprietary browser output, legacy website and WordPress integration **only after** migration/export and rollback are proven and a separately versioned release is available.
+- [ ] Retire obsolete `.s64` handling, standalone markup, proprietary browser/site and WordPress from the **new active build** when dependencies and relevant regression/hardware tests permit. No migration or legacy compatibility.
 - [ ] Clean packaging, onboarding, support matrix and independent hosting docs.
-- [ ] Prepare migration notes and an appropriate new versioned release; do not overwrite `v0.1.0-alpha.1` assets/tag.
+- [ ] Prepare a new clean-install 8TML-only release; do not overwrite historical `v0.1.0-alpha.1` assets/tag.
 
 **Exit:** user can upgrade, keep old files, and revert using preserved binaries/content; no orphaned data.
 
-## 7. Specific retention/archive decision
+## 7. Clean-break retirement/archive decision
 
 | Existing source/docs | Decision now | Retirement condition |
 | --- | --- | --- |
 | Editor, buffer, input, REU, DOS, launcher and recovery | Keep unchanged | None: reuse and adapt safely |
-| `.s64`, SEE64YOU/1 and `docs/MARKUP.md` | Frozen legacy; still supported by alpha | Lossless/as-declared migration and compatibility tested |
-| Current PHP `site/`, `docs/SITE.md` | Freeze new development, keep deployable | Safe 8TML static publishing and migration/backup verified |
+| `.s64`, SEE64YOU/1 and `docs/MARKUP.md` | Remove from new active build; alpha remains historical | Last callers removed, native 8TML tests passed; **no migration** |
+| Current PHP `site/`, `docs/SITE.md` | Retire from new product; keep tagged alpha | New independent hosting and relevant tests passed |
 | `S64PUB.PRG`, Settings, UCI and HMAC transport | Keep; assess narrow adapter | New API path passes real-hardware/security tests |
-| `S64WEB.PRG`, SEE64YOU-BROWSE/1,2 | Freeze; retain alpha | Independent reader demonstrated and support expectations addressed |
+| `S64WEB.PRG`, SEE64YOU-BROWSE/1,2 | Retire from new product; keep tagged alpha | Dependency/build test passes; no new bespoke browser |
 | `wordpress/`, `relay/` | Deferred; preserve source | Explicit evidence no callers or user obligation |
 | Pre-8TML `todo.md` | Archive verbatim under `docs/archive/` | Retained for provenance, not a live queue |
 | `docs/C64U-RUNTIME.md`, `docs/LOCAL_TESTING.md` | Active safeguards, keep | Update only with verified behaviour |
 
-No code deletion is justified at Stage 0: active alpha binary integration and recovery tests would have to be rerun. Removing it solely because future architecture changes is not a simplification.
+No code deletion in this planning-only change: existing source still assembles the historical alpha. Once the new 8TML build paths are ready, remove legacy `.s64`/site/browser code at the earliest safe boundary after tracing calls and validating file safety, builds and C64U runtime. **No backward compatibility requirement.**
 
 ## 8. Validation and change control
 

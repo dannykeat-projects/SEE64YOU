@@ -6,7 +6,7 @@
 
 **IMPORTANT: the current [v0.1.0-alpha.1](https://github.com/dannykeat-projects/SEE64YOU/releases/tag/v0.1.0-alpha.1) does *not* support 8TML.** It is an experimental, C64U-only **legacy `.s64` release**. Do not use it for important or private documents without backups. The complete, current [alpha installation and usage guide](docs/releases/v0.1.0-alpha.1.md) is the starting point for testers.
 
-The [8TML roadmap](docs/8TML-ROADMAP.md) sets the architecture, independently hosted format and publishing requirements, compatibility rules, milestones, security and retirement gates. [todo.md](todo.md) is the sole active execution queue. The pre-pivot queue is [archived](docs/archive/TODO-before-8TML-pivot-2026-10-20.md).
+The [8TML roadmap](docs/8TML-ROADMAP.md) defines 8TML-only development, independent hosting, conformance and safety gates. **No `.s64` files will be used or migrated**; the next release will not contain a dual-format editor. [todo.md](todo.md) is the sole active execution queue. The pre-pivot queue is [archived](docs/archive/TODO-before-8TML-pivot-2026-10-20.md).
 
 ## Current alpha: programs and prerequisites
 
@@ -26,10 +26,10 @@ The alpha's separate PHP 8.1+ website package is **only** for legacy SEE64YOU pu
 ## New direction (not implemented yet)
 
 1. Pin a versioned authoritative 8TML profile and conformance fixtures; verify charset/escaping/stylesheets rather than guessing draft syntax.
-2. Make the **offline Editor** create/open/save `.8tml` source, while preserving and safely importing existing `.s64`.
+2. Make the **offline Editor** create/open/save **only `.8tml`**. Remove `.s64` serializer/metadata from new build targets; no importer or converter.
 3. Demonstrate ordinary static hosting of source and faithful safe conversion to HTML for modern browsers; external VVV support is optional.
 4. Add optional authenticated remote publishing through a provider-neutral, independently self-hostable API or an interoperable third-party endpoint.
-5. Retire redundant legacy browser/site/markup code only when a tested migration and rollback exist.
+5. Retire the old `.s64`/site/browser/markup code after dependency and safety testing. Keep the original alpha release intact as historical.
 
 The editor should remain usable even if upstream APIs, browsers and hosting disappear.
 

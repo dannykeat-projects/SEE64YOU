@@ -1,6 +1,6 @@
 # See64You Markup v1
 
-> **Legacy alpha contract, not the future 8TML standard.** This document describes the released SEE64YOU/1 / `.s64` implementation. New work follows [8TML direction](8TML-ROADMAP.md); the existing code, files and safety contracts remain in force until replacement and migration are verified. Do not treat this as an 8TML specification.
+> **Historical alpha reference only, not future 8TML requirements.** The released version described here used `.s64`/SEE64YOU/1. The next build supports only `.8tml`, with no old-file migration, importer or compatibility support. Reuse applicable hardware safety rules when replacing code; see [8TML direction](8TML-ROADMAP.md).
 
 
 See64You Markup v1 is the frozen source-formatting subset for document bodies. It is intentionally smaller than Markdown so source remains predictable on the 40-column C64U editor and simple backends can render it consistently.

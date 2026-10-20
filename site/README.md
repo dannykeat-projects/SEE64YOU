@@ -1,6 +1,6 @@
 # SEE64YOU v0.1.0-alpha.1 — PHP website installation
 
-> **Legacy software.** The released site reads SEE64YOU/1 `.s64` and does not implement 8TML or the T8WN API. Keep it available for existing alpha users, but new development is directed to [8TML portability and independent hosting](../docs/8TML-ROADMAP.md). Do not migrate existing users by replacing this package in place.
+> **Legacy software.** The released site reads SEE64YOU/1 `.s64` and does not implement 8TML or the T8WN API. The historical tagged alpha remains downloadable, but the future product requires no `.s64` compatibility or conversion. New development is directed to [8TML portability and independent hosting](../docs/8TML-ROADMAP.md). Do not migrate existing users by replacing this package in place.
 
 **Early alpha: this may not work on your hosting setup.** Bugs and incomplete
 testing may cause failures or data loss. Back up any existing website and use a

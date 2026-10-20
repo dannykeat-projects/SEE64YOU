@@ -1,6 +1,6 @@
 # SEE64YOU — current MVP architecture
 
-> **Legacy alpha contract, not the future 8TML standard.** This document describes the released SEE64YOU/1 / `.s64` implementation. New work follows [8TML direction](8TML-ROADMAP.md); the existing code, files and safety contracts remain in force until replacement and migration are verified. Do not treat this as an 8TML specification.
+> **Historical alpha reference only, not future 8TML requirements.** The released version described here used `.s64`/SEE64YOU/1. The next build supports only `.8tml`, with no old-file migration, importer or compatibility support. Reuse applicable hardware safety rules when replacing code; see [8TML direction](8TML-ROADMAP.md).
 
 
 **Authoritative release architecture.** SEE64YOU is a C64 Ultimate-only application for creating simple `.s64` text documents, publishing them to independently hosted PHP websites, and optionally browsing public SEE64YOU sites from the C64U. Historic cross-program managed/persistent runtime designs are retired; Git history preserves them.
