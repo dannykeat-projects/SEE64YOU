@@ -33,7 +33,7 @@ The supplied `specs.zip` includes the **8TML 1 draft (20 October 2026)**, exampl
 
 ## P1 — Reduce and release
 
-- [ ] Publish the explicitly authorised `v0.2.0-alpha.1` Editor preview as a distinct prerelease, with complete SD/USB0 client bundles, separate PHP service and checksums. Build from committed source, match SD payloads to the refreshed hardware receipt, and verify downloaded release assets. Preserve `v0.1.0-alpha.1`; keep all unfinished physical/Browser/full-rendering gates explicit.
+- [x] **Editor preview released 22 October 2026:** [v0.2.0-alpha.1](https://github.com/dannykeat-projects/SEE64YOU/releases/tag/v0.2.0-alpha.1), immutable source/tag `4394fa6bc3603b487adfdc00023a597d21b90d18`. Complete SD and USB0 client ZIPs, separate PHP ZIP and `SHA256SUMS` uploaded; both forced builds/guards/manifests pass. SD payload exactly matches refreshed real-C64U Editor acceptance; all final published downloads match originals and pass ZIP integrity. Reproducible packager uses committed/tracked sources, excludes local config/runtime files and verifies unchanged source provenance. `v0.1.0-alpha.1` remains untouched. Physical-keyboard/cold-power/USB-only/new-Publisher hardware, Browser and full-rendering gates remain explicitly incomplete; this is an Editor-focused alpha, not beta acceptance. No further required Editor code fix was found; stop rather than expanding scope.
 
 - [ ] Remove obsolete `.s64` document code and old proprietary rendering only after the relevant new path works; do not delete current functioning code blindly.
 - [ ] Review WordPress integration against the minimal independent MVP; defer or remove it unless justified.

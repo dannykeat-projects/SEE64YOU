@@ -146,6 +146,8 @@ python3 tools/package_8tml_release.py --version v0.2.0-alpha.1 --output client/b
 
 The packager force-builds and validates all eleven files/manifests for `/Usb0/` and `/sd/`, leaves the default SD build selected, and refuses SD payloads differing from the hardware receipt. ZIPs include the source commit/toolchain/storage root, per-file checksums and release guide. PHP packaging uses tracked sources only, excluding local configuration, runtime data and tests. Archives are read back for exact entries/bytes and integrity; release `SHA256SUMS` covers all three ZIPs. Publish a distinct prerelease/tag only after these checks, then download uploaded assets and independently verify hashes/integrity. Preserve every historical release/tag/asset. Physical-keyboard, cold-power, USB-only and new Publisher hardware acceptance remain open; an alpha is not a passed beta gate.
 
+Published on 22 October 2026: [v0.2.0-alpha.1](https://github.com/dannykeat-projects/SEE64YOU/releases/tag/v0.2.0-alpha.1), immutable source/tag `4394fa6bc3603b487adfdc00023a597d21b90d18`. Both complete client builds, memory guards and manifests passed; SD payloads matched the refreshed hardware receipt byte-for-byte. The three ZIPs and `SHA256SUMS` were downloaded from the final published release and matched the local originals; all ZIP integrity checks passed. The checksum-file SHA-256 is `33c74456e0ab9f666205a045132c561d03fe75721aa2fd47828384a04076e886`. Non-secret verification metadata is retained under ignored `client/build/release-v0.2.0-alpha.1/published-verification.json`. No historical release, live website or production branch was changed.
+
 ### Early-alpha distribution (2026-10-20)
 
 The user explicitly authorised `v0.1.0-alpha.1` as an experimental GitHub
