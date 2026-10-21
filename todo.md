@@ -24,6 +24,8 @@ The supplied `specs.zip` includes the **8TML 1 draft (20 October 2026)**, exampl
 
 ## User feedback to follow up after the current migration slice
 
+- [ ] Investigate tutorial discoverability of Settings' explicit plain-HTTP consent. A user could not find this prerequisite in the tutorial; inspect the shipped tutorial/setup flow before changing it, then document the exact consent step where first-time users need it. Existing developer testing instructions mention consent, which does not establish tutorial coverage.
+- [ ] Reproduce the reported explicit-port mismatch: Settings' connection test accepted `http://192.168.0.250:8080/`, but Publisher could not connect; the user reports success after moving the PHP service to port 80. Compare URL parsing, persisted configuration and actual connection destination in both programs; add a focused regression check with any verified fix. The report spells the working URL `hhtp://192.168.0.250/`; treat that as unconfirmed transcription, not evidence that malformed schemes work. Keep this feedback open alongside native Publisher migration without claiming a diagnosed cause or silently dropping explicit ports.
 - [ ] Verify the USB-only package on an actual USB mount, including launch/save/reopen, configuration and journal restoration. The reported hardcoded-SD issue is fixed in `3d1a6c6`; host/build/VICE checks pass, but the available test C64U currently has no USB volume. Keep this observation open without interrupting the Publisher migration or claiming USB hardware acceptance.
 
 ## P1 — Reduce and release
