@@ -179,7 +179,7 @@ if __name__ == "__main__":
         package_dir=ROOT / "client/build/browser-native-vice")
     run("SEE64YOU.PRG", "R RECHECK    X EXIT", ord("X"), 6544, args.rom_dir)
     run("S64PUB.PRG", "RUN/STOP  EXIT TO BASIC", 3, 6545, args.rom_dir,
-        ((ord("3"), "Load .S64 or open remote first"),
+        ((ord("3"), "Load .8TML or open remote first"),
          (ord("D"), "Open a remote page/post first"),
          (ord("L"), "C64U DOS unavailable"),
          (ord("2"), "C64U network target unavailable")))

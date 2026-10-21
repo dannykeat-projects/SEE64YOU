@@ -274,7 +274,11 @@ S64DestinationResult s64_destination_open_url(
         if (result != S64_DESTINATION_OK) return result;
         result = append_text(output, capacity, &length, identity);
         if (result != S64_DESTINATION_OK) return result;
+#ifdef S64_INDEPENDENT_PUBLISHER
+        return append_text(output, capacity, &length, "&format=8tml");
+#else
         return append_text(output, capacity, &length, "&format=s64");
+#endif
     }
 
     if (destination->type == S64_DESTINATION_WORDPRESS) {

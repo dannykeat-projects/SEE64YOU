@@ -27,6 +27,11 @@ def main():
         run("cc", "-std=c99", "-Wall", "-Wextra", "-Werror", "-DS64_INDEPENDENT_EDITOR=1",
             "-Iclient/src", f"client/tests/8tml_{name}_test.c", *sources, "-o", str(binary))
         run(str(binary))
+    binary = BUILD / "publisher-local-test"
+    run("cc", "-std=c99", "-Wall", "-Wextra", "-Werror", "-DS64_INDEPENDENT_PUBLISHER=1",
+        "-Iclient/src", "client/tests/8tml_local_test.c", *common,
+        "client/src/platform/dos.c", "client/src/storage/local.c", "-o", str(binary))
+    run(str(binary))
     binary = BUILD / "reu-document-test"
     run("cc", "-std=c99", "-Wall", "-Wextra", "-Werror", "-DS64_INDEPENDENT_EDITOR=1",
         "-DS64_REU_BUFFER=1", "-Iclient/src", "client/tests/8tml_document_test.c",

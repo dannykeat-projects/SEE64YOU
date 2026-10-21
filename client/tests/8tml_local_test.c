@@ -204,6 +204,16 @@ static unsigned long file_checksum(void)
     return checksum;
 }
 
+/* Publisher receives source from disk/network rather than creating a header. */
+static void prepare_empty_source(S64Buffer* body)
+{
+#ifdef S64_INDEPENDENT_PUBLISHER
+    insert_text(body, "---\n8tml: 1\ntitle: Untitled\n---\n");
+#else
+    (void)body;
+#endif
+}
+
 int main(void)
 {
     static const char empty[] = "---\n8tml: 1\ntitle: Untitled\n---\n";
@@ -224,6 +234,7 @@ int main(void)
     s64_dos_init(&dos, mock_execute, S64_DOS_TARGET_PRIMARY);
     s64_buffer_init(&body);
     s64_document_init(&document, &body);
+    prepare_empty_source(&body);
     s64_local_init(&local, &dos, &document);
     require_body(&body, empty, "new document contains editable 8TML header");
     file_exists = 0u;
@@ -290,6 +301,7 @@ int main(void)
     require(s64_local_document_replaced(&local) && !s64_local_has_filename(&local),
         "invalid streamed source clears identity");
     require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "new source succeeds");
+    prepare_empty_source(&body);
     require_body(&body, empty, "new source restores canonical header");
     require(s64_buffer_move_cursor(&body, s64_buffer_length(&body)), "move past new header");
     insert_text(&body, "Recovery <future>source</future>\n");
@@ -312,6 +324,7 @@ int main(void)
     require(s64_local_save_as(&local, "UPPER.8TML", 0u) == S64_LOCAL_OK
         && strcmp(file_name, "UPPER.8TML") == 0, "uppercase suffix accepted exactly");
     require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "new before filename tests");
+    prepare_empty_source(&body);
     file_exists = 0u;
     require(s64_local_save_as(&local, "wrong.txt", 0u) == S64_LOCAL_INVALID_ARGUMENT,
         "unrelated explicit extension rejected");
@@ -323,6 +336,7 @@ int main(void)
         && strlen(file_name) == S64_LOCAL_FILENAME_CAPACITY - 1u,
         "longest extensionless basename fits exact capacity");
     require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "new before overflow");
+    prepare_empty_source(&body);
     file_exists = 0u;
     boundary[stem_length] = 'x';
     boundary[stem_length + 1u] = '\0';

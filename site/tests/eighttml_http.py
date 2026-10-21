@@ -89,16 +89,53 @@ def main():
                 assert response_headers.get_content_type() == "text/8tml"
                 assert response_headers.get_content_charset() == "us-ascii"
                 assert response_headers["Content-Disposition"] == 'attachment; filename="eighttml-http.8tml"'
+                assert response_headers["X-See64You-Status"] == "published"
                 assert "no-store" in response_headers["Cache-Control"]
 
                 code, payload, _ = authenticated(get_uri.replace("&format=8tml", ""))
                 metadata = json.loads(payload)["document"]
                 assert code == 200 and metadata["raw8tml"] == SOURCE
                 assert metadata["title"] == "Source title" and metadata["order"] == 7
+                native = {field: document[field] for field in ("type", "slug", "status", "raw8tml")}
+                assert authenticated(save_uri, "POST", json.dumps(native).encode("ascii"))[0] == 200
+                code, payload, _ = authenticated(get_uri.replace("&format=8tml", ""))
+                preserved = json.loads(payload)["document"]
+                assert code == 200 and preserved["date"] == document["date"] and preserved["order"] == 7
+                explicit = dict(native, date="2003-04-05", order=-19)
+                assert authenticated(save_uri, "POST", json.dumps(explicit).encode("ascii"))[0] == 200
+                code, payload, _ = authenticated(get_uri.replace("&format=8tml", ""))
+                updated = json.loads(payload)["document"]
+                assert code == 200 and updated["date"] == "2003-04-05" and updated["order"] == -19
+                assert authenticated(save_uri, "POST", body)[0] == 200
                 code, payload, _ = authenticated("/api.php?action=list&type=page")
                 listed = json.loads(payload)["documents"]
                 assert code == 200 and len(listed) == 1
                 assert "raw8tml" not in listed[0] and "body" not in listed[0]
+                # Filter the native list before parsing excluded old-format paths.
+                fresh = dict(native, type="post", slug="native-defaults")
+                assert authenticated(save_uri, "POST", json.dumps(fresh).encode("ascii"))[0] == 200
+                code, payload, _ = authenticated("/api.php?action=get&type=post&slug=native-defaults")
+                created = json.loads(payload)["document"]
+                assert code == 200 and created["date"] and created["order"] == 0 and created["raw8tml"] == SOURCE
+                assert authenticated("/api.php?action=delete", "POST",
+                    json.dumps({"type": "post", "slug": "native-defaults"}).encode("ascii"))[0] == 200
+                for slug, date in (("earlier", "2000-01-01"), ("later", "2002-01-01")):
+                    item = dict(native, type="post", slug=slug, date=date)
+                    assert authenticated(save_uri, "POST", json.dumps(item).encode("ascii"))[0] == 200
+                (root / "posts" / "excluded.s64.php").write_text("not a valid source record")
+                source_list = "/api.php?action=list&type=post&source=8tml"
+                code, payload, _ = authenticated(source_list)
+                filtered = json.loads(payload)
+                assert code == 200 and filtered["count"] == 2
+                assert [item["slug"] for item in filtered["documents"]] == ["later", "earlier"]
+                code, payload, _ = authenticated(source_list + "&format=summary&offset=0")
+                assert code == 200 and b"Count: 2\nSlug: later\n" in payload
+                code, payload, _ = authenticated(source_list + "&format=summary&offset=1")
+                assert code == 200 and b"Count: 2\nSlug: earlier\n" in payload
+                for source_filter in ("unknown", "s64", "8tml&source[]=8tml"):
+                    code, payload, _ = authenticated("/api.php?action=list&type=post&source=" + source_filter)
+                    assert code == 400 and json.loads(payload)["error"] == "invalid_source"
+                (root / "posts" / "excluded.s64.php").unlink()
                 code, html, _ = request("/page.php?slug=eighttml-http")
                 assert code == 200 and b"<h1>Hello <strong>world</strong></h1>" in html
                 assert b"<script>alert(1)</script>" not in html and b"&lt;script&gt;" in html
@@ -120,7 +157,9 @@ def main():
                 replacement = dict(document, raw8tml=changed, status="draft")
                 replacement_body = json.dumps(replacement).encode("ascii")
                 assert authenticated(save_uri, "POST", replacement_body)[0] == 200
-                assert authenticated(get_uri)[1] == changed.encode("ascii")
+                code, payload, draft_headers = authenticated(get_uri)
+                assert code == 200 and payload == changed.encode("ascii")
+                assert draft_headers["X-See64You-Status"] == "draft"
                 assert request("/page.php?slug=eighttml-http")[0] == 404, "Draft leaked publicly"
 
                 # Invalid identity and wrong method must not create source records.

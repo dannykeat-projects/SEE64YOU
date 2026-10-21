@@ -1,15 +1,23 @@
 # SEE64YOU — current MVP validation runbook
 
-## 8TML Editor migration checks
+## 8TML Editor and Publisher migration checks
 
-The PHP source-service slice is tested separately from native Publisher migration:
+The PHP source-service tests run independently:
 
 ```sh
 php site/tests/eighttml.php
 python3 site/tests/eighttml_http.py
 ```
 
-The PHP tests cover exact source, strict input/capacity checks, atomic replacement/failure cleanup, lock failures and a deterministic competing-writer case. The HTTP test creates an isolated temporary site with ephemeral credentials, launches a local PHP server, and verifies existing HMAC authentication, tamper/replay refusal, exact source/metadata, `.8tml` download headers, guarded PHP records (including PHP text in source), HTML escaping, draft privacy and deletion. It does not modify a configured site, deploy, certify HTTPS hosting or exercise native C64 Publisher. Existing site/browser/theme/HTTP/package tests must also pass. The web renderer remains the existing limited escaped subset; source preservation does not certify full rendering coverage.
+The PHP tests cover exact source, strict input/capacity checks, atomic replacement/failure cleanup, lock failures and deterministic competing writers, including deletion before an omitted-metadata update. The HTTP test creates an isolated temporary site with ephemeral credentials, launches a local PHP server, and verifies HMAC authentication, tamper/replay refusal, exact source/metadata, source-only lists, publication-state headers, guarded PHP records (including PHP text in source), HTML escaping, draft privacy and deletion. It does not modify a configured site, deploy or certify HTTPS hosting. Existing site/browser/theme/HTTP/package tests must also pass. The web renderer remains the existing limited escaped subset; source preservation does not certify full rendering coverage.
+
+Run native Publisher production code against that real disposable PHP service:
+
+```sh
+python3 tools/test_publisher_8tml.py --reference-tools client/build/8tml-reference/specs/tools --rom-dir client/build/private-vice-roms
+```
+
+Both arguments are optional. The host test uses the real REU buffer with simulated DMA and a POSIX-socket adapter for UCI Network `$03`; the adapter maps `example.com:80` to an ephemeral loopback PHP port. It is not evidence of native explicit-port support. Create/list/open/update/delete preserve exact source, status and unedited date/order. The maximum 61,440-byte source generates a 123,219-byte request. Invalid source and missing/malformed/duplicate status headers fail closed; injected connection failure is reported. The external validator checks actual exported files. The optional cc65/VICE probe checks PETSCII JSON escaping and BASIC return. No real C64U, installed files or configuration are touched. Real Publisher DOS/network/keyboard acceptance remains pending.
 
 Run from the repository root under Linux/WSL with cc, cc65 and Python. Keep the supplied reference archive outside tracked source until licensing is resolved:
 
@@ -20,7 +28,7 @@ make -C client independent-package
 
 Both arguments are optional: without them, the script runs strict host codec/local-disk tests and the same codec tests with the actual REU buffer and a simulated DMA backend (61,440-byte capacity). `--reference-tools` invokes the supplied `8tml check -v` against generated empty and source-preservation fixtures in `client/build/`. The pinned reference is the internal 8TML 1 draft reviewed 2026-10-20, not bundled code. Unknown markup generates informational diagnostics and the exhaustive printable-character fixture deliberately produces an unclosed-emphasis warning; require zero errors. `--rom-dir` compiles the codec for the C64 with real PETSCII constants, tests under VICE and checks responsive BASIC after exit. Host tests check every chunk split; native tests sample splits to bound 6502 execution time.
 
-The migration package builds all eleven files and both manifests, but native Publisher/Browser still implement the historical format. The PHP service above additionally accepts 8TML; the native clients do not yet use it. Do not use the package as an end-to-end 8TML release.
+The migration package builds all eleven files and both manifests. Independent Editor/Publisher use 8TML; Browser still implements the historical protocol. Source-host integration passes, but Publisher hardware acceptance and full rendering/Browser conversion remain incomplete. Do not present the package as an accepted end-to-end 8TML release.
 
 The host firmware-1.1 direct Publisher test in `tools/validate.sh` also exercises the private request streamer with synthetic bodies at 0, 65,534, 65,535, 65,536, 122,880 and 122,881 bytes. It checks complete payloads, HMAC and Content-Length across the old 16-bit boundary, maximum decimal formatting and overflow refusal, alongside existing legacy-format/authentication/error regressions. This verifies transport counting, not native 8TML JSON serialization or real-network acceptance.
 

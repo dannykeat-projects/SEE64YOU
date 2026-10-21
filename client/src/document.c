@@ -8,7 +8,7 @@
 
 static uint8_t wire_chunk[S64_DOCUMENT_WIRE_CHUNK];
 
-#ifndef S64_INDEPENDENT_EDITOR
+#ifndef S64_DOCUMENT_8TML
 static void format_int32(int32_t value, char* output)
 {
     char digits[10];
@@ -82,7 +82,7 @@ static uint8_t copy_text(char* destination, uint16_t capacity, const char* sourc
     return 1u;
 }
 
-#ifndef S64_INDEPENDENT_EDITOR
+#ifndef S64_DOCUMENT_8TML
 static uint8_t header_text_valid(const char* text, uint16_t capacity, uint8_t allow_empty)
 {
     uint16_t i;
@@ -130,7 +130,7 @@ int s64_document_slug_valid(const char* slug)
     return 0u;
 }
 
-#ifndef S64_INDEPENDENT_EDITOR
+#ifndef S64_DOCUMENT_8TML
 static uint8_t emit(S64DocumentSink sink, void* context, const char* text)
 {
     size_t length = strlen(text);
@@ -246,7 +246,7 @@ int s64_document_status_from_name(const char* name, S64DocumentStatus* status)
     return 0;
 }
 
-#ifndef S64_INDEPENDENT_EDITOR
+#ifndef S64_DOCUMENT_8TML
 #define S64_WIRE_PHASE_VERSION 0u
 #define S64_WIRE_PHASE_HEADERS 1u
 #define S64_WIRE_PHASE_BODY 2u
@@ -521,7 +521,7 @@ S64DocumentResult s64_document_write_wire(
 
 #else
 
-/* The Editor owns literal source, including the header. Never reconstruct
+/* Editor and Publisher keep literal source, including the header. Never reconstruct
  * metadata or interpret markup on a disk round trip. */
 static uint8_t source_byte(const S64Buffer* body, unsigned int position)
 {

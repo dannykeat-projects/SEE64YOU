@@ -11,12 +11,14 @@ final class S64Documents
     {
     }
 
-    public function list(string $type, bool $publishedOnly = false): array
+    public function list(string $type, bool $publishedOnly = false, bool $onlyEightTml = false): array
     {
         $directory = $this->directory($type);
         $documents = [];
 
-        foreach (array_merge(glob($directory . '/*.s64.php') ?: [], glob($directory . '/*.8tml.php') ?: []) as $path) {
+        $paths = glob($directory . '/*.8tml.php') ?: [];
+        if (!$onlyEightTml) $paths = array_merge(glob($directory . '/*.s64.php') ?: [], $paths);
+        foreach ($paths as $path) {
             $isEightTml = str_ends_with($path, '.8tml.php');
             $slug = basename($path, $isEightTml ? '.8tml.php' : '.s64.php');
             $document = $isEightTml ? $this->readEightTml($path, $type, $slug) : $this->readPath($path, $type, $slug);
@@ -165,18 +167,24 @@ final class S64Documents
         $slug = $this->validateSlug((string)($input['slug'] ?? ''));
         if (!is_string($input['raw8tml'])) throw new InvalidArgumentException('invalid_8tml');
         $parsed = S64EightTml::parse($input['raw8tml'], $slug);
+        if (is_file($this->path($type, $slug))) throw new InvalidArgumentException('format_conflict');
+        $path = $this->eightTmlPath($type, $slug);
+        /* This read is inside the directory write lock, after waiting writers
+         * can observe a prior update or deletion. Never reuse stale metadata. */
+        $needsExisting = !array_key_exists('date', $input) || !array_key_exists('order', $input);
+        $existing = $needsExisting && is_file($path) ? $this->readEightTml($path, $type, $slug) : null;
         $status = (string)($input['status'] ?? 'draft');
         if (!in_array($status, ['draft', 'published'], true)) throw new InvalidArgumentException('invalid_status');
-        $date = trim((string)($input['date'] ?? ''));
+        $date = array_key_exists('date', $input)
+            ? trim((string)$input['date']) : (string)($existing['date'] ?? '');
         if ($date === '') $date = date(DATE_ATOM);
         if (strlen($date) > 40) throw new InvalidArgumentException('invalid_date');
         $document = [
             'type' => $type, 'slug' => $slug, 'status' => $status, 'date' => $date,
-            'order' => $this->validateOrder($input['order'] ?? 0),
+            'order' => $this->validateOrder(array_key_exists('order', $input)
+                ? $input['order'] : ($existing['order'] ?? 0)),
             'raw8tml' => $input['raw8tml'],
         ];
-        if (is_file($this->path($type, $slug))) throw new InvalidArgumentException('format_conflict');
-        $path = $this->eightTmlPath($type, $slug);
         $serialized = self::GUARD . "\n" . json_encode($document, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG);
         $temporary = $path . '.tmp.' . bin2hex(random_bytes(4)) . '.php';
         if (file_put_contents($temporary, $serialized, LOCK_EX) !== strlen($serialized)) {

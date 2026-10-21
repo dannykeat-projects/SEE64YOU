@@ -168,7 +168,11 @@ static void render(void)
     revers(0);
 
     print_value(2u, "Title: ", document.title[0] != '\0'
+#ifdef S64_INDEPENDENT_PUBLISHER
+        ? document.title : "(in source)");
+#else
         ? document.title : "(untitled)");
+#endif
     print_value(3u, "Slug:  ", document.slug[0] != '\0'
         ? document.slug : "(unset)");
     print_value(4u, "Type:  ", s64_document_type_name(document.type));
@@ -223,7 +227,7 @@ static void render(void)
     print_value(6u, "Local: ", local_document.filename[0] != '\0'
         ? local_document.filename : "(none/remote unsaved)");
     gotoxy(0u, 20u);
-    cputs("L LOAD .S64 / D SAVE REMOTE .S64");
+    cputs("L LOAD .8TML / D SAVE REMOTE .8TML");
     gotoxy(0u, 21u);
     cputs("RUN/STOP  EXIT TO BASIC");
 #else
@@ -617,7 +621,7 @@ static void save_remote_document(void)
     unsigned char updating;
 #ifdef S64_INDEPENDENT_PUBLISHER
     if (!source_loaded) {
-        set_status("Load .S64 or open remote first");
+        set_status("Load .8TML or open remote first");
         return;
     }
 #endif
@@ -625,11 +629,24 @@ static void save_remote_document(void)
     if (!publishing_ready()) {
         return;
     }
+#ifdef S64_INDEPENDENT_PUBLISHER
+    if (!document.slug[0] && !prompt_text("REMOTE SLUG: ", document.slug,
+            S64_DOCUMENT_SLUG_CAPACITY, 0u)) {
+        set_status("Publish cancelled");
+        return;
+    }
+    if (!s64_document_slug_valid(document.slug)) {
+        document.slug[0] = '\0';
+        set_status("Invalid remote slug");
+        return;
+    }
+#else
     if (!s64_document_slug_valid(document.slug)
         || document.title[0] == '\0') {
         set_status("Document needs valid title and slug");
         return;
     }
+#endif
 
     updating = (unsigned char)s64_publish_state_can_update(
         &publish_state,
@@ -1102,6 +1119,11 @@ static void list_open_remote(S64DocumentType type)
     document_replaced = 1u;
     document_changed = 1u;
 #endif
+#ifdef S64_INDEPENDENT_PUBLISHER
+    /* The portable source contains no publishing-service identity. */
+    document.type = type;
+    (void)s64_document_set_slug(&document, WORK_SELECTION);
+#endif
     if (!s64_publish_state_bind_remote(
             &publish_state,
             &destination,
@@ -1282,7 +1304,7 @@ static void load_local_source(void)
         set_status("C64U DOS unavailable");
         return;
     }
-    if (!prompt_text("OPEN .S64: ", WORK_PROMPT,
+    if (!prompt_text("OPEN .8TML: ", WORK_PROMPT,
             S64_LOCAL_FILENAME_CAPACITY, 0u)) {
         set_status("Local open cancelled");
         return;
@@ -1308,7 +1330,7 @@ static void load_local_source(void)
     source_loaded = 1u;
     remote_downloaded = 0u;
     s64_publish_state_clear_remote(&publish_state);
-    set_status("Local .S64 loaded");
+    set_status("Local .8TML loaded");
 }
 
 static void save_remote_source(void)
@@ -1318,7 +1340,7 @@ static void save_remote_source(void)
         set_status("Open a remote page/post first");
         return;
     }
-    if (!prompt_text("SAVE NEW .S64: ", WORK_PROMPT,
+    if (!prompt_text("SAVE NEW .8TML: ", WORK_PROMPT,
             S64_LOCAL_FILENAME_CAPACITY, 0u)) {
         set_status("Download save cancelled");
         return;
@@ -1334,7 +1356,7 @@ static void save_remote_source(void)
         return;
     }
     remote_downloaded = 0u;
-    set_status("Saved .S64; reopen in Editor");
+    set_status("Saved .8TML; reopen in Editor");
 }
 #endif
 

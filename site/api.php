@@ -193,7 +193,11 @@ try {
         }
 
         $type = (string)($_GET['type'] ?? '');
-        $listed = $documents->list($type, false);
+        $source = $_GET['source'] ?? '';
+        if (!is_string($source) || !in_array($source, ['', '8tml'], true)) {
+            respond(['ok' => false, 'error' => 'invalid_source'], 400);
+        }
+        $listed = $documents->list($type, false, $source === '8tml');
         if (strtolower((string)($_GET['format'] ?? '')) === 'summary') {
             $offsetText = (string)($_GET['offset'] ?? '0');
             if (!preg_match('/^\\d{1,5}$/', $offsetText)
@@ -223,6 +227,7 @@ try {
             if (!isset($document['raw8tml'])) throw new InvalidArgumentException('not_8tml');
             header('Content-Type: text/8tml; charset=us-ascii');
             header('Content-Disposition: attachment; filename="' . $document['slug'] . '.8tml"');
+            header('X-See64You-Status: ' . $document['status']);
             echo $document['raw8tml'];
             exit;
         }

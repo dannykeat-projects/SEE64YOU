@@ -23,6 +23,20 @@ try {
     check8($documents->get('page', 'sample') === $saved, 'exact reopen');
     check8(!isset($documents->list('page', true)[0]['raw8tml']), 'summary excludes source');
     check8(!isset($documents->list('page', true)[0]['body']), 'summary excludes body');
+    $metadataInput = ['type' => 'post', 'slug' => 'metadata', 'status' => 'draft', 'raw8tml' => $source];
+    $created = $documents->save($metadataInput);
+    check8($created['date'] !== '' && $created['order'] === 0, 'new source gets service date/order defaults');
+    $explicit = $documents->save($metadataInput + ['date' => '2001-02-03', 'order' => 12]);
+    $preserved = $documents->save(array_replace($metadataInput, ['status' => 'published', 'raw8tml' => $source . "update\n"]));
+    check8($preserved['date'] === '2001-02-03' && $preserved['order'] === 12 && $preserved['status'] === 'published', 'omitted date/order preserved on source update');
+    $changedMetadata = $documents->save($metadataInput + ['date' => '2002-03-04', 'order' => -7]);
+    check8($changedMetadata['date'] === '2002-03-04' && $changedMetadata['order'] === -7, 'explicit date/order still update');
+    $documents->save(array_replace($metadataInput, ['slug' => 'earlier', 'date' => '2000-01-01']));
+    file_put_contents($root . '/posts/excluded.s64.php', 'not a valid source record');
+    $filtered = $documents->list('post', false, true);
+    check8(array_column($filtered, 'slug') === ['metadata', 'earlier'], 'source-only list excludes old paths before parsing and retains sort order');
+    check8($documents->list('post', true, true) === [], 'source-only published filtering');
+    unlink($root . '/posts/excluded.s64.php');
     foreach (["", "---\n---\n", "---\ntitle: Wrong\n8tml: 1\n---\n", "---\n8tml: 2\n---\n",
         "---\n8tml: 1\n", "---\n8tml: 1\n---\nbad\x80", "---\r\n8tml: 1\r\n---\r\n",
         "---\n8tml: 1\n---\n\0"] as $bad) {
@@ -89,6 +103,31 @@ try {
     fclose($pipes[1]); fclose($pipes[2]);
     check8(proc_close($child) === 0 && $childOutput === 'format_conflict', 'serialized writer detects prior format: ' . $childError);
     check8(file_get_contents($racePath) === $oldBytes && !is_file($root . '/pages/race.8tml.php'), 'competing save preserves prior source');
+    unlink($marker);
+    /* A waiting source update must not restore metadata from a record deleted
+     * by the previous lock owner. With no record left it creates fresh defaults. */
+    $childCode = 'require $argv[1]; file_put_contents($argv[3], "ready"); '
+        . '$saved=(new S64Documents($argv[2]))->save(["type"=>"post","slug"=>"metadata","status"=>"draft","raw8tml"=>"---\n8tml: 1\n---\n"]); echo json_encode($saved);';
+    $postLock = fopen($root . '/posts/.documents.lock', 'c');
+    check8($postLock !== false && flock($postLock, LOCK_EX), 'hold post write lock');
+    $child = proc_open([PHP_BINARY, '-r', $childCode, dirname(__DIR__) . '/lib/Documents.php', $root, $marker],
+        [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+    check8(is_resource($child), 'start source writer before deletion');
+    fclose($pipes[0]);
+    try {
+        $deadline = microtime(true) + 5;
+        while (!is_file($marker) && microtime(true) < $deadline) usleep(10000);
+        usleep(100000);
+        check8(is_file($marker) && proc_get_status($child)['running'], 'source writer waits for metadata lock');
+        unlink($root . '/posts/metadata.8tml.php');
+    } finally {
+        flock($postLock, LOCK_UN); fclose($postLock);
+    }
+    $childOutput = stream_get_contents($pipes[1]); $childError = stream_get_contents($pipes[2]);
+    fclose($pipes[1]); fclose($pipes[2]);
+    check8(proc_close($child) === 0, 'source writer after deletion succeeds: ' . $childError);
+    $recreated = json_decode($childOutput, true, flags: JSON_THROW_ON_ERROR);
+    check8($recreated['order'] === 0 && $recreated['date'] !== '2002-03-04', 'deleted source metadata is not resurrected');
     unlink($marker);
     unlink($lockPath); mkdir($lockPath);
     set_error_handler(static fn() => true);

@@ -1,6 +1,6 @@
 # C64 Ultimate runtime contract — MVP
 
-**8TML migration:** the independent Editor now keeps the complete `.8tml` header/body in the existing 61,440-byte REU document region. Its disk format is ASCII/LF; no new allocator, handoff or temporary machine setting is introduced. Publisher/Browser retain historical protocols until their later migration. Resource ownership, bootstrap, recovery and restoration rules below remain binding. REST-assisted real-C64U Editor/recovery/native-storage checks passed on 2026-10-21 with verified folder, configuration, DOS-path and machine-baseline restoration; physical keyboard and cold restart remain unverified.
+**8TML migration:** independent Editor and Publisher keep the complete `.8tml` header/body in the existing 61,440-byte REU document region. Disk format is ASCII/LF; Publisher streams JSON uploads and raw-source downloads through the existing UCI `$03`/challenge-HMAC transport, with bounded buffers and unchanged resource guards. No new allocator, handoff or temporary machine setting is introduced. Browser still uses its historical protocol. Resource ownership, bootstrap, recovery and restoration rules below remain binding. REST-assisted real-C64U Editor/recovery/native-storage checks passed on 2026-10-21 with verified folder, configuration, DOS-path and machine-baseline restoration; physical keyboard, cold restart and the subsequent Publisher migration's hardware acceptance remain unverified.
 
 **Current hardware/resource/safety authority.** SEE64YOU is C64 Ultimate-only with a required 16 MiB REU. The shipped candidate has independently launched Editor, Publisher, Settings and optional Browser programs. Old persistent-runtime adoption, managed Publisher/Settings transitions and one-owner REU session proposals are superseded design experiments retained in Git history, not active requirements.
 
@@ -8,7 +8,7 @@
 
 - Tested machine baseline: Commodore 64 Ultimate firmware 1.1.0, UCI at `$DF1C..$DF1F`, Ultimate-DOS targets `$01`/`$02`, 16 MiB REU, SD storage, and Network Target `$03` for direct DNS/TCP/HTTP. HTTP Target `$06` was absent and must not be assumed. Probe actual available capabilities rather than guessing from firmware names. Offline Editor may run without networking.
 - Public package contains eleven matching installed files. Launch `SEE64YOU.PRG` (Editor through existing private overlay/launcher), `S64PUB.PRG`, `S64CFG.PRG` and optionally `S64WEB.PRG` **independently**. Internal `S64EDIT.PRG` and BIN assets are not user entry points. Every user program returns to responsive BASIC.
-- No cross-program REU document/session/history/clipboard or live handoff. Ordinary `.s64` files and canonical disk configuration are the only shared persisted interfaces. Private overlays in Editor remain allowed where required by current memory fit.
+- No cross-program REU document/session/history/clipboard or live handoff. Ordinary `.8tml` files and canonical disk configuration are the shared persisted interfaces. Private overlays in Editor remain allowed where required by current memory fit.
 - The existing launcher still verifies/preloads unused Publisher and Settings module images as part of its established bootstrap. **Do not remove or alter its module manifest/preload semantics without source tracing, complete package/fit/VICE checks and real-hardware entry/save/return validation.**
 - Keep existing Publisher and launcher ≥1,024-byte conventional-RAM headroom guards and Editor resident/overlay slot checks. Do not trade stack/BASIC-return safety for a few more features.
 
@@ -24,14 +24,14 @@ The following paths show the default SD build. `make -B -C client STORAGE_ROOT=/
     S64WEB.PRG         # optional read-only Browser
     S64EDIT.PRG / *.BIN / manifests    # internal matching Editor assets
     SEE64YOU.CFG       # canonical persisted settings
-    *.S64              # editable source and new downloads
+    *.8tml             # editable source and new downloads
     SEE64YOU.REC       # durable Editor recovery snapshot
     S64JRN0.DAT / S64JRN1.DAT     # journal slots
     S64OLD0.DAT / S64OLD1.DAT     # verified retired root backups, when migrated
     S64CHK*.TMP and save temporary files # narrowly scoped probes/writes
 ```
 
-- Bare source filenames resolve inside this folder. Explicit `/sd/NAME.S64` opens older SD-root source; Save retains that origin. Save As with a *new bare name* creates a folder copy. Same-name root/folder files must never be substituted. Failure/corruption is an error, not a reason to silently fall back.
+- Bare source filenames resolve inside this folder. Explicit `/sd/NAME.8tml` opens that exact source; Save retains its origin. Save As with a *new bare name* creates a folder copy. Same-name root/folder files must never be substituted. Failure/corruption is an error, not a reason to silently fall back.
 - Editor document/autosave I/O owns Ultimate-DOS target `$02`; launcher/journal I/O owns `$01`. Each establishes its own directory context and closes files before conflicting journal activity. Publisher reestablishes the folder for loading/saving.
 - Publisher downloads source only to a **new** filename and refuses existing-file collision. Save As obeys the second existence check. Do not remove recoverable completed `filename.tmp` after rename failure.
 - Configuration writes validate the temporary record **before** replacing the old destination and validate final readback afterward. Config reads reject trailing as well as truncated/corrupt data. The current delete-then-rename replacement isn't fully atomic: final rename can leave destination absent and completed temp recoverable; never promise both old and new copies survive a failure.

@@ -4,6 +4,9 @@
 #include "workspace.h"
 #include "charset.h"
 #include "platform/network.h"
+#ifdef S64_INDEPENDENT_PUBLISHER
+#include "publisher/source_json.h"
+#endif
 
 #ifdef S64_PERSISTENT_RUNTIME_FIT
 #include "publisher/persistent_services.h"
@@ -44,6 +47,9 @@ extern uint8_t s64_direct_key_ready;
 static S64NetTransport network;
 static uint8_t socket_handle;
 static uint16_t status_code;
+#ifdef S64_INDEPENDENT_PUBLISHER
+static S64DocumentStatus source_status;
+#endif
 
 typedef int (*BodyWriter)(S64DocumentSink sink, void* context, const void* source);
 typedef struct {
@@ -116,11 +122,18 @@ static uint8_t append_decimal(
 static uint8_t build_content_header(uint32_t body_length, uint8_t document_body)
 {
     uint16_t length = 0u;
+#ifdef S64_INDEPENDENT_PUBLISHER
+    (void)document_body;
+#endif
     line[0] = 0;
     return append_text_bounded(line, LINE_CAPACITY, &length, "Content-Type: ")
         && append_text_bounded(
             line, LINE_CAPACITY, &length,
+#ifdef S64_INDEPENDENT_PUBLISHER
+            "application/json")
+#else
             document_body ? "application/x-see64you" : "application/json")
+#endif
         && append_text_bounded(line, LINE_CAPACITY, &length, "\r\nContent-Length: ")
         && append_decimal(line, LINE_CAPACITY, &length, body_length)
         && append_text_bounded(line, LINE_CAPACITY, &length, "\r\n");
@@ -206,6 +219,12 @@ static uint8_t read_reply(const uint8_t* data, uint16_t length, void* context)
         } else if (equal_ci(line, "Transfer-Encoding:", 18)) {
             /* HTTP/1.0 requests ask for a close-delimited/non-chunked response. */
             goto fail;
+#ifdef S64_INDEPENDENT_PUBLISHER
+        } else if (equal_ci(line, "X-See64You-Status:", 18)) {
+            if (source_status || line[18] != ' '
+                || !s64_document_status_from_name(line + 19, &source_status))
+                goto fail;
+#endif
         }
         reply->line_length = 0;
     }
@@ -248,6 +267,9 @@ static S64StandaloneResult exchange(const char* method, const char* path,
     memset(&reply, 0, sizeof(reply));
     reply.sink = sink; reply.context = context;
     status_code = 0; text_length = 0; reply_text[0] = 0;
+#ifdef S64_INDEPENDENT_PUBLISHER
+    source_status = 0;
+#endif
     if (!send_text(method) || !send_text(" ") || !send_text(path)
         || !send_text(" HTTP/1.0\r\nHost: ") || !send_text(host)
         || !send_text("\r\nConnection: close\r\n")) goto cleanup;
@@ -371,7 +393,11 @@ cleanup:
 
 static int write_document(S64DocumentSink sink, void* context, const void* source)
 {
+#ifdef S64_INDEPENDENT_PUBLISHER
+    return s64_source_write_json((const S64Document*)source, sink, context) == S64_DOCUMENT_OK;
+#else
     return s64_document_write_wire((const S64Document*)source, sink, context) == S64_DOCUMENT_OK;
+#endif
 }
 
 static S64StandaloneResult ack_result(S64StandaloneResult result)
@@ -439,7 +465,11 @@ S64StandaloneResult s64_direct_list_summary(
     if (!append_text_bounded(reply_text, REPLY_TEXT_CAPACITY, &url_length, url)
         || !append_text_bounded(
             reply_text, REPLY_TEXT_CAPACITY, &url_length,
+#ifdef S64_INDEPENDENT_PUBLISHER
+            "&source=8tml&format=summary&offset=")
+#else
             "&format=summary&offset=")
+#endif
         || !append_decimal(
             reply_text, REPLY_TEXT_CAPACITY, &url_length, index)) {
         return S64_STANDALONE_INVALID_ARGUMENT;
@@ -573,6 +603,12 @@ S64StandaloneResult s64_standalone_open_document(S64HttpTransport* transport,
     if (result == S64_STANDALONE_OK && (!reply.started
         || s64_document_wire_reader_finish(&reply.reader) != S64_DOCUMENT_OK))
         return S64_STANDALONE_PROTOCOL_ERROR;
+#ifdef S64_INDEPENDENT_PUBLISHER
+    if (result == S64_STANDALONE_OK) {
+        if (!source_status) return S64_STANDALONE_PROTOCOL_ERROR;
+        document->status = source_status;
+    }
+#endif
     return result;
 }
 

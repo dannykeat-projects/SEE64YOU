@@ -18,6 +18,7 @@ php site/tests/run.php
 php site/tests/browser.php
 php site/tests/eighttml.php
 python3 site/tests/eighttml_http.py
+python3 tools/test_publisher_8tml.py
 
 echo "== Standalone package tests =="
 php tools/tests/package_site_test.php

@@ -1,11 +1,11 @@
 #include "storage/local.h"
-#ifdef S64_INDEPENDENT_EDITOR
+#ifdef S64_DOCUMENT_8TML
 #include "charset.h"
 #endif
 
 #include <string.h>
 
-#ifdef S64_INDEPENDENT_EDITOR
+#ifdef S64_DOCUMENT_8TML
 #define SOURCE_EXTENSION ".8tml"
 #else
 #define SOURCE_EXTENSION ".s64"
@@ -47,7 +47,7 @@ static uint8_t filename_copy(char* destination, const char* filename, uint8_t ad
             strcpy(destination + length, SOURCE_EXTENSION);
         }
     }
-#ifdef S64_INDEPENDENT_EDITOR
+#ifdef S64_DOCUMENT_8TML
     /* Enforce the new-source suffix while allowing Open of retained .tmp files. */
     if (add_extension) {
         const char* extension = SOURCE_EXTENSION;
@@ -87,7 +87,7 @@ static uint8_t write_sink(const uint8_t* data, uint16_t length, void* context)
     return sink->result == S64_DOS_OK;
 }
 
-#ifndef S64_INDEPENDENT_EDITOR
+#ifndef S64_DOCUMENT_8TML
 static uint8_t default_metadata(S64Document* document, const char* filename)
 {
     const char* base = filename;
@@ -353,7 +353,7 @@ static S64LocalResult save_named(
         return S64_LOCAL_EXISTS;
     }
 
-#ifndef S64_INDEPENDENT_EDITOR
+#ifndef S64_DOCUMENT_8TML
     if (!default_metadata(local->document, checked_filename)) {
         return S64_LOCAL_INVALID_DOCUMENT;
     }
