@@ -48,7 +48,7 @@ static uint16_t status_code;
 typedef int (*BodyWriter)(S64DocumentSink sink, void* context, const void* source);
 typedef struct {
     S64Sha256 sha;
-    uint16_t length;
+    uint32_t length;
 } BodyHash;
 /* Offset 256 also preserves host SHA context alignment. */
 #define body_hash (*(BodyHash*)&s64_publisher_workspace.bytes[256])
@@ -95,25 +95,25 @@ static uint8_t append_text_bounded(
     return 1u;
 }
 
-static uint8_t append_u16_decimal(
-    char* output, uint16_t capacity, uint16_t* length, uint16_t value)
+static uint8_t append_decimal(
+    char* output, uint16_t capacity, uint16_t* length, uint32_t value)
 {
-    char digits[5];
+    /* Requests are synchronous; keep conversion scratch off the cc65 stack. */
+    static char digits[10];
     uint8_t count = 0u;
     do {
         digits[count++] = (char)('0' + (value % 10u));
         value /= 10u;
     } while (value != 0u);
+    if (*length + count >= capacity) return 0u;
     while (count != 0u) {
-        char digit[2];
-        digit[0] = digits[--count];
-        digit[1] = 0;
-        if (!append_text_bounded(output, capacity, length, digit)) return 0u;
+        output[(*length)++] = digits[--count];
     }
+    output[*length] = 0;
     return 1u;
 }
 
-static uint8_t build_content_header(uint16_t body_length, uint8_t document_body)
+static uint8_t build_content_header(uint32_t body_length, uint8_t document_body)
 {
     uint16_t length = 0u;
     line[0] = 0;
@@ -122,7 +122,7 @@ static uint8_t build_content_header(uint16_t body_length, uint8_t document_body)
             line, LINE_CAPACITY, &length,
             document_body ? "application/x-see64you" : "application/json")
         && append_text_bounded(line, LINE_CAPACITY, &length, "\r\nContent-Length: ")
-        && append_u16_decimal(line, LINE_CAPACITY, &length, body_length)
+        && append_decimal(line, LINE_CAPACITY, &length, body_length)
         && append_text_bounded(line, LINE_CAPACITY, &length, "\r\n");
 }
 
@@ -236,7 +236,7 @@ static uint8_t send_body(const uint8_t* data, uint16_t length, void* context)
 }
 
 static S64StandaloneResult exchange(const char* method, const char* path,
-    const char* challenge, const char* signature, uint16_t body_length,
+    const char* challenge, const char* signature, uint32_t body_length,
     BodyWriter writer, const void* source, S64UciDataSink sink, void* context)
 {
     Reply reply;
@@ -283,7 +283,8 @@ cleanup:
 static uint8_t hash_body(const uint8_t* data, uint16_t length, void* context)
 {
     BodyHash* hash = (BodyHash*)context;
-    if (length > (uint16_t)(65535u - hash->length)) return 0;
+    /* Escaping a full source for JSON can exceed one 16-bit byte count. */
+    if ((uint32_t)length > UINT32_MAX - hash->length) return 0;
     hash->length += length;
     s64_sha256_update(&hash->sha, data, length);
     return 1;
@@ -401,7 +402,7 @@ S64StandaloneResult s64_persistent_standalone_list_stage(
         || !append_text_bounded(
             reply_text, REPLY_TEXT_CAPACITY, &url_length,
             "&format=summary&offset=")
-        || !append_u16_decimal(
+        || !append_decimal(
             reply_text, REPLY_TEXT_CAPACITY, &url_length, index)) {
         return S64_STANDALONE_INVALID_ARGUMENT;
     }
@@ -439,7 +440,7 @@ S64StandaloneResult s64_direct_list_summary(
         || !append_text_bounded(
             reply_text, REPLY_TEXT_CAPACITY, &url_length,
             "&format=summary&offset=")
-        || !append_u16_decimal(
+        || !append_decimal(
             reply_text, REPLY_TEXT_CAPACITY, &url_length, index)) {
         return S64_STANDALONE_INVALID_ARGUMENT;
     }

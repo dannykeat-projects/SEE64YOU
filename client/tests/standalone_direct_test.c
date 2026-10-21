@@ -7,13 +7,18 @@
 #include "publisher/direct_auth.h"
 #include "publisher/workspace.h"
 
+/* Exercise the private streaming request with bodies larger than a disk source. */
+#include "../src/publisher/standalone_direct.c"
+
 static const char test_key[] =
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 static const char challenge[] = "0123456789abcdef0123456789abcdef";
-static char sent[8192], response[8192], wire[6000];
+static char sent[125000], response[8192], wire[6000];
 static unsigned int sent_length, response_offset, response_length, wire_length;
 static unsigned int opens, closes, signed_requests;
 static unsigned int failure_mode, empty_read;
+static uint8_t large_body_mode;
+static uint32_t large_body_length;
 
 static void status(S64UciReply* reply, const char* value)
 {
@@ -41,16 +46,28 @@ static void make_response(void)
         header = strstr(sent, "\r\nX-See64You-Signature: "); assert(header);
         assert(s64_direct_key_parse(test_key, key));
         s64_sha256_init(&sha);
-        s64_sha256_update(&sha, (const uint8_t*)body, (uint16_t)strlen(body));
+        {
+            size_t offset = 0, length = strlen(body);
+            while (offset < length) {
+                uint16_t chunk = length - offset > 1024u ? 1024u : (uint16_t)(length - offset);
+                s64_sha256_update(&sha, (const uint8_t*)body + offset, chunk);
+                offset += chunk;
+            }
+        }
         s64_sha256_final(&sha, digest);
         assert(s64_direct_sign(key, challenge, method, path, digest, signature));
         assert(memcmp(header + strlen("\r\nX-See64You-Signature: "), signature, 64) == 0);
         if (strcmp(method, "POST") == 0) {
-            unsigned int length;
+            unsigned long length;
             header = strstr(sent, "Content-Length: "); assert(header);
-            assert(sscanf(header, "Content-Length: %u", &length) == 1);
+            assert(sscanf(header, "Content-Length: %lu", &length) == 1);
             assert(length == strlen(body));
-            if (strstr(path, "action=save")) {
+            if (large_body_mode) {
+                size_t i;
+                assert(length == large_body_length);
+                assert(strstr(sent, "Content-Type: application/json\r\n"));
+                for (i = 0; i < length; ++i) assert(body[i] == (char)('a' + i % 26u));
+            } else if (strstr(path, "action=save")) {
                 assert(strstr(sent, "Content-Type: application/x-see64you\r\n"));
                 assert(strcmp(body, wire) == 0);
             } else {
@@ -118,6 +135,20 @@ static uint8_t collect_wire(const uint8_t* data, uint16_t length, void* context)
     return 1;
 }
 
+static int write_large_body(S64DocumentSink sink, void* context, const void* source)
+{
+    uint8_t chunk[257];
+    uint32_t offset = 0, length = *(const uint32_t*)source;
+    while (offset < length) {
+        uint16_t i, amount = length - offset > sizeof(chunk)
+            ? sizeof(chunk) : (uint16_t)(length - offset);
+        for (i = 0; i < amount; ++i) chunk[i] = (uint8_t)('a' + (offset + i) % 26u);
+        if (!sink(chunk, amount, context)) return 0;
+        offset += amount;
+    }
+    return 1;
+}
+
 int main(void)
 {
     S64HttpTransport transport;
@@ -151,6 +182,30 @@ int main(void)
     assert(s64_document_write_wire(&document, collect_wire, 0) == S64_DOCUMENT_OK);
     assert(s64_standalone_save_document(&transport, "http://example.com/api.php?action=save&ack=1", 1,
         &session, &document) == S64_STANDALONE_OK);
+    large_body_mode = 1;
+    {
+        static const uint32_t lengths[] = {0u, 65534u, 65535u, 65536u, 122880u, 122881u};
+        for (i = 0; i < sizeof(lengths) / sizeof(lengths[0]); ++i) {
+            large_body_length = lengths[i];
+            assert(request(&transport, "http://example.com/api.php?action=save&ack=1", 1,
+                "POST", write_large_body, &large_body_length, collect_text, 0, 0) == S64_STANDALONE_OK);
+        }
+    }
+    large_body_mode = 0;
+    assert(build_content_header(UINT32_MAX, 0));
+    assert(strstr(line, "Content-Length: 4294967295\r\n"));
+    body_hash.length = UINT32_MAX;
+    assert(!hash_body((const uint8_t*)"x", 1u, &body_hash));
+    assert(body_hash.length == UINT32_MAX);
+    {
+        char decimal[11];
+        uint16_t length = 0;
+        assert(append_decimal(decimal, sizeof(decimal), &length, UINT32_MAX));
+        assert(strcmp(decimal, "4294967295") == 0);
+        length = 0;
+        assert(!append_decimal(decimal, sizeof(decimal) - 1u, &length, UINT32_MAX));
+        assert(length == 0);
+    }
     s64_buffer_init(&reopened); s64_document_init(&loaded, &reopened);
     assert(s64_standalone_open_document(&transport, "http://example.com/api.php?action=get&type=page&slug=test-page&format=s64",
         1, &session, &loaded) == S64_STANDALONE_OK);
@@ -179,7 +234,7 @@ int main(void)
     assert(!s64_direct_publisher_key(""));
     assert(s64_direct_publisher_test(&transport, "http://example.com/api.php?action=login", 1) == S64_STANDALONE_AUTH_FAILED);
     assert(opens == before);
-    assert(opens == closes && signed_requests == 10);
+    assert(opens == closes && signed_requests == 16);
     puts("standalone direct tests passed");
     return 0;
 }

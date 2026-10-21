@@ -22,6 +22,8 @@ Both arguments are optional: without them, the script runs strict host codec/loc
 
 The migration package builds all eleven files and both manifests, but native Publisher/Browser still implement the historical format. The PHP service above additionally accepts 8TML; the native clients do not yet use it. Do not use the package as an end-to-end 8TML release.
 
+The host firmware-1.1 direct Publisher test in `tools/validate.sh` also exercises the private request streamer with synthetic bodies at 0, 65,534, 65,535, 65,536, 122,880 and 122,881 bytes. It checks complete payloads, HMAC and Content-Length across the old 16-bit boundary, maximum decimal formatting and overflow refusal, alongside existing legacy-format/authentication/error regressions. This verifies transport counting, not native 8TML JSON serialization or real-network acceptance.
+
 For storage-root regressions, run `python3 tools/test_storage_paths.py`. It exercises preflight, temporary-file cleanup, document origin, independent DOS contexts and journals with SD-only and USB-only mock namespaces, each in ordinary and Launcher mode, then configuration persistence and journal migration on both roots. Build an actual USB-root package with `make -B -C client STORAGE_ROOT=/Usb0/ independent-package`; select the actual mount and include its trailing slash. Always force the whole build when changing roots so cached binaries cannot retain another device. All existing memory/manifest guards apply. The hardware harness below currently targets the default `/sd/SEE64YOU/` installation; it does not certify a USB-only machine.
 
 With explicit authorization for hardware/file changes, the automated hardware check requires idle BASIC with no program and reserved fixture names absent:
