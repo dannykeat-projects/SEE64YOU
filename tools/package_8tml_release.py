@@ -25,7 +25,10 @@ def digest(data):
 
 
 def committed_source():
-    for command in (("git", "diff", "--exit-code"), ("git", "diff", "--cached", "--exit-code")):
+    # Match the Windows checkout's Git text normalization under WSL. Explicit
+    # binary attributes still apply; do not ignore content or whitespace changes.
+    git = ("git", "-c", "core.autocrlf=true")
+    for command in (git + ("diff", "--exit-code"), git + ("diff", "--cached", "--exit-code")):
         subprocess.run(command, cwd=ROOT, check=True, stdout=subprocess.DEVNULL)
     return capture("git", "rev-parse", "HEAD")
 
