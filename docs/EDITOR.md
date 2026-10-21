@@ -1,5 +1,7 @@
 # Editor design
 
+The current 8TML Editor uses the existing 61,440-byte REU gap buffer and 16-level history. Broader design goals below are historical context, not an active implementation queue; `todo.md` owns current scope. See the [8TML Editor preview guide](releases/v0.2.0-alpha.1.md) for installation and tested/pending acceptance.
+
 See64You should feel like a small desktop text editor running on a Commodore 64 Ultimate, not like a command-line editor or an original-C64 memory demo.
 
 The 40x25 text interface remains deliberate. The implementation behind it is free to use the C64U's 16 MiB REU, turbo, Ultimate-DOS and other validated platform features.
@@ -22,7 +24,7 @@ The exact menu presentation can evolve through hardware testing, but normal edit
 
 ## Input model
 
-Modern USB keyboard users are first-class:
+The native C64 keyboard is the acceptance baseline. Existing USB-keyboard bindings are retained, but physical USB-keyboard acceptance remains pending. Current bindings include:
 
 - arrows: cursor movement;
 - Shift+arrows where distinguishable: selection extension;
@@ -35,7 +37,7 @@ Modern USB keyboard users are first-class:
 
 The C64U's native C64 keyboard remains fully usable. Where the C64 keyboard matrix cannot express a PC-style chord cleanly, See64You provides a C64-native equivalent such as MARK mode or function-key commands.
 
-The requirement is not “behave like an original C64”; it is “make both physical input styles intuitive on C64U”.
+Distinguish implemented bindings from physical-keyboard acceptance; automated key injection does not certify either physical input style.
 
 ## Current reliable selection controls
 
@@ -159,7 +161,7 @@ As document positions grow, search/navigation APIs must stop assuming 16-bit pos
 
 ## Markup
 
-See64You remains source-oriented. Formatting commands insert/remove the frozen See64You Markup v1 syntax from MARKUP.md.
+See64You remains source-oriented. The independent Editor retains complete 8TML 1 source, including its editable header and unknown markup. Existing formatting commands insert/remove the matching literal 8TML syntax; they do not render a page or rewrite metadata. The historical Markup v1 guide does not define the new file format.
 
 Supported source conveniences include:
 

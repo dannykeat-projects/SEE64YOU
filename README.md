@@ -12,6 +12,8 @@ The independent Publisher now loads `.8tml`, streams authenticated JSON source t
 
 See [migration and acceptance criteria](docs/8TML-MIGRATION.md) and the [authoritative work queue](todo.md).
 
+The [v0.2.0-alpha.1 Editor preview guide](docs/releases/v0.2.0-alpha.1.md) covers offline editing, the separate SD/USB0 packages and remaining acceptance limits. The current SD build passed another restored real-C64U Editor/storage run on 22 October 2026; physical-keyboard and cold-power gates remain pending.
+
 ## Development Publisher workflow
 
 Use the matching development PHP service and client package; do not replace historical alpha release assets. Configure the site and provision its dedicated direct key using the existing HTTPS pairing flow. In `S64CFG.PRG`, configure the site/key, explicitly enable **plain HTTP consent**, and save. HMAC authenticates requests but does not encrypt content. The current direct client requires `http://` on port 80 and rejects an explicit `:8080` (or other port) in the URL; the reported Settings/Publisher disagreement is tracked in `todo.md`.

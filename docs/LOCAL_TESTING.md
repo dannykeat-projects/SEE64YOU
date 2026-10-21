@@ -134,6 +134,18 @@ The runner checks public home/page/archive/post navigation, paging, delay/cancel
 
 ## 7. Existing evidence and remaining gaps
 
+### 8TML Editor preview distribution (22 October 2026)
+
+The user authorised an Editor-focused alpha release. A fresh current-SD hardware run at `client/build/8tml-hardware-20261022-release-a/state.json` records `restored=true`, `active=false`, `dos_context_restored=true` and no failure: all 38 originals, configuration, DOS contexts and machine baseline verified. Editor create/save, recovery reopen/edit/resave and native invalid-input/write/rename/collision/recovery checks passed; three actual outputs passed the supplied validator with zero errors/warnings. This remains REST keyboard-buffer injection, not physical-keyboard/cold-power evidence. No shipping Editor code blocker was found by the bounded audit.
+
+From a clean committed source tree, create fresh output using:
+
+```sh
+python3 tools/package_8tml_release.py --version v0.2.0-alpha.1 --output client/build/release-v0.2.0-alpha.1 --hardware-receipt client/build/8tml-hardware-20261022-release-a/state.json
+```
+
+The packager force-builds and validates all eleven files/manifests for `/Usb0/` and `/sd/`, leaves the default SD build selected, and refuses SD payloads differing from the hardware receipt. ZIPs include the source commit/toolchain/storage root, per-file checksums and release guide. PHP packaging uses tracked sources only, excluding local configuration, runtime data and tests. Archives are read back for exact entries/bytes and integrity; release `SHA256SUMS` covers all three ZIPs. Publish a distinct prerelease/tag only after these checks, then download uploaded assets and independently verify hashes/integrity. Preserve every historical release/tag/asset. Physical-keyboard, cold-power, USB-only and new Publisher hardware acceptance remain open; an alpha is not a passed beta gate.
+
 ### Early-alpha distribution (2026-10-20)
 
 The user explicitly authorised `v0.1.0-alpha.1` as an experimental GitHub
