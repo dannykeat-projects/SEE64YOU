@@ -5,6 +5,7 @@ final class S64DirectAuth
 {
     private const VERSION = 'see64you-direct/1';
     private const CHALLENGE_TTL = 300;
+    private const MAX_PENDING_CHALLENGES = 128;
 
     public function __construct(
         private readonly array $config,
@@ -27,18 +28,37 @@ final class S64DirectAuth
         }
 
         $this->ensureStorage();
-        $challenge = bin2hex(random_bytes(16));
-        $expires = time() + self::CHALLENGE_TTL;
-        $path = $this->challengePath($challenge);
+        /* Bound unredeemed challenge files even when clients never authenticate.
+         * Serialize issuance so concurrent requests cannot exceed the limit. */
+        $lock = @fopen($this->storagePath . '/.challenge-issue.lock', 'c');
+        if ($lock === false) throw new RuntimeException('direct_auth_storage_failed');
+        try {
+            if (!flock($lock, LOCK_EX)) throw new RuntimeException('direct_auth_storage_failed');
+            $pending = 0;
+            foreach (glob($this->storagePath . '/challenge-*') ?: [] as $path) {
+                $stored = @file_get_contents($path);
+                if ($stored === false) continue; // A concurrent verifier may remove it.
+                $stored = trim($stored);
+                if (!ctype_digit($stored) || (int)$stored < time()) {
+                    @unlink($path);
+                } else {
+                    ++$pending;
+                }
+            }
+            if ($pending >= self::MAX_PENDING_CHALLENGES) {
+                throw new RuntimeException('direct_auth_busy');
+            }
 
-        if (file_put_contents($path, (string)$expires, LOCK_EX) === false) {
-            throw new RuntimeException('direct_auth_storage_failed');
+            $challenge = bin2hex(random_bytes(16));
+            $expires = time() + self::CHALLENGE_TTL;
+            if (file_put_contents($this->challengePath($challenge), (string)$expires, LOCK_EX) === false) {
+                throw new RuntimeException('direct_auth_storage_failed');
+            }
+            return ['challenge' => $challenge, 'expires' => $expires];
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
         }
-
-        return [
-            'challenge' => $challenge,
-            'expires' => $expires,
-        ];
     }
 
     public function verify(
@@ -62,8 +82,6 @@ final class S64DirectAuth
 
         $consume = false;
 
-        $consume = false;
-
         try {
             if (!flock($handle, LOCK_EX)) {
                 return false;
@@ -75,7 +93,6 @@ final class S64DirectAuth
                 return false;
             }
             if ((int)$stored < time()) {
-                $consume = true;
                 $consume = true;
                 ftruncate($handle, 0);
                 rewind($handle);
