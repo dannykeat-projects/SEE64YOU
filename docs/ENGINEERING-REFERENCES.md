@@ -11,6 +11,8 @@ External software is **reference material**, not a new SEE64YOU workstream. Do n
 - [JC-000/c64-test-harness](https://github.com/JC-000/c64-test-harness) and [barryw/vice-mcp](https://github.com/barryw/vice-mcp) can help automate focused emulator/real-hardware acceptance **outside** production runtime. Adoption is optional; the current repo already has accepted harnesses.
 - [barryw/sim6502](https://github.com/barryw/sim6502), [xlar54/ultimateii-dos-lib](https://github.com/xlar54/ultimateii-dos-lib), and [JC-000/c64-https](https://github.com/JC-000/c64-https) are engineering research references only. Do not add GPL library code into shipping clients without an explicit licensing decision.
 
+- [Ultimate USB FTP corruption, issue #803](https://github.com/GideonZ/1541ultimate/issues/803), reviewed 22 October 2026: Gideon reports fixing unaligned USB DMA reads in the FPGA on 2 September. Our firmware-1.1.0/FPGA-122 machine reproduces USB-only FTP corruption while SD is exact; two 700-byte/20-ms paced disposable USB transfers pass. Likely related, not an independently proven root cause. Keep readback verification; do not treat smaller unpaced chunks as sufficient or assume a release contains the fix without checking its FPGA image. No firmware/source import or flash performed.
+
 ## Alternatives evaluated for product scope
 
 | Project | Relevant lesson | Why no wholesale replacement now |
