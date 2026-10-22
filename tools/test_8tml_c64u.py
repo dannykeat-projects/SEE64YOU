@@ -18,7 +18,6 @@ import urllib.parse
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
-FOLDER = "/sd/SEE64YOU"
 FILES = {"SEE64YOU.PRG", "S64EDIT.PRG", "S64PUB.PRG", "S64CFG.PRG", "S64WEB.PRG",
          "S64FILE.BIN", "S64MODEL.BIN", "S64PREP.BIN", "S64RUN.BIN", "S64MODULE.MNF", "S64OVL.MNF"}
 EMPTY = b"---\n8tml: 1\ntitle: Untitled\n---\n"
@@ -27,7 +26,18 @@ SOURCE = (b"---\r\n8tml: 1\r\ntitle: Hardware source\r\nX-Future:  Keep : CASE  
           b":::future data\r\nopaque\ttext\r\n:::\r\n")
 
 
-def build_probe(out):
+def native(text):
+    return bytes(c - 32 if 97 <= c <= 122 else c + 128 if 65 <= c <= 90 else c
+                 for c in text.encode("ascii"))
+
+
+def storage_root(text):
+    if not re.fullmatch(r"/[A-Za-z0-9][A-Za-z0-9_-]*/", text):
+        raise argparse.ArgumentTypeError("Use one absolute volume with a trailing slash, e.g. /sd/ or /USB1/")
+    return text
+
+
+def build_probe(out, selected_root):
     sources = ["diagnostics/8tml_storage_probe.c", "src/buffer_reu.c", "src/document.c",
                "src/charset.c", "src/storage/local.c", "src/platform/dos.c", "src/platform/uci.c",
                "src/platform/reu.c", "src/platform/reu_dma.s", "src/platform/basic_workspace_reset.s"]
@@ -36,6 +46,7 @@ def build_probe(out):
         obj = out / f"probe-{index}.o"
         subprocess.run(["cl65", "-t", "c64", "-Os", "-I", str(ROOT / "client/src"),
                         "-DS64_REU_BUFFER=1", "-DS64_NATIVE_PETSCII=1", "-DS64_INDEPENDENT_EDITOR=1",
+                        '-DS64_STORAGE_ROOT_DIRECTORY="' + selected_root + '"',
                         "-c", "-o", str(obj), str(ROOT / "client" / source)], check=True)
         objects.append(str(obj))
     prg = out / "T8PROBE.PRG"
@@ -50,10 +61,14 @@ def main():
     parser.add_argument("--host", required=True)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--reference-tools", type=Path, help="Optional external specs/tools directory")
+    parser.add_argument("--storage-root", type=storage_root, default="/sd/")
+    parser.add_argument("--package-dir", type=Path, default=ROOT / "client/build/independent-package/SEE64YOU")
     args = parser.parse_args()
     out = args.output.resolve()
     out.mkdir(parents=True, exist_ok=False)
-    package = ROOT / "client/build/independent-package/SEE64YOU"
+    package = args.package_dir.resolve()
+    volume = args.storage_root.rstrip("/")
+    folder = args.storage_root + "SEE64YOU"
     assert {p.name for p in package.iterdir() if p.is_file()} == FILES
     for script, manifest in (("generate_module_manifest.py", "S64MODULE.MNF"),
                              ("generate_code_asset_manifest.py", "S64OVL.MNF")):
@@ -61,10 +76,13 @@ def main():
         subprocess.run(["python3", str(ROOT / "tools" / script), str(package), *extra,
                         "--validate", str(package / manifest)], check=True)
     candidate = {p.name: p.read_bytes() for p in package.iterdir() if p.is_file()}
-    candidate["T8PROBE.PRG"] = build_probe(out)
+    assert native(folder + "/") + b"\0" in candidate["SEE64YOU.PRG"], \
+        "Launcher storage root differs from requested test volume"
+    candidate["T8PROBE.PRG"] = build_probe(out, args.storage_root)
     state = {"commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
              "active": False, "restored": False, "tests": [], "input": "REST keyboard-buffer injection",
              "physical_keyboard": False, "cold_power_cycle": False,
+             "storage_root": args.storage_root, "folder": folder, "created_folder": False,
              "test_source_sha256": {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
                  for name in ("client/diagnostics/8tml_storage_probe.c", "tools/test_8tml_c64u.py")},
              "package_sha256": {n: hashlib.sha256(b).hexdigest() for n, b in candidate.items()}}
@@ -105,10 +123,6 @@ def main():
             api("machine:writemem", "PUT", address="0277", data=chunk.hex())
             api("machine:writemem", "PUT", address="00C6", data=bytes([len(chunk)]).hex())
             time.sleep(.25)
-
-    def native(text):
-        return bytes(c - 32 if 97 <= c <= 122 else c + 128 if 65 <= c <= 90 else c
-                     for c in text.encode("ascii"))
 
     def wait(expected, label, timeout=70):
         deadline = time.monotonic() + timeout
@@ -165,7 +179,16 @@ def main():
 
     def put(path, data):
         ftp.storbinary("STOR " + path, io.BytesIO(data))
-        assert fetch(path) == data, "SD write/readback mismatch: " + path
+        actual = fetch(path)
+        if actual != data:
+            (out / "write-mismatch-expected.bin").write_bytes(data)
+            (out / "write-mismatch-actual.bin").write_bytes(actual)
+            state["write_mismatch"] = {"path": path, "expected_bytes": len(data),
+                                       "actual_bytes": len(actual),
+                                       "expected_sha256": hashlib.sha256(data).hexdigest(),
+                                       "actual_sha256": hashlib.sha256(actual).hexdigest()}
+            save()
+            raise AssertionError("Storage write/readback mismatch: " + path)
 
     def inventory(directory):
         files = {}
@@ -182,10 +205,27 @@ def main():
                 files.update(inventory(path))
         return files
 
-    root_names = sorted(ftp.nlst("/sd"))
+    root_names = sorted(ftp.nlst(volume))
     assert not any(p.rstrip("/").rsplit("/", 1)[-1].upper() in
                    ("S64JRN0.DAT", "S64JRN1.DAT", "SEE64YOU.CFG") for p in root_names), "Legacy root state blocks isolation"
-    originals = inventory(FOLDER)
+    folder_existed = any(path.rstrip("/").rsplit("/", 1)[-1].upper() == "SEE64YOU" for path in root_names)
+    originals = inventory(folder) if folder_existed else {}
+    state["folder_existed"] = folder_existed
+    protected_sd = None
+    protected_sd_roots = None
+    protected_sd_folder_existed = False
+    if args.storage_root.lower() != "/sd/":
+        volumes = ftp.nlst("/")
+        if any(path.rstrip("/").rsplit("/", 1)[-1].lower() == "sd" for path in volumes):
+            protected_sd_roots = sorted(ftp.nlst("/sd"))
+            protected_sd_folder_existed = any(
+                path.rstrip("/").rsplit("/", 1)[-1].upper() == "SEE64YOU" for path in protected_sd_roots)
+            if protected_sd_folder_existed:
+                protected_sd = inventory("/sd/SEE64YOU")
+            else:
+                protected_sd = {}
+            state["protected_sd_sha256"] = {path: hashlib.sha256(data).hexdigest()
+                                             for path, data in protected_sd.items()}
     reserved = set(candidate) | {"T8EDIT.8tml", "T8EDIT2.8tml", "T8EMPTY.8tml", "T8IN.8tml",
                 "T8BAD.8tml", "T8COPY.8tml", "T8COPY.8tml.tmp", "T8RECOVER.8tml",
                 "x" * 28 + ".8tml"}
@@ -205,7 +245,7 @@ def main():
         basic("before-" + name)
         entry = re.search(b"\x9e([0-9]+)\x00", candidate[name][2:34])
         assert entry, "Missing BASIC SYS entry"
-        api("runners:load_prg", "PUT", file=FOLDER + "/" + name)
+        api("runners:load_prg", "PUT", file=folder + "/" + name)
         time.sleep(.6)
         setlive(53297, prior)
         state["active"] = True
@@ -232,8 +272,13 @@ def main():
     try:
         state["staged"] = True
         save()
+        if not folder_existed:
+            assert sorted(ftp.nlst(volume)) == root_names, "Target volume changed before staging"
+            ftp.mkd(folder)
+            state["created_folder"] = True
+            save()
         for name, data in candidate.items():
-            put(FOLDER + "/" + name, data)
+            put(folder + "/" + name, data)
         for path in originals:
             if path.rsplit("/", 1)[-1].upper() in ("SEE64YOU.REC", "SEE64YOU.REC.TMP"):
                 ftp.delete(path)
@@ -249,33 +294,33 @@ def main():
         launch("SEE64YOU.PRG", "FILE EDIT SEARCH FORMAT PUB")
         keys(native("Hardware 8TML.") + b"\r")
         save_exit("T8EDIT")
-        saved = fetch(FOLDER + "/T8EDIT.8tml")
+        saved = fetch(folder + "/T8EDIT.8tml")
         assert saved == EMPTY + b"Hardware 8TML.\n", repr(saved)
         (out / "editor-created.8tml").write_bytes(saved)
         mark("shipping-editor-create-body-save-basename-exact-source")
-        put(FOLDER + "/SEE64YOU.REC", saved)
+        put(folder + "/SEE64YOU.REC", saved)
         launch("SEE64YOU.PRG", "Recover autosave? Y/N")
         keys(b"Y")
         wait("Recovered autosave", "editor-recovered")
         keys(b"\x11" * 4 + native("Updated "))
         save_exit("T8EDIT2")
-        resaved = fetch(FOLDER + "/T8EDIT2.8tml")
+        resaved = fetch(folder + "/T8EDIT2.8tml")
         assert resaved == EMPTY + b"Updated Hardware 8TML.\n", repr(resaved)
         (out / "editor-recovered-edited.8tml").write_bytes(resaved)
         mark("shipping-editor-recovery-reopen-edit-save-exact-source")
-        put(FOLDER + "/T8IN.8tml", SOURCE)
-        put(FOLDER + "/T8BAD.8tml", EMPTY + b"bad\x80input")
+        put(folder + "/T8IN.8tml", SOURCE)
+        put(folder + "/T8BAD.8tml", EMPTY + b"bad\x80input")
         launch("T8PROBE.PRG", "C CAPTURE T TEST R RESTORE")
         keys(b"T")
-        wait("8TML SD TESTS PASSED", "native-storage-tests")
+        wait("8TML STORAGE TESTS PASSED", "native-storage-tests")
         exitcheck("native-storage-probe-exit")
         expected = SOURCE.replace(b"\r\n", b"\n") + b"Hardware edit.\n!"
-        assert fetch(FOLDER + "/T8COPY.8tml.tmp") == expected
-        assert fetch(FOLDER + "/T8RECOVER.8tml") == expected
-        assert fetch(FOLDER + "/T8EMPTY.8tml") == EMPTY
-        assert fetch(FOLDER + "/" + "x" * 28 + ".8tml") == EMPTY
-        assert fetch(FOLDER + "/T8IN.8tml") == SOURCE
-        assert fetch(FOLDER + "/T8BAD.8tml") == EMPTY + b"bad\x80input"
+        assert fetch(folder + "/T8COPY.8tml.tmp") == expected
+        assert fetch(folder + "/T8RECOVER.8tml") == expected
+        assert fetch(folder + "/T8EMPTY.8tml") == EMPTY
+        assert fetch(folder + "/" + "x" * 28 + ".8tml") == EMPTY
+        assert fetch(folder + "/T8IN.8tml") == SOURCE
+        assert fetch(folder + "/T8BAD.8tml") == EMPTY + b"bad\x80input"
         (out / "native-storage-recovered.8tml").write_bytes(expected)
         mark("native-real-DOS-open-edit-save-metadata-CRLF-empty-filename-limit-injected-fault-recovery")
         if args.reference_tools:
@@ -319,7 +364,7 @@ def main():
                 known_temporary = {name.upper() for name in reserved}
                 known_temporary.update((name + ".tmp").upper() for name in reserved)
                 known_temporary.update(("SEE64YOU.REC", "SEE64YOU.REC.TMP", "S64JRN0.DAT", "S64JRN1.DAT"))
-                current = inventory(FOLDER)
+                current = inventory(folder) if folder_existed or state["created_folder"] else {}
                 assert all(path in originals or path.rsplit("/", 1)[-1].upper() in known_temporary
                            for path in current), "Unexpected new file; preserve it for review"
                 for path in current:
@@ -327,8 +372,19 @@ def main():
                         ftp.delete(path)
                 for path, data in originals.items():
                     put(path, data)
-                assert inventory(FOLDER) == originals
-                assert sorted(ftp.nlst("/sd")) == root_names
+                assert (inventory(folder) if folder_existed or state["created_folder"] else {}) == originals
+                if state["created_folder"]:
+                    assert not state.get("dos_context_captured") or state.get("dos_context_restored"), \
+                        "Restore captured DOS contexts before removing test folder"
+                    ftp.cwd(volume)
+                    ftp.rmd(folder)
+                    state["created_folder_removed"] = True
+                assert sorted(ftp.nlst(volume)) == root_names
+                if protected_sd is not None:
+                    assert sorted(ftp.nlst("/sd")) == protected_sd_roots, "Protected SD root changed"
+                    current_sd = inventory("/sd/SEE64YOU") if protected_sd_folder_existed else {}
+                    assert current_sd == protected_sd, "Protected SD app folder changed"
+                    state["protected_sd_unchanged"] = True
                 setlive(53297, prior)
                 for address, value in zip((53280, 53281, 646), colours):
                     setlive(address, value)

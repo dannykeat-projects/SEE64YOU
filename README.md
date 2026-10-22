@@ -28,7 +28,7 @@ Choose the storage mount when building the complete package. For example:
 make -B -C client STORAGE_ROOT=/Usb0/ independent-package
 ```
 
-Replace `/Usb0/` with the actual USB mount shown by your Ultimate browser, including the final slash. Copy **all eleven files** from `client/build/independent-package/SEE64YOU/` into that device's `SEE64YOU` folder. `-B` rebuilds every program and both manifests with the same root. The default is `/sd/`; there is no automatic device search or cross-device fallback. Startup, document/configuration storage, asset loading and recovery journals all use the selected root. USB-root host/build checks pass; a real USB-only hardware run remains pending.
+Replace `/Usb0/` with the actual USB mount shown by your Ultimate browser, including the final slash. Copy **all eleven files** from `client/build/independent-package/SEE64YOU/` into that device's `SEE64YOU` folder. `-B` rebuilds every program and both manifests with the same root. The default is `/sd/`; there is no automatic device search or cross-device fallback. Startup, document/configuration storage, asset loading and recovery journals all use the selected root. USB-root host/build checks pass. The available drive mounts as `/USB1/`; its hardware test stopped during FTP staging because a program read back with different bytes, before execution. Cleanup and SD preservation passed; USB Editor acceptance remains pending. The published USB0 archive requires a matching `/Usb0/` mount; rebuild for other mount names.
 
 ## Repository layout
 

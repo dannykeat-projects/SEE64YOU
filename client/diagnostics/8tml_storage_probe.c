@@ -7,9 +7,10 @@
 #include "platform/dos.h"
 #include "platform/reu.h"
 #include "platform/uci.h"
+#include "platform/package_paths.h"
 #include "storage/local.h"
 
-/* Disposable SD fixtures only. The host harness backs up/restores the folder.
+/* Disposable selected-volume fixtures only. The harness backs up/restores the folder.
  * Faults intercept one DOS command; no media removal or machine reset. */
 static S64Dos dos;
 static S64Buffer body;
@@ -104,7 +105,7 @@ int main(void)
     CHECK(mode == 't', 32);
     CHECK(s64_reu_probe_banks() == 256u, 1);
     s64_dos_init(&dos, execute, S64_DOS_TARGET_SECONDARY);
-    CHECK(s64_dos_change_dir(&dos, "/sd/SEE64YOU/") == S64_DOS_OK, 2);
+    CHECK(s64_dos_change_dir(&dos, S64_PACKAGE_DIRECTORY) == S64_DOS_OK, 2);
     s64_buffer_init(&body);
     s64_document_init(&document, &body);
     s64_local_init(&local, &dos, &document);
@@ -142,6 +143,6 @@ int main(void)
     CHECK(s64_local_save_as(&local, boundary, 0u) == S64_LOCAL_OK, 25);
     CHECK(s64_local_open(&local, boundary, 1u) != S64_LOCAL_OK, 26);
     CHECK(s64_local_open(&local, local.filename, 1u) == S64_LOCAL_OK, 27);
-    cputs("8TML SD TESTS PASSED\r\n");
+    cputs("8TML STORAGE TESTS PASSED\r\n");
     return 0;
 }
