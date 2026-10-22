@@ -53,6 +53,7 @@ int main(void)
 {
     unsigned char i;
     unsigned char previous_row;
+    unsigned int screen_position;
 
     DIAG_PROGRESS = 0x01u;
     DIAG_RESULT = 0u;
@@ -115,6 +116,23 @@ int main(void)
             : editor.view_cursor_row
     );
     checkpoint(0x40u);
+
+    /* A modal Help screen must not survive below a short source document. */
+    s64_ui_show_help();
+    s64_ui_render(&editor);
+    for (screen_position = 5u * 40u; screen_position < 24u * 40u; ++screen_position) {
+        if ((*(volatile uint8_t*)(0x0400u + screen_position) & 0x7fu) != 0x20u) {
+            fail(6u);
+        }
+    }
+#ifdef S64_INDEPENDENT_EDITOR
+    for (screen_position = 35u; screen_position <= 37u; ++screen_position) {
+        if ((*(volatile uint8_t*)(0x0400u + screen_position) & 0x7fu) != 0x20u) {
+            fail(7u);
+        }
+    }
+#endif
+    checkpoint(0x45u);
 
     DIAG_PROGRESS = 0x50u;
     DIAG_RESULT = DIAG_PASS;

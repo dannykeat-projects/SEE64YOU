@@ -12,7 +12,7 @@ SCREEN_COLUMNS = 40
 DIAG_PASS = 0xA5
 DIAG_FAIL = 0x5A
 
-STAGES = (0x10, 0x20, 0x30, 0x40)
+STAGES = (0x10, 0x20, 0x30, 0x40, 0x45)
 
 
 def screen_row(text: str = "", cursor: int | None = None) -> bytes:
@@ -55,6 +55,9 @@ EXPECTED = {
         screen_row(),
     ),
 }
+
+
+EXPECTED[0x45] = EXPECTED[0x40]
 
 
 def read_body(monitor: ViceMonitor) -> tuple[bytes, ...]:

@@ -9,7 +9,7 @@ The 40x25 text interface remains deliberate. The implementation behind it is fre
 ## Screen
 
 ~~~text
- SEE64YOU  FILE EDIT SEARCH FORMAT PUB
+ SEE64YOU  FILE EDIT SEARCH FORMAT
 ----------------------------------------
 Document text occupies the main viewport.
 
@@ -20,7 +20,7 @@ users to memorise everything.
 Ln 12 Col 8  INS  MODIFIED       POST
 ~~~
 
-The exact menu presentation can evolve through hardware testing, but normal editing must stay readable and responsive at 40 columns. FILE / EDIT / SEARCH / FORMAT / PUB now open real dropdown menus. Commodore+M opens the menu bar from the keyboard; arrows navigate and Enter selects. Joystick Fire opens/selects and joystick directions navigate. A 1351-compatible mouse can click the top labels and menu items, click into document text to reposition the cursor, and drag-select source text through the editor's canonical viewport mapping. F8 remains the integrated Help screen.
+The independent Editor has FILE / EDIT / SEARCH / FORMAT dropdown menus. Publisher runs separately as `S64PUB.PRG`; there is no PUB menu or Ctrl+P launch shortcut. Commodore+M opens the menu bar from the keyboard; arrows navigate and Enter selects. Joystick Fire opens/selects and joystick directions navigate. A 1351-compatible mouse can click the top labels and menu items, click into document text to reposition the cursor, and drag-select source text through the editor's canonical viewport mapping. F8 opens Help; closing it redraws the document and clears unused viewport rows.
 
 ## Input model
 
@@ -133,6 +133,8 @@ Recovery has two layers:
 - durable SD recovery surviving reset/power loss.
 
 The existing SEE64YOU.REC path and transactional save logic remain useful during migration.
+
+Automatic disk recovery waits for at least three seconds without input, so a short pause between words does not start synchronous disk I/O. The minimum interval between snapshot attempts remains 30 seconds; the first pending snapshot can run after the quiet period. Continuous input postpones autosave. Explicit Save remains available at any time.
 
 A recovered document remains dirty until explicitly saved. Successful Save/Save As or deliberate discard clears stale durable recovery.
 

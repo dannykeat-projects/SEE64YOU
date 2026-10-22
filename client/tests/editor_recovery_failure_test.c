@@ -1,10 +1,13 @@
 #include <assert.h>
 #include <stdio.h>
+#define clock editor_test_clock
 #define main s64_application_main
 #include "../src/main.c"
 #undef main
 
 static unsigned deleted, written;
+static clock_t test_now;
+clock_t editor_test_clock(void) { return test_now; }
 static S64LocalResult open_result;
 S64LocalResult s64_local_recovery_exists(S64LocalDocument* local, uint8_t* exists)
 { (void)local; *exists = 1; return S64_LOCAL_OK; }
@@ -22,6 +25,8 @@ const char* s64_local_result_message(const S64LocalDocument* local, S64LocalResu
 { (void)local; (void)result; return "Read failed"; }
 int main(void)
 {
+    test_now = (clock_t)(100UL * CLOCKS_PER_SEC);
+    last_input_time = test_now - AUTOSAVE_QUIET_INTERVAL;
     uci_capabilities.dos_target = 1;
     open_result = S64_LOCAL_IO_ERROR;
     offer_recovery();
@@ -34,8 +39,25 @@ int main(void)
     maybe_autosave();
     assert(written == 0);
     clear_recovery_snapshot();
-    last_recovery_write = clock() - AUTOSAVE_INTERVAL;
+    last_input_time = test_now;
+    test_now += CLOCKS_PER_SEC;
+    maybe_autosave();
+    assert(written == 0); /* A one-second pause between words is not idle. */
+    test_now = last_input_time + AUTOSAVE_QUIET_INTERVAL - 1;
+    maybe_autosave();
+    assert(written == 0);
+    ++test_now;
     maybe_autosave();
     assert(written == 1);
-    puts("Editor failed recovery preserved"); return 0;
+    test_now += AUTOSAVE_INTERVAL;
+    last_input_time = test_now;
+    maybe_autosave();
+    assert(written == 1); /* Recent input postpones even an overdue snapshot. */
+    test_now += AUTOSAVE_QUIET_INTERVAL;
+    maybe_autosave();
+    assert(written == 2);
+    ++test_now;
+    maybe_autosave();
+    assert(written == 2); /* Preserve the regular 30-second write interval. */
+    puts("Editor recovery preservation and quiet-period scheduling passed"); return 0;
 }

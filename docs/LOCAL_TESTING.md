@@ -44,6 +44,8 @@ Use `--package-dir PATH` to select a saved eleven-file package. The harness reje
 
 This does not certify physical keyboard feel, the Editor's modifier-key Open shortcut, cold power restart, USB input or uncontrolled interruption. Keep those separate from REST-assisted real-hardware evidence. Receipt backups/configuration are private ignored build material; do not commit or upload them.
 
+The hardware harness also checks F8 Help dismissal over a short source document, blank unused rows, absence of the independent Editor's PUB command, no snapshot after a short typing pause, and an exact recovery snapshot after the three-second quiet period. Host `editor_recovery_failure_test.c` uses a deterministic clock to check quiet-period boundaries, the retained 30-second interval and failed-recovery preservation; `editor_menu_test.c` checks commands/hit areas in independent and historical builds. The native UI probe and `tools/vice/test_editor_ui.py` cover Help redraw with unused rows cleared. Physical typing responsiveness still requires user feedback.
+
 The remaining runbook describes the historical alpha validation pipeline.
 
 **Purpose:** Reproduce and accept the **independent eleven-file C64U application package** and flat-file PHP website. This is a runbook, not a chronology. Historical managed-runtime test campaigns and one-off receipts remain in Git history. `todo.md` is the only live work queue; passing a past commit does not certify a rebuilt package.

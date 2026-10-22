@@ -291,8 +291,27 @@ def main():
         (out / "dos-context-before.bin").write_bytes(context_before)
         state["dos_context_captured"] = True
         save()
-        launch("SEE64YOU.PRG", "FILE EDIT SEARCH FORMAT PUB")
+        launch("SEE64YOU.PRG", "FILE EDIT SEARCH FORMAT")
+        assert "PUB" not in screen("editor-header")[:40], "Independent Editor still exposes PUB"
+        keys(b"\x8c")  # Native F8.
+        wait("PRESS ANY KEY/CLICK/FIRE TO RETURN", "editor-help")
+        assert "PUBLISHER" not in screen("editor-help-commands")
+        keys(b"\r")
+        wait("FILE EDIT SEARCH FORMAT", "editor-help-dismissed")
+        assert all((value & 127) == 32 for value in mem(0x400 + 6 * 40, 18 * 40)), \
+            "Help text remains below the short document"
+        mark("shipping-editor-help-dismissal-clears-unused-rows-no-PUB")
         keys(native("Hardware 8TML.") + b"\r")
+        time.sleep(1.3)
+        assert not any(path.rsplit("/", 1)[-1].upper() == "SEE64YOU.REC"
+                       for path in ftp.nlst(folder)), "Autosave interrupted a one-second typing pause"
+        deadline = time.monotonic() + 6
+        while not any(path.rsplit("/", 1)[-1].upper() == "SEE64YOU.REC"
+                      for path in ftp.nlst(folder)):
+            assert time.monotonic() < deadline, "Quiet-period recovery snapshot missing"
+            time.sleep(.25)
+        assert fetch(folder + "/SEE64YOU.REC") == EMPTY + b"Hardware 8TML.\n"
+        mark("shipping-editor-autosave-waits-through-short-pause-then-recovers")
         save_exit("T8EDIT")
         saved = fetch(folder + "/T8EDIT.8tml")
         assert saved == EMPTY + b"Hardware 8TML.\n", repr(saved)

@@ -557,7 +557,7 @@ def main() -> int:
     parser.add_argument("--cl65")
     parser.add_argument("--od65", default="od65")
     parser.add_argument("--independent-editor", action="store_true",
-                        help="Build Editor with file-based Publisher guidance, no inter-program handoff")
+                        help="Build independent 8TML Editor without inter-program handoff")
     args = parser.parse_args()
     try:
         compile_editor_overlay_fit(

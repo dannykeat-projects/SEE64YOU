@@ -1,6 +1,7 @@
 #include <conio.h>
 #include <string.h>
 #include "ui.h"
+#include "menu.h"
 
 #define SCREEN_COLUMNS 40u
 #define EDITOR_FIRST_ROW 1u
@@ -59,7 +60,7 @@ static void render_header(void)
     clear_row(0u);
     revers(1);
     gotoxy(0u, 0u);
-    cputs(" SEE64YOU  FILE EDIT SEARCH FORMAT PUB ");
+    cputs(S64_MENU_BAR);
     revers(0);
     header_rendered = 1u;
 }
@@ -576,7 +577,9 @@ void s64_ui_show_help(void)
         "       Ctrl+G Line Ctrl+H/F6 Replace",
         "FORMAT Ctrl+B Bold Ctrl+I Italic",
         "       Ctrl+L List Ctrl+W Word Wrap",
+#ifndef S64_INDEPENDENT_EDITOR
         "PUB    Ctrl+P Publisher",
+#endif
         "",
         "CBM+F1 New F3 Open F5 Save F7 Save As",
         "Ctrl+Left/Right = word movement",
@@ -599,7 +602,8 @@ void s64_ui_show_help(void)
         cputs(lines[row]);
     }
     header_rendered = 0u;
-    body_rows = 0u;
+    /* Help occupied the viewport; the next document render must erase it. */
+    body_rows = EDITOR_ROWS;
     partial_first_row = 0u;
     partial_char_edit = 0u;
     cursor_position_valid = 0u;

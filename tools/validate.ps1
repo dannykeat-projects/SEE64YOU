@@ -92,6 +92,18 @@ if ($HostCc) {
         if ($LASTEXITCODE -ne 0) { throw "Text prompt test build failed" }
         & (Join-Path $TestDir "ui_prompt.exe")
         if ($LASTEXITCODE -ne 0) { throw "Text prompt tests failed" }
+        foreach ($menuIndependent in @($false, $true)) {
+            $menuFlags = @()
+            if ($menuIndependent) { $menuFlags = @("-DS64_INDEPENDENT_EDITOR=1") }
+            & $HostCc.Path -std=c99 -Wall -Wextra -Werror -D__fastcall__= @menuFlags -ffunction-sections -fdata-sections -Iclient/tests/ui_prompt_stubs -Iclient/src client/tests/editor_menu_test.c client/src/menu.c "-Wl,--gc-sections" -o (Join-Path $TestDir "editor_menu.exe")
+            if ($LASTEXITCODE -ne 0) { throw "Editor menu test build failed" }
+            & (Join-Path $TestDir "editor_menu.exe")
+            if ($LASTEXITCODE -ne 0) { throw "Editor menu tests failed" }
+        }
+        & $HostCc.Path -std=c99 -Wall -Wextra -Werror -D__fastcall__= -ffunction-sections -fdata-sections -Iclient/tests/ui_prompt_stubs -Iclient/src client/tests/editor_recovery_failure_test.c "-Wl,--gc-sections" -o (Join-Path $TestDir "editor_recovery.exe")
+        if ($LASTEXITCODE -ne 0) { throw "Editor recovery test build failed" }
+        & (Join-Path $TestDir "editor_recovery.exe")
+        if ($LASTEXITCODE -ne 0) { throw "Editor recovery tests failed" }
         Invoke-CTest "charset" @(
             "client/tests/charset_test.c",
             "client/src/charset.c"

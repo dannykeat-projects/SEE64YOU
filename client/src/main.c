@@ -44,6 +44,7 @@ static void managed_entry_failed(uint8_t stage)
 #define LINE_TEXT_CAPACITY 6u
 #define AUTOSAVE_SECONDS 30UL
 #define AUTOSAVE_INTERVAL ((clock_t)(AUTOSAVE_SECONDS * (unsigned long)CLOCKS_PER_SEC))
+#define AUTOSAVE_QUIET_INTERVAL ((clock_t)(3UL * (unsigned long)CLOCKS_PER_SEC))
 #define AUTOSAVE_IDLE_JIFFIES ((unsigned char)CLOCKS_PER_SEC)
 
 static S64Editor editor;
@@ -58,6 +59,7 @@ static S64UciCapabilities uci_capabilities;
 static char find_query[SEARCH_TEXT_CAPACITY];
 static unsigned char find_query_valid;
 static clock_t last_recovery_write;
+static clock_t last_input_time;
 static unsigned char recovery_error_shown;
 static unsigned char recovery_preserve;
 #if defined(S64_MANAGED_OVERLAY) && !defined(S64_PERSISTENT_RUNTIME_FIT)
@@ -139,11 +141,10 @@ static unsigned char restore_publisher_handoff(void)
 }
 #endif
 
+#ifndef S64_INDEPENDENT_EDITOR
 static void launch_publisher(void)
 {
-#ifdef S64_INDEPENDENT_EDITOR
-    s64_ui_message("Save, exit, run S64PUB.PRG");
-#elif defined(S64_MANAGED_OVERLAY)
+#ifdef S64_MANAGED_OVERLAY
 #ifdef S64_PERSISTENT_RUNTIME_FIT
     extern uint8_t s64_persistent_runtime_fit_publisher(void);
     if (!s64_persistent_runtime_fit_publisher()) {
@@ -238,6 +239,7 @@ static void launch_publisher(void)
 #endif
 }
 #endif
+#endif
 
 static void arm_recovery_autosave(void)
 {
@@ -270,6 +272,10 @@ static void maybe_autosave(void)
     }
 
     now = clock();
+    /* A normal pause between words should not start synchronous disk I/O. */
+    if ((clock_t)(now - last_input_time) < AUTOSAVE_QUIET_INTERVAL) {
+        return;
+    }
     if ((clock_t)(now - last_recovery_write) < AUTOSAVE_INTERVAL) {
         return;
     }
@@ -806,6 +812,7 @@ int main(void)
             maybe_autosave();
             continue;
         }
+        last_input_time = clock();
 #if defined(S64_MANAGED_OVERLAY) && !defined(S64_PERSISTENT_RUNTIME_FIT)
         /* Preserve the prepared snapshot only while live state is unchanged.
          * This also revokes resumed authority before the first user edit. */
@@ -1041,7 +1048,7 @@ int main(void)
             case S64_INPUT_SAVE_AS:
                 save_as_document();
                 continue;
-#ifdef S64_REU_BUFFER
+#if defined(S64_REU_BUFFER) && !defined(S64_INDEPENDENT_EDITOR)
             case S64_INPUT_PUBLISH:
                 launch_publisher();
                 continue;

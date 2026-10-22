@@ -51,16 +51,20 @@ static const S64MenuItem format_items[] = {
     { "Word Wrap Ctrl+W", S64_INPUT_TOGGLE_WRAP }
 };
 
+#ifndef S64_INDEPENDENT_EDITOR
 static const S64MenuItem pub_items[] = {
     { "Publisher Ctrl+P", S64_INPUT_PUBLISH }
 };
+#endif
 
 static const S64MenuGroup groups[] = {
     { "FILE",   11u, 10u, file_items,   sizeof(file_items) / sizeof(file_items[0]) },
     { "EDIT",   16u, 15u, edit_items,   sizeof(edit_items) / sizeof(edit_items[0]) },
     { "SEARCH", 21u, 20u, search_items, sizeof(search_items) / sizeof(search_items[0]) },
     { "FORMAT", 28u, 20u, format_items, sizeof(format_items) / sizeof(format_items[0]) },
+#ifndef S64_INDEPENDENT_EDITOR
     { "PUB",    35u, 20u, pub_items,    sizeof(pub_items) / sizeof(pub_items[0]) }
+#endif
 };
 
 unsigned char s64_menu_group_at(unsigned char column)
@@ -123,7 +127,7 @@ void s64_menu_render(unsigned char group, unsigned char item)
 
     revers(1);
     gotoxy(0u, 0u);
-    cputs(" SEE64YOU  FILE EDIT SEARCH FORMAT PUB ");
+    cputs(S64_MENU_BAR);
     revers(0);
     gotoxy(menu->header_col, 0u);
     cputs(menu->title);

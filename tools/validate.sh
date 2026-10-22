@@ -145,6 +145,14 @@ echo "== Host editor tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/editor_test.c client/src/buffer.c client/src/history.c client/src/clipboard.c client/src/editor.c client/src/editor_format.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host Editor menu tests (historical and independent) =="
+for menu_flags in '' '-DS64_INDEPENDENT_EDITOR=1'; do
+    cc -std=c99 -Wall -Wextra -Werror -D__fastcall__= $menu_flags \
+        -ffunction-sections -fdata-sections -Iclient/tests/ui_prompt_stubs -Iclient/src \
+        client/tests/editor_menu_test.c client/src/menu.c -Wl,--gc-sections -o "$TMP_BIN"
+    "$TMP_BIN"
+done
+
 echo "== Host document tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/document_test.c client/src/document.c client/src/charset.c client/src/buffer.c -o "$TMP_BIN"
 "$TMP_BIN"
