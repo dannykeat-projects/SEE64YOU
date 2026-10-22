@@ -1,6 +1,6 @@
 # Self-hosted SEE64YOU site
 
-The optional site is a PHP 8.1+ flat-file publishing service and a simple modern HTML presentation. No database, central account or JavaScript is required for ordinary public pages. It can be installed under your own domain. It is **not** a complete 8TML renderer or a T8WN API server.
+The optional site is a PHP 8.1+ flat-file publishing service and a simple modern HTML presentation. No database, central account or JavaScript is required for ordinary public pages. It can be installed under your own domain. It is **not** a complete 8TML renderer or a T8WN API server. Public 8TML-source URLs for external browsers are **not implemented**: the existing source export requires authentication, while public views currently provide HTML.
 
 ## Setup
 

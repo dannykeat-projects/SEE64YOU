@@ -22,6 +22,12 @@ Target a short, guided workflow rather than a general document manager:
 
 A sensible UI is **file → destination / identity → page-or-post + draft-or-public → Publish/Update → result**. The initial screen should lead with “Choose file” and “Publish”, not numbered technical commands. Show a confirmation before replacing remote content; display the actual destination and whether this is a new page or an update. Do not add UI complexity to conceal unsafe HTTP limitations.
 
+## Public reading contract
+
+The PHP site currently serves HTML, but `api.php?action=get&format=8tml` is authenticated and its guarded record files are not public. Therefore a visitor or an external 8TML browser does **not** currently have a stable unauthenticated 8TML source URL.
+
+For external browser interoperability, design a public read-only URL for **published** 8TML source, with exact bytes, appropriate response type and bounded size. Drafts, unpublished content, authentication keys and internal guarded records must remain inaccessible. Confirm the actual 8TML/T8WN browser's URL, content type, redirect and naming expectations before choosing a route or adding exported static copies. Test public retrieval, draft unpublish/delete, invalid slug, disabled listing, stale caches and cross-origin/client behavior. No new SEE64YOU browser.
+
 ## Confirmed publication safety gap
 
 In `client/src/publisher/main.c`, a new local load clears the current remote binding, while a first upload asks for a slug and sends a save request. `s64_publish_state_can_update()` only changes the client-side operation label/URL choice; the PHP save action currently replaces an existing same-format slug without checking whether the user intended creation or update. A restarted Publisher also loses its remote association because that identity is not embedded in a portable document.

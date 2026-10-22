@@ -6,6 +6,10 @@
 
 - [ ] **Prevent unintentional remote overwrite:** the Publisher clears remote binding on local file load, but PHP save currently overwrites an existing `page/post + slug`. Add locked server-enforced create/update intent, create-on-missing only, update-on-existing only, explicit remote overwrite confirmation and preferably a stale-revision precondition. Make local-file re-publication intuitive without embedding service identity in 8TML. Verify unauthorized/collision/missing/stale-update/failure paths, including concurrent writes. See [product design](docs/PRODUCT.md). Do not deploy a new Publisher until this is verified.
 
+## P0 — External 8TML reader interoperability
+
+- [ ] Verify the external 8TML/T8WN browser's actual URL/HTTP, MIME, redirect and link expectations with representative `.8tml` fixtures. The bundled PHP site currently hides source behind authenticated `api.php?action=get&format=8tml` and publishes HTML only. Design and test a public source endpoint **for published documents only**; drafts and guarded storage must never leak, including after unpublish/delete or invalid-slug requests. No new SEE64YOU browser implementation.
+
 ## P0 — Prove the current user workflow
 
 - [ ] Physical-keyboard acceptance for New/Open/Save/Save As, modified-document exit, Help, selection and typing latency. Verify actual C64 modifier Open controls; REST key injection is not this gate.
