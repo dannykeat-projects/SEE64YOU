@@ -85,6 +85,8 @@ def main():
                 full_body = json.dumps(full_doc, separators=(",", ":")).encode("ascii")
                 assert len(full_body) < 131072
                 assert authenticated(save_uri, "POST", full_body)[0] == 200
+                remove_full = json.dumps({"type": "page", "slug": "escaped-full"}).encode("ascii")
+                assert authenticated("/api.php?action=delete", "POST", remove_full)[0] == 200
                 headers = signed(save_uri, "POST", body)
                 assert request(save_uri, "POST", body + b" ", headers)[0] == 401, "Changed body accepted"
                 # A signature mismatch does not consume its challenge; exact signed bytes still work.
