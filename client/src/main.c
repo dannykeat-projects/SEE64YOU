@@ -1,6 +1,5 @@
 #include <conio.h>
 #include <string.h>
-#include <time.h>
 
 #include "clipboard.h"
 #include "document.h"
@@ -42,10 +41,6 @@ static void managed_entry_failed(uint8_t stage)
 
 #define SEARCH_TEXT_CAPACITY 33u
 #define LINE_TEXT_CAPACITY 6u
-#define AUTOSAVE_SECONDS 30UL
-#define AUTOSAVE_INTERVAL ((clock_t)(AUTOSAVE_SECONDS * (unsigned long)CLOCKS_PER_SEC))
-#define AUTOSAVE_QUIET_INTERVAL ((clock_t)(3UL * (unsigned long)CLOCKS_PER_SEC))
-#define AUTOSAVE_IDLE_JIFFIES ((unsigned char)CLOCKS_PER_SEC)
 
 static S64Editor editor;
 static S64Clipboard clipboard;
@@ -58,10 +53,6 @@ static S64LocalDocument local_document;
 static S64UciCapabilities uci_capabilities;
 static char find_query[SEARCH_TEXT_CAPACITY];
 static unsigned char find_query_valid;
-static clock_t last_recovery_write;
-static clock_t last_input_time;
-static unsigned char recovery_error_shown;
-static unsigned char recovery_preserve;
 #if defined(S64_MANAGED_OVERLAY) && !defined(S64_PERSISTENT_RUNTIME_FIT)
 static unsigned char restore_managed_application(void)
 {
@@ -241,52 +232,10 @@ static void launch_publisher(void)
 #endif
 #endif
 
-static void arm_recovery_autosave(void)
-{
-    last_recovery_write = (clock_t)(clock() - AUTOSAVE_INTERVAL);
-    recovery_error_shown = 0u;
-}
-
-static void defer_recovery_autosave(void)
-{
-    last_recovery_write = clock();
-    recovery_error_shown = 0u;
-}
-
 static void clear_recovery_snapshot(void)
 {
-    recovery_preserve = 0u;
     if (uci_capabilities.dos_target) {
         (void)s64_local_delete_recovery(&local_document);
-    }
-    arm_recovery_autosave();
-}
-
-static void maybe_autosave(void)
-{
-    clock_t now;
-    S64LocalResult result;
-
-    if (!editor.dirty || !uci_capabilities.dos_target || recovery_preserve) {
-        return;
-    }
-
-    now = clock();
-    /* A normal pause between words should not start synchronous disk I/O. */
-    if ((clock_t)(now - last_input_time) < AUTOSAVE_QUIET_INTERVAL) {
-        return;
-    }
-    if ((clock_t)(now - last_recovery_write) < AUTOSAVE_INTERVAL) {
-        return;
-    }
-
-    result = s64_local_save_recovery(&local_document);
-    last_recovery_write = now;
-    if (result == S64_LOCAL_OK) {
-        recovery_error_shown = 0u;
-    } else if (!recovery_error_shown) {
-        recovery_error_shown = 1u;
-        s64_ui_message("Autosave unavailable");
     }
 }
 
@@ -296,20 +245,16 @@ static void offer_recovery(void)
     uint8_t exists = 0u;
 
     if (!uci_capabilities.dos_target) {
-        arm_recovery_autosave();
         return;
     }
 
     result = s64_local_recovery_exists(&local_document, &exists);
     if (result != S64_LOCAL_OK || !exists) {
-        arm_recovery_autosave();
         return;
     }
 
-    if (!s64_ui_prompt_yes_no("Recover autosave? Y/N")) {
-        recovery_preserve = 0u;
+    if (!s64_ui_prompt_yes_no("Recover snapshot? Y/N")) {
         (void)s64_local_delete_recovery(&local_document);
-        arm_recovery_autosave();
         s64_ui_render(&editor);
         s64_ui_message("Recovery discarded");
         return;
@@ -317,18 +262,14 @@ static void offer_recovery(void)
 
     result = s64_local_open_recovery(&local_document);
     if (result != S64_LOCAL_OK) {
-        recovery_preserve = 1u;
-        arm_recovery_autosave();
         show_local_result(result);
         return;
     }
 
-    recovery_preserve = 0u;
     s64_editor_document_loaded(&editor);
     editor.dirty = 1u;
-    defer_recovery_autosave();
     s64_ui_render(&editor);
-    s64_ui_message("Recovered autosave");
+    s64_ui_message("Recovered snapshot");
 }
 
 static void new_document(void)
@@ -806,9 +747,7 @@ int main(void)
     s64_ui_set_dos_ready(uci_capabilities.dos_target);
     s64_ui_render(&editor);
 #ifdef S64_REU_BUFFER
-    if (restored_handoff) {
-        defer_recovery_autosave();
-    } else {
+    if (!restored_handoff) {
         offer_recovery();
     }
 #else
@@ -816,11 +755,9 @@ int main(void)
 #endif
 
     while (running) {
-        if (!s64_input_read(&input, AUTOSAVE_IDLE_JIFFIES)) {
-            maybe_autosave();
+        if (!s64_input_read(&input, 0u)) {
             continue;
         }
-        last_input_time = clock();
 #if defined(S64_MANAGED_OVERLAY) && !defined(S64_PERSISTENT_RUNTIME_FIT)
         /* Preserve the prepared snapshot only while live state is unchanged.
          * This also revokes resumed authority before the first user edit. */

@@ -129,14 +129,9 @@ Copy/cut/paste should be limited by available application memory and sensible op
 
 ## Recovery
 
-Recovery has two layers:
+There is no periodic disk autosave. Typing and idle time do not write a recovery snapshot; use Save/Save As to persist edits. REU history remains available within the editing session.
 
-- fast REU session/history state;
-- durable SD recovery surviving reset/power loss.
-
-The existing SEE64YOU.REC path and transactional save logic remain useful during migration.
-
-Automatic disk recovery waits for at least three seconds without input, so a short pause between words does not start synchronous disk I/O. The minimum interval between snapshot attempts remains 30 seconds; the first pending snapshot can run after the quiet period. Continuous input postpones autosave. Explicit Save remains available at any time.
+An existing `SEE64YOU.REC` is still offered at startup as `Recover snapshot? Y/N`. Failed recovery preserves that file. Transactional manual saves and retained `.tmp` recovery remain unchanged.
 
 A recovered document remains dirty until explicitly saved. Successful Save/Save As or deliberate discard clears stale durable recovery.
 

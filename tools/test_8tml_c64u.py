@@ -317,25 +317,23 @@ def main():
         mark("shipping-editor-clean-exit-requires-yes-N-and-STOP-cancel")
         launch("SEE64YOU.PRG", "FILE EDIT SEARCH FORMAT")
         keys(native("Hardware 8TML.") + b"\r")
-        time.sleep(1.3)
-        assert not any(path.rsplit("/", 1)[-1].upper() == "SEE64YOU.REC"
-                       for path in ftp.nlst(folder)), "Autosave interrupted a one-second typing pause"
-        deadline = time.monotonic() + 6
-        while not any(path.rsplit("/", 1)[-1].upper() == "SEE64YOU.REC"
-                      for path in ftp.nlst(folder)):
-            assert time.monotonic() < deadline, "Quiet-period recovery snapshot missing"
-            time.sleep(.25)
-        assert fetch(folder + "/SEE64YOU.REC") == EMPTY + b"Hardware 8TML.\n"
-        mark("shipping-editor-autosave-waits-through-short-pause-then-recovers")
+        # Longer than the retired 30-second autosave interval: editing/idle
+        # must not create a background recovery file.
+        deadline = time.monotonic() + 35
+        while time.monotonic() < deadline:
+            assert not any(path.rsplit("/", 1)[-1].upper() == "SEE64YOU.REC"
+                           for path in ftp.nlst(folder)), "Unexpected background autosave"
+            time.sleep(1)
+        mark("shipping-editor-no-background-autosave-after-35-seconds")
         save_exit("T8EDIT")
         saved = fetch(folder + "/T8EDIT.8tml")
         assert saved == EMPTY + b"Hardware 8TML.\n", repr(saved)
         (out / "editor-created.8tml").write_bytes(saved)
         mark("shipping-editor-create-body-save-basename-exact-source")
         put(folder + "/SEE64YOU.REC", saved)
-        launch("SEE64YOU.PRG", "Recover autosave? Y/N")
+        launch("SEE64YOU.PRG", "Recover snapshot? Y/N")
         keys(b"Y")
-        wait("Recovered autosave", "editor-recovered")
+        wait("Recovered snapshot", "editor-recovered")
         keys(b"\x11" * 4 + native("Updated "))
         save_exit("T8EDIT2")
         resaved = fetch(folder + "/T8EDIT2.8tml")
