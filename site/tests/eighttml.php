@@ -38,7 +38,7 @@ try {
     check8($documents->list('post', true, true) === [], 'source-only published filtering');
     unlink($root . '/posts/excluded.s64.php');
     foreach (["", "---\n---\n", "---\ntitle: Wrong\n8tml: 1\n---\n", "---\n8tml: 2\n---\n",
-        "---\n8tml: 1\n", "---\n8tml: 1\n---\nbad\x80", "---\r\n8tml: 1\r\n---\r\n",
+        "---\n8tml: 1\n8TmL: 2\n---\n", "---\n8tml: 1\n", "---\n8tml: 1\n---\nbad\x80", "---\r\n8tml: 1\r\n---\r\n",
         "---\n8tml: 1\n---\n\0"] as $bad) {
         rejects8(fn() => $documents->save(array_replace($input, ['raw8tml' => $bad])), 'invalid_8tml');
         check8(file_get_contents($path) === $prior, 'invalid save preserves prior record');
