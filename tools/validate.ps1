@@ -22,6 +22,8 @@ Get-ChildItem site, wordpress -Recurse -Filter *.php | ForEach-Object {
 }
 
 Invoke-Checked "Standalone backend tests" { & php site/tests/run.php }
+Invoke-Checked "8TML service tests" { & php site/tests/eighttml.php }
+Invoke-Checked "Direct-auth challenge tests" { & php site/tests/direct_auth_challenges.php }
 Invoke-Checked "Standalone package tests" { & php tools/tests/package_site_test.php }
 Invoke-Checked "WordPress protocol tests" { & php wordpress/tests/run.php }
 
