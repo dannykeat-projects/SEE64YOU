@@ -560,7 +560,13 @@ static uint8_t source_valid(const S64Buffer* body)
             colon = start;
             while (colon < end && source_byte(body, colon) != 58u) ++colon;
             if (colon == start || colon == end) return 0u;
-            if (!version_seen) {
+            if (!version_seen || (colon - start == 4u
+                    && source_byte(body, start) == 56u
+                    && (source_byte(body, start + 1u) | 32u) == 116u
+                    && (source_byte(body, start + 2u) | 32u) == 109u
+                    && (source_byte(body, start + 3u) | 32u) == 108u)) {
+                /* A later version key must not contradict the first one.
+                 * Match the PHP producer validator before any disk write. */
                 if (colon - start != 4u || source_byte(body, start) != 56u
                     || (source_byte(body, start + 1u) | 32u) != 116u
                     || (source_byte(body, start + 2u) | 32u) != 109u
