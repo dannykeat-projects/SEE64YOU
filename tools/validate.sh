@@ -17,6 +17,7 @@ echo "== Standalone backend tests =="
 php site/tests/run.php
 php site/tests/browser.php
 php site/tests/eighttml.php
+php site/tests/direct_auth_challenges.php
 python3 site/tests/eighttml_http.py
 python3 tools/test_publisher_8tml.py
 
