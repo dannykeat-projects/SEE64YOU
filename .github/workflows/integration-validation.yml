@@ -57,13 +57,13 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq cc65
 
-      - name: Build complete eleven-file independent C64U package
+      - name: Build complete independent C64U package
         run: make -C client independent-package
 
       - name: Package provisional client and PHP website ZIPs
         run: |
           mkdir -p dist
-          test "$(find client/build/independent-package/SEE64YOU -maxdepth 1 -type f | wc -l)" -eq 11
+          test "$(find client/build/independent-package/SEE64YOU -maxdepth 1 -type f | wc -l)" -eq 10
           test ! -e dist/see64you-site/config.php
           test ! -d dist/see64you-site/tests
           (cd client/build/independent-package && python3 -m zipfile -c ../../../dist/see64you-c64u-candidate.zip SEE64YOU)

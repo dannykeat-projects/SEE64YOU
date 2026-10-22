@@ -1,6 +1,6 @@
 # Architecture
 
-SEE64YOU is C64 Ultimate-only and uses UCI, Ultimate-DOS and a required 16 MiB REU. There are three independently launched user programs: Editor (`SEE64YOU.PRG` via internal overlay assets), Publisher (`S64PUB.PRG`), and Settings (`S64CFG.PRG`). All return to BASIC. The application package currently also includes a separate browser executable, but it is not an 8TML browser and is outside the target product.
+SEE64YOU is C64 Ultimate-only and uses UCI, Ultimate-DOS and a required 16 MiB REU. There are three independently launched user programs: Editor (`SEE64YOU.PRG` via internal overlay assets), Publisher (`S64PUB.PRG`), and Settings (`S64CFG.PRG`). All return to BASIC. The active package contains no browser; a separate compatible 8TML/T8WN browser is used to read published source.
 
 ## Source and storage
 

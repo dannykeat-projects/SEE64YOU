@@ -10,7 +10,7 @@ Documents are portable `.8tml` text files. You can copy, back up, or host them i
 - **Publisher (experimental):** separately load local `.8tml`, choose page/post and draft/published state, and send it to the bundled self-hosted PHP service. Remote-source download saves a new local file. Settings is a separate program.
 - **Modern website:** the bundled PHP 8.1+ service stores exact source and serves HTML. Its renderer currently implements only a limited, safely escaped subset of 8TML. Full 8TML rendering and compatibility with external publishing services are **not yet verified**.
 
-For reading 8TML on an 8-bit machine, use a compatible browser from the 8TML/T8WN ecosystem. SEE64YOU does not aim to maintain its own 8TML browser. The currently packaged `S64WEB.PRG` is not an 8TML browser.
+For reading 8TML on an 8-bit machine, use a compatible browser from the 8TML/T8WN ecosystem. SEE64YOU does not aim to maintain its own 8TML browser. Use a compatible 8TML/T8WN browser to read these files on another 8-bit machine.
 
 ## Get started
 

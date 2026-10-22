@@ -8,7 +8,7 @@ This is a test release. Back up your files and machine configuration first. Choo
 
 In the Ultimate **Memory & ROMs** settings (called **C64 and Cartridge Settings** on some menus), enable **Command Interface**, **RAM Expansion Unit**, and **REU Size: 16 MB**. Recheck after a settings reset.
 
-Copy all matching program, BIN and manifest files into `/sd/SEE64YOU/` by default, or the same folder under the selected mount. Do not remove existing documents, configuration or recovery files.
+Copy the complete matching program, BIN and manifest files into `/sd/SEE64YOU/` by default, or the same folder under the selected mount. Do not remove existing documents, configuration or recovery files.
 
 ## Programs
 
@@ -18,7 +18,7 @@ Copy all matching program, BIN and manifest files into `/sd/SEE64YOU/` by defaul
 | `S64CFG.PRG` | Configure optional publishing |
 | `S64PUB.PRG` | Publish or download source |
 
-Launch each program **independently** and return to BASIC when finished. `S64EDIT.PRG` and the BIN/manifest files are internal; do not launch or mix them separately. A packaged `S64WEB.PRG` is not an 8TML reader and is not part of the intended 8TML workflow.
+Launch each program **independently** and return to BASIC when finished. `S64EDIT.PRG` and the BIN/manifest files are internal; do not launch or mix them separately. Use a compatible 8TML/T8WN browser to read published files.
 
 ## Create your first page
 

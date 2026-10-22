@@ -28,7 +28,7 @@ A sensible UI is **file → destination / identity → page-or-post + draft-or-p
 - Publisher owns network authorization, remote identity and optional upload/download; do not duplicate document serialization or disk recovery.
 - Settings owns configuration and key provisioning.
 - A small server adapter may translate authenticated operations to self-hosted PHP. The 8TML format does **not** depend on this PHP API, a particular service or T8WN.
-- The 8TML/T8WN ecosystem owns the separate compatible browser. Current `S64WEB.PRG`, browser wire protocol and their tests are removal candidates once active package/build callers and safe entry/exit behavior are traced.
+- The 8TML/T8WN ecosystem owns the separate compatible browser. The active source-package build omits `S64WEB.PRG`; optional diagnostic/browser source and site-side protocol remain until their actual callers can be removed safely.
 
 Remove dead code **incrementally after caller tracing**, not by deleting large directories speculatively. Shipping launcher/module manifest dependencies, resource headroom, disk recovery and real-hardware restoration are release gates. This document specifies the target design; the present binaries still contain several extra Publisher operations.
 
