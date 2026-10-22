@@ -79,7 +79,7 @@ def main():
                 code, too_large, _ = request(save_uri, "POST", b"x" * (131072 + 1))
                 assert code == 413 and json.loads(too_large)["error"] == "request_too_large"
                 # The maximum source is still allowed after JSON escapes double its size.
-                source_prefix = "---\\n8tml: 1\\n---\\n".replace("\\n", "\n")
+                source_prefix = "---\n8tml: 1\n---\n"
                 source_full = source_prefix + "\\" * (61440 - len(source_prefix))
                 full_doc = dict(document, slug="escaped-full", raw8tml=source_full)
                 full_body = json.dumps(full_doc, separators=(",", ":")).encode("ascii")
