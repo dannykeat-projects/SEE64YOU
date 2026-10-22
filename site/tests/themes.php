@@ -1,0 +1,90 @@
+<?php
+declare(strict_types=1);
+require_once dirname(__DIR__) . '/lib/Config.php';
+require_once dirname(__DIR__) . '/lib/Settings.php';
+require_once dirname(__DIR__) . '/lib/Render.php';
+function theme_check(bool $value, string $message): void {
+    if (!$value) throw new RuntimeException($message);
+}
+$path = sys_get_temp_dir() . '/s64-themes-' . bin2hex(random_bytes(8)) . '.php';
+$config = s64_default_config();
+$config['direct_secret'] = 'preserve';
+try {
+    $settings = new S64Settings($path, $config);
+    theme_check(count(s64_theme_palette()) === 16, 'only 16 C64 colours');
+    theme_check(s64_theme_nearest_colour('#2e2c9b') === '#2e2c9b', 'palette identity');
+    theme_check(s64_theme_nearest_colour('#3e31a2') === '#2e2c9b', 'old blue maps to C64 blue');
+    $preview = $settings->themeAction('preview', 'simple', ['name' => 'Preview', 'font' => 'c64']);
+    theme_check(!file_exists($path), 'preview must not write');
+    theme_check(str_contains(s64_theme_css($preview), 'assets/fonts/c64.ttf'), 'local C64 font');
+    $legacyCss = s64_theme_css([
+        'theme' => 'c64',
+        'text_color' => '#b0b0ff',
+        'background_color' => '#3e31a2',
+        'link_color' => '#ffffff',
+        'visited_color' => '#e49aff',
+    ]);
+    theme_check(str_contains($legacyCss, 'font-family:system-ui'), 'retired choice renders as Simple');
+    theme_check(!str_contains($legacyCss, 'See64You C64'), 'no retired preset styling');
+    try { $settings->themeAction('select', 'c64'); throw new RuntimeException('retired theme accepted'); }
+    catch (InvalidArgumentException) {}
+    $config = $settings->themeAction('create', 'simple', ['name' => '<C64>', 'font' => 'c64']);
+    $id = array_key_first($config['custom_themes']);
+    theme_check((require $path)['direct_secret'] === 'preserve', 'secret preserved');
+    $config = (new S64Settings($path, $config))->themeAction('select', $id);
+    theme_check($config['theme'] === $id, 'custom selected');
+    $css = s64_theme_css($config);
+    theme_check(str_contains($css, 'Courier,monospace') && !str_contains($css, 'var('), 'legacy font/CSS fallback');
+    $layoutInput = $config['custom_themes'][$id]['values'];
+    $layoutInput['font'] = 'verdana';
+    $layoutInput['header_title'] = 'My Retro Pages';
+    $layoutInput['show_title'] = 'no';
+    $layoutInput['show_menu'] = 'no';
+    $layoutInput['show_separator'] = 'no';
+    $layoutInput['content_style'] = 'open';
+    $config = (new S64Settings($path, $config))->themeAction('save', $id, ['name' => 'Layout'] + $layoutInput);
+    $layoutCss = s64_theme_css($config);
+    theme_check(str_contains($layoutCss, 'font-family:Verdana,Geneva,sans-serif'), 'additional safe font');
+    theme_check(str_contains($layoutCss, '.s64-panel{background:transparent;padding:0;border:0'), 'open content layout');
+    ob_start();
+    s64_render_layout($config, [['slug' => 'home', 'title' => 'Home'], ['slug' => 'about', 'title' => 'About']], 'Example', '<p>Body</p>');
+    $layoutHtml = (string)ob_get_clean();
+    theme_check(str_contains($layoutHtml, '<title>Example - My Retro Pages</title>'), 'custom website title');
+    theme_check(!str_contains($layoutHtml, '<header><h1>'), 'hidden website title');
+    theme_check(!str_contains($layoutHtml, '<nav>'), 'hidden menu');
+    theme_check(!str_contains($layoutHtml, '<hr>'), 'hidden header separator');
+    theme_check(s64_theme_css(['theme' => 'plain']) === '', 'plain remains CSS-free fallback');
+    $stackedInput = $config['custom_themes'][$id]['values'];
+    $stackedInput['show_menu'] = 'yes';
+    $stackedInput['menu_layout'] = 'stacked';
+    $config = (new S64Settings($path, $config))->themeAction('save', $id, ['name' => 'Stacked'] + $stackedInput);
+    $stackedCss = s64_theme_css($config);
+    theme_check(str_contains($stackedCss, '.s64-menu-separator{display:none}'), 'stacked menu hides visual separators');
+    ob_start();
+    s64_render_layout($config, [['slug' => 'home', 'title' => 'Home'], ['slug' => 'about', 'title' => 'About']], 'Example', '<p>Body</p>');
+    $stackedHtml = (string)ob_get_clean();
+    theme_check(substr_count($stackedHtml, 'class="s64-menu-separator"') >= 2, 'navigation separators are styleable');
+    foreach ([['font' => 'evil;url(x)'], ['padding' => 'expression(x)'], ['padding' => '-1'], ['padding' => '999'], ['text_color' => '#fff'], ['text_color' => '#ffffff;}</style>'], ['font' => []], ['text_color' => '#3e31a2']] as $bad) {
+        $before = file_get_contents($path);
+        try {
+            (new S64Settings($path, $config))->themeAction('save', $id, ['name' => 'Bad'] + $bad);
+            throw new RuntimeException('bad input accepted');
+        } catch (InvalidArgumentException) {}
+        theme_check(file_get_contents($path) === $before, 'rejected input must not write');
+    }
+    $config = (new S64Settings($path, $config))->themeAction('save', $id, ['name' => 'Renamed', 'padding' => '8', 'menu_layout' => 'stacked']);
+    theme_check($config['custom_themes'][$id]['name'] === 'Renamed', 'rename');
+    $config = (new S64Settings($path, $config))->themeAction('duplicate', $id, ['name' => 'Copy']);
+    theme_check(count($config['custom_themes']) === 2, 'duplicate');
+    $copy = array_key_last($config['custom_themes']);
+    theme_check($config['custom_themes'][$copy]['values'] === $config['custom_themes'][$id]['values'], 'duplicate preserves saved values');
+    $config = (new S64Settings($path, $config))->themeAction('delete', $id);
+    theme_check($config['theme'] === 'plain' && !isset($config['custom_themes'][$id]), 'active deletion returns to plain');
+    foreach (['save', 'delete'] as $action) {
+        try { (new S64Settings($path, $config))->themeAction($action, 'c64', ['name' => 'Bad']); throw new RuntimeException('built-in altered'); }
+        catch (InvalidArgumentException) {}
+    }
+    theme_check(s64_theme_css(['theme' => 'plain']) === '', 'plain has no CSS');
+    theme_check(!str_contains(s64_custom_theme_css(['font' => '</style>']), '</style>'), 'render validation');
+    echo "theme tests passed\n";
+} finally { @unlink($path); }

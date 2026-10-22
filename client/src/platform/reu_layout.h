@@ -1,0 +1,48 @@
+#ifndef SEE64YOU_PLATFORM_REU_LAYOUT_H
+#define SEE64YOU_PLATFORM_REU_LAYOUT_H
+
+#define S64_REU_DOCUMENT_BANK 0u
+#define S64_REU_DOCUMENT_BASE 0u
+#define S64_REU_DOCUMENT_CAPACITY 61440u
+
+#define S64_REU_HISTORY_PAYLOAD_BANK 0u
+#define S64_REU_HISTORY_PAYLOAD_BASE 61440u
+#define S64_REU_HISTORY_PAYLOAD_CAPACITY 4096u
+
+#define S64_REU_CLIPBOARD_BANK 1u
+#define S64_REU_CLIPBOARD_BASE 0u
+#define S64_REU_CLIPBOARD_CAPACITY 61440u
+
+#define S64_REU_HISTORY_META_BANK 1u
+#define S64_REU_HISTORY_META_BASE 61440u
+
+/*
+ * Persistent publisher settings are exchanged with a helper PRG in the
+ * otherwise unused tail of REU bank 1. The 16 history metadata entries occupy
+ * only the beginning of this region.
+ */
+#define S64_REU_SETTINGS_BANK 1u
+#define S64_REU_SETTINGS_BASE 64512u
+#define S64_REU_SETTINGS_CAPACITY 768u
+
+/* Managed Publisher authority uses only the otherwise-unused final 256 bytes
+ * of the settings reservation; the canonical S64SettingsExchange remains at
+ * S64_REU_SETTINGS_BASE for compatibility with the Settings helper. */
+#define S64_REU_SETTINGS_SESSION_BASE (S64_REU_SETTINGS_BASE + 512u)
+#define S64_REU_SETTINGS_SESSION_CAPACITY 256u
+
+#define S64_REU_HANDOFF_BANK 1u
+#define S64_REU_HANDOFF_BASE 65280u
+#define S64_REU_HANDOFF_CAPACITY 256u
+#define S64_REU_HISTORY_META_LIMIT S64_REU_SETTINGS_BASE
+
+/*
+ * Banks 0-1 remain reserved for the current migration-era editor layout.
+ * The new shared runtime starts at bank 2. The fixed control block occupies
+ * only the first 256 bytes; allocator-owned data begins immediately after it.
+ */
+#define S64_REU_RUNTIME_CONTROL_BANK 2u
+#define S64_REU_RUNTIME_CONTROL_BASE 0u
+#define S64_REU_RUNTIME_CONTROL_CAPACITY 256u
+
+#endif

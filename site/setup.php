@@ -2,10 +2,11 @@
 declare(strict_types=1);
 
 $configPath = __DIR__ . '/config.php';
+$setupMarker = __DIR__ . '/ENABLE_SETUP';
 
-if (is_file($configPath)) {
+if (is_file($configPath) || !is_file($setupMarker)) {
     http_response_code(404);
-    echo '<!doctype html><html><body><h1>See64You</h1><p>This site is already configured.</p></body></html>';
+    echo '<!doctype html><html><body><h1>See64You</h1><p>Setup is not available.</p></body></html>';
     exit;
 }
 
@@ -20,7 +21,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
     if ($siteTitle === '') {
         $error = 'Site title is required.';
-    } elseif (!in_array($theme, ['plain', 'simple', 'c64'], true)) {
+    } elseif (!in_array($theme, ['plain', 'simple'], true)) {
         $error = 'Invalid theme.';
     } elseif (strlen($password) < 8) {
         $error = 'Password must be at least 8 characters.';
@@ -30,12 +31,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $config = [
             'site_title' => $siteTitle,
             'theme' => $theme,
-            'text_color' => '#a5a5ff',
-            'background_color' => '#3e31a2',
-            'link_color' => '#ffffff',
-            'visited_color' => '#c46cff',
+            'text_color' => '#ffffff',
+            'background_color' => '#2e2c9b',
+            'link_color' => '#edf171',
+            'visited_color' => '#a9ff9f',
             'password_hash' => password_hash($password, PASSWORD_DEFAULT),
             'token_secret' => bin2hex(random_bytes(32)),
+            'direct_secret' => bin2hex(random_bytes(32)),
             'token_ttl' => 43200,
         ];
 
@@ -48,6 +50,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             @unlink($temporary);
             $error = 'Could not write config.php. Check folder permissions.';
         } else {
+            @unlink($setupMarker);
             $complete = true;
         }
     }
@@ -60,19 +63,21 @@ function h(string $value): string
 
 ?><!doctype html>
 <html>
-<head><meta charset="utf-8"><title>See64You setup</title></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>See64You setup</title></head>
 <body>
 <h1>See64You setup</h1>
 <?php if ($complete): ?>
 <p>Setup complete. Your site is ready.</p>
+<p><a href="start.php?step=3">Continue: pair your C64U and publish your first page or post</a></p>
 <p><a href="index.php">Open the site</a></p>
 <?php else: ?>
+<p><a href="start.php?step=2">First page or post walkthrough</a></p>
 <?php if ($error !== ''): ?><p><strong><?= h($error) ?></strong></p><?php endif; ?>
 <form method="post">
 <p><label>Site title<br><input name="site_title" value="<?= h((string)($_POST['site_title'] ?? 'My See64You Site')) ?>"></label></p>
 <p><label>Theme<br>
 <select name="theme">
-<?php foreach (['plain' => 'Plain HTML', 'simple' => 'Simple', 'c64' => 'C64'] as $value => $label): ?>
+<?php foreach (['plain' => 'Plain HTML', 'simple' => 'Simple'] as $value => $label): ?>
 <option value="<?= h($value) ?>"<?= (string)($_POST['theme'] ?? 'plain') === $value ? ' selected' : '' ?>><?= h($label) ?></option>
 <?php endforeach; ?>
 </select></label></p>

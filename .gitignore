@@ -6,8 +6,12 @@ client/*.lbl
 
 # Local standalone-site configuration and runtime data
 site/config.php
+site/ENABLE_SETUP
 site/data/sessions/
 site/data/*.tmp
+
+# Local relay secrets/configuration
+relay/config.json
 
 # Editor/OS clutter
 .vscode/
@@ -15,3 +19,6 @@ site/data/*.tmp
 .DS_Store
 Thumbs.db
 *.swp
+
+# Generated upload packages
+dist/

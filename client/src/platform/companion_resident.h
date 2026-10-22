@@ -1,0 +1,16 @@
+#ifndef SEE64YOU_PLATFORM_COMPANION_RESIDENT_H
+#define SEE64YOU_PLATFORM_COMPANION_RESIDENT_H
+
+#include <stdint.h>
+
+#define S64_RESIDENT_LOADER_BASE 0xc800u
+#define S64_RESIDENT_LOADER_SIZE 0x0400u
+#define S64_RESIDENT_PAYLOAD_LO_OFFSET 3u
+#define S64_RESIDENT_PAYLOAD_HI_OFFSET 4u
+#define S64_RESIDENT_TEST_FILENAME "S64LDTST.PRG"
+
+extern const uint8_t s64_resident_loader_image[S64_RESIDENT_LOADER_SIZE];
+
+void s64_resident_loader_enter(void);
+
+#endif

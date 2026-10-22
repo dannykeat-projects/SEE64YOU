@@ -3,22 +3,33 @@
 
 #include "buffer.h"
 #include "clipboard.h"
+#include "history.h"
 
 typedef struct {
     S64Buffer buffer;
+    S64History history;
     unsigned int view_start;
+    unsigned int view_column;
     unsigned int line;
     unsigned int column;
+    unsigned int position_cursor;
     unsigned int selection_anchor;
     unsigned int preferred_column;
+    unsigned char view_cursor_row;
+    unsigned char view_cursor_column;
     unsigned char selection_valid;
     unsigned char preferred_column_valid;
     unsigned char mark_mode;
     unsigned char dirty;
     unsigned char insert_mode;
+    unsigned char word_wrap;
 } S64Editor;
 
 void s64_editor_init(S64Editor* editor);
+void s64_editor_document_loaded(S64Editor* editor);
+void s64_editor_mark_saved(S64Editor* editor);
+int s64_editor_undo(S64Editor* editor);
+int s64_editor_redo(S64Editor* editor);
 int s64_editor_insert(S64Editor* editor, unsigned char value);
 int s64_editor_newline(S64Editor* editor);
 int s64_editor_backspace(S64Editor* editor);
@@ -33,7 +44,29 @@ void s64_editor_page_up(S64Editor* editor);
 void s64_editor_page_down(S64Editor* editor);
 void s64_editor_word_left(S64Editor* editor);
 void s64_editor_word_right(S64Editor* editor);
+int s64_editor_go_to_line(S64Editor* editor, unsigned int line_number);
+int s64_editor_find_next(S64Editor* editor, const char* query, unsigned char wrap);
+int s64_editor_find_previous(S64Editor* editor, const char* query, unsigned char wrap);
+int s64_editor_replace_selection(S64Editor* editor, const char* replacement);
+int s64_editor_replace_all(
+    S64Editor* editor,
+    const char* query,
+    const char* replacement,
+    unsigned int* replacements
+);
 void s64_editor_toggle_insert(S64Editor* editor);
+void s64_editor_toggle_word_wrap(S64Editor* editor);
+int s64_editor_point(
+    S64Editor* editor,
+    unsigned char view_row,
+    unsigned char view_column,
+    unsigned char extend_selection
+);
+
+int s64_editor_format_bold(S64Editor* editor);
+int s64_editor_format_italic(S64Editor* editor);
+int s64_editor_format_heading(S64Editor* editor, unsigned char level);
+int s64_editor_format_list_item(S64Editor* editor);
 
 void s64_editor_toggle_mark(S64Editor* editor);
 void s64_editor_select_all(S64Editor* editor);

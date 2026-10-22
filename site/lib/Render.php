@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/Themes.php';
+require_once __DIR__ . '/Auth.php';
+
 function s64_inline_markup(string $text): string
 {
     $safe = htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -63,10 +66,22 @@ function s64_markup(string $source): string
     return implode("\n", $html);
 }
 
+function s64_draft_preview_headers(): void
+{
+    header('Cache-Control: private, no-store');
+    header('X-Robots-Tag: noindex, nofollow');
+    header('Referrer-Policy: no-referrer');
+}
+
+function s64_draft_preview_banner(): string
+{
+    return '<p><strong>Draft preview</strong></p>';
+}
+
 function s64_safe_color(mixed $value, string $fallback): string
 {
     $value = (string)$value;
-    return preg_match('/^#[0-9a-f]{6}$/i', $value) ? $value : $fallback;
+    return preg_match('/^#[0-9a-f]{6}$/i', $value) ? s64_theme_nearest_colour($value) : $fallback;
 }
 
 function s64_theme_css(array $config): string
@@ -75,50 +90,117 @@ function s64_theme_css(array $config): string
     if ($theme === 'plain') {
         return '';
     }
-
-    $text = s64_safe_color($config['text_color'] ?? '', '#222222');
-    $background = s64_safe_color($config['background_color'] ?? '', '#ffffff');
-    $link = s64_safe_color($config['link_color'] ?? '', '#0000ee');
-    $visited = s64_safe_color($config['visited_color'] ?? '', '#551a8b');
-
-    if ($theme === 'c64') {
-        return 'body{max-width:40em;margin:2em auto;padding:1em;font-family:monospace;'
-            . "color:$text;background:$background;line-height:1.35}"
-            . "a{color:$link}a:visited{color:$visited}nav{margin:1em 0}hr{border:0;border-top:1px solid $text}";
+    if (isset($config['custom_themes'][$theme]['values']) && is_array($config['custom_themes'][$theme]['values'])) {
+        return s64_custom_theme_css($config['custom_themes'][$theme]['values']);
     }
 
+    $text = s64_safe_color($config['text_color'] ?? '', '#ffffff');
+    $background = s64_safe_color($config['background_color'] ?? '', '#2e2c9b');
+    $link = s64_safe_color($config['link_color'] ?? '', '#edf171');
+    $visited = s64_safe_color($config['visited_color'] ?? '', '#a9ff9f');
+
+    // Old built-in C64 selections use Simple styling without modifying saved configuration.
     return 'body{max-width:48em;margin:2em auto;padding:0 1em;font-family:system-ui,sans-serif;line-height:1.5;'
         . "color:$text;background:$background}"
-        . "a{color:$link}a:visited{color:$visited}nav{margin:1em 0}";
+        . "a{color:$link;text-decoration:underline}a:visited{color:$visited}"
+        . "a:focus-visible{outline:2px solid currentColor;outline-offset:2px}"
+        . "nav{margin:1em 0}";
+}
+
+function s64_theme_admin_visible(array $config): bool
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        if (!isset($_COOKIE['s64_theme_session'])) {
+            return false;
+        }
+        session_name('s64_theme_session');
+        session_cache_limiter('');
+        if (!session_start(['read_and_close' => true])) {
+            return false;
+        }
+    }
+
+    return (new S64Auth($config))->valid((string)($_SESSION['theme_token'] ?? ''));
+}
+
+function s64_active_theme_values(array $config): ?array
+{
+    $theme = (string)($config['theme'] ?? 'plain');
+    if (!isset($config['custom_themes'][$theme]['values']) || !is_array($config['custom_themes'][$theme]['values'])) {
+        return null;
+    }
+    try {
+        return s64_validate_theme(s64_theme_palette_values($config['custom_themes'][$theme]['values']));
+    } catch (InvalidArgumentException) {
+        return null;
+    }
+}
+
+function s64_browser_requested(string $accept): bool
+{
+    foreach (explode(',', $accept) as $entry) {
+        $parts = explode(';', $entry);
+        if (strtolower(trim(array_shift($parts))) !== 'application/x-see64you-browser') continue;
+        $quality = 1.0;
+        foreach ($parts as $part) {
+            if (!preg_match('/^q\s*=/i', trim($part))) continue;
+            if (!preg_match('/^q\s*=\s*([01](?:\.\d{0,3})?)$/i', trim($part), $match)) return false;
+            $quality = (float)$match[1];
+        }
+        return $quality > 0.0 && $quality <= 1.0;
+    }
+    return false;
 }
 
 function s64_render_layout(array $config, array $pages, string $title, string $content): void
 {
-    $siteTitle = htmlspecialchars((string)$config['site_title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    if (s64_browser_requested((string)($_SERVER['HTTP_ACCEPT'] ?? ''))) {
+        require_once __DIR__ . '/Browser.php';
+        s64_browser_render($config, $pages, $title, $content);
+        return;
+    }
+    $themeValues = s64_active_theme_values($config);
+    $rawSiteTitle = $themeValues !== null && $themeValues['header_title'] !== ''
+        ? $themeValues['header_title']
+        : (string)$config['site_title'];
+    $siteTitle = htmlspecialchars($rawSiteTitle, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $pageTitle = htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $css = s64_theme_css($config);
 
-    echo "<!doctype html>\n<html><head><meta charset=\"utf-8\">";
+    echo "<!doctype html>\n<html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">";
     echo '<title>' . ($title === '' ? $siteTitle : $pageTitle . ' - ' . $siteTitle) . '</title>';
     if ($css !== '') {
         echo '<style>' . $css . '</style>';
     }
-    echo "</head><body>\n";
-    echo '<header><h1>' . $siteTitle . '</h1><nav>';
-    echo '<a href="index.php">Home</a>';
-
-    foreach ($pages as $page) {
-        if ($page['slug'] === 'home') {
-            continue;
-        }
-        echo ' | <a href="page.php?slug='
-            . rawurlencode((string)$page['slug']) . '">'
-            . htmlspecialchars((string)$page['title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-            . '</a>';
+    echo "</head><body>\n<div class=\"s64-screen\">";
+    echo '<header>';
+    if ($themeValues === null || $themeValues['show_title'] === 'yes') {
+        echo '<h1>' . $siteTitle . '</h1>';
     }
+    if ($themeValues === null || $themeValues['show_menu'] === 'yes') {
+        echo '<nav><div class="s64-menu">';
+        echo '<a href="index.php">Home</a>';
 
-    echo ' | <a href="posts.php">Posts</a>';
-    echo "</nav><hr></header>\n<main>";
+        foreach ($pages as $page) {
+            if ($page['slug'] === 'home') {
+                continue;
+            }
+            echo '<span class="s64-menu-separator"> | </span><a href="page.php?slug='
+                . rawurlencode((string)$page['slug']) . '">'
+                . htmlspecialchars((string)$page['title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+                . '</a>';
+        }
+
+        echo '<span class="s64-menu-separator"> | </span><a href="posts.php">Posts</a>';
+        if (s64_theme_admin_visible($config)) {
+            echo '<span class="s64-menu-separator"> | </span><a href="themes.php">Themes</a>';
+        }
+        echo '</div></nav>';
+    }
+    if ($themeValues === null || $themeValues['show_separator'] === 'yes') {
+        echo '<hr>';
+    }
+    echo "</header>\n<main><div class=\"s64-panel\">";
     echo $content;
-    echo "</main>\n</body></html>";
+    echo "</div></main></div>\n</body></html>";
 }

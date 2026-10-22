@@ -1,0 +1,361 @@
+name: Integration validation
+
+on:
+  push:
+    branches:
+      - integration-validation-2026-09-24
+      - feature/c64u-publisher-chain
+      - 'maintenance/**'
+  workflow_dispatch:
+
+concurrency:
+  group: see64you-integration-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Fast public-runner gate: independent of the hardware-connected self-hosted runner.
+  website-browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check standalone website and C64 palette
+        run: |
+          php site/tests/run.php
+          php site/tests/browser.php
+          sh site/tests/http.sh
+          php tools/package-site.php
+
+      - name: Check public-browser host protocol and HTTP transport
+        run: |
+          set -eu
+          tmp=$(mktemp)
+          trap 'rm -f "$tmp"' EXIT
+          cc -std=c89 -Wall -Wextra -Werror -Iclient/src \
+            client/tests/browser_protocol_test.c client/src/browser/protocol.c -o "$tmp"
+          "$tmp"
+          cc -std=c89 -Wall -Wextra -Werror -Iclient/src \
+            client/tests/browser_http_test.c client/src/browser/http.c \
+            client/src/charset.c -o "$tmp"
+          "$tmp"
+
+      - name: Check independent documents, settings and authenticated publishing (host)
+        run: |
+          tmp=$(mktemp)
+          trap 'rm -f "$tmp"' EXIT
+          cc -std=c99 -Wall -Wextra -Iclient/src client/tests/local_documents_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/dos.c client/src/storage/local.c -o "$tmp"
+          "$tmp"
+          cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src client/tests/publisher_settings_store_test.c client/src/charset.c client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c client/src/publisher/settings_store.c -o "$tmp"
+          "$tmp"
+          cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_direct_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/network.c client/src/crypto/sha256.c client/src/publisher/direct_key.c client/src/publisher/direct_key_store.c client/src/publisher/direct_auth.c client/src/publisher/workspace.c client/src/publisher/standalone_direct.c -o "$tmp"
+          "$tmp"
+
+      - name: Install C64 compiler
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cc65
+
+      - name: Build complete eleven-file independent C64U package
+        run: make -C client independent-package
+
+      - name: Package provisional client and PHP website ZIPs
+        run: |
+          mkdir -p dist
+          test "$(find client/build/independent-package/SEE64YOU -maxdepth 1 -type f | wc -l)" -eq 11
+          test ! -e dist/see64you-site/config.php
+          test ! -d dist/see64you-site/tests
+          (cd client/build/independent-package && python3 -m zipfile -c ../../../dist/see64you-c64u-candidate.zip SEE64YOU)
+          (cd dist && python3 -m zipfile -c see64you-site-candidate.zip see64you-site)
+          python3 -m zipfile -t dist/see64you-c64u-candidate.zip
+          python3 -m zipfile -t dist/see64you-site-candidate.zip
+          sha256sum dist/see64you-c64u-candidate.zip dist/see64you-site-candidate.zip | tee dist/SHA256SUMS
+      - name: Upload provisional complete C64U package for hardware testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-independent-palette-candidate-not-hardware-verified
+          path: |
+            client/build/independent-package/SEE64YOU/
+            dist/see64you-c64u-candidate.zip
+            dist/see64you-site-candidate.zip
+            dist/SHA256SUMS
+          if-no-files-found: error
+
+  # Keep the old deep validation job on its established branches until the
+  # independent package is accepted; do not run managed-runtime targets on
+  # the maintenance-only software-validation branch.
+  validate:
+    if: ${{ github.event.repository.private == true && !startsWith(github.ref, 'refs/heads/maintenance/') }}
+    runs-on: [self-hosted, linux, x64, terra64]
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify preinstalled C64 validation toolchain
+        run: |
+          command -v cl65 cc65 ca65 sim65 cc php python3 curl make xvfb-run
+          x64sc -version
+
+      - name: Run standalone site tests
+        run: php site/tests/run.php
+
+      - name: Build independent Publisher candidate and guard
+        run: make -C client independent-publisher
+
+      - name: Build independent Settings candidate and guard
+        run: make -C client independent-settings
+
+      - name: Validate independent source, configuration, and direct network services
+        run: |
+          tmp=$(mktemp)
+          trap 'rm -f "$tmp"' EXIT
+          cc -std=c99 -Wall -Wextra -Iclient/src client/tests/local_documents_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/dos.c client/src/storage/local.c -o "$tmp"
+          "$tmp"
+          cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src client/tests/publisher_settings_store_test.c client/src/charset.c client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c client/src/publisher/settings_store.c -o "$tmp"
+          "$tmp"
+          cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_direct_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/network.c client/src/crypto/sha256.c client/src/publisher/direct_key.c client/src/publisher/direct_key_store.c client/src/publisher/direct_auth.c client/src/publisher/workspace.c client/src/publisher/standalone_direct.c -o "$tmp"
+          "$tmp"
+
+      - name: Publish independently built PRGs and measured maps (diagnostic only)
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-three-program-candidate-not-hardware-verified
+          path: |
+            client/build/independent/S64PUB.PRG
+            client/build/independent/S64CFG.PRG
+            client/build/independent/publisher.map
+            client/build/independent/settings.map
+          if-no-files-found: error
+
+      - name: Build full independent Editor-launcher Publisher Settings package
+        run: make -C client independent-package
+
+      - name: Publish independent MVP candidate package (not hardware verified)
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-file-based-mvp-candidate-not-hardware-verified
+          path: client/build/independent-package/SEE64YOU/*
+          if-no-files-found: error
+
+      - name: Build current managed C64U package
+        run: make -C client clean c64u-package
+
+      - name: Build C64U platform preflight probe
+        run: make -C client platform-preflight-probe
+
+      - name: Build REU diagnostic PRG
+        run: make -C client reu-probe
+
+      - name: Build C64U network target probe
+        run: make -C client network-probe
+
+      - name: Build C64U HTTPS target probe
+        run: make -C client https-probe
+
+      - name: Build C64U companion DOS stream probe
+        run: make -C client companion-stream-probe
+
+      - name: Build C64U resident replacement loader probe
+        run: |
+          make -C client companion-launch-probe
+          test "$(wc -c < client/build/companion-resident.bin)" -eq 1024
+          python3 tools/check_memory_headroom.py client/build/companion-launch-probe.map \
+            --label "C64U resident loader probe" --min-headroom 1024
+          python3 tools/check_prg_extent.py client/build/S64LDTST.PRG \
+            --label "C64U resident loader target" \
+            --load-address 0x0801 --max-end 0xC7FF
+
+      - name: Build direct Standalone site probe
+        run: make -C client direct-site-probe
+
+      - name: Build direct authenticated Standalone probe
+        run: make -C client direct-auth-probe
+
+      - name: Build C64U HMAC probe
+        run: make -C client hmac-probe
+
+      - name: Build C64U settings I/O probe
+        run: make -C client settings-io-probe
+
+      - name: Build C64U settings exchange probe
+        run: make -C client settings-exchange-probe
+
+      - name: Build actual settings helper save probe
+        run: make -C client settings-save-probe
+
+      - name: Build read-only settings load probe
+        run: make -C client settings-load-probe
+
+      - name: Publish read-only settings load probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-settings-load-probe
+          path: client/build/settings-load-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish actual settings helper save probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-settings-save-probe
+          path: client/build/settings-save-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish C64U settings exchange probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-settings-exchange-probe
+          path: client/build/settings-exchange-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish C64U settings I/O probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-settings-io-probe
+          path: client/build/settings-io-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish managed C64U memory maps
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-c64u-maps
+          path: |
+            client/build/managed-handoff-launcher.map
+            client/build/editor-overlay-fit/editor-overlay-fit.map
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish C64U platform preflight probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-platform-preflight-probe
+          path: client/build/platform-preflight-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish REU diagnostic PRG
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-reu-probe
+          path: client/build/reu-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish C64U network target probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-network-probe
+          path: client/build/network-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish C64U HTTPS target probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-https-probe
+          path: client/build/https-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish C64U companion DOS stream probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-companion-stream-probe
+          path: client/build/companion-stream-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish C64U resident replacement loader probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-companion-launch-probe
+          path: |
+            client/build/companion-launch-probe.prg
+            client/build/S64LDTST.PRG
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish direct Standalone site probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-direct-site-probe
+          path: client/build/direct-site-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish direct authenticated Standalone probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-direct-auth-probe
+          path: client/build/direct-auth-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish C64U HMAC probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-hmac-probe
+          path: client/build/hmac-probe.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Measure publisher companion fit
+        run: |
+          make -C client publisher-companion-fit
+          python3 tools/check_memory_headroom.py client/build/publisher-companion-fit.map \
+            --label "C64U publisher companion" --min-headroom 1024
+
+      - name: Build C64U publisher PRG
+        run: |
+          make -C client publisher
+          python3 tools/check_memory_headroom.py client/build/see64you-publisher.map \
+            --label "C64U publisher" --min-headroom 1024
+
+      - name: Check publishing settings helper memory
+        run: |
+          python3 tools/check_memory_headroom.py client/build/see64you-settings.map \
+            --label "C64U settings helper" --min-headroom 1024
+
+      - name: Publish C64U publisher PRG
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-publisher-prg
+          path: client/build/see64you-publisher.prg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish C64U publisher memory map
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-publisher-map
+          path: client/build/see64you-publisher.map
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish current C64U application package
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-c64u-package
+          path: client/build/c64u-package/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Run full validation
+        run: sh ./tools/validate.sh
+
+      - name: Publish authenticated resumed Editor diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: see64you-resume-editor-gate
+          path: |
+            client/build/resume-editor-gate.prg
+            client/build/resume-editor-gate.map
+            client/build/resume-editor-fixture/*.DAT
+            client/build/resume-editor-fixture/resume_fixture.h
+          if-no-files-found: error
+          retention-days: 30
