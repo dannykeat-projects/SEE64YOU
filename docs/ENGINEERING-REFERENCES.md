@@ -13,6 +13,18 @@ External software is **reference material**, not a new SEE64YOU workstream. Do n
 
 - [Ultimate USB FTP corruption, issue #803](https://github.com/GideonZ/1541ultimate/issues/803), reviewed 22 October 2026: Gideon reports fixing unaligned USB DMA reads in the FPGA on 2 September. Our firmware-1.1.0/FPGA-122 machine reproduces USB-only FTP corruption while SD is exact; two 700-byte/20-ms paced disposable USB transfers pass. Likely related, not an independently proven root cause. Keep readback verification; do not treat smaller unpaced chunks as sufficient or assume a release contains the fix without checking its FPGA image. No firmware/source import or flash performed.
 
+### USB input fixes reviewed 22 October 2026
+
+The user's C64U still reports 1.1.0 / FPGA 122 / core 1.49; USB mouse has not worked in their limited testing. Model/receiver/hub and a known 1351-aware program remain unverified. Read-only configuration shows Joystick Swapper Normal and no newer Joystick Settings category. SEE64YOU installs cc65's C64 mouse driver; it does not enumerate USB devices. No firmware/configuration change or physical input acceptance was performed.
+
+| Symptom | Primary upstream evidence | Adoption boundary |
+| --- | --- | --- |
+| Mouse not recognized / limited compatibility | [HID report-protocol support #675](https://github.com/GideonZ/1541ultimate/pull/675), merged 12 April; [descriptor-read fix 04200ac0](https://github.com/GideonZ/1541ultimate/commit/04200ac0b4923ebc61d41814809b9c3be61739c3) and [interface limit 954104c0](https://github.com/GideonZ/1541ultimate/commit/954104c0b251153daac6b6d18c0ae62ffad057a0), 20 May | These postdate the official March-build 1.1.0. First test a plain wired mouse directly in a 1351 program on port 1; establish the exact device before attributing failure. |
+| USB key stays pressed after leaving menus / runaway repeat | [Matrix-state fix #723](https://github.com/GideonZ/1541ultimate/pull/723), merged 17 July; [bounded repeat #796](https://github.com/GideonZ/1541ultimate/pull/796), merged 24 August | Distinct defects; do not assume every keyboard/receiver has them or that a community build includes both. |
+| Mouse jumps while scrolling / remote menus steal clicks | [Mouse input fix #913](https://github.com/GideonZ/1541ultimate/pull/913), merged 16 September | A later-stack regression, not evidence for why this stock-1.1.0 mouse never works. |
+
+[Commodore's download page](https://commodore.net/downloads/) still lists 1.1.0. [Community Prkl v1.1.0s2p8](https://github.com/jusii/prkl_ultimate/releases/tag/v1.1.0s2p8), released 11 June, advertises a RAM-loaded SoftPatch with broader HID support and the May descriptor/interface fixes, verified by its author on FPGA 122/core 1.49. It is a possible controlled compatibility experiment, not an official recommendation or locally accepted firmware. Its June release does not establish inclusion of later July–September fixes; it does not claim to replace the FPGA, so it cannot establish adoption of #803's FPGA fix. Preserve configuration and inspect exact binary/provenance before any separate firmware test. No external code imported.
+
 ## Alternatives evaluated for product scope
 
 | Project | Relevant lesson | Why no wholesale replacement now |
