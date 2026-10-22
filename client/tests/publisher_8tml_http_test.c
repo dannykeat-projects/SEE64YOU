@@ -61,9 +61,10 @@ static S64UciResult execute(const S64UciCommandPart* parts, uint8_t count, S64Uc
         case 7: {
             struct sockaddr_in address;
             struct timeval timeout = {5, 0};
-            assert(count == 3 && parts[0].data[2] == 80 && parts[0].data[3] == 0);
-            assert(parts[1].length == strlen("example.com"));
-            assert(memcmp(parts[1].data, "example.com", parts[1].length) == 0);
+            assert(count == 3 && parts[0].data[2] == (test_port & 255u)
+                && parts[0].data[3] == (test_port >> 8));
+            assert(parts[1].length == strlen("127.0.0.1"));
+            assert(memcmp(parts[1].data, "127.0.0.1", parts[1].length) == 0);
             if (fail_open) return S64_UCI_TIMEOUT;
             assert(connection == -1);
             connection = socket(AF_INET, SOCK_STREAM, 0);
@@ -232,14 +233,16 @@ int main(int argc, char** argv)
     S64DocumentSummary summary;
     uint16_t total;
     unsigned int before;
+    char base_url[64];
     assert(argc == 4 && getenv("S64_TEST_KEY"));
     test_port = (uint16_t)strtoul(argv[1], 0, 10);
     http.execute = execute;
     s64_buffer_init(&body);
     s64_document_init(&document, &body);
     assert(s64_direct_publisher_key(getenv("S64_TEST_KEY")));
+    sprintf(base_url, "http://127.0.0.1:%u", test_port);
     assert(s64_destination_configure(&destination, S64_DESTINATION_STANDALONE,
-        "http://example.com", 1) == S64_DESTINATION_OK);
+        base_url, 1) == S64_DESTINATION_OK);
     assert(s64_destination_connection_url(&destination, url, sizeof(url)) == S64_DESTINATION_OK);
     assert(s64_direct_publisher_test(&http, url, 1) == S64_STANDALONE_OK);
 

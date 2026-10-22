@@ -47,6 +47,7 @@ extern uint8_t s64_direct_key_ready;
 static S64NetTransport network;
 static uint8_t socket_handle;
 static uint16_t status_code;
+static uint16_t server_port;
 #ifdef S64_INDEPENDENT_PUBLISHER
 static S64DocumentStatus source_status;
 #endif
@@ -144,6 +145,7 @@ static S64StandaloneResult parse_url(const char* url, uint8_t allow_http)
     const char* start;
     const char* path;
     uint16_t length;
+    const char* digit;
     if (!url) return S64_STANDALONE_INVALID_ARGUMENT;
     if (equal_ci(url, "https://", 8)) return S64_STANDALONE_TLS_UNSUPPORTED;
     if (!allow_http) return S64_STANDALONE_INSECURE_TRANSPORT;
@@ -155,9 +157,22 @@ static S64StandaloneResult parse_url(const char* url, uint8_t allow_http)
     if (length >= HOST_CAPACITY || strlen(path) >= URI_CAPACITY)
         return S64_STANDALONE_INVALID_ARGUMENT;
     memcpy(host, start, length); host[length] = 0;
-    /* Reject credentials, ports and request-line/header injection. Port 80 only. */
-    if (strpbrk(host, ":@?# \r\n\t") || strpbrk(path, "# \r\n\t"))
+    /* Keep the authority for Host, but pass only the hostname to UCI DNS. */
+    if (strpbrk(host, "@?# \r\n\t") || strpbrk(path, "# \r\n\t"))
         return S64_STANDALONE_INVALID_ARGUMENT;
+    server_port = 80u;
+    digit = strchr(host, ':');
+    if (digit) {
+        if (digit == host || !*++digit) return S64_STANDALONE_INVALID_ARGUMENT;
+        server_port = 0u;
+        while (*digit) {
+            if (*digit < '0' || *digit > '9' || server_port > 6553u
+                || (server_port == 6553u && *digit > '5'))
+                return S64_STANDALONE_INVALID_ARGUMENT;
+            server_port = server_port * 10u + (uint8_t)(*digit++ - '0');
+        }
+        if (!server_port) return S64_STANDALONE_INVALID_ARGUMENT;
+    }
     strcpy(uri, path);
     return S64_STANDALONE_OK;
 }
@@ -262,7 +277,11 @@ static S64StandaloneResult exchange(const char* method, const char* path,
     S64NetResult result;
     S64StandaloneResult outcome = S64_STANDALONE_TRANSPORT_ERROR;
     uint16_t idle = 0, received;
-    if (s64_net_open_tcp(&network, host, 80u, &socket_handle) != S64_NET_OK)
+    char* separator = strchr(host, ':');
+    if (separator) *separator = 0;
+    result = s64_net_open_tcp(&network, host, server_port, &socket_handle);
+    if (separator) *separator = ':';
+    if (result != S64_NET_OK)
         return outcome;
     memset(&reply, 0, sizeof(reply));
     reply.sink = sink; reply.context = context;

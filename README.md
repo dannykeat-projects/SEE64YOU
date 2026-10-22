@@ -16,7 +16,7 @@ Download the [v0.2.0-alpha.1 Editor preview prerelease](https://github.com/danny
 
 ## Development Publisher workflow
 
-Use the matching development PHP service and client package; do not replace historical alpha release assets. Configure the site and provision its dedicated direct key using the existing HTTPS pairing flow. In `S64CFG.PRG`, configure the site/key, explicitly enable **plain HTTP consent**, and save. HMAC authenticates requests but does not encrypt content. The current direct client requires `http://` on port 80 and rejects an explicit `:8080` (or other port) in the URL; the reported Settings/Publisher disagreement is tracked in `todo.md`.
+Use the matching development PHP service and client package; do not replace historical alpha release assets. Configure the site and provision its dedicated direct key using the existing HTTPS pairing flow. In `S64CFG.PRG`, configure the site/key, explicitly enable **plain HTTP consent**, and save. HMAC authenticates requests but does not encrypt content. The development client accepts an optional decimal port from 1 to 65535, default 80, such as `http://192.168.0.250:8080/`. The published `v0.2.0-alpha.1` retains its port-80-only limit. Settings verifies saved configuration; Publisher tests the actual connection.
 
 Create/save source in Editor, then launch `S64PUB.PRG` independently. `L` loads the `.8tml` file; `2` tests the key; `T` selects page/post; `4` chooses draft/published; `3` saves and asks for a valid remote slug on the first local upload. Optional title and unknown metadata stay in the source. `6`/`7` open a remote page/post with its publication state; `D` saves that source to a **new** local filename, refusing overwrite. Service date/order survive source updates. Editor remains useful offline and independently reopens the downloaded file.
 
@@ -48,4 +48,4 @@ Requires PHP 8.1+:
 php -S 127.0.0.1:8080 -t site
 ```
 
-Visit `http://127.0.0.1:8080/` for a host-only demonstration and `setup.php` for one-time configuration. Port 8080 works for host API tests; it is not currently accepted by the native direct Publisher. See [local validation](docs/LOCAL_TESTING.md) for the isolated native-code/PHP integration test.
+Visit `http://127.0.0.1:8080/` for a host-only demonstration and `setup.php` for one-time configuration. The development Publisher accepts explicit ports; the published alpha still requires port 80. This command binds loopback; a C64U needs the server listening on its reachable LAN address. See [local validation](docs/LOCAL_TESTING.md) for the isolated native-code/PHP integration test.

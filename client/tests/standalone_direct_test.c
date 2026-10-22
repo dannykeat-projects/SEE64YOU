@@ -17,6 +17,8 @@ static char sent[125000], response[8192], wire[6000];
 static unsigned int sent_length, response_offset, response_length, wire_length;
 static unsigned int opens, closes, signed_requests;
 static unsigned int failure_mode, empty_read;
+static unsigned int expected_port = 80;
+static const char* expected_authority = "example.com";
 static uint8_t large_body_mode;
 static uint32_t large_body_length;
 
@@ -28,6 +30,7 @@ static void status(S64UciReply* reply, const char* value)
 static void make_response(void)
 {
     char method[16], path[256], signature[65];
+    char host_header[128];
     char* body = strstr(sent, "\r\n\r\n");
     char* header;
     uint8_t key[32], digest[32];
@@ -36,6 +39,8 @@ static void make_response(void)
     unsigned int code = 200, advertised;
     assert(body); body += 4;
     assert(sscanf(sent, "%15s %255s", method, path) == 2);
+    sprintf(host_header, "\r\nHost: %s\r\n", expected_authority);
+    assert(strstr(sent, host_header));
     if (strstr(path, "action=challenge")) {
         payload = "{\"ok\":true,\"challenge\":\"0123456789abcdef0123456789abcdef\"}";
         assert(!strstr(sent, "X-See64You-Signature"));
@@ -95,7 +100,8 @@ static S64UciResult execute(const S64UciCommandPart* parts, uint8_t count, S64Uc
     assert(parts[0].data[0] == 3);
     switch (parts[0].data[1]) {
         case 7:
-            assert(count == 3 && parts[0].data[2] == 80 && parts[0].data[3] == 0);
+            assert(count == 3 && parts[0].data[2] == (expected_port & 255u)
+                && parts[0].data[3] == (expected_port >> 8));
             assert(parts[1].length == strlen("example.com"));
             assert(memcmp(parts[1].data, "example.com", parts[1].length) == 0);
             ++opens; sent_length = response_offset = response_length = 0;
@@ -167,6 +173,23 @@ int main(void)
     assert(s64_direct_publisher_test(&transport, "http://user@example.com/api.php?action=login", 1)
         == S64_STANDALONE_INVALID_ARGUMENT);
     assert(opens == before);
+    {
+        static const char* bad_ports[] = {"", "0", "65536", "999999", "-1", "+80", "80x", "80:90", "80\r\nX:1"};
+        unsigned int port_case;
+        for (port_case = 0; port_case < sizeof(bad_ports) / sizeof(bad_ports[0]); ++port_case) {
+            sprintf(long_url, "http://example.com:%s/api.php?action=login", bad_ports[port_case]);
+            assert(s64_direct_publisher_test(&transport, long_url, 1) == S64_STANDALONE_INVALID_ARGUMENT);
+        }
+        assert(opens == before);
+        expected_port = 8080; expected_authority = "example.com:8080";
+        assert(s64_direct_publisher_test(&transport, "http://example.com:8080/api.php?action=login", 1) == S64_STANDALONE_OK);
+        expected_port = 80; expected_authority = "example.com:80";
+        assert(s64_direct_publisher_test(&transport, "http://example.com:80/api.php?action=login", 1) == S64_STANDALONE_OK);
+        expected_port = 65535; expected_authority = "example.com:65535";
+        assert(s64_direct_publisher_test(&transport, "http://example.com:65535/api.php?action=login", 1) == S64_STANDALONE_OK);
+        expected_port = 80; expected_authority = "example.com";
+    }
+    before = opens;
     strcpy(long_url, "http://example.com/");
     memset(long_url + strlen(long_url), 'a', 239);
     strcpy(long_url + 258, "?x");
@@ -234,7 +257,7 @@ int main(void)
     assert(!s64_direct_publisher_key(""));
     assert(s64_direct_publisher_test(&transport, "http://example.com/api.php?action=login", 1) == S64_STANDALONE_AUTH_FAILED);
     assert(opens == before);
-    assert(opens == closes && signed_requests == 16);
+    assert(opens == closes && signed_requests == 19);
     puts("standalone direct tests passed");
     return 0;
 }
