@@ -251,6 +251,9 @@ int main(int argc, char** argv)
         load_fixture(S64_DOCUMENT_PAGE, "native-page", S64_DOCUMENT_PUBLISHED);
         save_remote();
         open_remote(S64_DOCUMENT_PAGE, "native-page", S64_DOCUMENT_PUBLISHED);
+        assert(s64_destination_save_url(&destination, 0, 0, url, sizeof(url)) == S64_DESTINATION_OK);
+        assert(s64_standalone_save_document(&http, url, 1, 0, &document) != S64_STANDALONE_OK);
+        open_remote(S64_DOCUMENT_PAGE, "native-page", S64_DOCUMENT_PUBLISHED);
         export_source(argv[3], "publisher-small.8tml");
         for (alter_status = 1; alter_status <= 3; ++alter_status) {
             assert(s64_destination_open_url(&destination, S64_DOCUMENT_PAGE,
@@ -287,10 +290,15 @@ int main(int argc, char** argv)
         assert(s64_destination_connection_url(&destination, url, sizeof(url)) == S64_DESTINATION_OK);
         assert(s64_direct_publisher_test(&http, url, 1) == S64_STANDALONE_TRANSPORT_ERROR);
     } else if (strcmp(argv[2], "update") == 0) {
+        fixture(0);
+        load_fixture(S64_DOCUMENT_PAGE, "missing-page", S64_DOCUMENT_PUBLISHED);
+        assert(s64_destination_save_url(&destination, document.slug, 1, url, sizeof(url)) == S64_DESTINATION_OK);
+        assert(s64_standalone_save_document(&http, url, 1, 0, &document) != S64_STANDALONE_OK);
         fixture(1);
         open_remote(S64_DOCUMENT_POST, "native-post", S64_DOCUMENT_PUBLISHED);
         document.status = S64_DOCUMENT_DRAFT;
-        save_remote();
+        assert(s64_destination_save_url(&destination, document.slug, 1, url, sizeof(url)) == S64_DESTINATION_OK);
+        assert(s64_standalone_save_document(&http, url, 1, 0, &document) == S64_STANDALONE_OK);
         open_remote(S64_DOCUMENT_POST, "native-post", S64_DOCUMENT_DRAFT);
     } else {
         assert(strcmp(argv[2], "delete") == 0);

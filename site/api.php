@@ -264,7 +264,12 @@ try {
         }
         $input = input_data($rawBody);
         if (wants_wire() && array_key_exists('raw8tml', $input)) throw new InvalidArgumentException('not_s64');
-        $document = $documents->save($input);
+        $intent = $_GET['intent'] ?? 'create';
+        $identity = $_GET['identity'] ?? '';
+        if (!is_string($intent) || !is_string($identity)) throw new InvalidArgumentException('invalid_intent');
+        $document = array_key_exists('raw8tml', $input)
+            ? $documents->publish($input, $intent, $identity)
+            : $documents->save($input);
         if (wants_wire()) {
             if (isset($document['raw8tml'])) throw new InvalidArgumentException('not_s64');
             respond_wire($document);

@@ -321,7 +321,16 @@ S64DestinationResult s64_destination_save_url(
         if (updating && (identity == 0 || !s64_document_slug_valid(identity))) {
             return S64_DESTINATION_INVALID_ID;
         }
+#ifdef S64_INDEPENDENT_PUBLISHER
+        result = build(destination, updating
+            ? "/api.php?action=save&ack=1&intent=update&identity="
+            : "/api.php?action=save&ack=1&intent=create", output, capacity);
+        if (result != S64_DESTINATION_OK || !updating) return result;
+        length = (uint16_t)strlen(output);
+        return append_text(output, capacity, &length, identity);
+#else
         return build(destination, "/api.php?action=save&ack=1", output, capacity);
+#endif
     }
 
     if (destination->type == S64_DESTINATION_WORDPRESS) {

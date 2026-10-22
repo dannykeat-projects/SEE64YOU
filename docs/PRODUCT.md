@@ -22,13 +22,25 @@ Target a short, guided workflow rather than a general document manager:
 
 A sensible UI is **file → destination / identity → page-or-post + draft-or-public → Publish/Update → result**. The initial screen should lead with “Choose file” and “Publish”, not numbered technical commands. Show a confirmation before replacing remote content; display the actual destination and whether this is a new page or an update. Do not add UI complexity to conceal unsafe HTTP limitations.
 
+## Public reading contract
+
+The PHP site serves HTML and a read-only published-source URL: `source.php?type=page&slug=SLUG` (or `type=post`). It returns exact ASCII/LF bytes as `text/8tml`, without redirects or a static export. Drafts, unpublished/deleted entries and invalid identities return 404, even with authentication or preview parameters. Responses use `no-store` and `nosniff`; authenticated API export remains separate.
+
+The external 8TML/T8WN browser is still being tested according to the user (22 October). HTTP bytes/privacy are validated independently; actual browser URL, MIME and link interoperability remain unverified until a working implementation is available. Do not build a competing SEE64YOU browser.
+
+## Implemented publication safety and remaining work
+
+New 8TML API saves default to create-only and refuse an occupied page/post slug. Explicit updates require a matching remote identity and an existing target, checked inside the same directory write lock as replacement. Publisher asks whether a local upload targets an existing slug and confirms replacement, displaying the selected slug. Portable source contains no service metadata. Reopening a local file can explicitly target its existing remote slug without downloading over the local source.
+
+Host/PHP tests cover create collisions, matching/missing identities, missing update targets and simultaneous creators; native transport tests cover collisions, missing-target refusal and explicit updates. Real-C64U acceptance remains pending. The primary screen now leads with choosing a local file, publication options and Publish/Update; remote download and maintenance commands are secondary. Publish tests the configured key when needed. A stale-revision precondition remains to be implemented; confirmed updates currently replace the latest version under the lock.
+
 ## Code boundaries and simplification
 
 - Editor owns source, cursor, buffer/history, file safety and reversible local editing.
 - Publisher owns network authorization, remote identity and optional upload/download; do not duplicate document serialization or disk recovery.
 - Settings owns configuration and key provisioning.
 - A small server adapter may translate authenticated operations to self-hosted PHP. The 8TML format does **not** depend on this PHP API, a particular service or T8WN.
-- The 8TML/T8WN ecosystem owns the separate compatible browser. Current `S64WEB.PRG`, browser wire protocol and their tests are removal candidates once active package/build callers and safe entry/exit behavior are traced.
+- The 8TML/T8WN ecosystem owns the separate compatible browser. The active source-package build omits `S64WEB.PRG`; optional diagnostic/browser source and site-side protocol remain until their actual callers can be removed safely.
 
 Remove dead code **incrementally after caller tracing**, not by deleting large directories speculatively. Shipping launcher/module manifest dependencies, resource headroom, disk recovery and real-hardware restoration are release gates. This document specifies the target design; the present binaries still contain several extra Publisher operations.
 

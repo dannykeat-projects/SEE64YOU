@@ -8,7 +8,7 @@ This is a test release. Back up your files and machine configuration first. Choo
 
 In the Ultimate **Memory & ROMs** settings (called **C64 and Cartridge Settings** on some menus), enable **Command Interface**, **RAM Expansion Unit**, and **REU Size: 16 MB**. Recheck after a settings reset.
 
-Copy all matching program, BIN and manifest files into `/sd/SEE64YOU/` by default, or the same folder under the selected mount. Do not remove existing documents, configuration or recovery files.
+Copy the complete matching program, BIN and manifest files into `/sd/SEE64YOU/` by default, or the same folder under the selected mount. Do not remove existing documents, configuration or recovery files.
 
 ## Programs
 
@@ -18,7 +18,7 @@ Copy all matching program, BIN and manifest files into `/sd/SEE64YOU/` by defaul
 | `S64CFG.PRG` | Configure optional publishing |
 | `S64PUB.PRG` | Publish or download source |
 
-Launch each program **independently** and return to BASIC when finished. `S64EDIT.PRG` and the BIN/manifest files are internal; do not launch or mix them separately. A packaged `S64WEB.PRG` is not an 8TML reader and is not part of the intended 8TML workflow.
+Launch each program **independently** and return to BASIC when finished. `S64EDIT.PRG` and the BIN/manifest files are internal; do not launch or mix them separately. Use a compatible 8TML/T8WN browser to read published files.
 
 ## Create your first page
 
@@ -47,10 +47,10 @@ Launch each program **independently** and return to BASIC when finished. `S64EDI
 1. Upload the separate SEE64YOU PHP site package to an **empty/disposable** PHP 8.1+ hosting directory, including hidden access-control files. Ensure `data/` is blocked from direct web access and the server can write its configuration, `pages/` and `posts/`.
 2. Open `start.php`, then `setup.php` in a modern browser. Complete setup; use `pair.php` **over HTTPS** to provision a dedicated publishing key.
 3. Run `S64CFG.PRG`. Configure the site-folder URL (without `api.php`) and dedicated key, and confirm `SETTINGS SAVED AND VERIFIED`. Direct firmware-1.1 publishing accepts an explicit `http://` URL and port 1–65535; its content is **unencrypted**. Enable the explicit HTTP consent only when appropriate. Do not put your site login password into the C64U Publisher.
-4. Save the page in Editor and exit. Launch `S64PUB.PRG`, press **L** to load its `.8tml` file, **2** to test the key, **T** to select page/post, and **4** to select draft/published. Press **3** to publish; a first upload asks for a remote slug. Wait for the success message before closing.
-5. Check the public page in a modern browser. For an existing remote item, the Publisher can select page/post with **6**/**7** and save its source under a **new** local name with **D**. Reopen the downloaded source in Editor. Never assume a document was updated merely because the Publisher exited successfully.
+4. Save the page in Editor and exit. Launch `S64PUB.PRG`, press **L** to choose its `.8tml` file, **T** to select page/post, and **4** to select draft/published. Press **3** to publish; Publisher tests the configured key automatically when needed, and a first upload asks for a remote slug. Choose **N** at `UPDATE EXISTING SLUG?` for a new publication; an occupied slug is refused. To replace an existing page/post after reopening a local file, enter its exact slug, choose **Y**, check the displayed slug/type/site, then confirm `REPLACE REMOTE CONTENT?`. Updates require an existing target. Wait for the success message before closing.
+5. Check the public page in a modern browser. For an existing remote item, the Publisher can select page/post with **6**/**7** and save its source under a **new** local name with **D**. Reopen the downloaded source in Editor. Never assume a document was updated merely because the Publisher exited successfully. Confirmed updates currently replace the latest remote content; there is no stale-revision check. Back up remote work before updating from a potentially older local copy.
 
-The Publisher also exposes remote deletion; it is not necessary for ordinary first-page publishing. Use it only when certain of the remote document. Authentication prevents unauthorized writes and replay but does **not** keep HTTP source private. Public HTML currently supports only a subset of the 8TML language. Publishing to T8WN or other external services is not yet supported.
+The Publisher also exposes remote deletion; it is not necessary for ordinary first-page publishing. Use it only when certain of the remote document. Authentication prevents unauthorized writes and replay but does **not** keep HTTP source private. Public HTML currently supports only a subset of the 8TML language. Publishing to T8WN or other external services is not yet supported. The site's public source URL is `source.php?type=page&slug=SLUG` (or `type=post`); only published documents are readable. External-browser compatibility remains unverified until a working 8TML/T8WN browser is available.
 
 ## Troubleshooting
 

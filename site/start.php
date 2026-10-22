@@ -22,7 +22,7 @@ $titles = [1 => 'Prepare your C64U', 'Create your website', 'Pair and save setti
 <?php if ($step === 1): ?>
 <h2>Prepare your C64U</h2>
 <ol>
-<li>Back up an existing installation, configuration and source files. Copy all eleven matching client files to the folder selected by your package: <code>/sd/SEE64YOU/</code> for SD, or <code>/Usb0/SEE64YOU/</code> for the USB0 build only if that is your actual mount. Do not mix packages or change the embedded storage root by renaming folders.</li>
+<li>Back up an existing installation, configuration and source files. Copy all matching client files to the folder selected by your package: <code>/sd/SEE64YOU/</code> for SD, or <code>/Usb0/SEE64YOU/</code> for the USB0 build only if that is your actual mount. Do not mix packages or change the embedded storage root by renaming folders.</li>
 <li>In the Ultimate menu, enable the Ultimate Command Interface. Under C64 and Cartridge Settings, set RAM Expansion Unit to Enabled and REU Size to 16 MB.</li>
 <li>Connect the C64U to your network. The website must be reachable from the C64U; localhost refers to the machine opening it, so use a reachable hostname or computer IP address.</li>
 <li>Launch <code>SEE64YOU.PRG</code> for Editor, <code>S64CFG.PRG</code> for Settings, <code>S64PUB.PRG</code> for Publisher. These programs launch independently; <code>S64EDIT.PRG</code> and the BIN files are internal Editor assets. Each program returns to BASIC.</li>
@@ -60,13 +60,13 @@ $titles = [1 => 'Prepare your C64U', 'Create your website', 'Pair and save setti
 <li>Press 3 once. On the first local upload, enter a remote slug such as <code>first-page</code> using lowercase letters/digits and single hyphens between words, then Return. Wait for Publishing and “Document published”. Do not keep pressing keys while the operation is working. On an error, retain your local source and correct the reported problem.</li>
 <li>Press RUN/STOP to return to BASIC.</li>
 </ol>
-<p>Changing type/state in Publisher does not rewrite the local source file. Check them again when loading that original later.</p>
+<p>Changing type/state in Publisher does not rewrite the local source file. Check them again when loading that original later. <strong>Caution:</strong> choosing an existing slug can replace a remote page without a separate overwrite confirmation. Verify the destination and keep a backup until create/update safeguards are added.</p>
 <?php else: ?>
 <h2>Check your published <?= $kind ?></h2>
 <p>Open <a href="<?= $kind === 'post' ? 'posts.php' : 'index.php' ?>"><?= $kind === 'post' ? 'the post archive' : 'the website' ?></a>, follow your document's link and confirm the text matches. “Document published” plus the visible matching page completes this walkthrough. Next/step navigation alone is not proof of publication.</p>
 <p>For viewing 8TML on a Commodore, use an external compatible 8TML/T8WN browser. SEE64YOU does not provide an 8TML reader. Modern HTML rendering supports only a limited safely escaped subset of the 8TML language.</p>
 <p>To edit later: fresh Publisher, 2 connect, <?= $kind === 'post' ? '7' : '6' ?> browse <?= $kind ?>s, Space for Next, O to open and Y if replacement is requested. Wait for “Remote document opened”. Then D, enter a <strong>new</strong> filename such as <code>FIRST2</code> (the <code>.8tml</code> extension is added), and wait for “Saved .8TML; reopen in Editor”. Existing download files are refused.</p>
-<p>Exit to BASIC, open that download in Editor, edit/save, then launch Publisher and load it. To update the same remote document, choose the same page/post type and intended publication state, and enter its existing remote slug when saving. Source files do not store that service identity. Keep the original slug separately.</p>
+<p>Exit to BASIC, open that download in Editor, edit/save, then launch Publisher and load it. To update the same remote document, you currently need its exact existing page/post type and slug; the source file does not store the remote identity. <strong>Publisher currently does not enforce create-only vs update-only writes.</strong> An incorrect existing slug can replace another document. Back up and check the remote document before proceeding.</p>
 <p>If your page is missing, check that Publisher's State was published and that you are looking at the configured website, then check the displayed slug. Do not delete your source or recovery files to retry.</p>
 <?php endif; ?>
 <nav aria-label="Wizard steps">

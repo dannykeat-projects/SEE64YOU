@@ -28,7 +28,7 @@ python3 tools/test_basic_return_vice.py --rom-dir LOCAL_ROM_DIRECTORY
 sh tools/validate.sh
 ~~~
 
-`tools/validate.sh` contains additional non-shipping targets. Diagnose failures and trace shipping callers; do not call the entire suite passed if one target fails. Enforce all launcher/Publisher ≥1,024-byte headroom guards, Editor region/overlay fit, manifests and complete eleven-file package consistency.
+`tools/validate.sh` contains additional non-shipping targets. Diagnose failures and trace shipping callers; do not call the entire suite passed if one target fails. Enforce all launcher/Publisher ≥1,024-byte headroom guards, Editor region/overlay fit, manifests and complete independent-package consistency.
 
 To test an alternate root, force a full build, then check manifests and embedded paths:
 
