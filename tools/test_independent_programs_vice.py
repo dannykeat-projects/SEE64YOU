@@ -57,6 +57,10 @@ def run(filename, prompt, exit_key, port, rom_dir, checks=(), package_dir=None,
         try:
             monitor = wait_for_monitor("127.0.0.1", port, 20)
             wait_text(monitor, prompt, timeout=prompt_timeout)
+            if filename == "S64PUB.PRG":
+                text = screen(monitor)
+                assert text.index("CHOOSE LOCAL .8TML FILE") < text.index("PUBLISH / UPDATE")
+                assert text.index("PUBLISH / UPDATE") < text.index("DOWNLOAD:")
             if filename == "S64CFG.PRG":
                 key(monitor, ord("M"))
                 wait_text(monitor, "CONTINUE? Y/N")

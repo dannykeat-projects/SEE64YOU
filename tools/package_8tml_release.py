@@ -49,6 +49,8 @@ def main():
     receipt = json.loads(args.hardware_receipt.read_text())
     if not receipt.get("restored") or receipt.get("active") or not receipt.get("dos_context_restored"):
         raise ValueError("Hardware receipt must confirm complete restoration")
+    if set(receipt.get("package_sha256", {})) != FILES:
+        raise ValueError("Hardware receipt must cover the exact ten-file package inventory")
     hardware = {"tested_commit": receipt["commit"], "input": receipt["input"],
                 "physical_keyboard": receipt["physical_keyboard"],
                 "cold_power_cycle": receipt["cold_power_cycle"], "restored": True}

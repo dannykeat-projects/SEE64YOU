@@ -189,6 +189,25 @@ static void render(void)
     print_value(10u, "Remote: ", publish_state.remote_bound
         ? publish_state.remote_identity : "(new document)");
 
+#ifdef S64_INDEPENDENT_PUBLISHER
+    print_value(7u, "Site: ", destination.base_url);
+    print_value(6u, "Local: ", local_document.filename[0] != '\0'
+        ? local_document.filename : "(choose a file)");
+    gotoxy(0u, 12u);
+    cputs("L  CHOOSE LOCAL .8TML FILE");
+    gotoxy(0u, 13u);
+    cputs("T  PAGE / POST    4  DRAFT / PUBLISHED");
+    gotoxy(0u, 14u);
+    cputs("3  PUBLISH / UPDATE");
+    gotoxy(0u, 17u);
+    cputs("DOWNLOAD: 6 OPEN PAGE / 7 OPEN POST");
+    gotoxy(0u, 18u);
+    cputs("D  SAVE REMOTE TO NEW LOCAL FILE");
+    gotoxy(0u, 19u);
+    cputs("2 TEST KEY   1 SETTINGS   5 DELETE");
+    gotoxy(0u, 21u);
+    cputs("RUN/STOP  EXIT TO BASIC");
+#else
     gotoxy(0u, 12u);
     cputs("1  PUBLISHING SETTINGS");
     gotoxy(0u, 13u);
@@ -235,6 +254,7 @@ static void render(void)
     cputs("RUN/STOP  RETURN TO EDITOR");
 #endif
 
+#endif
     clear_row(STATUS_ROW);
     gotoxy(0u, STATUS_ROW);
     revers(1);
@@ -615,6 +635,10 @@ static void toggle_document_status(void)
         : "Status set to draft; save to unpublish");
 }
 
+#ifdef S64_INDEPENDENT_PUBLISHER
+static void connect_destination(void);
+#endif
+
 static void save_remote_document(void)
 {
     S64DestinationResult url_result;
@@ -624,6 +648,7 @@ static void save_remote_document(void)
         set_status("Load .8TML or open remote first");
         return;
     }
+    if (!publish_state.connected) connect_destination();
 #endif
 
     if (!publishing_ready()) {
@@ -653,10 +678,24 @@ static void save_remote_document(void)
         &destination,
         &document
     );
+#ifdef S64_INDEPENDENT_PUBLISHER
+    if (!updating) updating = prompt_yes_no("UPDATE EXISTING SLUG? Y/N");
+    if (updating) {
+        print_value(10u, "Update: ", document.slug);
+        if (!prompt_yes_no("REPLACE REMOTE CONTENT? Y/N")) {
+            set_status("Update cancelled");
+            return;
+        }
+    }
+#endif
 
     url_result = s64_destination_save_url(
         &destination,
+#ifdef S64_INDEPENDENT_PUBLISHER
+        updating ? document.slug : 0,
+#else
         updating ? publish_state.remote_identity : 0,
+#endif
         updating,
         WORK_URL,
         (uint16_t)S64_DESTINATION_URL_CAPACITY

@@ -24,15 +24,15 @@ A sensible UI is **file → destination / identity → page-or-post + draft-or-p
 
 ## Public reading contract
 
-The PHP site currently serves HTML, but `api.php?action=get&format=8tml` is authenticated and its guarded record files are not public. Therefore a visitor or an external 8TML browser does **not** currently have a stable unauthenticated 8TML source URL.
+The PHP site serves HTML and a read-only published-source URL: `source.php?type=page&slug=SLUG` (or `type=post`). It returns exact ASCII/LF bytes as `text/8tml`, without redirects or a static export. Drafts, unpublished/deleted entries and invalid identities return 404, even with authentication or preview parameters. Responses use `no-store` and `nosniff`; authenticated API export remains separate.
 
-For external browser interoperability, design a public read-only URL for **published** 8TML source, with exact bytes, appropriate response type and bounded size. Drafts, unpublished content, authentication keys and internal guarded records must remain inaccessible. Confirm the actual 8TML/T8WN browser's URL, content type, redirect and naming expectations before choosing a route or adding exported static copies. Test public retrieval, draft unpublish/delete, invalid slug, disabled listing, stale caches and cross-origin/client behavior. No new SEE64YOU browser.
+The external 8TML/T8WN browser is still being tested according to the user (22 October). HTTP bytes/privacy are validated independently; actual browser URL, MIME and link interoperability remain unverified until a working implementation is available. Do not build a competing SEE64YOU browser.
 
-## Confirmed publication safety gap
+## Implemented publication safety and remaining work
 
-In `client/src/publisher/main.c`, a new local load clears the current remote binding, while a first upload asks for a slug and sends a save request. `s64_publish_state_can_update()` only changes the client-side operation label/URL choice; the PHP save action currently replaces an existing same-format slug without checking whether the user intended creation or update. A restarted Publisher also loses its remote association because that identity is not embedded in a portable document.
+New 8TML API saves default to create-only and refuse an occupied page/post slug. Explicit updates require a matching remote identity and an existing target, checked inside the same directory write lock as replacement. Publisher asks whether a local upload targets an existing slug and confirms replacement, displaying the selected slug. Portable source contains no service metadata. Reopening a local file can explicitly target its existing remote slug without downloading over the local source.
 
-Before streamlining the Publisher UI, implement explicit, server-enforced create/update intent under the existing write lock. Creation must refuse an occupied slug; update must require a deliberate remote identity, a clear overwrite confirmation and preferably a remote revision/precondition to refuse stale edits. An unbound upload must never silently overwrite. Continue to save the source independently, and preserve network failure/partial-buffer safety. Test this at the PHP layer and native Publisher transport before hardware acceptance.
+Host/PHP tests cover create collisions, matching/missing identities, missing update targets and simultaneous creators; native transport tests cover collisions, missing-target refusal and explicit updates. Real-C64U acceptance remains pending. The primary screen now leads with choosing a local file, publication options and Publish/Update; remote download and maintenance commands are secondary. Publish tests the configured key when needed. A stale-revision precondition remains to be implemented; confirmed updates currently replace the latest version under the lock.
 
 ## Code boundaries and simplification
 

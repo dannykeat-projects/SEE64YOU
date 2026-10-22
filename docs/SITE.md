@@ -1,6 +1,6 @@
 # Self-hosted SEE64YOU site
 
-The optional site is a PHP 8.1+ flat-file publishing service and a simple modern HTML presentation. No database, central account or JavaScript is required for ordinary public pages. It can be installed under your own domain. It is **not** a complete 8TML renderer or a T8WN API server. Public 8TML-source URLs for external browsers are **not implemented**: the existing source export requires authentication, while public views currently provide HTML.
+The optional site is a PHP 8.1+ flat-file publishing service and a simple modern HTML presentation. No database, central account or JavaScript is required for ordinary public pages. It can be installed under your own domain. It is **not** a complete 8TML renderer or a T8WN API server. Published source is available at `source.php?type=page&slug=SLUG` (or `type=post`). External-browser interoperability remains unverified pending a working browser.
 
 ## Setup
 
@@ -27,3 +27,15 @@ To package the tracked site sources for deployment:
 ~~~sh
 php tools/package-site.php
 ~~~
+
+## Publication write intent
+
+Authenticated 8TML `POST api.php?action=save` defaults to `intent=create` and refuses an occupied page/post slug. Updates use `intent=update&identity=SLUG`; identity must match the body slug and the target must already exist. These query parameters are covered by the existing HMAC signature. Existence checks and replacement share the directory write lock, so concurrent creates cannot silently replace one another and a deleted target cannot be recreated by an update. Invalid intent, mismatched identity and collisions fail without replacing content. Deploy the matching client and service together; older clients' unlabelled updates will safely fail as create collisions.
+
+Confirmed updates have no revision precondition yet: a later confirmed writer may replace changes made by an earlier writer. This limitation remains separate from create collision protection. Authentication, portable source bytes and write limits are unchanged.
+
+## Public source
+
+`GET source.php?type=page&slug=SLUG` (or `type=post`) returns the exact published ASCII/LF source as `text/8tml; charset=us-ascii`, with a byte Content-Length, no redirect, `nosniff` and `Cache-Control: no-store`. HEAD returns the same headers without a body. Other methods return 405; missing, invalid, draft, deleted, corrupt and non-8TML records return 404. Authentication or preview tokens never expose drafts through this URL. No exported static copy or separate index can survive unpublish/delete. Relative links are preserved verbatim and resolve against the endpoint URL's site directory; generated HTML URLs are not rewritten into source URLs.
+
+The user reports the external browser is still being tested. This is a tested HTTP source contract, not a claim of T8WN browser compatibility. Browser URL, MIME, redirect and link acceptance remain unverified. Existing cached responses outside the server cannot be recalled; this endpoint instructs clients not to store responses.

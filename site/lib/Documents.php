@@ -70,6 +70,25 @@ final class S64Documents
         return $this->withWriteLock($type, fn(): array => $this->saveUnlocked($input));
     }
 
+    public function publish(array $input, string $intent, string $identity): array
+    {
+        foreach (['type', 'slug', 'status', 'date'] as $field) {
+            if (array_key_exists($field, $input) && !is_string($input[$field])) {
+                throw new InvalidArgumentException('invalid_' . $field);
+            }
+        }
+        $type = $this->validateType((string)($input['type'] ?? ''));
+        $slug = $this->validateSlug((string)($input['slug'] ?? ''));
+        if (!in_array($intent, ['create', 'update'], true)) throw new InvalidArgumentException('invalid_intent');
+        if ($intent === 'update' && $identity !== $slug) throw new InvalidArgumentException('identity_required');
+        return $this->withWriteLock($type, function () use ($input, $intent, $type, $slug): array {
+            $existing = $this->get($type, $slug);
+            if ($intent === 'create' && $existing !== null) throw new InvalidArgumentException('already_exists');
+            if ($intent === 'update' && $existing === null) throw new InvalidArgumentException('not_found');
+            return $this->saveUnlocked($input);
+        });
+    }
+
     private function saveUnlocked(array $input): array
     {
         if (array_key_exists('raw8tml', $input)) return $this->saveEightTml($input);

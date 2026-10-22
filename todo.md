@@ -4,11 +4,13 @@
 
 ## P0 — Publication write safety
 
-- [ ] **Prevent unintentional remote overwrite:** the Publisher clears remote binding on local file load, but PHP save currently overwrites an existing `page/post + slug`. Add locked server-enforced create/update intent, create-on-missing only, update-on-existing only, explicit remote overwrite confirmation and preferably a stale-revision precondition. Make local-file re-publication intuitive without embedding service identity in 8TML. Verify unauthorized/collision/missing/stale-update/failure paths, including concurrent writes. See [product design](docs/PRODUCT.md). Do not deploy a new Publisher until this is verified.
+- [x] **Create/update intent (software validated):** server-enforced create-only saves and explicit identity/existing-target updates share the write lock. Publisher confirms replacements and supports updating an explicitly entered slug after local reopen. PHP/HMAC/native tests cover collision, missing/mismatched identity, missing-target refusal and simultaneous creators. No installed files or service changed.
+- [ ] **Stale-update protection:** confirmed updates currently replace the latest remote version. Add an atomic revision precondition without weakening Publisher memory guards (remeasure against the required 1,024-byte minimum after changes). Real-C64U publication acceptance remains required before deployment.
 
 ## P0 — External 8TML reader interoperability
 
-- [ ] Verify the external 8TML/T8WN browser's actual URL/HTTP, MIME, redirect and link expectations with representative `.8tml` fixtures. The bundled PHP site currently hides source behind authenticated `api.php?action=get&format=8tml` and publishes HTML only. Design and test a public source endpoint **for published documents only**; drafts and guarded storage must never leak, including after unpublish/delete or invalid-slug requests. No new SEE64YOU browser implementation.
+- [x] Published-only source endpoint: `source.php?type=page&slug=SLUG` / `type=post`, exact ASCII/LF, MIME/length, GET/HEAD, no redirects, no-store/nosniff. HTTP tests cover maximum size, drafts, unpublish/republish/delete, invalid identities and failed updates; no public static copies.
+- [ ] Verify actual external 8TML/T8WN browser URL, HTTP, MIME, redirect and link behavior. User reports it is still being tested (22 October); no working implementation was supplied. Endpoint software tests do not establish browser interoperability.
 
 ## P0 — Prove the current user workflow
 
@@ -20,11 +22,12 @@
 
 ## P1 — Simplify after identifying callers
 
-- [ ] Map actual Publisher command usage, state/remote-identity logic, direct authentication and all package/build/test dependencies. Propose and implement the [minimal guided publish/update interface](docs/PRODUCT.md) in small reversible changes; default to choosing a local file, selected destination, visibility and confirmed remote identity.
+- [x] Reorder the primary Publisher screen around choose local file, page/post + visibility, Publish/Update and result. Connection testing happens automatically before first publication; Settings remains the configuration owner. Existing remote download/maintenance keys remain secondary; no handlers or legacy runtime paths were deleted.
+- [ ] Complete real-C64U acceptance of the new publish/update confirmation and reordered screen.
 - [ ] Keep Settings for setup; assess making it a simpler one-time wizard. Retain an explicit source-download/recovery path as a secondary action if the Editor cannot otherwise reopen the only remote copy.
-- [ ] Validate and promote removal of the browser executable from the active package: forced clean SD/USB builds, exact ten-file inventories, module/overlay manifests, Publisher/launcher fit, packaged VICE startup/BASIC return and bounded real-C64U storage/machine-restoration. A focused source change is prepared but is not yet hardware accepted. Retain separate diagnostic source and site wire code until caller traces justify removal.
+- [ ] Validate and promote removal of the browser executable from the active package: forced clean SD/USB builds, exact ten-file inventories, module/overlay manifests, Publisher/launcher fit, packaged VICE startup/BASIC return and bounded real-C64U storage/machine-restoration. Forced SD and `/USB1/` builds, exact ten-file inventories, both manifests, memory guards and packaged VICE startup/BASIC return passed on 22 October. Matching ten-file hardware acceptance is still pending; the release packager now rejects eleven-file hardware receipts. Retain separate diagnostic source and site wire code until caller traces justify removal.
 - [ ] Trace WordPress, relay, managed runtime and unused Publisher preview/import/export/delete handlers. Retire only proven-unused active paths without weakening authentication, storage or updated-document safeguards.
-- [ ] Consolidate duplicate release/install text into [one installation guide](docs/INSTALL.md); revise release packaging to embed that verified guide rather than requiring per-version narrative. Keep published tags/assets unchanged.
+- [x] Consolidate duplicate release/install text into [one installation guide](docs/INSTALL.md); revise release packaging to embed that verified guide rather than requiring per-version narrative. Keep published tags/assets unchanged.
 - [ ] Consider reducing installed program/file count only after matching module-manifest and real-hardware acceptance, not by deleting companion files from the current eleven-file package.
 
 ## P2 — Remaining compatibility and infrastructure

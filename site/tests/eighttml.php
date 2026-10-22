@@ -129,6 +129,51 @@ try {
     $recreated = json_decode($childOutput, true, flags: JSON_THROW_ON_ERROR);
     check8($recreated['order'] === 0 && $recreated['date'] !== '2002-03-04', 'deleted source metadata is not resurrected');
     unlink($marker);
+    $publication = array_replace($input, ['slug' => 'publication']);
+    $documents->publish($publication, 'create', '');
+    $publicationPath = $root . '/pages/publication.8tml.php';
+    $publicationBytes = file_get_contents($publicationPath);
+    rejects8(fn() => $documents->publish($publication, 'create', ''), 'already_exists');
+    rejects8(fn() => $documents->publish($publication, 'update', ''), 'identity_required');
+    rejects8(fn() => $documents->publish($publication, 'update', 'different'), 'identity_required');
+    rejects8(fn() => $documents->publish($publication, 'upsert', 'publication'), 'invalid_intent');
+    check8(file_get_contents($publicationPath) === $publicationBytes, 'rejected publication preserves exact bytes');
+    $documents->publish(array_replace($publication, ['status' => 'draft']), 'update', 'publication');
+    check8($documents->get('page', 'publication')['status'] === 'draft', 'explicit identity update');
+    $documents->delete('page', 'publication');
+    rejects8(fn() => $documents->publish($publication, 'update', 'publication'), 'not_found');
+    check8(!is_file($publicationPath), 'missing update never recreates deleted content');
+    /* Both creators start before either can acquire the lock. Exactly one wins. */
+    $lock = fopen($lockPath, 'c');
+    check8($lock !== false && flock($lock, LOCK_EX), 'hold publication lock');
+    $workers = [];
+    $childCode = 'require $argv[1]; file_put_contents($argv[3], "ready"); '
+        . 'try {(new S64Documents($argv[2]))->publish(["type"=>"page","slug"=>"concurrent","raw8tml"=>"---\\n8tml: 1\\n---\\n"], "create", ""); echo "created";} '
+        . 'catch (InvalidArgumentException $e) {echo $e->getMessage();}';
+    try {
+        for ($i = 0; $i < 2; ++$i) {
+            $ready = $root . '/ready-' . $i;
+            $process = proc_open([PHP_BINARY, '-r', $childCode, dirname(__DIR__) . '/lib/Documents.php', $root, $ready],
+                [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $channels);
+            check8(is_resource($process), 'start concurrent publication');
+            fclose($channels[0]);
+            $workers[] = [$process, $channels, $ready];
+        }
+        $deadline = microtime(true) + 5;
+        while ((!is_file($workers[0][2]) || !is_file($workers[1][2])) && microtime(true) < $deadline) usleep(10000);
+        check8(is_file($workers[0][2]) && is_file($workers[1][2]), 'both creators started');
+        check8(!is_file($root . '/pages/concurrent.8tml.php'), 'creators wait for lock');
+    } finally { flock($lock, LOCK_UN); fclose($lock); }
+    $outcomes = [];
+    foreach ($workers as [$process, $channels, $ready]) {
+        $outcomes[] = stream_get_contents($channels[1]);
+        $error = stream_get_contents($channels[2]);
+        fclose($channels[1]); fclose($channels[2]);
+        check8(proc_close($process) === 0, 'concurrent publication completed: ' . $error);
+        unlink($ready);
+    }
+    sort($outcomes);
+    check8($outcomes === ['already_exists', 'created'], 'exactly one simultaneous creator succeeds');
     unlink($lockPath); mkdir($lockPath);
     set_error_handler(static fn() => true);
     try {
