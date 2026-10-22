@@ -60,10 +60,6 @@ Do not append /api.php; the publisher constructs backend paths.
 
 The C64U setup/settings UX should hide relay details from users who do not need this path. Relay configuration belongs in Advanced Settings.
 
-## C64U architecture note
+## Scope
 
-See64You is now C64 Ultimate-only with a 16 MiB REU baseline. That change does not alter the relay security boundary.
-
-The new launcher/system-state/module-cache architecture changes how the client starts and switches overlays, not how relay requests are authenticated/forwarded.
-
-Persistent C64U configuration remains transactional and is stored under the selected application root and must be verified by readback.
+The relay is optional and not required for offline editing or the default direct Publisher transport. Keep its access key distinct from the upstream site key. Configuration remains in Advanced Settings and is saved under the selected C64U application root with verified readback.

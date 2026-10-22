@@ -10,4 +10,4 @@ An optional **self-hosted PHP 8.1+ service** for publishing 8TML source and disp
 
 Direct C64U firmware-1.1 HTTP uses challenge/HMAC for authentication and replay protection, **not encryption of the document**. Explicit plaintext consent is required. The site password must not be sent as a direct C64U publishing credential. Public display supports a limited escaped subset of 8TML, so check rendered content; unverified markup may not display as intended.
 
-See [installation](../docs/INSTALL.md), [site architecture](../docs/SITE.md) and [service protocol](../docs/PROTOCOL.md).
+See [installation](https://github.com/dannykeat-projects/SEE64YOU/blob/main/docs/INSTALL.md), [site architecture](https://github.com/dannykeat-projects/SEE64YOU/blob/main/docs/SITE.md) and [service protocol](https://github.com/dannykeat-projects/SEE64YOU/blob/main/docs/PROTOCOL.md).

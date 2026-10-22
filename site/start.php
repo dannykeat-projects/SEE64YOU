@@ -25,7 +25,7 @@ $titles = [1 => 'Prepare your C64U', 'Create your website', 'Pair and save setti
 <li>Back up an existing installation, configuration and source files. Copy all eleven matching client files to the folder selected by your package: <code>/sd/SEE64YOU/</code> for SD, or <code>/Usb0/SEE64YOU/</code> for the USB0 build only if that is your actual mount. Do not mix packages or change the embedded storage root by renaming folders.</li>
 <li>In the Ultimate menu, enable the Ultimate Command Interface. Under C64 and Cartridge Settings, set RAM Expansion Unit to Enabled and REU Size to 16 MB.</li>
 <li>Connect the C64U to your network. The website must be reachable from the C64U; localhost refers to the machine opening it, so use a reachable hostname or computer IP address.</li>
-<li>Launch <code>SEE64YOU.PRG</code> for Editor, <code>S64CFG.PRG</code> for Settings, <code>S64PUB.PRG</code> for Publisher, or <code>S64WEB.PRG</code> for the optional public-site browser. These are separate programs; <code>S64EDIT.PRG</code> and the BIN files are internal Editor assets. Each program returns to BASIC.</li>
+<li>Launch <code>SEE64YOU.PRG</code> for Editor, <code>S64CFG.PRG</code> for Settings, <code>S64PUB.PRG</code> for Publisher, —these are separate programs; <code>S64EDIT.PRG</code> and the BIN files are internal Editor assets. Each program returns to BASIC.</li>
 </ol>
 <p><strong>Offline Editor needs no website, key or Settings setup.</strong> You can go directly to step 4 to write and save, then complete publishing setup later. If the Editor prerequisite screen appears, follow its instruction and press R to recheck.</p>
 <?php elseif ($step === 2): ?>
@@ -38,7 +38,7 @@ $titles = [1 => 'Prepare your C64U', 'Create your website', 'Pair and save setti
 <ol>
 <li>Open this website's <a href="pair.php">Pair C64U</a> page over HTTPS. Enter the browser publishing password to reveal your dedicated key. Pairing over HTTP is refused.</li>
 <li>Save only the 64 hexadecimal key characters in <code>SEE64KEY.TXT</code> inside your selected <code>SEE64YOU</code> client folder, or prepare to type them on the C64U. Keep the key private and remove the import file when finished.</li>
-<li>Launch <code>S64CFG.PRG</code>. The setup wizard appears for missing site/key settings; press W from Basic Settings to run it again. Step 1: press 1, enter the site's <code>http://</code> folder URL (without <code>api.php</code>), Return, then N. Development clients accept an optional numeric port such as <code>:8080</code>; released v0.2.0-alpha.1 still requires port 80. Step 2: press 1 to import the key or 2 to type it, then N.</li>
+<li>Launch <code>S64CFG.PRG</code>. The setup wizard appears for missing site/key settings; press W from Basic Settings to run it again. Step 1: press 1, enter the site's <code>http://</code> folder URL (without <code>api.php</code>), Return, then N. The Publisher accepts an optional numeric HTTP port such as <code>:8080</code> (1–65535), otherwise port 80. Step 2: press 1 to import the key or 2 to type it, then N.</li>
 <li><strong>Required: enable plain-HTTP consent.</strong> At wizard step 3, press <strong>1</strong> and then <strong>Y</strong> only if you accept unencrypted document transmission. Without this consent, direct Publisher cannot connect. HMAC authenticates requests but does not encrypt contents. HTTPS URLs are never silently downgraded; an HTTPS-only destination cannot use this direct transport.</li>
 <li>Press S. Continue only after “SETTINGS SAVED AND VERIFIED”, then Return to BASIC. Reopen Settings to check the site and configured-key indicator; STOP cancels without saving. Connection authentication happens in Publisher.</li>
 </ol>
@@ -48,7 +48,7 @@ $titles = [1 => 'Prepare your C64U', 'Create your website', 'Pair and save setti
 <ol>
 <li>Launch <code>SEE64YOU.PRG</code>. Choose a new document (Ctrl+N), resolving any unsaved/recovered content first.</li>
 <li>New source starts with an editable 8TML header; typing begins in the body below it. Change <code>title: Untitled</code> if wanted, keeping <code>8tml: 1</code> and both header delimiters valid. Type a short first <?= $kind ?>. Press Ctrl+S, enter a new name such as <code>FIRST</code>, and Return. The <code>.8tml</code> extension is added automatically. Wait for “File saved”. New source files use your package's selected <code>SEE64YOU</code> folder; the filename does not supply a publishing slug.</li>
-<li>Press RUN/STOP to return to BASIC. If prompted, S saves, D discards, STOP cancels exit. Open the saved file with Ctrl+O if you want to check it before publishing.</li>
+<li>Press RUN/STOP to request exit. With a saved document, confirm <strong>Y</strong> at “Exit to BASIC? Y/N”; unsaved documents offer Save / Discard / Cancel. Open the saved file with Ctrl+O if you want to check it before publishing.</li>
 </ol>
 <p>The ordinary ASCII/LF <code>.8tml</code> file is your editable original, including its complete header and unknown markup. Keep it backed up. No live document transfers between Editor and Publisher.</p>
 <?php elseif ($step === 5): ?>
@@ -64,7 +64,7 @@ $titles = [1 => 'Prepare your C64U', 'Create your website', 'Pair and save setti
 <?php else: ?>
 <h2>Check your published <?= $kind ?></h2>
 <p>Open <a href="<?= $kind === 'post' ? 'posts.php' : 'index.php' ?>"><?= $kind === 'post' ? 'the post archive' : 'the website' ?></a>, follow your document's link and confirm the text matches. “Document published” plus the visible matching page completes this walkthrough. Next/step navigation alone is not proof of publication.</p>
-<p>The optional <code>S64WEB.PRG</code> still uses the historical SEE64YOU protocol; it is not an 8TML reader. Modern HTML rendering currently supports the existing safe subset rather than the complete 8TML language.</p>
+<p>For viewing 8TML on a Commodore, use an external compatible 8TML/T8WN browser. SEE64YOU does not provide an 8TML reader. Modern HTML rendering supports only a limited safely escaped subset of the 8TML language.</p>
 <p>To edit later: fresh Publisher, 2 connect, <?= $kind === 'post' ? '7' : '6' ?> browse <?= $kind ?>s, Space for Next, O to open and Y if replacement is requested. Wait for “Remote document opened”. Then D, enter a <strong>new</strong> filename such as <code>FIRST2</code> (the <code>.8tml</code> extension is added), and wait for “Saved .8TML; reopen in Editor”. Existing download files are refused.</p>
 <p>Exit to BASIC, open that download in Editor, edit/save, then launch Publisher and load it. To update the same remote document, choose the same page/post type and intended publication state, and enter its existing remote slug when saving. Source files do not store that service identity. Keep the original slug separately.</p>
 <p>If your page is missing, check that Publisher's State was published and that you are looking at the configured website, then check the displayed slug. Do not delete your source or recovery files to retry.</p>
