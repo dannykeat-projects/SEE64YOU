@@ -1,51 +1,41 @@
 # SEE64YOU
 
-**Create and publish 8TML pages from the Commodore 64 Ultimate, and browse them from the C64U too.**
+**Write 8TML pages on a Commodore 64 Ultimate.** SEE64YOU is an offline-first, source-text editor with optional tools for publishing to your own website.
 
-## Format direction (20 October 2026)
+Documents are portable `.8tml` text files. You can copy, back up, or host them independently. The Editor does not require an account or internet connection. Optional `.8ss` stylesheets are part of the wider 8TML ecosystem; stylesheet editing is not a dedicated SEE64YOU feature.
 
-SEE64YOU is moving to the external **8TML 1 draft** for all new documents (`.8tml`), with optional `.8ss` stylesheets. The legacy `.s64` document format is retired; no compatibility layer or conversion is planned. The user-supplied external specification and validator are our reference; they are not bundled until licensing is clarified.
+## What works
 
-**Editor persistence is implemented on this development branch.** The maintained C64U Editor creates, saves and reopens ASCII/LF `.8tml` source using the existing disk/recovery path. The complete header is editable; new documents start below a minimal header. Unknown metadata and markup survive unchanged, except CR/CRLF input is normalized to LF. Save As adds `.8tml` to a basename and refuses other explicit extensions. Invalid headers or unsupported bytes are rejected before writing. Save manually: periodic disk autosave has been removed.
+- **Editor:** create, open, edit and manually save 8TML 1 draft source on SD or a configured USB mount. Includes cursor/selection, search, formatting shortcuts, undo/redo and existing-snapshot recovery. The complete source and unknown markup are preserved; files use ASCII with LF endings, with a 61,440-byte source limit.
+- **Publisher (experimental):** separately load local `.8tml`, choose page/post and draft/published state, and send it to the bundled self-hosted PHP service. Remote-source download saves a new local file. Settings is a separate program.
+- **Modern website:** the bundled PHP 8.1+ service stores exact source and serves HTML. Its renderer currently implements only a limited, safely escaped subset of 8TML. Full 8TML rendering and compatibility with external publishing services are **not yet verified**.
 
-The independent Publisher now loads `.8tml`, streams authenticated JSON source to the PHP site, opens remote source and saves downloads to a new `.8tml` file. Source and publishing identity remain separate; see the [source service contract](docs/PROTOCOL.md). Host integration against the actual PHP service and native PETSCII/VICE checks pass; new Publisher hardware acceptance remains pending. Browser still uses its historical protocol, and public HTML renders the existing escaped subset rather than the full 8TML language. Historical alpha binaries remain `.s64` builds; build the migration sources for testing. REST-assisted real-C64U Editor/storage checks passed previously; physical-keyboard Open and cold restart remain unverified. Neither independent Editor nor Publisher imports the old document format.
+For reading 8TML on an 8-bit machine, use a compatible browser from the 8TML/T8WN ecosystem. SEE64YOU does not aim to maintain its own 8TML browser. The currently packaged `S64WEB.PRG` is not an 8TML browser.
 
-See [migration and acceptance criteria](docs/8TML-MIGRATION.md) and the [authoritative work queue](todo.md).
+## Get started
 
-The [v0.2.0-alpha.2 manual-save Editor prerelease](https://github.com/dannykeat-projects/SEE64YOU/releases/tag/v0.2.0-alpha.2) includes autosave removal, Help redraw, clean-exit confirmation, removal of the inactive PUB menu, explicit Publisher HTTP ports and PHP service bounds. Its [installation guide](docs/releases/v0.2.0-alpha.2.md) covers the separate SD/USB0 packages and remaining limits. Release packaging requires exact SD payload agreement with the restored real-C64U Editor/storage run. Physical-keyboard, cold-power, USB-only and Publisher hardware gates remain pending. Earlier release assets are preserved.
+See [installation and first document](docs/INSTALL.md) for prerequisites, copying the complete matching package, Editor controls and optional website setup. The latest [GitHub Releases](https://github.com/dannykeat-projects/SEE64YOU/releases) include checksums; read the release's stated acceptance limits before testing. Back up any files on the target storage device.
 
-## Development Publisher workflow
+The Editor saves **only when you ask it to** (Ctrl+S / File → Save or Save As). It does not autosave. Existing recovery snapshots may be reopened, but unsaved edits are not continuously protected.
 
-Use the matching development PHP service and client package; do not replace historical alpha release assets. Configure the site and provision its dedicated direct key using the existing HTTPS pairing flow. In `S64CFG.PRG`, configure the site/key, explicitly enable **plain HTTP consent**, and save. HMAC authenticates requests but does not encrypt content. The development client accepts an optional decimal port from 1 to 65535, default 80, such as `http://192.168.0.250:8080/`. The published `v0.2.0-alpha.1` retains its port-80-only limit. Settings verifies saved configuration; Publisher tests the actual connection.
+**Security:** direct C64U publishing over HTTP uses a site-specific challenge/HMAC key for authentication and integrity; it **does not encrypt document content**. Pair the key over HTTPS and explicitly approve unencrypted direct publishing only for suitable content/networks. The Editor works without publishing.
 
-Create/save source in Editor, then launch `S64PUB.PRG` independently. `L` loads the `.8tml` file; `2` tests the key; `T` selects page/post; `4` chooses draft/published; `3` saves and asks for a valid remote slug on the first local upload. Optional title and unknown metadata stay in the source. `6`/`7` open a remote page/post with its publication state; `D` saves that source to a **new** local filename, refusing overwrite. Service date/order survive source updates. Editor remains useful offline and independently reopens the downloaded file.
+## Build and contribute
 
-## USB-only installations
+The supported client build is:
 
-Choose the storage mount when building the complete package. For example:
+~~~sh
+make -C client independent-package
+~~~
 
-```sh
-make -B -C client STORAGE_ROOT=/Usb0/ independent-package
-```
+The default storage root is `/sd/`. To build for an actual USB mount, rebuild the **whole** package with the corresponding `STORAGE_ROOT` (including trailing slash); there is no automatic fallback. Do not mix files between builds.
 
-Replace `/Usb0/` with the actual USB mount shown by your Ultimate browser, including the final slash. Copy **all eleven files** from `client/build/independent-package/SEE64YOU/` into that device's `SEE64YOU` folder. `-B` rebuilds every program and both manifests with the same root. The default is `/sd/`; there is no automatic device search or cross-device fallback. Startup, document/configuration storage, asset loading and recovery journals all use the selected root. USB-root host/build checks pass. The available drive mounts as `/USB1/`; its hardware test stopped during FTP staging because a program read back with different bytes, before execution. Cleanup and SD preservation passed; USB Editor acceptance remains pending. The published USB0 archive requires a matching `/Usb0/` mount; rebuild for other mount names.
+Start the optional local PHP site with:
 
-## Repository layout
-
-- `client/`: cc65 editor and C64U client code
-- `site/`: standalone flat-file PHP site and publishing API
-- `wordpress/`: historical WordPress integration, subject to MVP scope review
-- `docs/`: project architecture and migration guidance
-- `tools/`: local validation and development helpers
-
-The intended MVP preserves separate Editor, Publisher and Settings programs, plus an independent 8TML browser. Source files remain unchanged when the web server generates HTML for modern browsers. Publishing transport and authentication are SEE64YOU services, not extensions to the 8TML document standard.
-
-## Running the existing standalone site locally
-
-Requires PHP 8.1+:
-
-```sh
+~~~sh
 php -S 127.0.0.1:8080 -t site
-```
+~~~
 
-Visit `http://127.0.0.1:8080/` for a host-only demonstration and `setup.php` for one-time configuration. The development Publisher accepts explicit ports; the published alpha still requires port 80. This command binds loopback; a C64U needs the server listening on its reachable LAN address. See [local validation](docs/LOCAL_TESTING.md) for the isolated native-code/PHP integration test.
+This loopback address is for host testing, not a C64U-reachable service. See [development and validation](docs/LOCAL_TESTING.md), [architecture](docs/ARCHITECTURE.md), [product scope](docs/PRODUCT.md), and the active [work queue](todo.md). Current program names and package layout are documented in the installation guide.
+
+This is experimental software. Physical-keyboard, cold-start, USB-only, Publisher-on-hardware, full renderer and external interoperability acceptance are outstanding; do not use it as the sole copy of important work.

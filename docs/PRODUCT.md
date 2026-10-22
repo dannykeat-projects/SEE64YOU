@@ -1,0 +1,35 @@
+# Product scope and interface direction
+
+SEE64YOU's product is a **small, fast, dependable offline 8TML source editor** on the Commodore 64 Ultimate. Its optional publishing workflow exists to make the documents available elsewhere, not to create another content platform or browser.
+
+## User experience
+
+1. Open Editor, write or reopen a `.8tml` file, and save it explicitly.
+2. Copy the portable file directly to any suitable 8TML host, **or** open Publisher to send it to a configured site.
+3. Read the published document using a compatible 8TML/T8WN browser, or an independently generated HTML view.
+
+Keep the primary Editor useful without Settings, Publisher, a server or internet access. Every component must launch and exit independently. Preserve complete source text and unknown markup; avoid a proprietary source format, hidden publishing metadata in documents, or mandatory accounts.
+
+## Publisher: minimum useful scope
+
+Target a short, guided workflow rather than a general document manager:
+
+- **Keep:** select one existing local source file; show its filename/title and chosen site; choose page/post and draft/published; safely publish a new slug or update a **confirmed matching remote identity**; show clear success, URL or failure; retain dedicated-key authentication, input validation, bounded network I/O and no-write-on-failure safety.
+- **Keep separate:** one-time website/key/transport setup in Settings. Never ask for credentials on each publish.
+- **Consider as secondary:** explicit **Download source** to a new local filename for backup/re-editing. It is useful for portability, but should not occupy the primary publishing screen.
+- **Remove from the standard Publisher UI only after tested replacement workflows:** remote list/open as a browsing interface, destructive remote deletion, preview, raw text import/export, WordPress destination and transient Editor/Settings handoff controls. Do not silently remove capabilities required to select and safely update a remote identity.
+- **Do not build:** an SEE64YOU-specific 8TML browser, independent page rendering engine for the C64U, social features, multiple-format conversion, or a CMS administration interface.
+
+A sensible UI is **file → destination / identity → page-or-post + draft-or-public → Publish/Update → result**. The initial screen should lead with “Choose file” and “Publish”, not numbered technical commands. Show a confirmation before replacing remote content; display the actual destination and whether this is a new page or an update. Do not add UI complexity to conceal unsafe HTTP limitations.
+
+## Code boundaries and simplification
+
+- Editor owns source, cursor, buffer/history, file safety and reversible local editing.
+- Publisher owns network authorization, remote identity and optional upload/download; do not duplicate document serialization or disk recovery.
+- Settings owns configuration and key provisioning.
+- A small server adapter may translate authenticated operations to self-hosted PHP. The 8TML format does **not** depend on this PHP API, a particular service or T8WN.
+- The 8TML/T8WN ecosystem owns the separate compatible browser. Current `S64WEB.PRG`, browser wire protocol and their tests are removal candidates once active package/build callers and safe entry/exit behavior are traced.
+
+Remove dead code **incrementally after caller tracing**, not by deleting large directories speculatively. Shipping launcher/module manifest dependencies, resource headroom, disk recovery and real-hardware restoration are release gates. This document specifies the target design; the present binaries still contain several extra Publisher operations.
+
+See [todo](../todo.md) for the next bounded work and [architecture](ARCHITECTURE.md) for implemented boundaries.

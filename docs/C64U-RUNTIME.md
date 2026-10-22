@@ -1,72 +1,43 @@
-# C64 Ultimate runtime contract — MVP
+# C64 Ultimate runtime and storage
 
-**8TML migration:** independent Editor and Publisher keep the complete `.8tml` header/body in the existing 61,440-byte REU document region. Disk format is ASCII/LF; Publisher streams JSON uploads and raw-source downloads through the existing UCI `$03`/challenge-HMAC transport, with bounded buffers and unchanged resource guards. No new allocator, handoff or temporary machine setting is introduced. Browser still uses its historical protocol. Resource ownership, bootstrap, recovery and restoration rules below remain binding. REST-assisted real-C64U Editor/recovery/native-storage checks passed on 2026-10-21 with verified folder, configuration, DOS-path and machine-baseline restoration; physical keyboard, cold restart and the subsequent Publisher migration's hardware acceptance remain unverified.
+**Platform:** C64 Ultimate only, Command Interface enabled, 16 MiB REU, Ultimate-DOS `$01`/`$02`. Firmware 1.1 evidence supports UCI `$DF1C..$DF1F` and Network Target `$03`; HTTP Target `$06` was unavailable. Probe capabilities instead of inferring them from firmware strings.
 
-**Current hardware/resource/safety authority.** SEE64YOU is C64 Ultimate-only with a required 16 MiB REU. The shipped candidate has independently launched Editor, Publisher, Settings and optional Browser programs. Old persistent-runtime adoption, managed Publisher/Settings transitions and one-owner REU session proposals are superseded design experiments retained in Git history, not active requirements.
+## Program and package boundaries
 
-## 1. Platform and launch contract
+Editor (`SEE64YOU.PRG` through its launcher/internal overlays), Publisher (`S64PUB.PRG`) and Settings (`S64CFG.PRG`) launch independently and return to BASIC. No cross-program live editing session or REU handoff. The shipped eleven-file package currently also contains a standalone site browser program that is not an 8TML reader. Do not delete it or change launcher manifests/preloads until callers and release tests are verified. Publisher and launcher must retain at least 1,024 bytes of measured headroom; preserve Editor overlay and resident-RAM fit checks.
 
-- Tested machine baseline: Commodore 64 Ultimate firmware 1.1.0, UCI at `$DF1C..$DF1F`, Ultimate-DOS targets `$01`/`$02`, 16 MiB REU, SD storage, and Network Target `$03` for direct DNS/TCP/HTTP. HTTP Target `$06` was absent and must not be assumed. Probe actual available capabilities rather than guessing from firmware names. Offline Editor may run without networking.
-- Public package contains eleven matching installed files. Launch `SEE64YOU.PRG` (Editor through existing private overlay/launcher), `S64PUB.PRG`, `S64CFG.PRG` and optionally `S64WEB.PRG` **independently**. Internal `S64EDIT.PRG` and BIN assets are not user entry points. Every user program returns to responsive BASIC.
-- No cross-program REU document/session/history/clipboard or live handoff. Ordinary `.8tml` files and canonical disk configuration are the shared persisted interfaces. Private overlays in Editor remain allowed where required by current memory fit.
-- The existing launcher still verifies/preloads unused Publisher and Settings module images as part of its established bootstrap. **Do not remove or alter its module manifest/preload semantics without source tracing, complete package/fit/VICE checks and real-hardware entry/save/return validation.**
-- Keep existing Publisher and launcher ≥1,024-byte conventional-RAM headroom guards and Editor resident/overlay slot checks. Do not trade stack/BASIC-return safety for a few more features.
+Use a complete consistently built package for one storage root. Default: `/sd/SEE64YOU/`. A forced rebuild with `STORAGE_ROOT=/Usb0/` (or the exact mounted name with trailing slash) changes embedded paths in all assets. No cross-device fallback or automatic migration is supported.
 
-## 2. User file layout and DOS ownership
+~~~text
+SEE64YOU.PRG        Editor entry
+S64EDIT.PRG, *.BIN  private Editor assets
+S64PUB.PRG          Publisher
+S64CFG.PRG          Settings
+*.MNF               matching manifests
+SEE64YOU.CFG        saved publishing settings
+*.8tml              source documents
+SEE64YOU.REC        possible recovery snapshot
+S64JRN*.DAT         state journals
+~~~
 
-The following paths show the default SD build. `make -B -C client STORAGE_ROOT=/Usb0/ independent-package` selects another absolute mount (use its actual Ultimate name and retain the trailing slash). `platform/package_paths.h` derives the app directory from that root; preflight, loader, Editor, settings, journals and root-journal checks use it consistently. Install the entire matching package on the chosen device. Do not mix binaries/manifests from different roots. Selection is explicit at build time; no automatic root search/fallback, persistent Ultimate home-directory change or migration across devices is performed. SD regression and USB-root host/package guards are separate from USB hardware acceptance. On 22 October the actual `/USB1/` drive passed a complete host build, but two FTP staging/readback attempts differed before candidate execution; both runs restored the original root inventory, SD app bytes and machine baseline. USB runtime acceptance remains blocked on transfer/storage integrity, with no cause yet established.
+Launcher/journal operations own DOS `$01`; Editor document/recovery owns `$02`. Each subsystem sets its directory context and closes handles. Bare source names resolve in the selected app folder; explicit absolute paths must retain their origin. A failed lookup must never silently select another file/device.
 
-```text
-/sd/SEE64YOU/
-    SEE64YOU.PRG       # Editor user launch
-    S64PUB.PRG         # independent Publisher
-    S64CFG.PRG         # independent Settings
-    S64WEB.PRG         # optional read-only Browser
-    S64EDIT.PRG / *.BIN / manifests    # internal matching Editor assets
-    SEE64YOU.CFG       # canonical persisted settings
-    *.8tml             # editable source and new downloads
-    SEE64YOU.REC       # durable Editor recovery snapshot
-    S64JRN0.DAT / S64JRN1.DAT     # journal slots
-    S64OLD0.DAT / S64OLD1.DAT     # verified retired root backups, when migrated
-    S64CHK*.TMP and save temporary files # narrowly scoped probes/writes
-```
+## File integrity and recovery
 
-- Bare source filenames resolve inside this folder. Explicit `/sd/NAME.8tml` opens that exact source; Save retains its origin. Save As with a *new bare name* creates a folder copy. Same-name root/folder files must never be substituted. Failure/corruption is an error, not a reason to silently fall back.
-- Editor document/recovery I/O owns Ultimate-DOS target `$02`; launcher/journal I/O owns `$01`. Each establishes its own directory context and closes files before conflicting journal activity. Publisher reestablishes the folder for loading/saving. The Editor has no periodic autosave or idle-time disk writes; users persist edits with Save/Save As.
-- Publisher downloads source only to a **new** filename and refuses existing-file collision. Save As obeys the second existence check. Do not remove recoverable completed `filename.tmp` after rename failure.
-- Configuration writes validate the temporary record **before** replacing the old destination and validate final readback afterward. Config reads reject trailing as well as truncated/corrupt data. The current delete-then-rename replacement isn't fully atomic: final rename can leave destination absent and completed temp recoverable; never promise both old and new copies survive a failure.
+- Source uses complete ASCII/LF 8TML 1 draft text, up to 61,440 bytes. Publisher downloads to a **new** filename and must refuse collisions. Failed rename can leave a recoverable complete `.tmp` file.
+- Editor has no periodic autosave. Existing `SEE64YOU.REC` may be offered; a failed read preserves the snapshot. Recovered content is dirty until manually saved.
+- Configuration writes validate the temporary record before replacement and validate final readback. Current delete-then-rename is **not** fully atomic if final rename fails; preserve temporary data and surface errors.
+- The fixed-size two-slot journal records version, sequence and ACTIVE/CLEAN machine-state ownership. Write/readback the alternate slot before superseding valid state. Corrupt/conflicting state must block unsafe changes.
+- Preserve existing root journals/configuration and any verified backups; Settings may require explicit recovery/migration actions when an old root journal blocks safe startup. No silent removal or replacement of user files.
 
-## 3. Journal/recovery and migration
+## Restore machine state
 
-- Session journal is an explicit versioned fixed-size wire representation (24 bytes), not direct serialisation of a cc65 structure; it records sequence, package/session identity, ACTIVE/CLEAN ownership and only captured restorable fields. Store/readback-verify the alternate slot before superseding the previous one. A torn newest slot may fall back to the prior valid record.
-- System state changes follow **capture → durable ACTIVE → apply → use → restore/verify → durable CLEAN**. If ACTIVE persistence fails, don't change the hardware. If restoration verification or CLEAN persistence fails, leave recoverable ACTIVE state rather than claiming exit succeeded. Only explicitly valid captured fields may be restored.
-- On startup, distinguish no journal, CLEAN, interrupted ACTIVE, invalid data and storage failure. Only a valid interrupted ACTIVE record authorises bounded restoration. Invalid records or unreadable storage are not implicit permission to reset or overwrite user state.
-- Legacy `/sd/S64JRN*.DAT` journals **block** Editor startup (`JOURNAL BLOCKED - RUN S64CFG.PRG`). Only independent Settings `M`, then explicit `Y`, performs the verified migration. Inspect both stores and resolve ACTIVE ownership, verify original CLEAN and folder CLEAN staging, preserve byte-exact `S64OLD*.DAT` backups, then retire root slots in safe order. Conflicting ACTIVE ownership, corrupt/unreadable stores, sequence wrap, readback/restore failure or divergent existing backups block deletion and allow retry.
-- Folder `SEE64YOU.REC` is the only existing snapshot offered by Editor. Old root `SEE64YOU.REC` must not be silently moved/deleted. Compare and back up snapshots before manual copying. Failed recovery load preserves the original REC and never silently discards data. Recovered content stays dirty until saved; no new automatic snapshot is written.
-- Never delete, migrate or overwrite unrelated root files, old source, journals, backups or configuration automatically. Verify exact bytes before any test cleanup; keep prior backups until the user explicitly authorises removal.
+For temporary settings: **capture → durable ACTIVE → apply → use → restore/verify → durable CLEAN**. Failed ACTIVE persistence means do not change hardware; failed restoration means retain recoverable state and report an error. Restore prior live turbo/IRQ/colours, DOS contexts and BASIC workspace on clean return; do not permanently rewrite unrelated Ultimate audio/video/drive/network/input preferences.
 
-## 4. BASIC return and machine restoration
+Close bounded UCI, REU, DOS and TCP operations on success, failure and cancellation. The BASIC-return path protects its original context/scratch reservations and must not execute cc65 code after stack/zero-page restoration. Never weaken guards to fit optional features.
 
-- Capture and preserve the original incoming SYS/BASIC context; protect the 321-byte original snapshot at `$CA82..$CBC2` while teardown uses `$C800` scratch. The 642-byte scratch plus 321-byte context must fit the protected 1 KiB area before the `$CC00` stack reservation. Guards protect overlap.
-- On exit, preserve ordering: resolve dirty source/recovery; close DOS/network; revoke active transient records where applicable; restore and verify captured settings; persist CLEAN; execute the verified BASIC return path. Do not run cc65 code after its zero-page/stack state has been restored.
-- The implemented transient exit stub uses the cassette buffer `$033C`, clears the screen via KERNAL without executing from screen RAM, then restores original CPU context. It protects BASIC numerical and string commands; when STREND is strictly above MEMSIZ, the application restores a valid BASIC variable boundary without disturbing valid workspaces.
-- Do not permanently change unrelated SID/audio, HDMI/video, drives, cartridge settings, Ultimate home directory, DHCP/static IP, palette or input preferences. Temporary turbo/IRQ/runtime screen colours must restore prior supported values on normal exit. A failed verification is visible, not silently successful.
-- UCI/REU/DOS/TCP handles are bounded and closed in success, error and user cancellation. The public Browser changes its current screen colours per site and restores original screen colours; it must not change turbo/drives/IRQ or send Publisher credentials.
-- REST-based test harness resets can change machine state; separate this from application-owned turbo restoration. Real CPU-executed `PEEK(53297)` after a load-only launch is stronger evidence than I/O-address RAM shadow readback.
+## Security and acceptance
 
-## 5. Resource and security boundaries
+Direct C64U publishing uses raw HTTP on UCI `$03` with per-site challenge/HMAC authentication; source remains unencrypted. Pair on HTTPS and require explicit consent. No silent TLS downgrade.
 
-- 16 MiB REU is actual working storage, not justification for unlimited buffers. Preserve checked document/history/preview allocator boundaries and DMA bank isolation. The Browser uses two 64 KiB preview regions with bounded rows/links; its conventional RAM contains only current row, URL, headers and record buffers.
-- The C64U direct Publisher speaks HTTP over UCI Network Target `$03`. Dedicated site key, one-time challenge and HMAC-SHA256 authenticate method/URI/body and prevent replay but **do not encrypt** document contents. Require explicit plaintext consent. `pair.php` provisioning and ordinary site passwords use HTTPS in the modern browser; never leak reusable credentials to direct HTTP.
-- Browser traffic is public read-only HTTP with explicit `SEE64YOU-BROWSE` Accept. It rejects HTTPS (never downgrades), malformed/oversized URLs/records and unsupported scheme; clears partial frames and closes sockets. No HTML/JS/PETSCII memory commands are executed.
-- Server validates permissions, path/slug/type and source before writes; generated HTML escapes unsafe content. Keep [PROTOCOL.md](PROTOCOL.md) and [MARKUP.md](MARKUP.md) formats intact for this beta.
-
-## 6. Acceptance and maintenance
-
-- Current independent hardware evidence: bounded Editor→Publisher publish/download/reopen/update, Settings persistence, SD-folder migration, browser navigation and machine restoration on firmware 1.1. The **full unassisted first-user installation, updated palette on two independent sites, physical storage/power interruption and USB keyboard acceptance are not yet all verified**.
-- Exact developer build/host/PHP/VICE/C64U gates, known receipts and negative tests live in [LOCAL_TESTING.md](LOCAL_TESTING.md). The only active queue, deferred scope and go/no-go rules live in [todo.md](../todo.md).
-- Run current targeted tests before changes. Replace obsolete loader/managed code **only if no active source/package/CI caller requires it**, package checks still pass and hardware-dependent behaviour is validated on the C64U. Do not force a wholesale runtime refactor just to reduce line count.
-
-## Outside the beta
-
-No shared managed runtime, WordPress publication, general HTML web browser, original-C64 port, arbitrary network-executed machine instructions, new system-state abstraction, large-document/allocator redesign, USB acceptance, mouse/joystick, or TLS implementation project unless required to fix a reproduced MVP blocker. Historical implementation specifics remain available through Git history.
+Host and VICE validation do not prove real Ultimate-DOS, REU, physical keys, USB storage, network or cold-power persistence. Preserve complete file/device backups and compare machine state before and after bounded real-C64U acceptance; never reset or alter unrelated data as a test shortcut. See [testing](LOCAL_TESTING.md).

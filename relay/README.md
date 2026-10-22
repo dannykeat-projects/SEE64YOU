@@ -66,4 +66,4 @@ See64You is now C64 Ultimate-only with a 16 MiB REU baseline. That change does n
 
 The new launcher/system-state/module-cache architecture changes how the client starts and switches overlays, not how relay requests are authenticated/forwarded.
 
-Persistent C64U configuration remains transactional and will migrate into the final /sd/SEE64YOU/ layout only after readback-verified migration from the already-proven existing configuration.
+Persistent C64U configuration remains transactional and is stored under the selected application root and must be verified by readback.
