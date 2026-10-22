@@ -156,6 +156,12 @@ def main():
         wait("READY.", "set-live")
 
     save()
+    settings = json.loads(api("configs/C64%20and%20Cartridge%20Settings"))[
+        "C64 and Cartridge Settings"]
+    for name, expected in (("Command Interface", "Enabled"),
+                           ("RAM Expansion Unit", "Enabled"), ("REU Size", "16 MB")):
+        assert settings.get(name) == expected, \
+            f"Enable {name}: {expected} in C64 and Cartridge Settings before testing"
     assert "READY." in screen("before") and mem(0xc6, 1) == b"\0", "Need idle BASIC"
     assert mem(int.from_bytes(mem(0x2b, 2), "little"), 2) == b"\0\0", "Existing BASIC program"
     scratch = mem(827, 1)
