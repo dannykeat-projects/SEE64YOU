@@ -2,6 +2,10 @@
 
 **Objective:** ship a small, reliable, offline-first C64 Ultimate 8TML Editor with optional self-hosted publishing. The separate 8TML/T8WN ecosystem provides the compatible browser. See [product design](docs/PRODUCT.md) for scope and interface decisions. Check boxes describe remaining work; Git history and test receipts preserve completed investigations.
 
+## P0 — Publication write safety
+
+- [ ] **Prevent unintentional remote overwrite:** the Publisher clears remote binding on local file load, but PHP save currently overwrites an existing `page/post + slug`. Add locked server-enforced create/update intent, create-on-missing only, update-on-existing only, explicit remote overwrite confirmation and preferably a stale-revision precondition. Make local-file re-publication intuitive without embedding service identity in 8TML. Verify unauthorized/collision/missing/stale-update/failure paths, including concurrent writes. See [product design](docs/PRODUCT.md). Do not deploy a new Publisher until this is verified.
+
 ## P0 — Prove the current user workflow
 
 - [ ] Physical-keyboard acceptance for New/Open/Save/Save As, modified-document exit, Help, selection and typing latency. Verify actual C64 modifier Open controls; REST key injection is not this gate.

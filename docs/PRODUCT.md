@@ -22,6 +22,12 @@ Target a short, guided workflow rather than a general document manager:
 
 A sensible UI is **file → destination / identity → page-or-post + draft-or-public → Publish/Update → result**. The initial screen should lead with “Choose file” and “Publish”, not numbered technical commands. Show a confirmation before replacing remote content; display the actual destination and whether this is a new page or an update. Do not add UI complexity to conceal unsafe HTTP limitations.
 
+## Confirmed publication safety gap
+
+In `client/src/publisher/main.c`, a new local load clears the current remote binding, while a first upload asks for a slug and sends a save request. `s64_publish_state_can_update()` only changes the client-side operation label/URL choice; the PHP save action currently replaces an existing same-format slug without checking whether the user intended creation or update. A restarted Publisher also loses its remote association because that identity is not embedded in a portable document.
+
+Before streamlining the Publisher UI, implement explicit, server-enforced create/update intent under the existing write lock. Creation must refuse an occupied slug; update must require a deliberate remote identity, a clear overwrite confirmation and preferably a remote revision/precondition to refuse stale edits. An unbound upload must never silently overwrite. Continue to save the source independently, and preserve network failure/partial-buffer safety. Test this at the PHP layer and native Publisher transport before hardware acceptance.
+
 ## Code boundaries and simplification
 
 - Editor owns source, cursor, buffer/history, file safety and reversible local editing.
