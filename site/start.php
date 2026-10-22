@@ -25,7 +25,7 @@ $titles = [1 => 'Prepare your C64U', 'Create your website', 'Pair and save setti
 <li>Back up an existing installation, configuration and source files. Copy all eleven matching client files to the folder selected by your package: <code>/sd/SEE64YOU/</code> for SD, or <code>/Usb0/SEE64YOU/</code> for the USB0 build only if that is your actual mount. Do not mix packages or change the embedded storage root by renaming folders.</li>
 <li>In the Ultimate menu, enable the Ultimate Command Interface. Under C64 and Cartridge Settings, set RAM Expansion Unit to Enabled and REU Size to 16 MB.</li>
 <li>Connect the C64U to your network. The website must be reachable from the C64U; localhost refers to the machine opening it, so use a reachable hostname or computer IP address.</li>
-<li>Launch <code>SEE64YOU.PRG</code> for Editor, <code>S64CFG.PRG</code> for Settings, <code>S64PUB.PRG</code> for Publisher, —these are separate programs; <code>S64EDIT.PRG</code> and the BIN files are internal Editor assets. Each program returns to BASIC.</li>
+<li>Launch <code>SEE64YOU.PRG</code> for Editor, <code>S64CFG.PRG</code> for Settings, <code>S64PUB.PRG</code> for Publisher. These programs launch independently; <code>S64EDIT.PRG</code> and the BIN files are internal Editor assets. Each program returns to BASIC.</li>
 </ol>
 <p><strong>Offline Editor needs no website, key or Settings setup.</strong> You can go directly to step 4 to write and save, then complete publishing setup later. If the Editor prerequisite screen appears, follow its instruction and press R to recheck.</p>
 <?php elseif ($step === 2): ?>
