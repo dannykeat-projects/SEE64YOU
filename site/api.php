@@ -95,7 +95,27 @@ function respond_backup(S64Documents $documents, S64Settings $settings): never
 }
 
 $action = (string)($_GET['action'] ?? 'status');
-$rawBody = (string)file_get_contents('php://input');
+
+/* A fully escaped 60 KiB 8TML source is under 128 KiB as JSON. Bound the
+ * request before authentication, including requests with no Content-Length. */
+const S64_API_MAX_BODY_BYTES = 131072;
+$contentLength = (string)($_SERVER['CONTENT_LENGTH'] ?? '');
+if ($contentLength !== '' && ctype_digit($contentLength)
+    && (float)$contentLength > S64_API_MAX_BODY_BYTES) {
+    respond(['ok' => false, 'error' => 'request_too_large'], 413);
+}
+$inputStream = fopen('php://input', 'rb');
+if ($inputStream === false) {
+    respond(['ok' => false, 'error' => 'server_error'], 500);
+}
+$rawBody = stream_get_contents($inputStream, S64_API_MAX_BODY_BYTES + 1);
+fclose($inputStream);
+if ($rawBody === false) {
+    respond(['ok' => false, 'error' => 'server_error'], 500);
+}
+if (strlen($rawBody) > S64_API_MAX_BODY_BYTES) {
+    respond(['ok' => false, 'error' => 'request_too_large'], 413);
+}
 
 try {
     if ($action === 'status') {
@@ -274,7 +294,7 @@ try {
     respond(['ok' => false, 'error' => 'unknown_action'], 404);
 } catch (InvalidArgumentException | RuntimeException $exception) {
     $error = $exception->getMessage();
-    $status = in_array($error, ['invalid_credentials'], true) ? 401 : 400;
+    $status = $error === 'invalid_credentials' ? 401 : ($error === 'direct_auth_busy' ? 503 : 400);
     respond(['ok' => false, 'error' => $error], $status);
 } catch (Throwable) {
     respond(['ok' => false, 'error' => 'server_error'], 500);
