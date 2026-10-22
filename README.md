@@ -12,7 +12,7 @@ The independent Publisher now loads `.8tml`, streams authenticated JSON source t
 
 See [migration and acceptance criteria](docs/8TML-MIGRATION.md) and the [authoritative work queue](todo.md).
 
-Download the [v0.2.0-alpha.1 Editor preview prerelease](https://github.com/dannykeat-projects/SEE64YOU/releases/tag/v0.2.0-alpha.1). Its [installation guide](docs/releases/v0.2.0-alpha.1.md) covers offline editing, the separate SD/USB0 packages and remaining acceptance limits. The SD payload matches the restored real-C64U Editor/storage run of 22 October 2026 exactly; physical-keyboard and cold-power gates remain pending.
+Download the [v0.2.0-alpha.1 Editor preview prerelease](https://github.com/dannykeat-projects/SEE64YOU/releases/tag/v0.2.0-alpha.1). **That published ZIP predates the 22 October manual-save/no-autosave changes; do not assume the current development fixes are in its binaries.** Its [installation guide](docs/releases/v0.2.0-alpha.1.md) covers offline editing, the separate SD/USB0 packages and remaining acceptance limits. The SD payload matches the restored real-C64U Editor/storage run of 22 October 2026 exactly; physical-keyboard and cold-power gates remain pending.
 
 ## Development Publisher workflow
 
