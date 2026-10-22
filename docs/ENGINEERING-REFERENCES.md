@@ -15,7 +15,7 @@ External software is **reference material**, not a new SEE64YOU workstream. Do n
 
 ### USB input fixes reviewed 22 October 2026
 
-The user's C64U still reports 1.1.0 / FPGA 122 / core 1.49; USB mouse has not worked in their limited testing. Model/receiver/hub and a known 1351-aware program remain unverified. Read-only configuration shows Joystick Swapper Normal and no newer Joystick Settings category. SEE64YOU installs cc65's C64 mouse driver; it does not enumerate USB devices. No firmware/configuration change or physical input acceptance was performed.
+The user's C64U still reports 1.1.0 / FPGA 122 / core 1.49. Their first mouse did not work in limited testing; they subsequently tried another and report that it works. The first model/receiver/hub remains unidentified, so no general mouse failure is established. Read-only configuration shows Joystick Swapper Normal and no newer Joystick Settings category. SEE64YOU installs cc65's C64 mouse driver; it does not enumerate USB devices. No firmware/configuration change or agent-performed physical input acceptance was performed.
 
 | Symptom | Primary upstream evidence | Adoption boundary |
 | --- | --- | --- |
