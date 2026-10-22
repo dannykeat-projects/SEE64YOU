@@ -106,8 +106,7 @@ if ($HostCc) {
             "client/src/history.c",
             "client/src/clipboard.c",
             "client/src/editor.c",
-            "client/src/editor_format.c",
-            "client/src/editor_format_link.c"
+            "client/src/editor_format.c"
         )
         Invoke-CTest "document" @(
             "client/tests/document_test.c",
@@ -530,7 +529,6 @@ if ($Cl65) {
         "client/src/charset.c",
         "client/src/document.c",
         "client/src/editor_format.c",
-        "client/src/editor_format_link.c",
         "client/src/platform/dos.c",
         "client/src/platform/http.c",
         "client/src/publisher/destination.c",

@@ -142,7 +142,7 @@ cc -std=c99 -Wall -Wextra -Werror -ffunction-sections -Wl,--gc-sections \
 "$TMP_BIN"
 
 echo "== Host editor tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/editor_test.c client/src/buffer.c client/src/history.c client/src/clipboard.c client/src/editor.c client/src/editor_format.c client/src/editor_format_link.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/editor_test.c client/src/buffer.c client/src/history.c client/src/clipboard.c client/src/editor.c client/src/editor_format.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host document tests =="
@@ -515,7 +515,6 @@ if command -v cl65 >/dev/null 2>&1 \
         client/src/charset.c \
         client/src/document.c \
         client/src/editor_format.c \
-        client/src/editor_format_link.c \
         client/src/platform/dos.c \
         client/src/platform/dos_file.c \
         client/src/platform/dos_reu.c \

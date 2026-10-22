@@ -169,11 +169,10 @@ Supported source conveniences include:
 - Italic: *...*
 - Heading 1/2: # / ##
 - List item: -
-- Link: [label](url)
 
 Formatting operations must remain transactional from the user's perspective: either the whole source transformation succeeds or the document remains unchanged.
 
-The link formatter was previously kept out of one build because of conventional-C64 BSS headroom. That reason is no longer a product constraint. Reintroduce useful formatting UI when it fits the C64U-native runtime and is worth the interface complexity.
+Links and other 8TML constructs can be typed directly as source. There is no link-formatting command in the current Editor.
 
 ## Performance
 

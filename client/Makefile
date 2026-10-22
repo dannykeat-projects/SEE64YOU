@@ -85,9 +85,6 @@ LAUNCHER_SOURCES := src/platform/module_session.c src/platform/module_session_re
 CL65 ?= cl65
 CA65 ?= ca65
 LD65 ?= ld65
-# Keep the active conventional-C64 editor inside base RAM. Basic formatting is
-# linked in editor_format.c. The larger URL/link formatter remains host/module-tested
-# but unlinked because it does not fit while retaining the 1 KiB software stack.
 STORAGE_ROOT ?= /sd/
 ifneq ($(words $(STORAGE_ROOT)),1)
 $(error STORAGE_ROOT must be one absolute mount path ending in /)

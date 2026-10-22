@@ -3,12 +3,6 @@
 
 #include <stdint.h>
 
-/*
- * Formatting lives in a separate translation unit so the conventional-C64
- * editor can omit dormant formatting code until the FORMAT UI is wired.
- * Host validation and cc65 module checks still compile and exercise it.
- */
-
 static uint8_t bytes_match(
     const S64Buffer* buffer,
     unsigned int position,

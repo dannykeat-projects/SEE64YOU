@@ -359,43 +359,6 @@ int main(void)
     require_text(&editor, "item", "list toggle restores line");
 
     s64_editor_init(&editor);
-    insert_text(&editor, "OpenAI");
-    s64_editor_home(&editor);
-    s64_editor_toggle_mark(&editor);
-    s64_editor_end(&editor);
-    s64_editor_toggle_mark(&editor);
-    require(
-        s64_editor_format_link(&editor, "https://openai.com"),
-        "link wraps selected label"
-    );
-    require_text(
-        &editor,
-        "[OpenAI](https://openai.com)",
-        "link source syntax"
-    );
-    require(s64_editor_selection_start(&editor) == 1u, "link keeps label selected");
-    require(s64_editor_selection_end(&editor) == 7u, "link selection end");
-
-    s64_editor_init(&editor);
-    insert_text(&editor, "bad]label");
-    s64_editor_select_all(&editor);
-    require(
-        !s64_editor_format_link(&editor, "https://example.com"),
-        "unsafe link label rejected"
-    );
-    require_text(&editor, "bad]label", "rejected link leaves source unchanged");
-    require(
-        !s64_editor_format_link(&editor, "https://example.com/a)b"),
-        "unsafe link URL rejected"
-    );
-    require_text(&editor, "bad]label", "rejected URL leaves source unchanged");
-    require(
-        !s64_editor_format_link(&editor, "ftp://example.com/file"),
-        "unsupported link scheme rejected"
-    );
-    require_text(&editor, "bad]label", "unsupported scheme leaves source unchanged");
-
-    s64_editor_init(&editor);
     {
         unsigned int i;
         for (i = 0u; i < S64_BUFFER_CAPACITY - 1u; ++i) {
