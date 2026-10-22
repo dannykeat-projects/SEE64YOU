@@ -39,6 +39,8 @@ The C64U's native C64 keyboard remains fully usable. Where the C64 keyboard matr
 
 Distinguish implemented bindings from physical-keyboard acceptance; automated key injection does not certify either physical input style.
 
+RUN/STOP and File → Exit always ask before leaving the independent Editor. A saved document shows `Exit to BASIC? Y/N`: Y exits, N or RUN/STOP returns to editing. Unsaved changes retain `S SAVE  D DISCARD  STOP CANCEL`; a failed or cancelled save keeps the Editor open.
+
 ## Current reliable selection controls
 
 Because the C64 keyboard uses Shift to obtain left/up cursor movement, Shift+Arrow cannot be the universal selection rule.

@@ -301,6 +301,21 @@ def main():
         assert all((value & 127) == 32 for value in mem(0x400 + 6 * 40, 18 * 40)), \
             "Help text remains below the short document"
         mark("shipping-editor-help-dismissal-clears-unused-rows-no-PUB")
+        keys(b"\x03")
+        wait("Exit to BASIC? Y/N", "clean-exit-confirmation")
+        assert "FILE EDIT SEARCH FORMAT" in screen("clean-exit-still-editor")
+        keys(b"N")
+        wait("FILE EDIT SEARCH FORMAT", "clean-exit-no")
+        keys(b"\x03")
+        wait("Exit to BASIC? Y/N", "clean-exit-confirmation-again")
+        keys(b"\x03")
+        wait("FILE EDIT SEARCH FORMAT", "clean-exit-stop-cancel")
+        keys(b"\x03")
+        wait("Exit to BASIC? Y/N", "clean-exit-confirmation-yes")
+        keys(b"Y")
+        exitcheck("clean-confirmed-exit")
+        mark("shipping-editor-clean-exit-requires-yes-N-and-STOP-cancel")
+        launch("SEE64YOU.PRG", "FILE EDIT SEARCH FORMAT")
         keys(native("Hardware 8TML.") + b"\r")
         time.sleep(1.3)
         assert not any(path.rsplit("/", 1)[-1].upper() == "SEE64YOU.REC"
@@ -361,8 +376,11 @@ def main():
                 if "READY." not in screen("failure-screen"):
                     keys(b"\x03")
                     time.sleep(.5)
-                    if "S SAVE  D DISCARD" in screen("failure-exit"):
+                    exit_screen = screen("failure-exit")
+                    if "S SAVE  D DISCARD" in exit_screen:
                         keys(b"D")
+                    elif "EXIT TO BASIC? Y/N" in exit_screen:
+                        keys(b"Y")
                 basic("failure-basic")
             except Exception as error:
                 state["exit_error"] = repr(error)

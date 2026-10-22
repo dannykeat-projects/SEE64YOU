@@ -444,7 +444,15 @@ static unsigned char confirm_exit(void)
 {
     unsigned char key;
 
-    if (!editor.dirty) return 1u;
+    if (!editor.dirty) {
+#ifdef S64_INDEPENDENT_EDITOR
+        if (!s64_ui_prompt_yes_no("Exit to BASIC? Y/N")) {
+            s64_ui_render(&editor);
+            return 0u;
+        }
+#endif
+        return 1u;
+    }
 
     s64_ui_message("S SAVE  D DISCARD  STOP CANCEL");
     key = s64_ui_prompt_exit();
