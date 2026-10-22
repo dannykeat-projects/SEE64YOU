@@ -34,6 +34,7 @@ static const char* invalid_sources[] = {
     "", "plain text", "SEE64YOU/1\n", "---\n---\n",
     "---\ntitle: Wrong first key\n8tml: 1\n---\n",
     "---\n8tml: 2\n---\n", "---\n8tml: 1x\n---\n",
+    "---\n8tml: 1\n8TmL: 2\n---\n",
     "---\n8tml: 1\n", "--- \n8tml: 1\n---\n",
     "---\n8tml: 1\nbad line\n---\n"
 };
