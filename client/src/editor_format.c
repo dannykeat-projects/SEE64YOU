@@ -2,6 +2,8 @@
 #include "editor_internal.h"
 
 #include <stdint.h>
+#include <string.h>
+#include "charset.h"
 
 static uint8_t bytes_match(
     const S64Buffer* buffer,
@@ -342,3 +344,154 @@ int s64_editor_format_list_item(S64Editor* editor)
 }
 
 
+
+
+/* Links remain portable source text. Only simple, single-line inline links
+ * are recognized for in-place URL editing; arbitrary markup stays untouched. */
+static int link_text_ok(const char* text, unsigned int limit, unsigned int* length, unsigned char url)
+{
+    unsigned int i;
+    unsigned char ascii;
+
+    if (text == 0 || text[0] == '\0') return 0;
+    for (i = 0u; text[i] != '\0'; ++i) {
+        if (i >= limit || !s64_charset_native_to_ascii((unsigned char)text[i], &ascii)
+            || ascii < 0x20u || ascii == 0x7fu || ascii == '[' || ascii == ']'
+            || ascii == '\\' || (url && (ascii == ' ' || ascii == '('
+            || ascii == ')' || ascii == '<' || ascii == '>' || ascii == '"'))) return 0;
+    }
+    *length = i;
+    return 1;
+}
+
+static int http_prefix(const char* url, const char* prefix)
+{
+    unsigned int i;
+    unsigned char ascii;
+    for (i = 0u; prefix[i] != '\0'; ++i) {
+        if (!url[i] || !s64_charset_native_to_ascii((unsigned char)url[i], &ascii)) return 0;
+        if (ascii >= 'A' && ascii <= 'Z') ascii = (unsigned char)(ascii + 32u);
+        if (ascii != (unsigned char)prefix[i]) return 0;
+    }
+    return url[i] != '\0';
+}
+
+static int link_url_ok(const char* url, unsigned int* length)
+{
+    if (!link_text_ok(url, 254u, length, 1u)) return 0;
+    if (url[0] == '/' && url[1] == '/') return 0;
+    if (strchr(url, ':') && !http_prefix(url, "http://") && !http_prefix(url, "https://")) return 0;
+    return 1;
+}
+
+static int link_url_span(const S64Editor* editor, unsigned int* start, unsigned int* end)
+{
+    const S64Buffer* b = &editor->buffer;
+    unsigned int cursor = s64_buffer_cursor(b);
+    unsigned int length = s64_buffer_length(b);
+    unsigned int first = cursor > 340u ? cursor - 340u : 0u;
+    unsigned int i, j, k, count;
+    unsigned char ascii;
+
+    for (i = first; i <= cursor && i < length; ++i) {
+        if (s64_buffer_char_at(b, i) != '['
+            || (i != 0u && s64_buffer_char_at(b, i - 1u) == '\\')) continue;
+        j = i + 1u;
+        for (count = 0u; j < length && count <= 80u; ++j, ++count) {
+            if (s64_buffer_char_at(b, j) == ']') break;
+            if (!s64_charset_native_to_ascii(s64_buffer_char_at(b, j), &ascii)
+                || ascii < 0x20u || ascii == '[' || ascii == '\\') break;
+        }
+        if (count == 0u || count > 80u || j + 2u >= length
+            || s64_buffer_char_at(b, j) != ']'
+            || s64_buffer_char_at(b, j + 1u) != '(') continue;
+        k = j + 2u;
+        for (count = 0u; k < length && count <= 254u; ++k, ++count) {
+            if (s64_buffer_char_at(b, k) == ')') break;
+            if (!s64_charset_native_to_ascii(s64_buffer_char_at(b, k), &ascii)
+                || ascii <= 0x20u || ascii == '[' || ascii == ']'
+                || ascii == '(' || ascii == '\\') break;
+        }
+        if (count == 0u || count > 254u || k >= length
+            || s64_buffer_char_at(b, k) != ')' || cursor > k) continue;
+        *start = j + 2u;
+        *end = k;
+        return 1;
+    }
+    return 0;
+}
+
+int s64_editor_link_at_cursor(const S64Editor* editor)
+{
+    unsigned int start, end;
+    return editor != 0 && link_url_span(editor, &start, &end);
+}
+
+int s64_editor_format_link(S64Editor* editor, const char* label, const char* url)
+{
+    unsigned int start, end, url_length, label_length = 0u;
+    unsigned int extra, i;
+    unsigned char captured;
+    unsigned char ascii;
+    S64Buffer* b;
+
+    if (editor == 0 || !link_url_ok(url, &url_length)) return 0;
+    b = &editor->buffer;
+
+    if (s64_editor_has_selection(editor)) {
+        start = s64_editor_selection_start(editor);
+        end = s64_editor_selection_end(editor);
+        if (end - start > 80u) return 0;
+        for (i = start; i < end; ++i) {
+            if (!s64_charset_native_to_ascii(s64_buffer_char_at(b, i), &ascii)
+                || ascii < 0x20u || ascii == '[' || ascii == ']' || ascii == '\\') return 0;
+        }
+        extra = url_length + 4u;
+        if (s64_buffer_free(b) < extra) return 0;
+        captured = s64_editor_internal_history_begin(editor, start, end);
+        if (!insert_text_at(b, end, "](", 2u)
+            || !insert_text_at(b, end + 2u, url, url_length)
+            || !insert_text_at(b, end + url_length + 2u, ")", 1u)
+            || !insert_text_at(b, start, "[", 1u)) goto failed;
+        s64_buffer_move_cursor(b, end + extra);
+        finish_format_edit(editor, 0u, 0u, 0u);
+        s64_editor_internal_history_commit(editor, end - start + extra, 0u, captured);
+        return 1;
+    }
+
+    if (link_url_span(editor, &start, &end)) {
+        extra = end - start;
+        if (url_length > extra && s64_buffer_free(b) < url_length - extra) return 0;
+        captured = s64_editor_internal_history_begin(editor, start, end);
+        if (!s64_buffer_delete_range(b, start, end)
+            || !insert_text_at(b, start, url, url_length)) goto failed;
+        s64_buffer_move_cursor(b, start + url_length);
+        finish_format_edit(editor, 0u, 0u, 0u);
+        s64_editor_internal_history_commit(editor, url_length, 0u, captured);
+        return 1;
+    }
+
+    if (!link_text_ok(label, 80u, &label_length, 0u)) return 0;
+    start = s64_buffer_cursor(b);
+    extra = label_length + url_length + 4u;
+    if (s64_buffer_free(b) < extra) return 0;
+    captured = s64_editor_internal_history_begin(editor, start, start);
+    if (!insert_text_at(b, start, "[", 1u)
+        || !insert_text_at(b, start + 1u, label, label_length)
+        || !insert_text_at(b, start + label_length + 1u, "](", 2u)
+        || !insert_text_at(b, start + label_length + 3u, url, url_length)
+        || !insert_text_at(b, start + label_length + url_length + 3u, ")", 1u)) goto failed;
+    s64_buffer_move_cursor(b, start + extra);
+    finish_format_edit(editor, 0u, 0u, 0u);
+    s64_editor_internal_history_commit(editor, extra, 0u, captured);
+    return 1;
+
+failed:
+    /* An interrupted REU write can be partial, so invalidate history and
+     * never let the buffer masquerade as an unchanged saved document. */
+    editor->dirty = 1u;
+    s64_history_reset(&editor->history);
+    s64_editor_recalculate_position(editor);
+    s64_editor_ensure_cursor_visible(editor);
+    return 0;
+}

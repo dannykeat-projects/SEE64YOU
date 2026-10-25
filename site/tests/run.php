@@ -93,6 +93,27 @@ try {
         str_contains($formatRendered, '<a href="https://openai.com">OpenAI</a>'),
         'link markup renders'
     );
+
+    $localLinks = s64_markup(
+        "[About](about.8tml)\n"
+        . "[Posts](posts/news.8tml)\n"
+        . "[Root](/home.8tml)\n"
+        . "[Relative](./more.8tml)\n"
+        . "[External](https://example.org/)\n"
+        . "[Unsafe](javascript:alert)\n"
+        . "[Escape](../../secret.8tml)"
+    );
+    check(str_contains($localLinks, '<a href="page.php?slug=about">About</a>'), 'relative page link renders as HTML');
+    check(str_contains($localLinks, '<a href="post.php?slug=news">Posts</a>'), 'posts path resolves');
+    check(str_contains($localLinks, '<a href="page.php?slug=home">Root</a>'), 'root page path resolves');
+    check(str_contains($localLinks, '<a href="page.php?slug=more">Relative</a>'), 'dot-relative page resolves');
+    check(str_contains($localLinks, '<a href="https://example.org/">External</a>'), 'external HTTPS unchanged');
+    check(str_contains($localLinks, '[Unsafe](javascript:alert)'), 'unsafe scheme is not linked');
+    check(str_contains($localLinks, '[Escape](../../secret.8tml)'), 'unsupported traversal remains plain text');
+    $postLinks = s64_markup('[Sibling](next.8tml) [Parent](../about.8tml)', 'post');
+    check(str_contains($postLinks, '<a href="post.php?slug=next">Sibling</a>'), 'post sibling route');
+    check(str_contains($postLinks, '<a href="page.php?slug=about">Parent</a>'), 'post parent route');
+
     check(
         substr_count($formatRendered, '<ul>') === 1
             && substr_count($formatRendered, '</ul>') === 1,

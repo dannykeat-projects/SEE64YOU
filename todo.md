@@ -15,6 +15,8 @@
 
 ## P0 — Prove the current user workflow
 
+- [ ] Accept Link insertion/editing on physical C64U: Ctrl+K and menu, marked-text label, cancel, 80-character label/254-character URL bounds, undo/redo, byte-exact Save/Open, fit and UI redraw. Validate Apache rewrite aliases and links in both modern HTML and the external 8TML reader on an installed test site. Preserve public-source draft privacy and existing Publisher workflow.
+
 - [x] Automated editing robustness: 10,800 seeded byte-reference edits, 36 size/pattern boundaries through 61,440 bytes, clipboard/capacity and multi-level history checks; fault tests cover partial paste and undo/redo failures. Menu ghosts over short documents are reproduced/fixed with shared modal redraw invalidation. Partial REU failures remain recoverable dirty text, not atomic rollback.
 - [x] Bounded real-C64U Editor acceptance: injected function-key selection/copy/Help/cut/paste/replacement, byte-exact source saves/recovery, no background autosave, native DOS collision/failure/recovery and BASIC return passed. All 40 original files and captured DOS/IRQ/turbo/colours restored and verified. Receipt: `client/build/editor-audit/hardware-20261024-final/`. This is not physical keyboard or cold-power acceptance.
 - [ ] Reduce measured source-codec and long-line/large-document edit costs. Base-C64 VICE shows a maximum-size read plus validation takes about seven minutes and serialization another five, excluding DOS; avoid per-byte/repeated scans using a bounded, measured change. Match source correctness, fit and C64U turbo/UI evidence before promotion.

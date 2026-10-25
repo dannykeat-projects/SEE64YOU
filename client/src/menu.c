@@ -49,6 +49,7 @@ static const S64MenuItem format_items[] = {
     { "Bold Ctrl+B", S64_INPUT_FORMAT_BOLD },
     { "Italic Ctrl+I", S64_INPUT_FORMAT_ITALIC },
     { "List Ctrl+L", S64_INPUT_FORMAT_LIST },
+    { "Link Ctrl+K", S64_INPUT_FORMAT_LINK },
     { "Word Wrap Ctrl+W", S64_INPUT_TOGGLE_WRAP }
 };
 

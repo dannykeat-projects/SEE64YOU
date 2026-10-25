@@ -41,6 +41,8 @@ static void managed_entry_failed(uint8_t stage)
 
 #define SEARCH_TEXT_CAPACITY 33u
 #define LINE_TEXT_CAPACITY 6u
+#define LINK_LABEL_CAPACITY 81u
+#define LINK_URL_CAPACITY 255u
 
 static S64Editor editor;
 static S64Clipboard clipboard;
@@ -52,6 +54,9 @@ static S64Dos journal_dos;
 static S64LocalDocument local_document;
 static S64UciCapabilities uci_capabilities;
 static char find_query[SEARCH_TEXT_CAPACITY];
+/* Avoid large temporary arrays on the C64 software stack. */
+static char link_label[LINK_LABEL_CAPACITY];
+static char link_url[LINK_URL_CAPACITY];
 static unsigned char find_query_valid;
 #if defined(S64_MANAGED_OVERLAY) && !defined(S64_PERSISTENT_RUNTIME_FIT)
 static unsigned char restore_managed_application(void)
@@ -596,6 +601,30 @@ static void prompt_replace(void)
     s64_ui_message("Choose R or A");
 }
 
+static void prompt_link(void)
+{
+    unsigned char selected = s64_editor_has_selection(&editor);
+    unsigned char editing = !selected && s64_editor_link_at_cursor(&editor);
+
+    link_label[0] = '\0';
+    if (!selected && !editing
+        && !s64_ui_prompt_text("Link text: ", link_label, sizeof(link_label))) {
+        s64_ui_render(&editor);
+        return;
+    }
+    if (!s64_ui_prompt_text(editing ? "New URL: " : "Link URL: ",
+            link_url, sizeof(link_url))) {
+        s64_ui_render(&editor);
+        return;
+    }
+    if (!s64_editor_format_link(&editor, link_label, link_url)) {
+        s64_ui_render(&editor);
+        s64_ui_message("Invalid link or insufficient space");
+        return;
+    }
+    s64_ui_render(&editor);
+}
+
 static S64InputType run_menu(unsigned char initial_group)
 {
     S64InputEvent menu_input;
@@ -1051,6 +1080,9 @@ int main(void)
                     continue;
                 }
                 break;
+            case S64_INPUT_FORMAT_LINK:
+                prompt_link();
+                continue;
             case S64_INPUT_EXIT:
                 if (!confirm_exit()) {
                     continue;

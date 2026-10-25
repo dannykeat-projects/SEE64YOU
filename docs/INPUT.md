@@ -16,6 +16,7 @@ The Editor is keyboard-first. Commodore+M opens File/Edit/Search/Format menus; a
 | Find / Go to line | Ctrl+F / Ctrl+G |
 | Select all | Ctrl+A |
 | Bold / Italic / list marker | Ctrl+B / Ctrl+I / Ctrl+L |
+| Insert / change link | Ctrl+K or Format → Link |
 | Toggle visual word wrap | Ctrl+W |
 
 Native-keyboard alternatives: Commodore+F1 New, Commodore+F3 Open, Commodore+F5 Save and Commodore+F7 Save As. Ctrl+Left/Right moves by word; Ctrl+Up/Down moves by page. C64 left/up are shifted cursor keys, so Shift+Arrow cannot reliably mean text selection: use F1 MARK mode. Ctrl/Commodore+Delete may provide forward delete where distinguishable.

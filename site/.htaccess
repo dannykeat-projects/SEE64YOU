@@ -1,0 +1,7 @@
+# Public published-only 8TML source URLs. The PHP endpoint enforces
+# visibility on every request, including after a document is unpublished.
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule ^posts/([a-z0-9-]+)\.8tml$ source.php?type=post&slug=$1 [L,NC]
+RewriteRule ^(?:pages/)?([a-z0-9-]+)\.8tml$ source.php?type=page&slug=$1 [L,NC]
+</IfModule>

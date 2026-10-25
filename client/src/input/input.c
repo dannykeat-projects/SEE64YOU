@@ -56,6 +56,7 @@ static S64InputType s64_control_command(unsigned char key, unsigned char modifie
         case 0x07u: return S64_INPUT_GOTO_LINE;  /* Ctrl+G */
         case 0x08u: return S64_INPUT_REPLACE;    /* Ctrl+H */
         case 0x09u: return S64_INPUT_FORMAT_ITALIC;/* Ctrl+I */
+        case 0x0Bu: return S64_INPUT_FORMAT_LINK; /* Ctrl+K */
         case 0x0Cu: return S64_INPUT_FORMAT_LIST; /* Ctrl+L */
         case 0x0Du: return S64_INPUT_MENU;        /* Ctrl+M where distinct */
         case 0x0Eu: return S64_INPUT_NEW;        /* Ctrl+N */

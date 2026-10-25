@@ -350,6 +350,40 @@ int main(void)
     require(!s64_editor_format_heading(&editor, 3u), "unsupported heading level rejected");
     require_text(&editor, "Title", "unsupported heading leaves source unchanged");
 
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "Visit About");
+    s64_editor_home(&editor);
+    s64_editor_toggle_mark(&editor);
+    {
+        unsigned int i;
+        for (i = 0u; i < 5u; ++i) s64_editor_right(&editor);
+    }
+    s64_editor_toggle_mark(&editor);
+    require(s64_editor_format_link(&editor, "", "about.8tml"), "wrap selected link text");
+    require_text(&editor, "[Visit](about.8tml) About", "link source with selected label");
+    require(s64_editor_undo(&editor), "undo link insertion");
+    require_text(&editor, "Visit About", "undo restores original text");
+    require(s64_editor_redo(&editor), "redo link insertion");
+    require_text(&editor, "[Visit](about.8tml) About", "redo restores link");
+
+    s64_editor_home(&editor);
+    require(s64_editor_link_at_cursor(&editor), "detect link at cursor");
+    require(s64_editor_format_link(&editor, "", "https://t8wn.com/"), "edit link destination");
+    require_text(&editor, "[Visit](https://t8wn.com/) About", "edit preserves label");
+    require(s64_editor_undo(&editor), "undo link edit");
+    require_text(&editor, "[Visit](about.8tml) About", "undo restores destination");
+    require(!s64_editor_format_link(&editor, "", "javascript:alert"), "reject unsafe scheme");
+    require_text(&editor, "[Visit](about.8tml) About", "rejected URL changes nothing");
+
+    s64_editor_init(&editor);
+    require(s64_editor_format_link(&editor, "Home", "/home.8tml"), "insert unselected link");
+    require_text(&editor, "[Home](/home.8tml)", "portable inline link");
+    require(s64_editor_undo(&editor), "undo new link in one step");
+    require_text(&editor, "", "undo leaves empty document");
+    require(!s64_editor_format_link(&editor, "Bad]label", "about.8tml"), "reject invalid label");
+    require(!s64_editor_format_link(&editor, "label", "bad url"), "reject spaced URL");
+
     s64_editor_init(&editor);
     insert_text(&editor, "item");
     s64_editor_home(&editor);

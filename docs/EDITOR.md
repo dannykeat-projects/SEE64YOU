@@ -8,7 +8,7 @@ The 40×25 screen provides File, Edit, Search and Format menus. Commodore+M open
 
 F1 toggles MARK selection; F3 copies, F5 cuts, F7 pastes. Ctrl+S saves and Ctrl+Shift+S uses Save As where the keyboard mapping supports those chords. Ctrl+O opens; Ctrl+F searches; F2/F4 repeat the search; Ctrl+H or F6 replaces; Ctrl+G goes to a line; Ctrl+Z / Ctrl+Shift+Z undo/redo; Ctrl+W toggles visual word wrap. See [input](INPUT.md) for C64/USB mapping and physical acceptance limitations.
 
-Format shortcuts insert literal 8TML constructs such as headings, list markers, bold and italic; links and other markup can be typed directly. Visual word wrap never changes stored line endings. Unknown metadata and markup are preserved, not interpreted or discarded.
+Format shortcuts insert literal 8TML constructs such as headings, list markers, bold and italic. **Format → Link** (Ctrl+K where mapped) inserts `[text](destination)` as ordinary source text. Mark up to 80 characters first to use the selection as the link label; otherwise enter a label. Supply a relative `.8tml` path or an `http://` / `https://` URL. With no selection, using Link when the cursor is inside a simple existing link changes its URL, preserving the label. RUN/STOP cancels prompts, and Undo reverses the completed link edit. The native URL prompt currently accepts up to 254 characters; longer links must be entered as source. Other markup can still be typed directly. Visual word wrap never changes stored line endings. Unknown metadata and markup are preserved, not interpreted or discarded.
 
 RUN/STOP and File → Exit require confirmation even when the document is saved. A dirty document offers Save / Discard / Cancel; failures keep the Editor open.
 

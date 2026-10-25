@@ -31,7 +31,7 @@ $content = ($isPreview ? s64_draft_preview_banner() : '')
     . '<article><h2>'
     . htmlspecialchars((string)$post['title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
     . '</h2><p><small>' . $date . '</small></p>'
-    . s64_markup((string)$post['body'])
+    . s64_markup((string)$post['body'], 'post')
     . '</article>';
 
 s64_render_layout($config, $pages, (string)$post['title'], $content);

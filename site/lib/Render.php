@@ -4,7 +4,28 @@ declare(strict_types=1);
 require_once __DIR__ . '/Themes.php';
 require_once __DIR__ . '/Auth.php';
 
-function s64_inline_markup(string $text): string
+
+/* Source links remain portable. Only known local .8tml destinations are
+ * mapped to HTML views; unknown schemes/paths remain escaped source text. */
+function s64_link_href(string $href, string $type): ?string
+{
+    if (preg_match('~^https?://~i', $href)) {
+        return filter_var($href, FILTER_VALIDATE_URL) !== false ? $href : null;
+    }
+    if ($href === '/') return 'index.php';
+    if (preg_match('~^(?:/|\./)?(?:(pages|posts)/)?([a-z0-9-]+)\.8tml(#[a-z0-9_-]+)?$~i', $href, $match)) {
+        $kind = ($match[1] ?? '') !== '' ? strtolower($match[1])
+            : (str_starts_with($href, '/') ? 'pages' : ($type === 'post' ? 'posts' : 'pages'));
+        return ($kind === 'posts' ? 'post.php?slug=' : 'page.php?slug=')
+            . rawurlencode(strtolower($match[2])) . ($match[3] ?? '');
+    }
+    if (preg_match('~^\.\./([a-z0-9-]+)\.8tml(#[a-z0-9_-]+)?$~i', $href, $match)) {
+        return 'page.php?slug=' . rawurlencode(strtolower($match[1])) . ($match[2] ?? '');
+    }
+    return null;
+}
+
+function s64_inline_markup(string $text, string $type = 'page'): string
 {
     $safe = htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
@@ -12,13 +33,12 @@ function s64_inline_markup(string $text): string
     $safe = preg_replace('/\*([^*]+)\*/', '<em>$1</em>', $safe) ?? $safe;
 
     $safe = preg_replace_callback(
-        '~\[([^\]]+)\]\((https?://[^)\s]+)\)~i',
-        static function (array $matches): string {
+        '~\[([^\]]+)\]\(([^)\s]+)\)~i',
+        static function (array $matches) use ($type): string {
             $url = html_entity_decode($matches[2], ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            if (filter_var($url, FILTER_VALIDATE_URL) === false) {
-                return $matches[0];
-            }
-            return '<a href="' . htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">'
+            $href = s64_link_href($url, $type);
+            if ($href === null) return $matches[0];
+            return '<a href="' . htmlspecialchars($href, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">'
                 . $matches[1] . '</a>';
         },
         $safe
@@ -27,7 +47,7 @@ function s64_inline_markup(string $text): string
     return $safe;
 }
 
-function s64_markup(string $source): string
+function s64_markup(string $source, string $type = 'page'): string
 {
     $lines = preg_split('/\R/', $source) ?: [];
     $html = [];
@@ -39,7 +59,7 @@ function s64_markup(string $source): string
                 $html[] = '<ul>';
                 $listOpen = true;
             }
-            $html[] = '<li>' . s64_inline_markup(substr($line, 2)) . '</li>';
+            $html[] = '<li>' . s64_inline_markup(substr($line, 2), $type) . '</li>';
             continue;
         }
 
@@ -49,13 +69,13 @@ function s64_markup(string $source): string
         }
 
         if (str_starts_with($line, '## ')) {
-            $html[] = '<h2>' . s64_inline_markup(substr($line, 3)) . '</h2>';
+            $html[] = '<h2>' . s64_inline_markup(substr($line, 3), $type) . '</h2>';
         } elseif (str_starts_with($line, '# ')) {
-            $html[] = '<h1>' . s64_inline_markup(substr($line, 2)) . '</h1>';
+            $html[] = '<h1>' . s64_inline_markup(substr($line, 2), $type) . '</h1>';
         } elseif (trim($line) === '') {
             $html[] = '';
         } else {
-            $html[] = '<p>' . s64_inline_markup($line) . '</p>';
+            $html[] = '<p>' . s64_inline_markup($line, $type) . '</p>';
         }
     }
 
