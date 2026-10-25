@@ -88,7 +88,9 @@ def main():
         build = {"version": args.version, "source_commit": commit, "storage_root": root,
                  "build_command": " ".join(command), "toolchain": version, "file_count": len(FILES),
                  "package_sha256": hashes, "sd_editor_hardware": hardware,
-                 "acceptance": "Editor alpha preview; physical keyboard, cold-power, USB-only and Publisher hardware gates pending"}
+                 "acceptance": "Editor alpha preview; "
+                    + ("physical keyboard, " if not hardware["physical_keyboard"] else "")
+                    + "cold-power, USB-only and Publisher hardware gates pending"}
         payload["BUILD.json"] = (json.dumps(build, indent=2) + "\n").encode()
         payload["README.md"] = guide.encode()
         payload["SHA256SUMS"] = "".join(hashes[name] + "  SEE64YOU/" + name + "\n" for name in sorted(FILES)).encode()
