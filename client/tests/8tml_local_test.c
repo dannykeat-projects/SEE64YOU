@@ -247,6 +247,11 @@ int main(void)
     set_file("source.8tml", source);
     require(s64_local_open(&local, "source.8tml", 1u) == S64_LOCAL_OK, "source opens");
     require_body(&body, source, "open preserves metadata and unknown markup");
+    require(s64_local_open(&local, "source", 1u) == S64_LOCAL_OK,
+        "open adds default source extension");
+    require(strcmp(local.filename, "source.8tml") == 0,
+        "extensionless open retains complete save identity");
+    require_body(&body, source, "extensionless open preserves source");
     require(close_count >= 2u, "disk handles closed");
     require(s64_local_open(&local, "missing.8tml", 1u) == S64_LOCAL_IO_ERROR,
         "missing source reports IO error");
@@ -335,6 +340,8 @@ int main(void)
     require(s64_local_save_as(&local, boundary, 0u) == S64_LOCAL_OK
         && strlen(file_name) == S64_LOCAL_FILENAME_CAPACITY - 1u,
         "longest extensionless basename fits exact capacity");
+    require(s64_local_open(&local, boundary, 1u) == S64_LOCAL_OK,
+        "longest extensionless open fits exact capacity");
     require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "new before overflow");
     prepare_empty_source(&body);
     file_exists = 0u;
@@ -343,9 +350,17 @@ int main(void)
     result = s64_local_save_as(&local, boundary, 0u);
     require(result == S64_LOCAL_INVALID_ARGUMENT && !file_exists && !temporary_exists,
         "extension overflow rejected before disk writes");
+    require(s64_local_open(&local, boundary, 1u) == S64_LOCAL_INVALID_ARGUMENT,
+        "open extension overflow rejected");
     require(s64_local_save_as(&local, "archive.v1/New", 0u) == S64_LOCAL_OK
         && strcmp(file_name, "archive.v1/New.8tml") == 0,
         "directory dot does not suppress suffix");
+    require(s64_local_open(&local, "archive.v1/New", 1u) == S64_LOCAL_OK
+        && strcmp(local.filename, "archive.v1/New.8tml") == 0,
+        "directory dot does not suppress open suffix");
+    set_file("/sd/SEE64YOU/path.8tml", source);
+    require(s64_local_open(&local, "/sd/SEE64YOU/path", 1u) == S64_LOCAL_OK,
+        "absolute basename opens on explicit volume");
     puts("8TML local document tests passed");
     return 0;
 }

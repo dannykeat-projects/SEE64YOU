@@ -16,6 +16,8 @@ RUN/STOP and File → Exit require confirmation even when the document is saved.
 
 The Editor saves on explicit command only; **no periodic autosave or idle-time disk write** occurs. Existing `SEE64YOU.REC` snapshots can be offered for recovery, and a failed recovery read must not destroy them. Unsaved new text is not automatically backed up. Save/Save As use checked storage and collision safeguards; completed temporary files may remain recoverable after a failed rename.
 
+Open and Save As accept a basename such as `notes`; `.8tml` is added automatically when no extension is supplied. Explicit filenames are kept, including `.8tml.tmp` when opening a recoverable temporary. Save uses the current filename. The same basename rule applies when Publisher loads a local source file.
+
 The existing 16 MiB REU provides working storage, but the current fixed document/history capacities remain. Resource expansion, new allocator designs and large clipboard work should be considered only after measurements show they are required. Preserve responsive incremental redraws, existing source, reversible operations and clean machine-state restoration.
 
 Copy/cut/paste supports the current 61,440-byte document/clipboard limit; an over-capacity paste is refused before replacing a selection. Undo history remains bounded, so a large edit may not be undoable. Help and menu dismissal repaint the covered document rows, including blank rows below short documents.
