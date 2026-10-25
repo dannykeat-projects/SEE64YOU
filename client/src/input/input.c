@@ -320,21 +320,27 @@ unsigned char s64_input_read(S64InputEvent* event, unsigned char idle_jiffies)
     }
 
     if ((modifiers & S64_MOD_COMMODORE) != 0u) {
-        if (key == 'm' || key == 'M') {
+        /* The native KERNAL Commodore table emits graphics M ($A7) and
+         * shifted function codes. Keep plain codes for mapped keyboards. */
+        if (key == 0xA7u || key == 'm' || key == 'M') {
             event->type = S64_INPUT_MENU;
             return 1u;
         }
         switch (key) {
             case CH_F1:
+            case CH_F2:
                 event->type = S64_INPUT_NEW;
                 return 1u;
             case CH_F3:
+            case CH_F4:
                 event->type = S64_INPUT_OPEN;
                 return 1u;
             case CH_F5:
+            case CH_F6:
                 event->type = S64_INPUT_SAVE;
                 return 1u;
             case CH_F7:
+            case CH_F8:
                 event->type = S64_INPUT_SAVE_AS;
                 return 1u;
             default:

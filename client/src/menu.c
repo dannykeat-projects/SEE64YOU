@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "menu.h"
+#include "ui.h"
 
 #define S64_MENU_WIDTH 20u
 
@@ -125,6 +126,7 @@ void s64_menu_render(unsigned char group, unsigned char item)
 
     menu = &groups[group];
 
+    s64_ui_begin_overlay();
     revers(1);
     gotoxy(0u, 0u);
     cputs(S64_MENU_BAR);

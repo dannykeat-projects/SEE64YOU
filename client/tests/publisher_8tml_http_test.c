@@ -30,6 +30,7 @@ static char url[S64_DESTINATION_URL_CAPACITY];
 static char altered_reply[65536];
 static size_t altered_length, altered_offset;
 static uint8_t alter_status;
+static uint8_t alter_revision;
 
 uint8_t s64_reu_store(uint8_t bank, uint16_t address, const void* data, uint16_t length)
 {
@@ -101,7 +102,7 @@ static S64UciResult execute(const S64UciCommandPart* parts, uint8_t count, S64Uc
             assert(count == 1 && maximum <= 512);
             /* Small reads split response headers, metadata and source repeatedly. */
             if (maximum > 37) maximum = 37;
-            if (alter_status) {
+            if (alter_status || alter_revision) {
                 if (!altered_length) {
                     char* header;
                     do {
@@ -112,16 +113,19 @@ static S64UciResult execute(const S64UciCommandPart* parts, uint8_t count, S64Uc
                         altered_length += (size_t)amount;
                     } while (amount);
                     altered_reply[altered_length] = 0;
-                    header = strstr(altered_reply, "\r\nX-See64You-Status: ");
+                    header = strstr(altered_reply, alter_revision
+                        ? "\r\nX-See64You-Revision: " : "\r\nX-See64You-Status: ");
                     if (header) {
                         char* end = strstr(header + 2, "\r\n");
                         size_t line_length = (size_t)(end - header);
-                        if (alter_status == 1) {
+                        uint8_t alteration = alter_revision ? alter_revision : alter_status;
+                        if (alteration == 1) {
                             memmove(header, end, altered_length - (size_t)(end - altered_reply) + 1);
                             altered_length -= line_length;
-                        } else if (alter_status == 2) {
+                        } else if (alteration == 2) {
                             /* Same length as published: invalid value must fail closed. */
-                            memcpy(header + strlen("\r\nX-See64You-Status: "), "garbageee", 9);
+                            if (alter_revision) header[strlen("\r\nX-See64You-Revision: ")] = 'G';
+                            else memcpy(header + strlen("\r\nX-See64You-Status: "), "garbageee", 9);
                         } else {
                             assert(altered_length + line_length < sizeof(altered_reply));
                             memmove(end + line_length, end, altered_length - (size_t)(end - altered_reply) + 1);
@@ -208,6 +212,7 @@ static void open_remote(S64DocumentType type, const char* slug, S64DocumentStatu
     if (result != S64_STANDALONE_OK) fprintf(stderr, "Open %s failed: %u (%s)\n", slug,
         (unsigned int)result, s64_standalone_result_message(result));
     assert(result == S64_STANDALONE_OK);
+    assert(strlen(s64_direct_source_revision()) == 32);
     assert(document.status == state);
     output_length = 0;
     assert(s64_document_write_wire(&document, collect, 0) == S64_DOCUMENT_OK);
@@ -234,6 +239,7 @@ int main(int argc, char** argv)
     uint16_t total;
     unsigned int before;
     char base_url[64];
+    char revision[33], stale[33];
     assert(argc == 4 && getenv("S64_TEST_KEY"));
     test_port = (uint16_t)strtoul(argv[1], 0, 10);
     http.execute = execute;
@@ -262,6 +268,14 @@ int main(int argc, char** argv)
                 == S64_STANDALONE_PROTOCOL_ERROR);
         }
         alter_status = 0;
+        for (alter_revision = 1; alter_revision <= 3; ++alter_revision) {
+            assert(s64_destination_open_url(&destination, S64_DOCUMENT_PAGE,
+                "native-page", url, sizeof(url)) == S64_DESTINATION_OK);
+            assert(s64_standalone_open_document(&http, url, 1, 0, &document)
+                == S64_STANDALONE_PROTOCOL_ERROR);
+            assert(s64_direct_probe_revision(&http, url, 1) == S64_STANDALONE_PROTOCOL_ERROR);
+        }
+        alter_revision = 0;
         open_remote(S64_DOCUMENT_PAGE, "native-page", S64_DOCUMENT_PUBLISHED);
         fixture(1);
         load_fixture(S64_DOCUMENT_POST, "native-post", S64_DOCUMENT_PUBLISHED);
@@ -296,10 +310,33 @@ int main(int argc, char** argv)
         assert(s64_standalone_save_document(&http, url, 1, 0, &document) != S64_STANDALONE_OK);
         fixture(1);
         open_remote(S64_DOCUMENT_POST, "native-post", S64_DOCUMENT_PUBLISHED);
+        strcpy(revision, s64_direct_source_revision());
+        assert(s64_destination_open_url(&destination, S64_DOCUMENT_POST,
+            "native-post", url, sizeof(url)) == S64_DESTINATION_OK);
+        assert(s64_direct_probe_revision(&http, url, 1) == S64_STANDALONE_OK);
+        assert(strcmp(revision, s64_direct_source_revision()) == 0);
         document.status = S64_DOCUMENT_DRAFT;
         assert(s64_destination_save_url(&destination, document.slug, 1, url, sizeof(url)) == S64_DESTINATION_OK);
+        assert(s64_standalone_save_document(&http, url, 1, 0, &document) != S64_STANDALONE_OK);
+        strcat(url, "&revision="); strcat(url, revision);
         assert(s64_standalone_save_document(&http, url, 1, 0, &document) == S64_STANDALONE_OK);
+        strcpy(stale, revision);
+        strcpy(revision, s64_direct_source_revision());
+        assert(strcmp(revision, stale) != 0);
+        document.status = S64_DOCUMENT_PUBLISHED;
+        assert(s64_standalone_save_document(&http, url, 1, 0, &document)
+            == S64_STANDALONE_REVISION_CONFLICT);
+        assert(document.status == S64_DOCUMENT_PUBLISHED);
+        assert(strcmp(document.slug, "native-post") == 0);
+        assert(s64_standalone_save_document(&http, url, 1, 0, &document)
+            == S64_STANDALONE_REVISION_CONFLICT);
+        assert(s64_standalone_save_document(&http, "bad-url", 1, 0, &document)
+            == S64_STANDALONE_INVALID_ARGUMENT);
+        output_length = 0;
+        assert(s64_document_write_wire(&document, collect, 0) == S64_DOCUMENT_OK);
+        assert(output_length == source_length && memcmp(output, source, source_length) == 0);
         open_remote(S64_DOCUMENT_POST, "native-post", S64_DOCUMENT_DRAFT);
+        assert(strcmp(revision, s64_direct_source_revision()) == 0);
     } else {
         assert(strcmp(argv[2], "delete") == 0);
         assert(s64_destination_delete_url(&destination, S64_DOCUMENT_PAGE, "native-page", url, sizeof(url)) == S64_DESTINATION_OK);

@@ -20,6 +20,8 @@ The Editor is keyboard-first. Commodore+M opens File/Edit/Search/Format menus; a
 
 Native-keyboard alternatives: Commodore+F1 New, Commodore+F3 Open, Commodore+F5 Save and Commodore+F7 Save As. Ctrl+Left/Right moves by word; Ctrl+Up/Down moves by page. C64 left/up are shifted cursor keys, so Shift+Arrow cannot reliably mean text selection: use F1 MARK mode. Ctrl/Commodore+Delete may provide forward delete where distinguishable.
 
+The native KERNAL returns a graphics character for Commodore+M and shifted function-key codes for Commodore+F1/F3/F5/F7. The input decoder accepts those codes while Commodore is held; Shift+F7 without Commodore remains Help.
+
 Joystick port 2 directions can move/navigate and Fire can open/select menus. A 1351-compatible mouse via the C64U may select menu items, position the cursor and drag-select text. Wheel support is not assumed. These optional input paths must not replace keyboard operation.
 
 ## Source bytes and implementation

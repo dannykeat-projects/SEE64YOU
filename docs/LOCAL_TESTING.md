@@ -8,6 +8,7 @@ From the repository root, with suitable C compiler, cc65, Python 3, PHP 8.1+ and
 
 ~~~sh
 python3 tools/test_8tml.py
+python3 tools/test_editor_stress.py --sanitize
 php site/tests/eighttml.php
 python3 site/tests/eighttml_http.py
 python3 tools/test_publisher_8tml.py
@@ -29,6 +30,23 @@ sh tools/validate.sh
 ~~~
 
 `tools/validate.sh` contains additional non-shipping targets. Diagnose failures and trace shipping callers; do not call the entire suite passed if one target fails. Enforce all launcher/Publisher ≥1,024-byte headroom guards, Editor region/overlay fit, manifests and complete independent-package consistency.
+
+## Editing correctness, screen restoration and cost
+
+`tools/test_editor_stress.py` compares production REU editing against an independent byte model over 10,800 deterministic actions and 36 size/pattern fixtures through 61,440 bytes. It checks clipboard replacement/capacity refusal, navigation, saved/dirty state and bounded multi-level undo/redo. The existing REU clipboard/history tests additionally inject read/write failures and check dirty state, cursor recalculation and invalidated history after partial operations.
+
+~~~sh
+python3 tools/test_editor_interactions_vice.py --rom-dir client/build/private-vice-roms
+python3 tools/test_input_commands_vice.py --rom-dir client/build/private-vice-roms
+python3 tools/test_editor_performance.py
+python3 tools/test_editor_latency_vice.py --rom-dir client/build/private-vice-roms
+~~~
+
+Provide your existing compatible ROM directory. The interaction diagnostic uses production UI/menu/REU code with a small driver, not the shipping launcher/overlay lifecycle; it compares full source bytes across repeated Help/menu/prompt and clipboard transitions and checks blank tail rows. Its fixture setup is not keyboard input. The host performance report counts REU operations; host CPU time is not C64 latency. The VICE latency diagnostic measures direct Editor functions with the emulated `clock()`; zero ticks means below timer resolution. Neither performance diagnostic includes shipping overlay loading, redraw, C64U turbo or physical keyboard feel. Preserve report source/program hashes when comparing measurements.
+
+The input-command diagnostic checks 18 native Commodore, mapped-keyboard and ordinary function-key decoding cases against production input code. It supplies KERNAL output bytes with the scanner paused; physical modifier timing and keyboard usability still require hardware acceptance.
+
+The real-C64U harness below exercises the actual shipping function-key selection/copy/cut/paste path across Help dismissal, then compares saved bytes. Optional `--large-source` also opens, saves and reopens a 61,440-byte fixture, with a 40-minute completion window. The base-speed codec alone takes several minutes per pass; the shorter default test excludes that case. These are distinct from the diagnostic-driver and host gates. Maximum-size real-DOS acceptance remains unverified after the earlier shorter timeout; do not infer a hang or successful round trip from that timeout.
 
 To test an alternate root, force a full build, then check manifests and embedded paths:
 

@@ -6,6 +6,7 @@ cd "$ROOT"
 
 echo "== 8TML Editor host/REU source and storage tests =="
 python3 tools/test_8tml.py
+python3 tools/test_editor_stress.py
 
 echo "== PHP syntax =="
 find site wordpress -name '*.php' -type f | while IFS= read -r file; do

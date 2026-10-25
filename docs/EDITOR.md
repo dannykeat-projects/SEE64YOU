@@ -18,4 +18,8 @@ The Editor saves on explicit command only; **no periodic autosave or idle-time d
 
 The existing 16 MiB REU provides working storage, but the current fixed document/history capacities remain. Resource expansion, new allocator designs and large clipboard work should be considered only after measurements show they are required. Preserve responsive incremental redraws, existing source, reversible operations and clean machine-state restoration.
 
+Copy/cut/paste supports the current 61,440-byte document/clipboard limit; an over-capacity paste is refused before replacing a selection. Undo history remains bounded, so a large edit may not be undoable. Help and menu dismissal repaint the covered document rows, including blank rows below short documents.
+
+An interrupted REU paste or undo/redo can leave partial changes. The Editor reports failure, redraws the current text, marks possible changes unsaved and discards unreliable history. This is not automatic rollback: inspect the text and save a separate copy before continuing. A failed operation that changes no bytes, such as an over-capacity paste, retains the existing document.
+
 For setup and a full first-document example see [installation](INSTALL.md).

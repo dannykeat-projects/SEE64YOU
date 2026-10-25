@@ -25,7 +25,8 @@ def main():
     args = parser.parse_args()
     BUILD.mkdir(parents=True, exist_ok=True)
     json_sources = ["client/tests/publisher_source_json_test.c", "client/src/buffer.c",
-                    "client/src/document.c", "client/src/charset.c", "client/src/publisher/source_json.c"]
+                    "client/src/document.c", "client/src/charset.c", "client/src/publisher/source_json.c",
+                    "client/src/publisher/workspace.c"]
     json_test = BUILD / "source-json-test"
     subprocess.run(["cc", "-std=c99", "-Wall", "-Wextra", "-Werror",
                     "-DS64_INDEPENDENT_PUBLISHER=1", "-Iclient/src", *json_sources,

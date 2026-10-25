@@ -21,6 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 FILES = {"SEE64YOU.PRG", "S64EDIT.PRG", "S64PUB.PRG", "S64CFG.PRG",
          "S64FILE.BIN", "S64MODEL.BIN", "S64PREP.BIN", "S64RUN.BIN", "S64MODULE.MNF", "S64OVL.MNF"}
 EMPTY = b"---\n8tml: 1\ntitle: Untitled\n---\n"
+LARGE_HEADER = b"---\n8tml: 1\ntitle: Maximum source\n---\n"
+LARGE = LARGE_HEADER + (b"0123456789012345678901234567890123456789\n" * 1536)[:61440 - len(LARGE_HEADER)]
 SOURCE = (b"---\r\n8tml: 1\r\ntitle: Hardware source\r\nX-Future:  Keep : CASE  \r\n"
           b"# preserve this comment\r\n---\r\n<unknown>Literal text</unknown>\r\n"
           b":::future data\r\nopaque\ttext\r\n:::\r\n")
@@ -37,14 +39,15 @@ def storage_root(text):
     return text
 
 
-def build_probe(out, selected_root):
+def build_probe(out, selected_root, large_source=False):
     sources = ["diagnostics/8tml_storage_probe.c", "src/buffer_reu.c", "src/document.c",
                "src/charset.c", "src/storage/local.c", "src/platform/dos.c", "src/platform/uci.c",
                "src/platform/reu.c", "src/platform/reu_dma.s", "src/platform/basic_workspace_reset.s"]
     objects = []
     for index, source in enumerate(sources):
         obj = out / f"probe-{index}.o"
-        subprocess.run(["cl65", "-t", "c64", "-Os", "-I", str(ROOT / "client/src"),
+        flags = ["-DS64_STORAGE_MAX_SOURCE_PROBE=1"] if large_source else []
+        subprocess.run(["cl65", "-t", "c64", "-Os", *flags, "-I", str(ROOT / "client/src"),
                         "-DS64_REU_BUFFER=1", "-DS64_NATIVE_PETSCII=1", "-DS64_INDEPENDENT_EDITOR=1",
                         '-DS64_STORAGE_ROOT_DIRECTORY="' + selected_root + '"',
                         "-c", "-o", str(obj), str(ROOT / "client" / source)], check=True)
@@ -62,6 +65,8 @@ def main():
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--reference-tools", type=Path, help="Optional external specs/tools directory")
     parser.add_argument("--storage-root", type=storage_root, default="/sd/")
+    parser.add_argument("--large-source", action="store_true",
+                        help="Also test maximum-size native DOS source; may take tens of minutes at base speed")
     parser.add_argument("--package-dir", type=Path, default=ROOT / "client/build/independent-package/SEE64YOU")
     args = parser.parse_args()
     out = args.output.resolve()
@@ -78,7 +83,7 @@ def main():
     candidate = {p.name: p.read_bytes() for p in package.iterdir() if p.is_file()}
     assert native(folder + "/") + b"\0" in candidate["SEE64YOU.PRG"], \
         "Launcher storage root differs from requested test volume"
-    candidate["T8PROBE.PRG"] = build_probe(out, args.storage_root)
+    candidate["T8PROBE.PRG"] = build_probe(out, args.storage_root, args.large_source)
     state = {"commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
              "active": False, "restored": False, "tests": [], "input": "REST keyboard-buffer injection",
              "physical_keyboard": False, "cold_power_cycle": False,
@@ -232,7 +237,7 @@ def main():
                 protected_sd = {}
             state["protected_sd_sha256"] = {path: hashlib.sha256(data).hexdigest()
                                              for path, data in protected_sd.items()}
-    reserved = set(candidate) | {"T8EDIT.8tml", "T8EDIT2.8tml", "T8EMPTY.8tml", "T8IN.8tml",
+    reserved = set(candidate) | {"T8LARGE.8tml", "T8MAXCOPY.8tml", "T8EDIT.8tml", "T8EDIT2.8tml", "T8EMPTY.8tml", "T8IN.8tml",
                 "T8BAD.8tml", "T8COPY.8tml", "T8COPY.8tml.tmp", "T8RECOVER.8tml",
                 "x" * 28 + ".8tml"}
     fixture_names = {n.upper() for n in reserved - FILES}
@@ -323,6 +328,30 @@ def main():
         mark("shipping-editor-clean-exit-requires-yes-N-and-STOP-cancel")
         launch("SEE64YOU.PRG", "FILE EDIT SEARCH FORMAT")
         keys(native("Hardware 8TML.") + b"\r")
+        wait("HARDWARE 8TML.", "editor-clipboard-source")
+        # Native function keys exercise the shipped input/UI path. Keep the
+        # expected source unchanged so the later disk comparison detects ghosts.
+        keys(b"\x91\x85" + b"\x1d" * 8 + b"\x86")
+        wait("HARDWARE 8TML.", "editor-copied-selection")
+        keys(b"\x8c")
+        wait("PRESS ANY KEY/CLICK/FIRE TO RETURN", "editor-help-with-selection")
+        # Help intentionally flushes queued dismissal input; wait before Cut.
+        keys(b"\r")
+        wait("\nHARDWARE 8TML.", "editor-selection-help-dismissed")
+        keys(b"\x87")
+        cut_screen = wait("\n 8TML.", "editor-cut-selection")
+        assert "HARDWARE" not in cut_screen
+        keys(b"\x88")
+        wait("HARDWARE 8TML.", "editor-pasted-selection")
+        keys(b"\x85" + b"\x9d" * 8 + b"\x88")
+        wait("HARDWARE 8TML.", "editor-paste-replaces-selection")
+        keys(b"\x8c")
+        wait("PRESS ANY KEY/CLICK/FIRE TO RETURN", "editor-help-after-paste")
+        keys(b"\r")
+        wait("HARDWARE 8TML.", "editor-help-after-paste-dismissed")
+        assert all((value & 127) == 32 for value in mem(0x400 + 7 * 40, 17 * 40)), \
+            "Overlay text remains below the edited document"
+        mark("shipping-editor-function-key-selection-copy-help-cut-paste-replacement-exact-source")
         # Longer than the retired 30-second autosave interval: editing/idle
         # must not create a background recovery file.
         deadline = time.monotonic() + 35
@@ -347,10 +376,13 @@ def main():
         (out / "editor-recovered-edited.8tml").write_bytes(resaved)
         mark("shipping-editor-recovery-reopen-edit-save-exact-source")
         put(folder + "/T8IN.8tml", SOURCE)
+        if args.large_source:
+            put(folder + "/T8LARGE.8tml", LARGE)
         put(folder + "/T8BAD.8tml", EMPTY + b"bad\x80input")
         launch("T8PROBE.PRG", "C CAPTURE T TEST R RESTORE")
         keys(b"T")
-        wait("8TML STORAGE TESTS PASSED", "native-storage-tests")
+        wait("8TML STORAGE TESTS PASSED", "native-storage-tests",
+             timeout=2400 if args.large_source else 70)
         exitcheck("native-storage-probe-exit")
         expected = SOURCE.replace(b"\r\n", b"\n") + b"Hardware edit.\n!"
         assert fetch(folder + "/T8COPY.8tml.tmp") == expected
@@ -359,6 +391,9 @@ def main():
         assert fetch(folder + "/" + "x" * 28 + ".8tml") == EMPTY
         assert fetch(folder + "/T8IN.8tml") == SOURCE
         assert fetch(folder + "/T8BAD.8tml") == EMPTY + b"bad\x80input"
+        if args.large_source:
+            assert fetch(folder + "/T8MAXCOPY.8tml") == LARGE
+            mark("native-real-DOS-61440-byte-open-save-reopen-exact-source")
         (out / "native-storage-recovered.8tml").write_bytes(expected)
         mark("native-real-DOS-open-edit-save-metadata-CRLF-empty-filename-limit-injected-fault-recovery")
         if args.reference_tools:

@@ -70,7 +70,7 @@ final class S64Documents
         return $this->withWriteLock($type, fn(): array => $this->saveUnlocked($input));
     }
 
-    public function publish(array $input, string $intent, string $identity): array
+    public function publish(array $input, string $intent, string $identity, string $revision = ''): array
     {
         foreach (['type', 'slug', 'status', 'date'] as $field) {
             if (array_key_exists($field, $input) && !is_string($input[$field])) {
@@ -81,10 +81,16 @@ final class S64Documents
         $slug = $this->validateSlug((string)($input['slug'] ?? ''));
         if (!in_array($intent, ['create', 'update'], true)) throw new InvalidArgumentException('invalid_intent');
         if ($intent === 'update' && $identity !== $slug) throw new InvalidArgumentException('identity_required');
-        return $this->withWriteLock($type, function () use ($input, $intent, $type, $slug): array {
+        if ($intent === 'update' && !preg_match('/^[a-f0-9]{32}$/D', $revision)) {
+            throw new InvalidArgumentException('revision_required');
+        }
+        return $this->withWriteLock($type, function () use ($input, $intent, $type, $slug, $revision): array {
             $existing = $this->get($type, $slug);
             if ($intent === 'create' && $existing !== null) throw new InvalidArgumentException('already_exists');
             if ($intent === 'update' && $existing === null) throw new InvalidArgumentException('not_found');
+            if ($intent === 'update' && !hash_equals((string)($existing['revision'] ?? ''), $revision)) {
+                throw new InvalidArgumentException('revision_conflict');
+            }
             return $this->saveUnlocked($input);
         });
     }
@@ -203,6 +209,7 @@ final class S64Documents
             'order' => $this->validateOrder(array_key_exists('order', $input)
                 ? $input['order'] : ($existing['order'] ?? 0)),
             'raw8tml' => $input['raw8tml'],
+            'revision' => bin2hex(random_bytes(16)),
         ];
         $serialized = self::GUARD . "\n" . json_encode($document, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG);
         $temporary = $path . '.tmp.' . bin2hex(random_bytes(4)) . '.php';
@@ -232,8 +239,14 @@ final class S64Documents
                 throw new RuntimeException('invalid_record');
             }
             $document['order'] = $this->validateOrder($document['order'] ?? null);
+            if (array_key_exists('revision', $document)
+                && (!is_string($document['revision']) || !preg_match('/^[a-f0-9]{32}$/D', $document['revision']))) {
+                throw new RuntimeException('invalid_record');
+            }
+            // Existing records gain a stable comparison token without a read-time write.
+            $document['revision'] ??= substr(hash('sha256', $content), 0, 32);
             $parsed = S64EightTml::parse($document['raw8tml'], $slug);
-            return array_intersect_key($document, array_flip(['type', 'slug', 'status', 'date', 'order', 'raw8tml'])) + $parsed;
+            return array_intersect_key($document, array_flip(['type', 'slug', 'status', 'date', 'order', 'raw8tml', 'revision'])) + $parsed;
         } catch (JsonException | InvalidArgumentException $error) {
             throw new RuntimeException('invalid_record', 0, $error);
         }

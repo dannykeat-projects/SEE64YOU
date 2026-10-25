@@ -130,7 +130,9 @@ try {
     check8($recreated['order'] === 0 && $recreated['date'] !== '2002-03-04', 'deleted source metadata is not resurrected');
     unlink($marker);
     $publication = array_replace($input, ['slug' => 'publication']);
-    $documents->publish($publication, 'create', '');
+    $published = $documents->publish($publication, 'create', '');
+    $revision = $published['revision'];
+    check8(preg_match('/^[a-f0-9]{32}$/D', $revision) === 1, 'opaque revision generated');
     $publicationPath = $root . '/pages/publication.8tml.php';
     $publicationBytes = file_get_contents($publicationPath);
     rejects8(fn() => $documents->publish($publication, 'create', ''), 'already_exists');
@@ -138,11 +140,36 @@ try {
     rejects8(fn() => $documents->publish($publication, 'update', 'different'), 'identity_required');
     rejects8(fn() => $documents->publish($publication, 'upsert', 'publication'), 'invalid_intent');
     check8(file_get_contents($publicationPath) === $publicationBytes, 'rejected publication preserves exact bytes');
-    $documents->publish(array_replace($publication, ['status' => 'draft']), 'update', 'publication');
+    foreach (['', 'bad', str_repeat('A', 32), str_repeat('a', 32) . "\n"] as $badRevision) {
+        rejects8(fn() => $documents->publish($publication, 'update', 'publication', $badRevision), 'revision_required');
+    }
+    $changed = $documents->publish(array_replace($publication, ['status' => 'draft']), 'update', 'publication', $revision);
+    check8($changed['revision'] !== $revision, 'metadata-only update advances revision');
+    $changedBytes = file_get_contents($publicationPath);
+    rejects8(fn() => $documents->publish($publication, 'update', 'publication', $revision), 'revision_conflict');
+    check8(file_get_contents($publicationPath) === $changedBytes, 'stale update preserves exact record');
     check8($documents->get('page', 'publication')['status'] === 'draft', 'explicit identity update');
     $documents->delete('page', 'publication');
-    rejects8(fn() => $documents->publish($publication, 'update', 'publication'), 'not_found');
+    rejects8(fn() => $documents->publish($publication, 'update', 'publication', $changed['revision']), 'not_found');
     check8(!is_file($publicationPath), 'missing update never recreates deleted content');
+    $recreatedPublication = $documents->publish($publication, 'create', '');
+    check8($recreatedPublication['revision'] !== $changed['revision'], 'delete/recreate receives new revision');
+    rejects8(fn() => $documents->publish($publication, 'update', 'publication', $changed['revision']), 'revision_conflict');
+    // Records written before revision support remain readable without migration.
+    $legacyRecord = $recreatedPublication;
+    unset($legacyRecord['revision'], $legacyRecord['title'], $legacyRecord['body']);
+    $legacyBytes = '<?php http_response_code(404); exit; ?>' . "\n" . json_encode($legacyRecord);
+    file_put_contents($publicationPath, $legacyBytes);
+    $legacyRevision = substr(hash('sha256', $legacyBytes), 0, 32);
+    check8($documents->get('page', 'publication')['revision'] === $legacyRevision, 'stable legacy revision');
+    check8(file_get_contents($publicationPath) === $legacyBytes, 'reading legacy record never migrates it');
+    $migrated = $documents->publish($publication, 'update', 'publication', $legacyRevision);
+    check8($migrated['revision'] !== $legacyRevision, 'legacy update persists fresh revision');
+    $invalidRecord = $legacyRecord + ['revision' => 'invalid'];
+    file_put_contents($publicationPath, '<?php http_response_code(404); exit; ?>' . "\n" . json_encode($invalidRecord));
+    try { $documents->get('page', 'publication'); throw new RuntimeException('invalid revision accepted'); }
+    catch (RuntimeException $error) { check8($error->getMessage() === 'invalid_record', 'stored revision validated'); }
+    $documents->delete('page', 'publication');
     /* Both creators start before either can acquire the lock. Exactly one wins. */
     $lock = fopen($lockPath, 'c');
     check8($lock !== false && flock($lock, LOCK_EX), 'hold publication lock');
@@ -174,6 +201,37 @@ try {
     }
     sort($outcomes);
     check8($outcomes === ['already_exists', 'created'], 'exactly one simultaneous creator succeeds');
+    $concurrentRevision = $documents->get('page', 'concurrent')['revision'];
+    $lock = fopen($lockPath, 'c');
+    check8($lock !== false && flock($lock, LOCK_EX), 'hold update lock');
+    $workers = [];
+    $childCode = 'require $argv[1]; file_put_contents($argv[3], "ready"); '
+        . 'try {(new S64Documents($argv[2]))->publish(["type"=>"page","slug"=>"concurrent","raw8tml"=>"---\\n8tml: 1\\n---\\n"], "update", "concurrent", $argv[4]); echo "updated";} '
+        . 'catch (InvalidArgumentException $e) {echo $e->getMessage();}';
+    try {
+        for ($i = 0; $i < 2; ++$i) {
+            $ready = $root . '/update-ready-' . $i;
+            $process = proc_open([PHP_BINARY, '-r', $childCode, dirname(__DIR__) . '/lib/Documents.php', $root, $ready, $concurrentRevision],
+                [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $channels);
+            check8(is_resource($process), 'start concurrent update');
+            fclose($channels[0]);
+            $workers[] = [$process, $channels, $ready];
+        }
+        $deadline = microtime(true) + 5;
+        while ((!is_file($workers[0][2]) || !is_file($workers[1][2])) && microtime(true) < $deadline) usleep(10000);
+        check8(is_file($workers[0][2]) && is_file($workers[1][2]), 'both updates started');
+        check8($documents->get('page', 'concurrent')['revision'] === $concurrentRevision, 'updates wait for lock');
+    } finally { flock($lock, LOCK_UN); fclose($lock); }
+    $outcomes = [];
+    foreach ($workers as [$process, $channels, $ready]) {
+        $outcomes[] = stream_get_contents($channels[1]);
+        $error = stream_get_contents($channels[2]);
+        fclose($channels[1]); fclose($channels[2]);
+        check8(proc_close($process) === 0, 'concurrent update completed: ' . $error);
+        unlink($ready);
+    }
+    sort($outcomes);
+    check8($outcomes === ['revision_conflict', 'updated'], 'exactly one simultaneous update succeeds');
     unlink($lockPath); mkdir($lockPath);
     set_error_handler(static fn() => true);
     try {

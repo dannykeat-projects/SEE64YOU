@@ -12,6 +12,9 @@ typedef struct {
     uint8_t remote_bound;
     S64DocumentType remote_type;
     char remote_identity[S64_PUBLISH_IDENTITY_CAPACITY];
+#ifdef S64_INDEPENDENT_PUBLISHER
+    char remote_revision[33];
+#endif
 } S64PublishState;
 
 void s64_publish_state_init(S64PublishState* state);

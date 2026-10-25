@@ -34,9 +34,7 @@ void s64_publish_state_init(S64PublishState* state)
     if (state == 0) return;
 
     state->connected = 0u;
-    state->remote_bound = 0u;
-    state->remote_type = S64_DOCUMENT_PAGE;
-    state->remote_identity[0] = '\0';
+    s64_publish_state_clear_remote(state);
 }
 
 void s64_publish_state_set_connected(S64PublishState* state, uint8_t connected)
@@ -52,6 +50,9 @@ void s64_publish_state_clear_remote(S64PublishState* state)
     state->remote_bound = 0u;
     state->remote_type = S64_DOCUMENT_PAGE;
     state->remote_identity[0] = '\0';
+#ifdef S64_INDEPENDENT_PUBLISHER
+    state->remote_revision[0] = '\0';
+#endif
 }
 
 int s64_publish_state_bind_remote(

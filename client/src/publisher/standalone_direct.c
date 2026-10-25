@@ -50,6 +50,8 @@ static uint16_t status_code;
 static uint16_t server_port;
 #ifdef S64_INDEPENDENT_PUBLISHER
 static S64DocumentStatus source_status;
+/* Beyond the bounded acknowledgement text; consumed before the next request. */
+#define source_revision ((char*)&s64_publisher_workspace.bytes[705])
 #endif
 
 typedef int (*BodyWriter)(S64DocumentSink sink, void* context, const void* source);
@@ -87,6 +89,18 @@ static int equal_ci(const char* left, const char* right, uint8_t count)
         if (a != b) return 0;
     }
     return 1;
+}
+
+static uint8_t hex_token_valid(const char* text)
+{
+    /* Both callers run within the same synchronous request. */
+    static uint8_t i;
+    static char c;
+    for (i = 0; i < 32u; ++i) {
+        c = text[i];
+        if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) return 0u;
+    }
+    return 1u;
 }
 
 static uint8_t append_text_bounded(
@@ -239,6 +253,10 @@ static uint8_t read_reply(const uint8_t* data, uint16_t length, void* context)
             if (source_status || line[18] != ' '
                 || !s64_document_status_from_name(line + 19, &source_status))
                 goto fail;
+        } else if (equal_ci(line, "X-See64You-Revision:", 20)) {
+            if (source_revision[0] || line[20] != ' '
+                || reply->line_length != 53u || !hex_token_valid(line + 21)) goto fail;
+            strcpy(source_revision, line + 21);
 #endif
         }
         reply->line_length = 0;
@@ -288,6 +306,7 @@ static S64StandaloneResult exchange(const char* method, const char* path,
     status_code = 0; text_length = 0; reply_text[0] = 0;
 #ifdef S64_INDEPENDENT_PUBLISHER
     source_status = 0;
+    source_revision[0] = 0;
 #endif
     if (!send_text(method) || !send_text(" ") || !send_text(path)
         || !send_text(" HTTP/1.0\r\nHost: ") || !send_text(host)
@@ -314,6 +333,9 @@ static S64StandaloneResult exchange(const char* method, const char* path,
     if (!reply.headers_done || (reply.have_length && reply.remaining)
         || idle == 512u) { outcome = S64_STANDALONE_PROTOCOL_ERROR; goto cleanup; }
     if (status_code == 401u) outcome = S64_STANDALONE_AUTH_FAILED;
+#ifdef S64_INDEPENDENT_PUBLISHER
+    else if (status_code == 409u) outcome = S64_STANDALONE_REVISION_CONFLICT;
+#endif
     else if (status_code >= 200u && status_code < 300u) outcome = S64_STANDALONE_OK;
     else outcome = S64_STANDALONE_SERVER_ERROR;
 cleanup:
@@ -380,18 +402,11 @@ static S64StandaloneResult request(S64HttpTransport* transport, const char* url,
     }
     S64_DIRECT_TRACE(6u);
     value += 13;
-    for (i = 0; i < 32u; ++i) {
-        if (!((value[i] >= '0' && value[i] <= '9')
-            || (value[i] >= 'a' && value[i] <= 'f'))) {
-            result = S64_STANDALONE_PROTOCOL_ERROR;
-            goto cleanup;
-        }
-        challenge[i] = value[i];
-    }
-    if (value[32] != '"') {
+    if (!hex_token_valid(value) || value[32] != '"') {
         result = S64_STANDALONE_PROTOCOL_ERROR;
         goto cleanup;
     }
+    memcpy(challenge, value, 32u);
     challenge[32] = 0;
     S64_DIRECT_TRACE(7u);
 
@@ -588,8 +603,29 @@ S64StandaloneResult s64_standalone_save_document(S64HttpTransport* transport,
     S64StandaloneResult result;
     (void)session;
     result = request(transport, url, allow_http, "POST", write_document, document, collect_text, 0, 0);
+#ifdef S64_INDEPENDENT_PUBLISHER
+    if (result == S64_STANDALONE_OK && !source_revision[0])
+        return S64_STANDALONE_PROTOCOL_ERROR;
+#endif
     return ack_result(result);
 }
+
+#ifdef S64_INDEPENDENT_PUBLISHER
+const char* s64_direct_source_revision(void)
+{
+    return source_revision;
+}
+
+S64StandaloneResult s64_direct_probe_revision(S64HttpTransport* transport,
+    const char* url, uint8_t allow_http)
+{
+    S64StandaloneResult result;
+    result = request(transport, url, allow_http, "HEAD", 0, 0, 0, 0, 0);
+    if (result == S64_STANDALONE_OK && !source_revision[0])
+        return S64_STANDALONE_PROTOCOL_ERROR;
+    return result;
+}
+#endif
 
 #ifndef S64_PERSISTENT_RUNTIME_FIT
 typedef struct {
@@ -624,7 +660,7 @@ S64StandaloneResult s64_standalone_open_document(S64HttpTransport* transport,
         return S64_STANDALONE_PROTOCOL_ERROR;
 #ifdef S64_INDEPENDENT_PUBLISHER
     if (result == S64_STANDALONE_OK) {
-        if (!source_status) return S64_STANDALONE_PROTOCOL_ERROR;
+        if (!source_status || !source_revision[0]) return S64_STANDALONE_PROTOCOL_ERROR;
         document->status = source_status;
     }
 #endif
@@ -678,6 +714,7 @@ const char* s64_standalone_result_message(S64StandaloneResult result)
         case S64_STANDALONE_TLS_UNSUPPORTED: return "Direct mode needs http:// URL";
         case S64_STANDALONE_TRANSPORT_ERROR: return "Network/UCI error";
         case S64_STANDALONE_SERVER_ERROR: return "Server rejected request";
+        case S64_STANDALONE_REVISION_CONFLICT: return "Conflict; reopen";
         case S64_STANDALONE_INVALID_ARGUMENT: return "Invalid request/site URL";
         default: return "Unexpected server reply";
     }

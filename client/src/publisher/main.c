@@ -641,8 +641,8 @@ static void connect_destination(void);
 
 static void save_remote_document(void)
 {
-    S64DestinationResult url_result;
-    unsigned char updating;
+    static S64DestinationResult url_result;
+    static unsigned char updating;
 #ifdef S64_INDEPENDENT_PUBLISHER
     if (!source_loaded) {
         set_status("Load .8TML or open remote first");
@@ -679,7 +679,20 @@ static void save_remote_document(void)
         &document
     );
 #ifdef S64_INDEPENDENT_PUBLISHER
-    if (!updating) updating = prompt_yes_no("UPDATE EXISTING SLUG? Y/N");
+    if (!updating) {
+        updating = prompt_yes_no("UPDATE EXISTING SLUG? Y/N");
+        if (updating) {
+            url_result = s64_destination_open_url(&destination, document.type,
+                document.slug, WORK_URL, (uint16_t)S64_DESTINATION_URL_CAPACITY);
+            if (url_result != S64_DESTINATION_OK
+                || s64_direct_probe_revision(&http, WORK_URL,
+                    destination.allow_insecure_http) != S64_STANDALONE_OK) {
+                set_status("Revision error");
+                return;
+            }
+            strcpy(publish_state.remote_revision, s64_direct_source_revision());
+        }
+    }
     if (updating) {
         print_value(10u, "Update: ", document.slug);
         if (!prompt_yes_no("REPLACE REMOTE CONTENT? Y/N")) {
@@ -704,6 +717,17 @@ static void save_remote_document(void)
         set_status(s64_destination_result_message(url_result));
         return;
     }
+
+#ifdef S64_INDEPENDENT_PUBLISHER
+    if (updating) {
+        if (strlen(WORK_URL) + 43u >= S64_DESTINATION_URL_CAPACITY) {
+            set_status(s64_destination_result_message(S64_DESTINATION_URL_TOO_LONG));
+            return;
+        }
+        strcat(WORK_URL, "&revision=");
+        strcat(WORK_URL, publish_state.remote_revision);
+    }
+#endif
 
     if (destination.type == S64_DESTINATION_STANDALONE) {
         S64StandaloneResult result;
@@ -732,6 +756,9 @@ static void save_remote_document(void)
             set_status("Saved, but remote binding failed");
             return;
         }
+#ifdef S64_INDEPENDENT_PUBLISHER
+        strcpy(publish_state.remote_revision, s64_direct_source_revision());
+#endif
 #ifndef S64_STANDALONE_ONLY
     } else if (destination.type == S64_DESTINATION_WORDPRESS) {
         S64WordPressResult result;
@@ -1174,6 +1201,7 @@ static void list_open_remote(S64DocumentType type)
     }
 
 #ifdef S64_INDEPENDENT_PUBLISHER
+    strcpy(publish_state.remote_revision, s64_direct_source_revision());
     s64_local_init(&local_document, &dos, &document);
     source_loaded = 1u;
     remote_downloaded = 1u;

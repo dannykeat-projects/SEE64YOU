@@ -563,6 +563,17 @@ void s64_ui_message(const char* message)
     }
 }
 
+void s64_ui_begin_overlay(void)
+{
+    hide_editor_cursor();
+    /* Modal content can occupy rows beyond the current source viewport. */
+    header_rendered = 0u;
+    body_rows = EDITOR_ROWS;
+    partial_first_row = 0u;
+    partial_char_edit = 0u;
+    cursor_position_valid = 0u;
+}
+
 void s64_ui_show_help(void)
 {
     static const char* const lines[] = {
@@ -594,20 +605,13 @@ void s64_ui_show_help(void)
     };
     unsigned char row;
 
-    hide_editor_cursor();
+    s64_ui_begin_overlay();
     revers(0);
     clrscr();
     for (row = 0u; row < (unsigned char)(sizeof(lines) / sizeof(lines[0])); ++row) {
         gotoxy(0u, row);
         cputs(lines[row]);
     }
-    header_rendered = 0u;
-    /* Help occupied the viewport; the next document render must erase it. */
-    body_rows = EDITOR_ROWS;
-    partial_first_row = 0u;
-    partial_char_edit = 0u;
-    cursor_position_valid = 0u;
-    cursor_visible = 0u;
 }
 
 

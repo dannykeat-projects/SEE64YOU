@@ -241,14 +241,15 @@ try {
             respond(['ok' => false, 'error' => 'not_found'], 404);
         }
         if (strtolower((string)($_GET['format'] ?? '')) === '8tml') {
-            if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+            if (!in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true)) {
                 respond(['ok' => false, 'error' => 'method_not_allowed'], 405);
             }
             if (!isset($document['raw8tml'])) throw new InvalidArgumentException('not_8tml');
             header('Content-Type: text/8tml; charset=us-ascii');
             header('Content-Disposition: attachment; filename="' . $document['slug'] . '.8tml"');
             header('X-See64You-Status: ' . $document['status']);
-            echo $document['raw8tml'];
+            header('X-See64You-Revision: ' . $document['revision']);
+            if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'HEAD') echo $document['raw8tml'];
             exit;
         }
         if (wants_wire()) {
@@ -266,10 +267,13 @@ try {
         if (wants_wire() && array_key_exists('raw8tml', $input)) throw new InvalidArgumentException('not_s64');
         $intent = $_GET['intent'] ?? 'create';
         $identity = $_GET['identity'] ?? '';
+        $revision = $_GET['revision'] ?? '';
         if (!is_string($intent) || !is_string($identity)) throw new InvalidArgumentException('invalid_intent');
+        if (!is_string($revision)) throw new InvalidArgumentException('revision_required');
         $document = array_key_exists('raw8tml', $input)
-            ? $documents->publish($input, $intent, $identity)
+            ? $documents->publish($input, $intent, $identity, $revision)
             : $documents->save($input);
+        if (isset($document['raw8tml'])) header('X-See64You-Revision: ' . $document['revision']);
         if (wants_wire()) {
             if (isset($document['raw8tml'])) throw new InvalidArgumentException('not_s64');
             respond_wire($document);
@@ -299,7 +303,8 @@ try {
     respond(['ok' => false, 'error' => 'unknown_action'], 404);
 } catch (InvalidArgumentException | RuntimeException $exception) {
     $error = $exception->getMessage();
-    $status = $error === 'invalid_credentials' ? 401 : ($error === 'direct_auth_busy' ? 503 : 400);
+    $status = $error === 'revision_conflict' ? 409
+        : ($error === 'invalid_credentials' ? 401 : ($error === 'direct_auth_busy' ? 503 : 400));
     respond(['ok' => false, 'error' => $error], $status);
 } catch (Throwable) {
     respond(['ok' => false, 'error' => 'server_error'], 500);

@@ -26,13 +26,13 @@ A sensible UI is **file → destination / identity → page-or-post + draft-or-p
 
 The PHP site serves HTML and a read-only published-source URL: `source.php?type=page&slug=SLUG` (or `type=post`). It returns exact ASCII/LF bytes as `text/8tml`, without redirects or a static export. Drafts, unpublished/deleted entries and invalid identities return 404, even with authentication or preview parameters. Responses use `no-store` and `nosniff`; authenticated API export remains separate.
 
-The external 8TML/T8WN browser is still being tested according to the user (22 October). HTTP bytes/privacy are validated independently; actual browser URL, MIME and link interoperability remain unverified until a working implementation is available. Do not build a competing SEE64YOU browser.
+VVV 1.0 (`a3c87cf`) can read the published-source endpoint on a real C64U using SwiftLink modem emulation and plain HTTP, including a relative query-string link to another published source. This bounded small-page test does not establish full format conformance, large-document support, redirects, independent internet hosting or the complete Editor/Publisher workflow. Keep the compatible browser separate from SEE64YOU.
 
 ## Implemented publication safety and remaining work
 
 New 8TML API saves default to create-only and refuse an occupied page/post slug. Explicit updates require a matching remote identity and an existing target, checked inside the same directory write lock as replacement. Publisher asks whether a local upload targets an existing slug and confirms replacement, displaying the selected slug. Portable source contains no service metadata. Reopening a local file can explicitly target its existing remote slug without downloading over the local source.
 
-Host/PHP tests cover create collisions, matching/missing identities, missing update targets and simultaneous creators; native transport tests cover collisions, missing-target refusal and explicit updates. Real-C64U acceptance remains pending. The primary screen now leads with choosing a local file, publication options and Publish/Update; remote download and maintenance commands are secondary. Publish tests the configured key when needed. A stale-revision precondition remains to be implemented; confirmed updates currently replace the latest version under the lock.
+Host/PHP tests cover create collisions, matching/missing identities, missing update targets and simultaneous creators; native transport tests cover collisions, missing-target refusal and explicit updates. Real-C64U acceptance remains pending. The primary screen now leads with choosing a local file, publication options and Publish/Update; remote download and maintenance commands are secondary. Publish tests the configured key when needed. Updates require the revision captured when opening or saving the remote item, or fetched before confirming an explicitly entered existing slug. An intervening save causes a conflict without replacing remote content; reopen/review before trying again. Revision tokens stay outside the portable source.
 
 ## Code boundaries and simplification
 

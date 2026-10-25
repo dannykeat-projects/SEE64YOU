@@ -1,5 +1,6 @@
 #include "source_json.h"
 #include "charset.h"
+#include "publisher/workspace.h"
 
 #include <string.h>
 
@@ -8,15 +9,16 @@ typedef struct {
     void* context;
 } JsonSink;
 
-/* Each document codec chunk is 64 ASCII bytes, at most doubled by escaping.
- * Requests are synchronous; reuse this small buffer for metadata and source. */
-static uint8_t output[128];
+/* Each codec chunk is 64 bytes, at most doubled by escaping. The synchronous
+ * request body precedes response text, so their scratch can overlap. */
+#define OUTPUT_CAPACITY 128u
+#define output (&s64_publisher_workspace.bytes[576])
 
 static uint8_t emit_text(S64DocumentSink sink, void* context, const char* text)
 {
     uint16_t length = (uint16_t)strlen(text);
     uint16_t i;
-    if (length > sizeof(output)) return 0u;
+    if (length > OUTPUT_CAPACITY) return 0u;
     for (i = 0u; i < length; ++i) {
         if (!s64_charset_native_to_ascii((uint8_t)text[i], &output[i])) return 0u;
     }
@@ -30,7 +32,7 @@ static uint8_t escape_source(const uint8_t* data, uint16_t length, void* context
     uint8_t byte;
     for (i = 0u; i < length; ++i) {
         byte = data[i];
-        if (used + 2u > sizeof(output)) {
+        if (used + 2u > OUTPUT_CAPACITY) {
             if (!target->sink(output, used, target->context)) return 0u;
             used = 0u;
         }

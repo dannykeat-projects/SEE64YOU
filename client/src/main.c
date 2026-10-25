@@ -411,10 +411,9 @@ static unsigned char confirm_exit(void)
 
 static void handle_clipboard_result(unsigned char ok, const char* failure)
 {
+    s64_ui_render(&editor);
     if (!ok) {
         s64_ui_message(failure);
-    } else {
-        s64_ui_render(&editor);
     }
 }
 
@@ -977,7 +976,7 @@ int main(void)
             case S64_INPUT_PASTE:
                 handle_clipboard_result(
                     (unsigned char)s64_editor_paste(&editor, &clipboard),
-                    clipboard.length == 0u ? "Clipboard empty" : "Paste too large"
+                    clipboard.length == 0u ? "Clipboard empty" : "Paste failed or too large"
                 );
                 continue;
 
@@ -1015,7 +1014,8 @@ int main(void)
                 continue;
             case S64_INPUT_UNDO:
                 if (!s64_editor_undo(&editor)) {
-                    s64_ui_message("Nothing to undo");
+                    s64_ui_render(&editor);
+                    s64_ui_message("Undo unavailable or failed");
                     continue;
                 }
                 if (!editor.dirty) {
@@ -1024,7 +1024,8 @@ int main(void)
                 break;
             case S64_INPUT_REDO:
                 if (!s64_editor_redo(&editor)) {
-                    s64_ui_message("Nothing to redo");
+                    s64_ui_render(&editor);
+                    s64_ui_message("Redo unavailable or failed");
                     continue;
                 }
                 if (!editor.dirty) {

@@ -92,7 +92,7 @@ def main():
                 headers = signed(save_uri, "POST", body)
                 assert request(save_uri, "POST", body + b" ", headers)[0] == 401, "Changed body accepted"
                 # A signature mismatch does not consume its challenge; exact signed bytes still work.
-                code, reply, _ = request(save_uri, "POST", body, headers)
+                code, reply, save_headers = request(save_uri, "POST", body, headers)
                 assert code == 200 and json.loads(reply)["ok"], reply
                 assert request(save_uri, "POST", body, headers)[0] == 401, "Replay accepted"
                 assert request(get_uri)[0] == 401, "Unauthenticated source retrieval"
@@ -103,6 +103,14 @@ def main():
                 assert response_headers.get_content_charset() == "us-ascii"
                 assert response_headers["Content-Disposition"] == 'attachment; filename="eighttml-http.8tml"'
                 assert response_headers["X-See64You-Status"] == "published"
+                revision = response_headers["X-See64You-Revision"]
+                assert save_headers['X-See64You-Revision'] == revision
+                assert len(revision) == 32 and all(c in '0123456789abcdef' for c in revision)
+                code, head_body, head_headers = authenticated(get_uri, "HEAD")
+                assert code == 200 and head_body == b''
+                assert head_headers['X-See64You-Revision'] == revision
+                assert head_headers['X-See64You-Status'] == 'published'
+                assert request(get_uri, "HEAD")[0] == 401
                 assert "no-store" in response_headers["Cache-Control"]
                 public_uri = '/source.php?type=page&slug=eighttml-http'
                 code, public_source, public_headers = request(public_uri)
@@ -128,20 +136,37 @@ def main():
                 assert code == 200 and metadata["raw8tml"] == SOURCE
                 assert metadata["title"] == "Source title" and metadata["order"] == 7
                 update_uri = save_uri + "&intent=update&identity=eighttml-http"
+                assert metadata['revision'] == revision
+                prior = (root / 'pages/eighttml-http.8tml.php').read_bytes()
+                for suffix in ('', '&revision=bad', '&revision[]=bad'):
+                    code, payload, _ = authenticated(update_uri + suffix, 'POST', body)
+                    assert code == 400 and json.loads(payload)['error'] == 'revision_required'
+                    assert (root / 'pages/eighttml-http.8tml.php').read_bytes() == prior
+                def update(payload, token):
+                    return authenticated(update_uri + '&revision=' + token, 'POST', payload)
+                signed_uri = update_uri + '&revision=' + revision
+                tampered_uri = update_uri + '&revision=' + ('0' if revision[0] != '0' else '1') + revision[1:]
+                signed_headers = signed(signed_uri, 'POST', body)
+                assert request(tampered_uri, 'POST', body, signed_headers)[0] == 401
                 assert authenticated(save_uri, "POST", body)[0] == 400, "Create overwrote existing slug"
                 for suffix in ('&intent=update', '&intent=update&identity=wrong', '&intent=upsert', '&intent[]=update'):
                     assert authenticated(save_uri + suffix, 'POST', body)[0] == 400
                 native = {field: document[field] for field in ("type", "slug", "status", "raw8tml")}
-                assert authenticated(update_uri, "POST", json.dumps(native).encode("ascii"))[0] == 200
+                code, _, update_headers = update(json.dumps(native).encode("ascii"), revision)
+                assert code == 200 and update_headers['X-See64You-Revision'] != revision
+                winner_bytes = (root / 'pages/eighttml-http.8tml.php').read_bytes()
+                code, conflict, _ = update(body, revision)
+                assert code == 409 and json.loads(conflict)['error'] == 'revision_conflict'
+                assert (root / 'pages/eighttml-http.8tml.php').read_bytes() == winner_bytes
                 code, payload, _ = authenticated(get_uri.replace("&format=8tml", ""))
                 preserved = json.loads(payload)["document"]
                 assert code == 200 and preserved["date"] == document["date"] and preserved["order"] == 7
                 explicit = dict(native, date="2003-04-05", order=-19)
-                assert authenticated(update_uri, "POST", json.dumps(explicit).encode("ascii"))[0] == 200
+                assert update(json.dumps(explicit).encode("ascii"), preserved['revision'])[0] == 200
                 code, payload, _ = authenticated(get_uri.replace("&format=8tml", ""))
                 updated = json.loads(payload)["document"]
                 assert code == 200 and updated["date"] == "2003-04-05" and updated["order"] == -19
-                assert authenticated(update_uri, "POST", body)[0] == 200
+                assert update(body, updated['revision'])[0] == 200
                 code, payload, _ = authenticated("/api.php?action=list&type=page")
                 listed = json.loads(payload)["documents"]
                 assert code == 200 and len(listed) == 1
@@ -183,18 +208,19 @@ def main():
                 # An invalid signed replacement must leave prior source and metadata intact.
                 invalid = dict(document, raw8tml="---\n8tml: 1\n---\nbad\r\n")
                 invalid_body = json.dumps(invalid).encode("ascii")
-                assert authenticated(update_uri, "POST", invalid_body)[0] == 400
+                current_revision = authenticated(get_uri, 'HEAD')[2]['X-See64You-Revision']
+                assert update(invalid_body, current_revision)[0] == 400
                 assert authenticated(get_uri)[1] == SOURCE.encode("ascii")
                 assert request(public_uri)[1] == SOURCE.encode("ascii")
                 for field in ("type", "slug", "status", "date"):
                     malformed = json.dumps(dict(document, **{field: []})).encode("ascii")
-                    code, payload, _ = authenticated(update_uri, "POST", malformed)
+                    code, payload, _ = update(malformed, current_revision)
                     assert code == 400 and json.loads(payload)["error"] == "invalid_" + field
                     assert authenticated(get_uri)[1] == SOURCE.encode("ascii")
                 changed = SOURCE.replace("opaque\ttext", "changed\ttext")
                 replacement = dict(document, raw8tml=changed, status="draft")
                 replacement_body = json.dumps(replacement).encode("ascii")
-                assert authenticated(update_uri, "POST", replacement_body)[0] == 200
+                assert update(replacement_body, current_revision)[0] == 200
                 code, payload, draft_headers = authenticated(get_uri)
                 assert code == 200 and payload == changed.encode("ascii")
                 assert draft_headers["X-See64You-Status"] == "draft"
@@ -202,7 +228,7 @@ def main():
                 assert request(public_uri)[0] == 404, 'Unpublished source leaked'
                 assert authenticated(public_uri)[0] == 404, 'Authentication exposed draft public source'
                 assert request(public_uri + '&preview=anything')[0] == 404
-                assert authenticated(update_uri, 'POST', body)[0] == 200
+                assert update(body, draft_headers['X-See64You-Revision'])[0] == 200
                 assert request(public_uri)[1] == SOURCE.encode('ascii'), 'Republished source missing'
 
                 # Invalid identity and wrong method must not create source records.

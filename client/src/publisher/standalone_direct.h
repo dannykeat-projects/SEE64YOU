@@ -11,6 +11,12 @@
 int s64_direct_publisher_key(const char* hex);
 S64StandaloneResult s64_direct_publisher_test(S64HttpTransport* transport,
     const char* url, uint8_t allow_http);
+#ifdef S64_INDEPENDENT_PUBLISHER
+/* Valid only after a successful source open, save or revision probe. */
+const char* s64_direct_source_revision(void);
+S64StandaloneResult s64_direct_probe_revision(S64HttpTransport* transport,
+    const char* url, uint8_t allow_http);
+#endif
 #ifdef S64_PERSISTENT_RUNTIME_FIT
 S64StandaloneResult s64_persistent_standalone_list_stage(
     S64HttpTransport* transport,
