@@ -3,5 +3,6 @@
 
 int s64_publish_id_valid(const char* id);
 int s64_publish_name_valid(const char* name);
+int s64_publish_challenge_valid(const char* challenge);
 
 #endif
