@@ -4,6 +4,9 @@
 
 ## P0 — Standard API cutover
 
+**Implementation in progress:** [draft PR #66](https://github.com/dannykeat-projects/SEE64YOU/pull/66) contains separate, unlinked standard API primitives (HMAC streaming/signature vectors, key file parser, response parser, request paths and host tests). Local isolated host harness passed. **No current Publisher, Settings or package wiring has changed.** The full repository/cc65/C64U and independent-server gates are still unverified. Do not mark the migration complete or remove legacy code until the executable cutover is proved.
+
+
 - [ ] Reconcile current `main` with [draft PR #64](https://github.com/dannykeat-projects/SEE64YOU/pull/64): preserve verified Editor/link/input/safety changes where applicable, identify and avoid merging legacy CMS-only work, and respect its outstanding hardware gates.
 - [ ] Inventory call paths and package/release dependencies before deletion: Editor/Publisher/Settings entrypoints, all `client/src/publisher/*`, browser/relay/site code, `client/Makefile`, manifests, tests, package generator and docs. Capture measured ROM/RAM/REU headroom and a keep/retire decision for each active path.
 - [ ] Pin the supplied **26 October 2026 8TML publishing API 1 test draft** as the conformance target; add independent HMAC `put`/`list` test vectors and request/response/name/error/size fixtures. Do not vendor reference tools without licensing clearance.
