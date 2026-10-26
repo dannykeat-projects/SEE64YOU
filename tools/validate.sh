@@ -189,6 +189,12 @@ cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
     client/src/charset.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host standard 8TML ASCII replies ==" 
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/standard_reply_test.c client/src/publisher/standard_reply.c \
+    client/src/charset.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host C64U platform requirement tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/platform_requirements_test.c client/src/platform/requirements.c \
