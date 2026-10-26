@@ -1,5 +1,5 @@
 #include "publisher/standard_keyfile.h"
-#include "publisher/standard_publish.h"
+#include "publisher/standard_publish_names.h"
 #include "publisher/direct_auth.h"
 #include "charset.h"
 
