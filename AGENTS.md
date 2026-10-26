@@ -2,7 +2,7 @@
 
 ## Product contract
 
-SEE64YOU is a C64 Ultimate-only, **8TML source editor first**. The canonical document is a portable `.8tml` text file, editable offline, independent of the PHP service and any external browser. Optional Publisher and Settings launch as separate programs. The 8TML/T8WN ecosystem supplies the compatible reader; do not develop another SEE64YOU 8TML browser. Do not add alternate document formats, importers or compatibility modes.
+SEE64YOU is a C64 Ultimate-only, **8TML source editor first**. The canonical document is a portable `.8tml` text file, editable offline, independent of any server and any external browser. Optional Publisher and Settings launch as separate programs; their **target** is the standard 8TML publishing API 1 (26 October 2026 **test draft**). The 8TML/T8WN ecosystem supplies the compatible reader. Do not develop a SEE64YOU website/CMS, proprietary publishing API, browser, alternate document formats, importers or compatibility modes. Legacy PHP/site and API code still exist and must be retired safely, not assumed absent. Follow [product scope](docs/PRODUCT.md) and [todo](todo.md) for the staged cutover.
 
 Read [product scope](docs/PRODUCT.md), [architecture](docs/ARCHITECTURE.md), [runtime](docs/C64U-RUNTIME.md) and [todo](todo.md) before substantial code work. `todo.md` is the only live work queue. Documentation should explain what exists and how to use/test it, **not narrate implementation history**.
 
@@ -12,7 +12,7 @@ Read [product scope](docs/PRODUCT.md), [architecture](docs/ARCHITECTURE.md), [ru
 - Verify failures before fixing; make the smallest maintainable, tested changes. Reuse current source codec, storage, validation and authentication boundaries. Don't introduce new runtime handoff systems or gratuitous abstractions.
 - Editor must remain useful offline with explicit Save/Save As and existing recovery; **no timed background autosave**.
 - Current source contract: 8TML 1 draft; ASCII/LF, complete editable header/body, unknown-source preservation, 61,440-byte current limit; no generated HTML as source. Pin external validator/spec versions when available and do not claim full conformance without fixtures.
-- Source, publishing service metadata, HTTP transport, key provisioning, HTML rendering and external browsing are separate responsibilities.
+- Keep source editing, standard publication, HTTP transport, credential storage and external browsing as separate responsibilities. No proprietary page/post, draft/published or HTML-rendering layer belongs in the target product.
 - Publisher simplification is a staged task. Do not remove commands or modules until live callers, update identity, manifests, package builds, affected tests and hardware behavior have been checked. Preserve safe remote confirmation and failure behavior.
 - Keep code straightforward and concise; preserve user data and avoid broad rewrites, dormant integrations and unnecessary dependencies.
 
@@ -28,7 +28,7 @@ Read [product scope](docs/PRODUCT.md), [architecture](docs/ARCHITECTURE.md), [ru
 
 ## Security
 
-Direct raw HTTP publishing requires explicit user consent, a dedicated site key and challenge/HMAC over the method, URI and body; it is **not confidential**. Pair over HTTPS, never send ordinary website passwords in direct HTTP, never silently downgrade HTTPS. Bound host/port/path, request/response sizes, authentication lifetime/replay and file/slug operations. Keep public HTML safely escaped, drafts protected and writes recoverable.
+Direct raw HTTP publishing requires explicit user consent, a dedicated per-device key and one-time challenge/HMAC; it is **not confidential**. The **new** client must sign exactly as the pinned 8TML publishing API specifies (operation, id, challenge, remote name, decimal size and streamed body, with trailing signature), not reuse the legacy service's method/URI/body signing preimage. Never send a reusable bearer key or ordinary website password over direct HTTP and never silently downgrade HTTPS. Provision/revoke keys through the endpoint's HTTPS control plane and import the standard key file locally. Bound host/port/path, size, replies, authentication lifetime/replay and file operations. Keep local writes recoverable and warn about the standard's lack of atomic create/conditional replace; keep existing legacy server protections until that code is retired.
 
 ## Validation and delivery
 
