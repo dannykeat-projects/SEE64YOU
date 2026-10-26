@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "crypto/sha256.h"
+#include "publisher/standard_publish_names.h"
 
 /* 8TML publishing API 1 test draft, 2026-10-26, section 7.
    This is not the legacy SEE64YOU direct-auth wire format. */
@@ -12,9 +13,6 @@ typedef struct {
     uint32_t written;
     uint8_t active;
 } S64PublishSigner;
-
-int s64_publish_id_valid(const char* id);
-int s64_publish_name_valid(const char* name);
 
 /* List uses name="" and size=0. Put requires a valid nonempty name.
    All text arguments are native charset; file content is wire bytes. */
