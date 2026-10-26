@@ -40,7 +40,6 @@ int s64_publish_sign_begin(S64PublishSigner* signer,
     const char* name, uint32_t size)
 {
     char size_text[11];
-    uint8_t i;
     if (!signer) return 0;
     memset(signer, 0, sizeof(*signer));
     if (!key || !op || !id || !challenge || !name
@@ -48,11 +47,7 @@ int s64_publish_sign_begin(S64PublishSigner* signer,
         || (strcmp(op, "put") != 0 && strcmp(op, "list") != 0)
         || (strcmp(op, "put") == 0 ? !s64_publish_name_valid(name)
                                  : (name[0] != 0 || size != 0u))
-        || strlen(challenge) != 32u) return 0;
-    for (i = 0u; i < 32u; ++i) {
-        if (!((challenge[i] >= '0' && challenge[i] <= '9')
-            || (challenge[i] >= 'a' && challenge[i] <= 'f'))) return 0;
-    }
+        || !s64_publish_challenge_valid(challenge)) return 0;
     decimal(size, size_text);
     s64_hmac_sha256_init(&signer->hmac, key);
     if (!add_field(&signer->hmac, "8tml-publish/1")
