@@ -39,7 +39,7 @@ static int url_valid(const char* url)
     else if (strncmp(url, "https://", 8u) == 0) authority = url + 8;
     else return 0;
     path = strchr(authority, '/');
-    return path && path != authority && path[1] != 0
+    return path && path != authority
         && !strpbrk(authority, "@?# \r\n\t");
 }
 
