@@ -195,6 +195,12 @@ cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
     client/src/charset.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host standard 8TML request paths =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/standard_request_test.c client/src/publisher/standard_request.c \
+    client/src/publisher/standard_publish_names.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host C64U platform requirement tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/platform_requirements_test.c client/src/platform/requirements.c \
