@@ -1,6 +1,7 @@
 #include "publisher/standard_publish_names.h"
 
 #include <stdint.h>
+#include <string.h>
 
 int s64_publish_id_valid(const char* id)
 {
@@ -34,4 +35,15 @@ int s64_publish_name_valid(const char* name)
         }
     }
     return segment != 0u && !(dots == segment && dots <= 2u);
+}
+
+int s64_publish_challenge_valid(const char* challenge)
+{
+    uint8_t i;
+    if (!challenge || strlen(challenge) != 32u) return 0;
+    for (i = 0u; i < 32u; ++i) {
+        if (!((challenge[i] >= '0' && challenge[i] <= '9')
+            || (challenge[i] >= 'a' && challenge[i] <= 'f'))) return 0;
+    }
+    return 1;
 }
