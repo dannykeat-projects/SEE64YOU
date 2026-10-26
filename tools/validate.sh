@@ -174,6 +174,13 @@ echo "== Host direct C64U auth signing tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/direct_auth_test.c client/src/publisher/direct_key.c client/src/publisher/direct_auth.c client/src/crypto/sha256.c client/src/charset.c -o "$TMP_BIN"
 "$TMP_BIN"
 
+echo "== Host standard 8TML publishing signature vectors =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/standard_publish_test.c client/src/publisher/standard_publish.c \
+    client/src/publisher/direct_auth.c client/src/crypto/sha256.c \
+    client/src/charset.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host C64U platform requirement tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/platform_requirements_test.c client/src/platform/requirements.c \
