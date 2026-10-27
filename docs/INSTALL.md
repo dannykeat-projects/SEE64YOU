@@ -44,9 +44,9 @@ Launch each program **independently** and return to BASIC when finished. `S64EDI
 
 ## Optional: publish to a standard endpoint
 
-The native client targets the **26 October 2026 API 1 test draft**. Independent-server acceptance is still required before release.
+The native client targets the **26 October 2026 API 1 test draft**. Complete hardware and compatible-reader acceptance is required before release.
 
-1. Obtain a dedicated standard publishing key file from your server through its HTTPS interface. Copy it as `8TMLKEY.TXT` into the selected `SEE64YOU` folder. Do not use an ordinary account password or the old key-only `SEE64KEY.TXT`.
+1. Obtain a dedicated standard publishing key file from your server through its HTTPS interface. Copy it as `8TMLKEY.TXT` into the selected `SEE64YOU` folder. Do not use an ordinary account password or the old key-only `SEE64KEY.TXT`. For T8wn, create the key through its [HTTPS Account page](https://t8wn.com/account/), as described in its [publishing guide](https://t8wn.com/8tml/guides/publishing/). A downloaded `.key` file is standard text; name the C64U copy `8TMLKEY.TXT`. Keep the key out of public pages and source documents.
 2. Launch `S64CFG.PRG`: **I** imports the standard key, **H** changes HTTP consent, **T** validates configuration and **S** saves. Check the endpoint and ID; the secret stays hidden. A new import clears previous HTTP consent. Source sent over HTTP is not confidential; HTTPS is never silently downgraded.
 3. Save your source in Editor, exit and launch `S64PUB.PRG`. Press **L** to load the local `.8tml` file and **N** to choose its remote relative path, such as `index.8tml`.
 4. Press **P**. Publisher checks server limits and existing filenames, displays the endpoint/path, then asks to publish or explicitly replace. Uploaded files are public. The standard has no conditional-write protection against concurrent writers.

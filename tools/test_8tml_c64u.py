@@ -535,6 +535,7 @@ def main():
                 keys(b"NEW\r")
                 wait("READY.", "restored-final")
                 assert mem(int.from_bytes(mem(0x2b, 2), "little"), 2) == b"\0\0"
+                assert mem(827, 1) == scratch, "Scratch byte restoration differs"
                 state["restored"] = True
                 mark("original-files-config-machine-baseline-restored")
             except Exception as error:
