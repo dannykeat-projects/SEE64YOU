@@ -22,6 +22,24 @@ static const uint8_t source[2][24] = {
  {45,45,45,10,56,116,109,108,58,32,49,10,45,45,45,10,35,32,72,101,108,108,111,10},
  {45,45,45,10,56,116,109,108,58,32,49,10,45,45,45,10,35,32,65,103,97,105,110,10}
 };
+/* Socket status only: never capture requests, document bytes or credentials. */
+static S64UciResult trace_network(const S64UciCommandPart* parts,
+    uint8_t count, S64UciReply* reply)
+{
+ S64UciResult result;
+ volatile uint8_t* trace;
+ uint8_t op, i, length;
+ result=s64_uci_execute(parts,count,reply);
+ op=parts[0].data[1];
+ if(op==0x07u) trace=(volatile uint8_t*)0xc063u;
+ else if(op==0x11u) trace=(volatile uint8_t*)0xc090u;
+ else if(op==0x10u) trace=(volatile uint8_t*)0xc0c0u;
+ else return result;
+ length=reply->status_length>31u?31u:(uint8_t)reply->status_length;
+ trace[0]=op; trace[1]=(uint8_t)result; trace[2]=length;
+ for(i=0u;i<32u;++i) trace[3u+i]=i<length?(uint8_t)reply->status[i]:0u;
+ return result;
+}
 static uint8_t version;
 static int write_source(S64UciDataSink sink, void* sink_context, void* context)
 {
@@ -66,7 +84,8 @@ int main(void)
  text=textcolor(COLOR_LIGHTBLUE);
  PROGRESS=RESULT=DETAIL=0u;
  clrscr(); cputs("STANDARD NETWORK FIXTURE\r\nNO LOCAL FILE WRITES\r\n");
- s64_net_init(&client.network,s64_uci_execute);
+ memset((void*)0xc063u,0,128u);
+ s64_net_init(&client.network,trace_network);
  client.url=S64_STANDARD_TEST_URL; client.id="test-1";
  client.key=key; client.allow_http=1u;
  PROGRESS=0x10u;

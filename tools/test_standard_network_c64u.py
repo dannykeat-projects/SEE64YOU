@@ -69,6 +69,12 @@ def main():
             time.sleep(.3)
         else:raise RuntimeError('Network diagnostic timed out; do not reset')
         (a.output/'result-screen.txt').write_text(screen())
+        state['uci_socket_status']={}
+        for label,address in (('open',0xc063),('write',0xc090),('read',0xc0c0)):
+            record=mem(address,35)
+            native=record[3:3+min(record[2],31)]
+            text=''.join(chr(v+32 if 65<=v<=90 else v-128 if 193<=v<=218 else v) for v in native)
+            state['uci_socket_status'][label]={'opcode':record[0],'transport':record[1],'status':text}
         # Both result branches end at the same bounded STOP return prompt.
         keys(b'\x03');wait_ready();state['active']=False
         after={'irq':mem(0x314,2).hex(),'turbo':live(53297),'colours':[live(x) for x in (53280,53281,646)]}

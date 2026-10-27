@@ -62,3 +62,7 @@ Before release acceptance, perform these additional checks and mark each **passe
 7. Investigate USB transfer/readback integrity before any USB program execution; SD testing alone does not prove USB acceptance.
 
 **Known unverified gates:** physical keyboard/modifier usability, cold restart, uncontrolled interruption, USB-only acceptance, new Publisher on real C64U, independent standard-server and T8WN/VVV interoperability. Don't merge/deploy code requiring these gates until they are appropriately validated.
+
+The hardware harness accepts `--startup-timeout SECONDS` (15..1800; default70) for module preload/verification. With Turbo Control Off, verification runs at base speed and can exceed the default. Temporary enabling of C64U Turbo Registers must capture the original setting durably before applying it, then restore/verify it and mark the capture CLEAN after the program has returned safely to BASIC. Do not reset an active verification as a test shortcut.
+
+Use `--settings-only` for bounded standard key import/persistence acceptance with the public vector credential. It checks secret redaction, explicit consent, save/relaunch, invalid-input preservation and cancelled replacement, then restores the backed-up files and machine baseline. It does not authenticate to a real account or prove publishing/network interoperability.

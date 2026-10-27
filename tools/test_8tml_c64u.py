@@ -68,7 +68,13 @@ def main():
     parser.add_argument("--large-source", action="store_true",
                         help="Also test maximum-size native DOS source; may take tens of minutes at base speed")
     parser.add_argument("--package-dir", type=Path, default=ROOT / "client/build/independent-package/SEE64YOU")
+    parser.add_argument("--startup-timeout", type=int, default=70,
+                        help="Seconds allowed for module preload/verification (15..1800)")
+    parser.add_argument("--settings-only", action="store_true",
+                        help="Test standard key import/persistence instead of Editor editing")
     args = parser.parse_args()
+    if not 15 <= args.startup_timeout <= 1800:
+        parser.error("--startup-timeout must be between 15 and 1800 seconds")
     out = args.output.resolve()
     out.mkdir(parents=True, exist_ok=False)
     package = args.package_dir.resolve()
@@ -242,6 +248,8 @@ def main():
     reserved = set(candidate) | {"T8LARGE.8tml", "T8MAXCOPY.8tml", "T8EDIT.8tml", "T8EDIT2.8tml", "T8EMPTY.8tml", "T8IN.8tml",
                 "T8BAD.8tml", "T8COPY.8tml", "T8COPY.8tml.tmp", "T8RECOVER.8tml",
                 "x" * 28 + ".8tml"}
+    if args.settings_only:
+        reserved.add("8TMLKEY.TXT")
     fixture_names = {n.upper() for n in reserved - FILES}
     fixture_names.update(n + ".TMP" for n in tuple(fixture_names))
     assert not any(path.rsplit("/", 1)[-1].upper() in fixture_names
@@ -264,7 +272,7 @@ def main():
         state["active"] = True
         save()
         keys(b"SYS" + entry.group(1) + b"\r")
-        wait(prompt, "start-" + name)
+        wait(prompt, "start-" + name, timeout=args.startup_timeout)
 
     def exitcheck(label):
         basic(label)
@@ -304,109 +312,159 @@ def main():
         (out / "dos-context-before.bin").write_bytes(context_before)
         state["dos_context_captured"] = True
         save()
-        launch("SEE64YOU.PRG", "FILE EDIT SEARCH FORMAT")
-        assert "PUB" not in screen("editor-header")[:40], "Independent Editor still exposes PUB"
-        keys(b"\x8c")  # Native F8.
-        wait("PRESS ANY KEY/CLICK/FIRE TO RETURN", "editor-help")
-        assert "PUBLISHER" not in screen("editor-help-commands")
-        keys(b"\r")
-        wait("FILE EDIT SEARCH FORMAT", "editor-help-dismissed")
-        assert all((value & 127) == 32 for value in mem(0x400 + 6 * 40, 18 * 40)), \
-            "Help text remains below the short document"
-        mark("shipping-editor-help-dismissal-clears-unused-rows-no-PUB")
-        keys(b"\x03")
-        wait("Exit to BASIC? Y/N", "clean-exit-confirmation")
-        assert "FILE EDIT SEARCH FORMAT" in screen("clean-exit-still-editor")
-        keys(b"N")
-        wait("FILE EDIT SEARCH FORMAT", "clean-exit-no")
-        keys(b"\x03")
-        wait("Exit to BASIC? Y/N", "clean-exit-confirmation-again")
-        keys(b"\x03")
-        wait("FILE EDIT SEARCH FORMAT", "clean-exit-stop-cancel")
-        keys(b"\x03")
-        wait("Exit to BASIC? Y/N", "clean-exit-confirmation-yes")
-        keys(b"Y")
-        exitcheck("clean-confirmed-exit")
-        mark("shipping-editor-clean-exit-requires-yes-N-and-STOP-cancel")
-        launch("SEE64YOU.PRG", "FILE EDIT SEARCH FORMAT")
-        keys(native("Hardware 8TML.") + b"\r")
-        wait("HARDWARE 8TML.", "editor-clipboard-source")
-        # Native function keys exercise the shipped input/UI path. Keep the
-        # expected source unchanged so the later disk comparison detects ghosts.
-        keys(b"\x91\x85" + b"\x1d" * 8 + b"\x86")
-        wait("HARDWARE 8TML.", "editor-copied-selection")
-        keys(b"\x8c")
-        wait("PRESS ANY KEY/CLICK/FIRE TO RETURN", "editor-help-with-selection")
-        # Help intentionally flushes queued dismissal input; wait before Cut.
-        keys(b"\r")
-        wait("\nHARDWARE 8TML.", "editor-selection-help-dismissed")
-        keys(b"\x87")
-        cut_screen = wait("\n 8TML.", "editor-cut-selection")
-        assert "HARDWARE" not in cut_screen
-        keys(b"\x88")
-        wait("HARDWARE 8TML.", "editor-pasted-selection")
-        keys(b"\x85" + b"\x9d" * 8 + b"\x88")
-        wait("HARDWARE 8TML.", "editor-paste-replaces-selection")
-        keys(b"\x8c")
-        wait("PRESS ANY KEY/CLICK/FIRE TO RETURN", "editor-help-after-paste")
-        keys(b"\r")
-        wait("HARDWARE 8TML.", "editor-help-after-paste-dismissed")
-        assert all((value & 127) == 32 for value in mem(0x400 + 7 * 40, 17 * 40)), \
-            "Overlay text remains below the edited document"
-        mark("shipping-editor-function-key-selection-copy-help-cut-paste-replacement-exact-source")
-        # Longer than the retired 30-second autosave interval: editing/idle
-        # must not create a background recovery file.
-        deadline = time.monotonic() + 35
-        while time.monotonic() < deadline:
-            assert not any(path.rsplit("/", 1)[-1].upper() == "SEE64YOU.REC"
-                           for path in ftp.nlst(folder)), "Unexpected background autosave"
-            time.sleep(1)
-        mark("shipping-editor-no-background-autosave-after-35-seconds")
-        save_exit("T8EDIT")
-        saved = fetch(folder + "/T8EDIT.8tml")
-        assert saved == EMPTY + b"Hardware 8TML.\n", repr(saved)
-        (out / "editor-created.8tml").write_bytes(saved)
-        mark("shipping-editor-create-body-save-basename-exact-source")
-        put(folder + "/SEE64YOU.REC", saved)
-        launch("SEE64YOU.PRG", "Recover snapshot? Y/N")
-        keys(b"Y")
-        wait("Recovered snapshot", "editor-recovered")
-        keys(b"\x11" * 4 + native("Updated "))
-        save_exit("T8EDIT2")
-        resaved = fetch(folder + "/T8EDIT2.8tml")
-        assert resaved == EMPTY + b"Updated Hardware 8TML.\n", repr(resaved)
-        (out / "editor-recovered-edited.8tml").write_bytes(resaved)
-        mark("shipping-editor-recovery-reopen-edit-save-exact-source")
-        put(folder + "/T8IN.8tml", SOURCE)
-        if args.large_source:
-            put(folder + "/T8LARGE.8tml", LARGE)
-        put(folder + "/T8BAD.8tml", EMPTY + b"bad\x80input")
-        launch("T8PROBE.PRG", "C CAPTURE T TEST R RESTORE")
-        keys(b"T")
-        wait("8TML STORAGE TESTS PASSED", "native-storage-tests",
-             timeout=2400 if args.large_source else 70)
-        exitcheck("native-storage-probe-exit")
-        expected = SOURCE.replace(b"\r\n", b"\n") + b"Hardware edit.\n!"
-        assert fetch(folder + "/T8COPY.8tml.tmp") == expected
-        assert fetch(folder + "/T8RECOVER.8tml") == expected
-        assert fetch(folder + "/T8EMPTY.8tml") == EMPTY
-        assert fetch(folder + "/" + "x" * 28 + ".8tml") == EMPTY
-        assert fetch(folder + "/T8IN.8tml") == SOURCE
-        assert fetch(folder + "/T8BAD.8tml") == EMPTY + b"bad\x80input"
-        if args.large_source:
-            assert fetch(folder + "/T8MAXCOPY.8tml") == LARGE
-            mark("native-real-DOS-61440-byte-open-save-reopen-exact-source")
-        (out / "native-storage-recovered.8tml").write_bytes(expected)
-        mark("native-real-DOS-open-edit-save-metadata-CRLF-empty-filename-limit-injected-fault-recovery")
-        if args.reference_tools:
-            command = ["python3", str(args.reference_tools.resolve() / "8tml"), "check", "-v",
-                       str(out / "editor-created.8tml"), str(out / "editor-recovered-edited.8tml"),
-                       str(out / "native-storage-recovered.8tml")]
-            result = subprocess.run(command, cwd=ROOT, text=True, stdout=subprocess.PIPE,
-                                    stderr=subprocess.STDOUT)
-            (out / "validator.txt").write_text(result.stdout)
-            assert result.returncode == 0, result.stdout
-            mark("external-reference-validator-zero-errors")
+        if args.settings_only:
+            # Public vector credential only, never a user's publishing key.
+            key_hex = b"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+            endpoint = b"http://127.0.0.1:8767/publish"
+            key_file = b"8tml-publish: 1\r\nurl: " + endpoint + b"\r\nid: test-1\r\nkey: " + key_hex + b"\r\n"
+            key_path = folder + "/8TMLKEY.TXT"
+            def hidden_key(label):
+                text = screen(label).replace("\n", "").upper()
+                assert key_hex.decode().upper() not in text, "Secret was displayed"
+            put(key_path, key_file)
+            launch("S64CFG.PRG", "SEE64YOU PUBLISHING SETTINGS")
+            keys(b"I")
+            wait("Imported; review HTTP consent then save", "settings-imported")
+            wait("KEY ID: TEST-1", "settings-imported-id")
+            wait("UNENCRYPTED HTTP: BLOCKED", "settings-import-default-deny")
+            hidden_key("settings-secret-redacted")
+            keys(b"H")
+            wait("ALLOW UNENCRYPTED HTTP? Y/N", "settings-http-consent")
+            keys(b"Y")
+            wait("Plain HTTP allowed; S to save", "settings-http-allowed")
+            keys(b"S")
+            exitcheck("settings-save-exit")
+            stored = fetch(folder + "/SEE64YOU.CFG")
+            assert native("test-1") in stored and native(endpoint.decode()) in stored
+            assert native(key_hex.decode()) in stored
+            mark("standard-settings-CRLF-import-redaction-consent-and-durable-save")
+            launch("S64CFG.PRG", "SEE64YOU PUBLISHING SETTINGS")
+            wait("KEY ID: TEST-1", "settings-persisted-id")
+            wait("UNENCRYPTED HTTP: ALLOWED", "settings-persisted-consent")
+            hidden_key("settings-reloaded-secret-redacted")
+            put(key_path, b"8tml-publish: 1\nurl: http://invalid/\nid: test-2\nkey: invalid\n")
+            keys(b"I")
+            wait("Standard key file invalid; unchanged", "settings-invalid-import")
+            wait("KEY ID: TEST-1", "settings-invalid-retained-id")
+            keys(b"S")
+            exitcheck("settings-invalid-save-exit")
+            assert fetch(folder + "/SEE64YOU.CFG") == stored
+            mark("standard-settings-relaunch-and-invalid-import-preserve-exact-record")
+            launch("S64CFG.PRG", "SEE64YOU PUBLISHING SETTINGS")
+            put(key_path, key_file.replace(b"id: test-1", b"id: test-2"))
+            keys(b"I")
+            wait("KEY ID: TEST-2", "settings-replacement-import")
+            wait("UNENCRYPTED HTTP: BLOCKED", "settings-replacement-resets-consent")
+            hidden_key("settings-replacement-secret-redacted")
+            keys(b"\x03")
+            exitcheck("settings-cancel-replacement-exit")
+            assert fetch(folder + "/SEE64YOU.CFG") == stored
+            mark("standard-settings-key-replacement-resets-consent-and-cancel-preserves-disk")
+        else:
+            launch("SEE64YOU.PRG", "FILE EDIT SEARCH FORMAT")
+            assert "PUB" not in screen("editor-header")[:40], "Independent Editor still exposes PUB"
+            keys(b"\x8c")  # Native F8.
+            wait("PRESS ANY KEY/CLICK/FIRE TO RETURN", "editor-help")
+            assert "PUBLISHER" not in screen("editor-help-commands")
+            keys(b"\r")
+            wait("FILE EDIT SEARCH FORMAT", "editor-help-dismissed")
+            assert all((value & 127) == 32 for value in mem(0x400 + 6 * 40, 18 * 40)), \
+                "Help text remains below the short document"
+            mark("shipping-editor-help-dismissal-clears-unused-rows-no-PUB")
+            keys(b"\x03")
+            wait("Exit to BASIC? Y/N", "clean-exit-confirmation")
+            assert "FILE EDIT SEARCH FORMAT" in screen("clean-exit-still-editor")
+            keys(b"N")
+            wait("FILE EDIT SEARCH FORMAT", "clean-exit-no")
+            keys(b"\x03")
+            wait("Exit to BASIC? Y/N", "clean-exit-confirmation-again")
+            keys(b"\x03")
+            wait("FILE EDIT SEARCH FORMAT", "clean-exit-stop-cancel")
+            keys(b"\x03")
+            wait("Exit to BASIC? Y/N", "clean-exit-confirmation-yes")
+            keys(b"Y")
+            exitcheck("clean-confirmed-exit")
+            mark("shipping-editor-clean-exit-requires-yes-N-and-STOP-cancel")
+            launch("SEE64YOU.PRG", "FILE EDIT SEARCH FORMAT")
+            keys(native("Hardware 8TML.") + b"\r")
+            wait("HARDWARE 8TML.", "editor-clipboard-source")
+            # Native function keys exercise the shipped input/UI path. Keep the
+            # expected source unchanged so the later disk comparison detects ghosts.
+            keys(b"\x91\x85" + b"\x1d" * 8 + b"\x86")
+            wait("HARDWARE 8TML.", "editor-copied-selection")
+            keys(b"\x8c")
+            wait("PRESS ANY KEY/CLICK/FIRE TO RETURN", "editor-help-with-selection")
+            # Help intentionally flushes queued dismissal input; wait before Cut.
+            keys(b"\r")
+            wait("\nHARDWARE 8TML.", "editor-selection-help-dismissed")
+            keys(b"\x87")
+            cut_screen = wait("\n 8TML.", "editor-cut-selection")
+            assert "HARDWARE" not in cut_screen
+            keys(b"\x88")
+            wait("HARDWARE 8TML.", "editor-pasted-selection")
+            keys(b"\x85" + b"\x9d" * 8 + b"\x88")
+            wait("HARDWARE 8TML.", "editor-paste-replaces-selection")
+            keys(b"\x8c")
+            wait("PRESS ANY KEY/CLICK/FIRE TO RETURN", "editor-help-after-paste")
+            keys(b"\r")
+            wait("HARDWARE 8TML.", "editor-help-after-paste-dismissed")
+            assert all((value & 127) == 32 for value in mem(0x400 + 7 * 40, 17 * 40)), \
+                "Overlay text remains below the edited document"
+            mark("shipping-editor-function-key-selection-copy-help-cut-paste-replacement-exact-source")
+            # Longer than the retired 30-second autosave interval: editing/idle
+            # must not create a background recovery file.
+            deadline = time.monotonic() + 35
+            while time.monotonic() < deadline:
+                assert not any(path.rsplit("/", 1)[-1].upper() == "SEE64YOU.REC"
+                               for path in ftp.nlst(folder)), "Unexpected background autosave"
+                time.sleep(1)
+            mark("shipping-editor-no-background-autosave-after-35-seconds")
+            save_exit("T8EDIT")
+            saved = fetch(folder + "/T8EDIT.8tml")
+            assert saved == EMPTY + b"Hardware 8TML.\n", repr(saved)
+            (out / "editor-created.8tml").write_bytes(saved)
+            mark("shipping-editor-create-body-save-basename-exact-source")
+            put(folder + "/SEE64YOU.REC", saved)
+            launch("SEE64YOU.PRG", "Recover snapshot? Y/N")
+            keys(b"Y")
+            wait("Recovered snapshot", "editor-recovered")
+            keys(b"\x11" * 4 + native("Updated "))
+            save_exit("T8EDIT2")
+            resaved = fetch(folder + "/T8EDIT2.8tml")
+            assert resaved == EMPTY + b"Updated Hardware 8TML.\n", repr(resaved)
+            (out / "editor-recovered-edited.8tml").write_bytes(resaved)
+            mark("shipping-editor-recovery-reopen-edit-save-exact-source")
+            put(folder + "/T8IN.8tml", SOURCE)
+            if args.large_source:
+                put(folder + "/T8LARGE.8tml", LARGE)
+            put(folder + "/T8BAD.8tml", EMPTY + b"bad\x80input")
+            launch("T8PROBE.PRG", "C CAPTURE T TEST R RESTORE")
+            keys(b"T")
+            wait("8TML STORAGE TESTS PASSED", "native-storage-tests",
+                 timeout=2400 if args.large_source else 70)
+            exitcheck("native-storage-probe-exit")
+            expected = SOURCE.replace(b"\r\n", b"\n") + b"Hardware edit.\n!"
+            assert fetch(folder + "/T8COPY.8tml.tmp") == expected
+            assert fetch(folder + "/T8RECOVER.8tml") == expected
+            assert fetch(folder + "/T8EMPTY.8tml") == EMPTY
+            assert fetch(folder + "/" + "x" * 28 + ".8tml") == EMPTY
+            assert fetch(folder + "/T8IN.8tml") == SOURCE
+            assert fetch(folder + "/T8BAD.8tml") == EMPTY + b"bad\x80input"
+            if args.large_source:
+                assert fetch(folder + "/T8MAXCOPY.8tml") == LARGE
+                mark("native-real-DOS-61440-byte-open-save-reopen-exact-source")
+            (out / "native-storage-recovered.8tml").write_bytes(expected)
+            mark("native-real-DOS-open-edit-save-metadata-CRLF-empty-filename-limit-injected-fault-recovery")
+            if args.reference_tools:
+                command = ["python3", str(args.reference_tools.resolve() / "8tml"), "check", "-v",
+                           str(out / "editor-created.8tml"), str(out / "editor-recovered-edited.8tml"),
+                           str(out / "native-storage-recovered.8tml")]
+                result = subprocess.run(command, cwd=ROOT, text=True, stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT)
+                (out / "validator.txt").write_text(result.stdout)
+                assert result.returncode == 0, result.stdout
+                mark("external-reference-validator-zero-errors")
+
     except BaseException as error:
         state["error"] = repr(error)
         save()

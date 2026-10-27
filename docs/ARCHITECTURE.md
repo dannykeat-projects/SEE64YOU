@@ -1,6 +1,6 @@
 # Architecture
 
-SEE64YOU is C64 Ultimate-only and uses UCI, Ultimate-DOS and a required 16 MiB REU. There are three independently launched user programs: Editor (`SEE64YOU.PRG` via internal overlay assets), Publisher (`S64PUB.PRG`), and Settings (`S64CFG.PRG`). All return to BASIC. The application package currently also includes a separate browser executable, but it is not an 8TML browser and is outside the target product.
+SEE64YOU is C64 Ultimate-only and uses UCI, Ultimate-DOS and a required 16 MiB REU. There are three independently launched user programs: Editor (`SEE64YOU.PRG` via internal overlay assets), Publisher (`S64PUB.PRG`), and Settings (`S64CFG.PRG`). All return to BASIC. The active ten-file package contains no browser executable; reading uses an external compatible 8TML browser.
 
 ## Source and storage
 
@@ -16,3 +16,15 @@ Settings owns a standard endpoint URL, key ID, dedicated secret and explicit raw
 ## Boundaries and validation
 
 Source format, local storage, publishing transport, authentication, HTML conversion and external browsing remain separate responsibilities. 8TML-capable browsing is provided by the wider ecosystem rather than another SEE64YOU client. Preserve bounded REU/conventional-RAM layouts, package manifests, clean BASIC return and restoration of machine settings. See [protocol](PROTOCOL.md), [validation](LOCAL_TESTING.md) and [product scope](PRODUCT.md).
+
+## Remaining legacy callers
+
+| Surface | Active caller and boundary |
+| --- | --- |
+| Standard programs | `client/Makefile` links `standard_main.c`/`standard_transport.c` for Publisher and standard key import for independent Settings. Neither depends on the PHP service. |
+| Shared safety | Keep source/storage, UCI/DOS/REU, configuration layout, journals, recovery and BASIC return. Standard signing still uses `direct_key.c` and digest formatting from `direct_auth.c`; their names do not imply they are unused. |
+| Old Publisher and browser | Legacy Makefile targets and `tools/test_publisher_8tml.py` still compile the former JSON Publisher; browser diagnostics and protocol tests remain. They are excluded from the independent package. |
+| Legacy release packaging | `tools/package_8tml_release.py` still snapshots `site/`, invokes `tools/package-site.php` and emits a PHP ZIP. This path must be retired before a minimal standard release. Existing release assets remain immutable. |
+| Legacy validation | `tools/validate.sh` and `.github/workflows/integration-validation.yml` still contain CMS, WordPress, relay, browser and managed-runtime checks. Retire those callers with their features after replacement acceptance; do not silently suppress failures. |
+
+Settings retains the fixed configuration record, with an explicitly tagged standard ID in the former relay slot. Removing old destination/relay headers requires preserving that layout and tracing their remaining constants/builders. Independent Editor formatting uses the existing PREP asset and return bridges; runtime teardown and recovery remain live dependencies.

@@ -18,7 +18,7 @@ Copy all matching program, BIN and manifest files into `/sd/SEE64YOU/` by defaul
 | `S64CFG.PRG` | Configure optional publishing |
 | `S64PUB.PRG` | Publish local source |
 
-Launch each program **independently** and return to BASIC when finished. `S64EDIT.PRG` and the BIN/manifest files are internal; do not launch or mix them separately. A packaged `S64WEB.PRG` is not an 8TML reader and is not part of the intended 8TML workflow.
+Launch each program **independently** and return to BASIC when finished. `S64EDIT.PRG` and the BIN/manifest files are internal; do not launch or mix them separately. Older releases may include `S64WEB.PRG`; the current ten-file package excludes it.
 
 ## Create your first page
 

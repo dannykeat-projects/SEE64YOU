@@ -41,3 +41,5 @@ Close bounded UCI, REU, DOS and TCP operations on success, failure and cancellat
 Direct C64U publishing uses raw HTTP on UCI `$03` with per-site challenge/HMAC authentication; source remains unencrypted. Obtain a standard key through the independent server over HTTPS and require explicit HTTP consent. No silent TLS downgrade.
 
 Host and VICE validation do not prove real Ultimate-DOS, REU, physical keys, USB storage, network or cold-power persistence. Preserve complete file/device backups and compare machine state before and after bounded real-C64U acceptance; never reset or alter unrelated data as a test shortcut. See [testing](LOCAL_TESTING.md).
+
+Module verification accelerates compute only when the existing turbo-register probe establishes control. Turbo Control Off remains a valid base-speed mode, but verification can take longer. The C64U Turbo Registers setting enables that selective runtime acceleration; temporary test changes must retain a durable capture and verify restoration of the original setting.
