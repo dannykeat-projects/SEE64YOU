@@ -1,6 +1,17 @@
 #!/usr/bin/env sh
 set -eu
 
+S64_HOST_ONLY=0
+case "${1-}" in
+    "") ;;
+    --host-only) S64_HOST_ONLY=1 ;;
+    *) echo "Usage: sh tools/validate.sh [--host-only]" >&2; exit 2 ;;
+esac
+if [ "$#" -gt 1 ]; then
+    echo "Usage: sh tools/validate.sh [--host-only]" >&2
+    exit 2
+fi
+
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 
@@ -554,6 +565,11 @@ cc -std=c99 -Wall -Wextra -Iclient/src client/tests/wordpress_documents_test.c c
 echo "== Host UCI compile check =="
 cc -std=c99 -Wall -Wextra -Iclient/src -c client/src/platform/uci.c -o "$TMP_BIN.o"
 rm -f "$TMP_BIN.o"
+
+if [ "$S64_HOST_ONLY" -eq 1 ]; then
+    echo "Host validation passed; native/VICE matrix not run (--host-only)"
+    exit 0
+fi
 
 if command -v cl65 >/dev/null 2>&1 \
     && command -v cc65 >/dev/null 2>&1 \

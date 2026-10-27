@@ -25,11 +25,14 @@ for resident in ("src/document.c", "src/platform/dos.c", "src/platform/reu.c"):
     assert resident not in publisher.CONTENT + publisher.NETWORK
 assert "diagnostics/managed_publisher_state_fit.c" not in publisher.RESIDENT_SUPPORT
 assert "src/platform/code_overlay_bootstrap.c" in publisher.RESIDENT_SUPPORT
-assert "src/platform/reu_runtime_write.c" in publisher.RESIDENT_SUPPORT
+assert "src/platform/reu_runtime_write.c" in publisher.RUNTIME_SUPPORT
+assert "src/platform/reu_runtime_write.c" not in publisher.RESIDENT_SUPPORT
+assert "s64_reu_runtime_store_verified" in publisher.BRIDGES["CONTENT"]
 assert "src/platform/managed_publisher.c" in publisher.RUNTIME_SUPPORT
 assert "src/platform/code_assets_session_read.c" in publisher.RUNTIME_SUPPORT
 assert "src/publisher/settings_session.c" in publisher.NETWORK
-assert "src/publisher/settings_validate.c" in publisher.NETWORK
+assert "src/publisher/settings_validate.c" in publisher.RESIDENT_SUPPORT
+assert "src/publisher/settings_validate.c" not in publisher.NETWORK
 assert "src/platform/application_state.c" in publisher.CONTENT
 assert "src/platform/application_state_payload.c" in publisher.CONTENT
 assert "src/platform/managed_publisher_document.c" in publisher.CONTENT

@@ -2,6 +2,12 @@
 
 Read [AGENTS.md](../AGENTS.md) and [todo.md](../todo.md); inspect current branch, package dependencies and any unrelated changes before editing. Use a disposable PHP site and backed-up storage. Record the exact source commit, build root, tool versions, checks run, hashes, failures and acceptance scope. An earlier passing run does not certify a new build.
 
+## Checks without publishing credentials
+
+Run `sh tools/validate.sh --host-only` for all host checks, including the retained PHP/legacy regressions and disposable loopback protocol tests. This mode does not run native builds, VICE or hardware; its success message states that scope explicitly. `sh tools/validate.sh` retains the full historical matrix and its failure gates.
+
+Shell scripts are checked out with LF endings so Windows/WSL can use these commands directly. Native package/VICE commands below also need no account key. Real standard-server publishing and external-reader acceptance require the dedicated account credential and remain separate gates.
+
 ## Source and standard Publisher
 
 From the repository root, with suitable C compiler, cc65, Python 3, PHP 8.1+ and optional VICE/ROMs:
@@ -66,3 +72,5 @@ Before release acceptance, perform these additional checks and mark each **passe
 The hardware harness accepts `--startup-timeout SECONDS` (15..1800; default70) for module preload/verification. With Turbo Control Off, verification runs at base speed and can exceed the default. Temporary enabling of C64U Turbo Registers must capture the original setting durably before applying it, then restore/verify it and mark the capture CLEAN after the program has returned safely to BASIC. Do not reset an active verification as a test shortcut.
 
 Use `--settings-only` for bounded standard key import/persistence acceptance with the public vector credential. It checks secret redaction, explicit consent, save/relaunch, invalid-input preservation and cancelled replacement, then restores the backed-up files and machine baseline. It does not authenticate to a real account or prove publishing/network interoperability.
+
+For the retained legacy Publisher layout, `make -C client publisher-overlay-fit` checks its three overlay slots, exact assets and resident headroom. `python3 tools/test_code_overlay_vice.py --rom-dir LOCAL_ROM_DIRECTORY` exercises generated entries/return bridges. These diagnostic checks do not certify legacy runtime transitions on C64U, and success does not imply the later managed Editor build fits.

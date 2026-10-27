@@ -71,24 +71,24 @@ PUBLICATION = """
 #include <stdint.h>
 #pragma code-name ("PUBLICATION_CODE")
 #pragma rodata-name ("PUBLICATION_RODATA")
-extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_transfer_capsule_allocation(uint32_t);
-extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_transfer_capsule_checksum(uint32_t);
-extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_transfer_capsule_module_valid(uint32_t);
-extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_application_state_payload_valid(uint32_t);
-extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_managed_editor_state_revoke(uint32_t);
-extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_reu_runtime_store_verified(uint32_t);
-extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_session_journal_encode(uint32_t);
-extern uint32_t __fastcall__ s64_overlay_bridge_prep_s64_system_state_set_mode(uint32_t);
+extern uint32_t __fastcall__ s64_overlay_bridge_p_s64_transfer_capsule_allocation(uint32_t);
+extern uint32_t __fastcall__ s64_overlay_bridge_p_s64_transfer_capsule_checksum(uint32_t);
+extern uint32_t __fastcall__ s64_overlay_bridge_p_s64_transfer_capsule_module_valid(uint32_t);
+extern uint32_t __fastcall__ s64_overlay_bridge_p_s64_application_state_payload_valid(uint32_t);
+extern uint32_t __fastcall__ s64_overlay_bridge_p_s64_managed_editor_state_revoke(uint32_t);
+extern uint32_t __fastcall__ s64_overlay_bridge_p_s64_reu_runtime_store_verified(uint32_t);
+extern uint32_t __fastcall__ s64_overlay_bridge_p_s64_session_journal_encode(uint32_t);
+extern uint32_t __fastcall__ s64_overlay_bridge_p_s64_system_state_set_mode(uint32_t);
 uint32_t __fastcall__ s64_overlay_publication_s64_probe_publication(uint32_t value)
 {
-    value = s64_overlay_bridge_prep_s64_transfer_capsule_allocation(value);
-    value = s64_overlay_bridge_prep_s64_transfer_capsule_checksum(value);
-    value = s64_overlay_bridge_prep_s64_transfer_capsule_module_valid(value);
-    value = s64_overlay_bridge_prep_s64_application_state_payload_valid(value);
-    value = s64_overlay_bridge_prep_s64_managed_editor_state_revoke(value);
-    value = s64_overlay_bridge_prep_s64_reu_runtime_store_verified(value);
-    value = s64_overlay_bridge_prep_s64_session_journal_encode(value);
-    return s64_overlay_bridge_prep_s64_system_state_set_mode(value);
+    value = s64_overlay_bridge_p_s64_transfer_capsule_allocation(value);
+    value = s64_overlay_bridge_p_s64_transfer_capsule_checksum(value);
+    value = s64_overlay_bridge_p_s64_transfer_capsule_module_valid(value);
+    value = s64_overlay_bridge_p_s64_application_state_payload_valid(value);
+    value = s64_overlay_bridge_p_s64_managed_editor_state_revoke(value);
+    value = s64_overlay_bridge_p_s64_reu_runtime_store_verified(value);
+    value = s64_overlay_bridge_p_s64_session_journal_encode(value);
+    return s64_overlay_bridge_p_s64_system_state_set_mode(value);
 }
 """
 MAIN = """

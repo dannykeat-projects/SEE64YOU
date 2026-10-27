@@ -29,18 +29,21 @@ CONTENT = (
 NETWORK = (
     "src/platform/network.c", "src/crypto/sha256.c",
     "src/publisher/direct_auth.c", "src/publisher/standalone_direct.c",
-    "src/publisher/settings_session.c", "src/publisher/settings_validate.c",
+    "src/publisher/settings_session.c",
 )
 RESIDENT_SUPPORT = (
     "src/platform/code_overlay.c", "src/platform/reu_runtime.c",
     "src/platform/module_transfer.c", "src/platform/module_transfer_stub.s",
     "src/platform/module_arrival.c", "src/platform/basic_return_stub.s",
     "src/platform/crc32.c", "src/platform/code_overlay_bootstrap.c",
-    "src/platform/reu_runtime_write.c",
+    # Pure validation stays resident rather than consuming network overlay space.
+    "src/publisher/settings_validate.c",
 )
 RUNTIME_SUPPORT = (
     "src/platform/code_assets_validate.c", "src/platform/code_assets_session.c",
     "src/platform/code_assets_session_read.c", "src/platform/managed_publisher.c",
+    # Publisher callers reach this writer after bootstrap; CONTENT uses a return bridge.
+    "src/platform/reu_runtime_write.c",
 )
 BRIDGES = {
     "NETWORK": ("s64_session_journal_encode",),
@@ -49,6 +52,7 @@ BRIDGES = {
         "s64_transfer_capsule_clear", "s64_transfer_capsule_store",
         "s64_transfer_capsule_load", "s64_module_runtime_prepare_transition",
         "s64_module_runtime_resume_interactive",
+        "s64_reu_runtime_store_verified",
     ),
     "RUNTIME": ("s64_application_state_load_wire",),
 }
