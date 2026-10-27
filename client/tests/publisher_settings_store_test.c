@@ -13,6 +13,8 @@ static unsigned char legacy_stored[512];
 static unsigned char profile_one[512];
 static unsigned char temporary[512];
 static unsigned char direct_key_file[128];
+static unsigned char publish_key_file[514];
+static uint16_t publish_key_file_length;
 static uint16_t stored_length;
 static uint16_t legacy_stored_length;
 static uint16_t profile_one_length;
@@ -205,6 +207,10 @@ S64DosResult s64_dos_open_read(S64Dos* dos, const char* filename)
         && !current_directory && direct_key_file_length != 0u) {
         read_source = direct_key_file;
         read_length = direct_key_file_length;
+    } else if (strcmp(filename, S64_PUBLISH_KEY_FILENAME) == 0
+        && current_directory && publish_key_file_length) {
+        read_source = publish_key_file;
+        read_length = publish_key_file_length;
     } else {
         return S64_DOS_NOT_FOUND;
     }
@@ -588,6 +594,59 @@ int main(void)
         ) == 0,
         "path failure preserves existing direct key"
     );
+
+    fail_change_dir = 0u;
+    require(s64_settings_import_publish_key(&dos, &settings) == S64_SETTINGS_STORE_NOT_FOUND,
+        "standard importer never reuses legacy key file");
+    strcpy((char*)publish_key_file, "8tml-publish: 1\nurl: http://example.com:8080/publish/\nid: editor-1\nkey: 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\n");
+    publish_key_file_length = (uint16_t)strlen((char*)publish_key_file);
+    require(s64_settings_import_publish_key(&dos, &settings) == S64_SETTINGS_STORE_OK,
+        "standard key imports endpoint ID and secret together");
+    require(settings.destination_type == S64_DESTINATION_STANDARD
+        && strcmp(s64_settings_publish_id(&settings), "editor-1") == 0
+        && strcmp(settings.base_url, "http://example.com:8080/publish/") == 0
+        && strcmp(settings.direct_key, "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f") == 0
+        && !settings.allow_insecure_http,
+        "standard fields exact and new HTTP consent required");
+    settings.allow_insecure_http = 1u;
+    require(s64_settings_store_save(&dos, &settings) == S64_SETTINGS_STORE_OK,
+        "standard settings save with existing readback gates");
+    require(s64_settings_store_load(&dos, &loaded) == S64_SETTINGS_STORE_OK
+        && memcmp(&loaded, &settings, sizeof(settings)) == 0,
+        "standard endpoint identity secret and HTTP consent persist exactly");
+    require(s64_settings_exchange_values_valid(&loaded), "standard record validates");
+    require(s64_settings_publish_store_load(&dos, &loaded) == S64_SETTINGS_STORE_OK,
+        "standard loader accepts tagged record without root migration");
+    publish_key_file[0] = '!';
+    require(s64_settings_import_publish_key(&dos, &settings) == S64_SETTINGS_STORE_INVALID
+        && memcmp(&settings, &loaded, sizeof(settings)) == 0,
+        "invalid standard key leaves full existing configuration untouched");
+    publish_key_file[0] = '8';
+    fail_read_close = 1u;
+    require(s64_settings_import_publish_key(&dos, &settings) == S64_SETTINGS_STORE_IO_ERROR
+        && memcmp(&settings, &loaded, sizeof(settings)) == 0,
+        "failed close does not commit new credentials");
+    fail_read_close = 0u;
+    memset(publish_key_file, 'a', sizeof(publish_key_file));
+    publish_key_file_length = sizeof(publish_key_file);
+    require(s64_settings_import_publish_key(&dos, &settings) == S64_SETTINGS_STORE_INVALID
+        && memcmp(&settings, &loaded, sizeof(settings)) == 0,
+        "oversize standard key does not change settings");
+    require(s64_settings_publish_url_valid("https://example.com/")
+        && s64_settings_publish_url_valid("http://localhost:65535/publish")
+        && !s64_settings_publish_url_valid("http://example.com:0/publish")
+        && !s64_settings_publish_url_valid("http://example.com:65536/publish")
+        && !s64_settings_publish_url_valid("http://user@example.com/publish")
+        && !s64_settings_publish_url_valid("http://example.com/publish?x=1")
+        && !s64_settings_publish_url_valid("http://example.com/a\x01")
+        && !s64_settings_publish_url_valid("http://example.com/publish#fragment"),
+        "unsafe endpoint authority port query fragment and control rejected");
+    strcpy(loaded.relay_key, "invalid_id");
+    require(!s64_settings_exchange_values_valid(&loaded), "invalid persisted standard ID rejected");
+    loaded = settings;
+    loaded.destination_type = S64_DESTINATION_STANDALONE;
+    require(s64_settings_publish_id(&loaded)[0] == 0,
+        "legacy record never exposes standard identity");
 
     puts("publisher settings store tests passed");
     return 0;

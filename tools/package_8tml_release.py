@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build distinct SD/USB Editor-preview assets without changing historical releases."""
+"""Build verified SD/USB SEE64YOU client and PHP site packages."""
 import argparse
 import datetime
 import hashlib
@@ -12,7 +12,7 @@ import tempfile
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-FILES = {"SEE64YOU.PRG", "S64EDIT.PRG", "S64PUB.PRG", "S64CFG.PRG", "S64WEB.PRG",
+FILES = {"SEE64YOU.PRG", "S64EDIT.PRG", "S64PUB.PRG", "S64CFG.PRG",
          "S64FILE.BIN", "S64MODEL.BIN", "S64PREP.BIN", "S64RUN.BIN", "S64MODULE.MNF", "S64OVL.MNF"}
 
 
@@ -45,13 +45,12 @@ def main():
     if not output.is_relative_to(ROOT / "client/build"):
         raise ValueError("Release output must be a new directory under client/build")
     commit = committed_source()
-    guide = (ROOT / "docs/releases" / (args.version + ".md")).read_text()
-    for relative, target in (("../LOCAL_TESTING.md", "docs/LOCAL_TESTING.md"), ("../../todo.md", "todo.md")):
-        guide = guide.replace("](" + relative + ")", "](https://github.com/dannykeat-projects/SEE64YOU/blob/"
-                              + args.version + "/" + target + ")")
+    guide = (ROOT / "docs/INSTALL.md").read_text()
     receipt = json.loads(args.hardware_receipt.read_text())
     if not receipt.get("restored") or receipt.get("active") or not receipt.get("dos_context_restored"):
         raise ValueError("Hardware receipt must confirm complete restoration")
+    if set(receipt.get("package_sha256", {})) != FILES:
+        raise ValueError("Hardware receipt must cover the exact ten-file package inventory")
     hardware = {"tested_commit": receipt["commit"], "input": receipt["input"],
                 "physical_keyboard": receipt["physical_keyboard"],
                 "cold_power_cycle": receipt["cold_power_cycle"], "restored": True}
@@ -89,7 +88,9 @@ def main():
         build = {"version": args.version, "source_commit": commit, "storage_root": root,
                  "build_command": " ".join(command), "toolchain": version, "file_count": len(FILES),
                  "package_sha256": hashes, "sd_editor_hardware": hardware,
-                 "acceptance": "Editor alpha preview; physical keyboard, cold-power, USB-only and Publisher hardware gates pending"}
+                 "acceptance": "Editor alpha preview; "
+                    + ("physical keyboard, " if not hardware["physical_keyboard"] else "")
+                    + "cold-power, USB-only and Publisher hardware gates pending"}
         payload["BUILD.json"] = (json.dumps(build, indent=2) + "\n").encode()
         payload["README.md"] = guide.encode()
         payload["SHA256SUMS"] = "".join(hashes[name] + "  SEE64YOU/" + name + "\n" for name in sorted(FILES)).encode()

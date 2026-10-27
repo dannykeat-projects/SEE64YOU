@@ -24,7 +24,7 @@ Launcher/journal operations own DOS `$01`; Editor document/recovery owns `$02`. 
 
 ## File integrity and recovery
 
-- Source uses complete ASCII/LF 8TML 1 draft text, up to 61,440 bytes. Publisher downloads to a **new** filename and must refuse collisions. Failed rename can leave a recoverable complete `.tmp` file.
+- Source uses complete ASCII/LF 8TML 1 draft text, up to 61,440 bytes. Publisher loads a local source file and never writes source during publication. Failed rename can leave a recoverable complete `.tmp` file.
 - Editor has no periodic autosave. Existing `SEE64YOU.REC` may be offered; a failed read preserves the snapshot. Recovered content is dirty until manually saved.
 - Configuration writes validate the temporary record before replacement and validate final readback. Current delete-then-rename is **not** fully atomic if final rename fails; preserve temporary data and surface errors.
 - The fixed-size two-slot journal records version, sequence and ACTIVE/CLEAN machine-state ownership. Write/readback the alternate slot before superseding valid state. Corrupt/conflicting state must block unsafe changes.
@@ -38,6 +38,6 @@ Close bounded UCI, REU, DOS and TCP operations on success, failure and cancellat
 
 ## Security and acceptance
 
-Direct C64U publishing uses raw HTTP on UCI `$03` with per-site challenge/HMAC authentication; source remains unencrypted. Pair on HTTPS and require explicit consent. No silent TLS downgrade.
+Direct C64U publishing uses raw HTTP on UCI `$03` with per-site challenge/HMAC authentication; source remains unencrypted. Obtain a standard key through the independent server over HTTPS and require explicit HTTP consent. No silent TLS downgrade.
 
 Host and VICE validation do not prove real Ultimate-DOS, REU, physical keys, USB storage, network or cold-power persistence. Preserve complete file/device backups and compare machine state before and after bounded real-C64U acceptance; never reset or alter unrelated data as a test shortcut. See [testing](LOCAL_TESTING.md).

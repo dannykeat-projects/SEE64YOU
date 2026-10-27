@@ -141,8 +141,15 @@ int main(void)
     memset(boundary, 'x', S64_LOCAL_FILENAME_CAPACITY - sizeof(".8tml"));
     boundary[S64_LOCAL_FILENAME_CAPACITY - sizeof(".8tml")] = '\0';
     CHECK(s64_local_save_as(&local, boundary, 0u) == S64_LOCAL_OK, 25);
-    CHECK(s64_local_open(&local, boundary, 1u) != S64_LOCAL_OK, 26);
+    CHECK(s64_local_open(&local, boundary, 1u) == S64_LOCAL_OK, 26);
     CHECK(s64_local_open(&local, local.filename, 1u) == S64_LOCAL_OK, 27);
+#ifdef S64_STORAGE_MAX_SOURCE_PROBE
+    CHECK(s64_local_open(&local, "T8LARGE.8tml", 1u) == S64_LOCAL_OK, 33);
+    CHECK(s64_buffer_length(&body) == S64_BUFFER_CAPACITY, 34);
+    CHECK(s64_local_save_as(&local, "T8MAXCOPY", 0u) == S64_LOCAL_OK, 35);
+    CHECK(s64_local_open(&local, "T8MAXCOPY.8tml", 1u) == S64_LOCAL_OK, 36);
+    CHECK(s64_buffer_length(&body) == S64_BUFFER_CAPACITY, 37);
+#endif
     cputs("8TML STORAGE TESTS PASSED\r\n");
     return 0;
 }

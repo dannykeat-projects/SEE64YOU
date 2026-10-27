@@ -11,6 +11,7 @@ uint8_t s64_managed_editor_state_cancel(S64ModuleRuntime* runtime)
             S64_SYSTEM_MODE_INTERACTIVE) == S64_SYSTEM_OK;
 }
 
+#ifndef S64_INDEPENDENT_EDITOR
 uint8_t s64_managed_editor_state_prepare_publish(S64ModuleRuntime* runtime,
     S64ManagedEditorState* authority, S64Editor* editor,
     const S64Document* document, const S64LocalDocument* local,
@@ -33,3 +34,5 @@ uint8_t s64_managed_editor_state_prepare_publish(S64ModuleRuntime* runtime,
             S64_SYSTEM_MODE_INTERACTIVE) != S64_SYSTEM_OK) return 2;
     return published;
 }
+
+#endif

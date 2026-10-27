@@ -561,38 +561,45 @@ void s64_editor_mark_saved(S64Editor* editor)
     s64_history_mark_saved(&editor->history);
 }
 
+static int finish_history_result(
+    S64Editor* editor,
+    const S64HistoryState* state,
+    signed char result
+)
+{
+    if (result == 0) return 0;
+    if (result < 0) {
+        editor->position_cursor = POSITION_INVALID;
+        finish_content_edit(editor);
+        return 0;
+    }
+
+    s64_editor_internal_restore_history_state(editor, state);
+    return 1;
+}
+
 int s64_editor_undo(S64Editor* editor)
 {
     S64HistoryState state;
 
-    if (!s64_history_undo(
+    return finish_history_result(editor, &state, s64_history_undo(
             &editor->history,
             &editor->buffer,
             &state,
             &editor->dirty
-        )) {
-        return 0;
-    }
-
-    s64_editor_internal_restore_history_state(editor, &state);
-    return 1;
+        ));
 }
 
 int s64_editor_redo(S64Editor* editor)
 {
     S64HistoryState state;
 
-    if (!s64_history_redo(
+    return finish_history_result(editor, &state, s64_history_redo(
             &editor->history,
             &editor->buffer,
             &state,
             &editor->dirty
-        )) {
-        return 0;
-    }
-
-    s64_editor_internal_restore_history_state(editor, &state);
-    return 1;
+        ));
 }
 
 void s64_editor_recalculate_position(S64Editor* editor)
@@ -1711,18 +1718,12 @@ int s64_editor_paste(S64Editor* editor, const S64Clipboard* clipboard)
                 editor_scan,
                 count
             ) != count) {
-            if (captured) {
-                s64_history_reset(&editor->history);
-            }
-            return 0;
+            goto paste_failed;
         }
 
         for (j = 0u; j < count; ++j) {
             if (!s64_buffer_insert(&editor->buffer, editor_scan[j])) {
-                if (captured) {
-                    s64_history_reset(&editor->history);
-                }
-                return 0;
+                goto paste_failed;
             }
         }
         i += count;
@@ -1730,10 +1731,7 @@ int s64_editor_paste(S64Editor* editor, const S64Clipboard* clipboard)
 #else
     for (i = 0u; i < clipboard->length; ++i) {
         if (!s64_buffer_insert(&editor->buffer, clipboard->data[i])) {
-            if (captured) {
-                s64_history_reset(&editor->history);
-            }
-            return 0;
+            goto paste_failed;
         }
     }
 #endif
@@ -1741,4 +1739,13 @@ int s64_editor_paste(S64Editor* editor, const S64Clipboard* clipboard)
     finish_content_edit(editor);
     s64_editor_internal_history_commit(editor, clipboard->length, 0u, captured);
     return 1;
+
+paste_failed:
+    /* Keep partial text recoverable, but never reuse an incomplete transaction. */
+    s64_history_reset(&editor->history);
+    if (selected != 0u || s64_buffer_cursor(&editor->buffer) != start) {
+        editor->position_cursor = POSITION_INVALID;
+        finish_content_edit(editor);
+    }
+    return 0;
 }

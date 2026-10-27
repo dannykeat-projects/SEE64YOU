@@ -6,7 +6,8 @@
 static char hex_digit(uint8_t value)
 {
     value &= 0x0fu;
-    return (char)(value < 10u ? '0' + value : 'a' + (value - 10u));
+    if (value < 10u) return (char)('0' + value);
+    return (char)('a' + (value - 10u));
 }
 
 static uint8_t hmac_native_text(

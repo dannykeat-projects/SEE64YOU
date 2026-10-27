@@ -663,7 +663,8 @@ int s64_history_undo(
     slot = physical_slot(history, logical_index);
     entry = load_entry(history, logical_index);
     if (entry == 0 || !swap_range(entry, slot, buffer)) {
-        return 0;
+        s64_history_reset(history);
+        return -1;
     }
 
     --history->cursor;
@@ -692,7 +693,8 @@ int s64_history_redo(
     slot = physical_slot(history, logical_index);
     entry = load_entry(history, logical_index);
     if (entry == 0 || !swap_range(entry, slot, buffer)) {
-        return 0;
+        s64_history_reset(history);
+        return -1;
     }
 
     ++history->cursor;

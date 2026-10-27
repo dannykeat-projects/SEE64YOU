@@ -172,7 +172,7 @@ def overlay_symbol(group: str, name: str) -> str:
 def bridge_symbol(group: str, name: str) -> str:
     # cc65 retains only 63 identifier characters; PUBLICATION's full prefix
     # would truncate the canonical payload-validator bridge name.
-    prefix = "prep" if group == "PUBLICATION" else group.lower()
+    prefix = "p" if group == "PUBLICATION" else group.lower()
     return f"s64_overlay_bridge_{prefix}_{name}"
 
 
@@ -533,8 +533,39 @@ def compile_editor_overlay_fit(
     flags.append("-DS64_MANAGED_OVERLAY=1")
     if independent_editor:
         flags.append("-DS64_INDEPENDENT_EDITOR=1")
+    groups = GROUPS
+    bridges = BRIDGES
+    if independent_editor:
+        # The independent Editor never launches Publisher. Keep teardown and
+        # recovery, but do not link its unreachable publishing producers.
+        retired = {
+            "src/platform/managed_editor_publish.c",
+            "src/platform/managed_editor_publisher_assets.c",
+            "src/platform/managed_editor_settings.c",
+            "src/platform/managed_editor_publisher_capsule.c",
+            "src/publisher/settings_session_publish.c",
+            "src/publisher/settings_validate.c",
+            "src/platform/application_state_build.c",
+            "src/platform/application_state_editor.c",
+        }
+        sources = [source for source in sources if source not in retired]
+        groups = {name: tuple(source for source in items
+                              if source not in retired and source != "src/editor_format.c")
+                  for name, items in GROUPS.items()}
+        # Use the existing PREP slot for formatting, retaining the four-asset
+        # manifest and existing checked overlay entry/return mechanism.
+        groups["PUBLICATION"] += ("src/editor_format.c",)
+        bridges = dict(BRIDGES)
+        bridges["PUBLICATION"] = (
+            "s64_editor_has_selection", "s64_editor_selection_start",
+            "s64_editor_selection_end", "s64_editor_internal_line_start",
+            "s64_editor_internal_history_begin", "s64_editor_internal_history_commit",
+            "s64_editor_internal_restore_history_state",
+            "s64_editor_recalculate_position", "s64_editor_ensure_cursor_visible",
+            "s64_managed_editor_state_revoke", "s64_system_state_set_mode",
+        )
     program = compile_overlay_layout(
-        client, output_dir, sources, GROUPS, GROUP_IDS, BRIDGES,
+        client, output_dir, sources, groups, GROUP_IDS, bridges,
         client / "cfg" / "editor-overlay-fit.cfg", flags,
         compiler=cl65 or os.environ.get("CL65") or values["CL65"] or "cl65",
         od65=od65, image_name="editor-overlay-fit",

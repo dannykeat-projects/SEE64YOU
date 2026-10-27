@@ -39,7 +39,7 @@ static int url_valid(const char* url)
     else if (strncmp(url, "https://", 8u) == 0) authority = url + 8;
     else return 0;
     path = strchr(authority, '/');
-    return path && path != authority
+    return path != 0 && path != authority
         && !strpbrk(authority, "@?# \r\n\t");
 }
 
@@ -55,16 +55,16 @@ int s64_publish_keyfile_parse(const uint8_t* data, uint16_t length,
         return 0;
     while (start < length) {
         end = start;
-        while (end < length && data[end] != '\n') {
+        while (end < length && data[end] != 10u) {
             if ((uint16_t)(end - start) >= 255u) goto invalid;
-            if (data[end] != '\r' && data[end] != '\t'
+            if (data[end] != 13u && data[end] != '\t'
                 && (data[end] < 32u || data[end] > 126u)) goto invalid;
             ++end;
         }
         value_end = end;
-        if (value_end > start && data[value_end - 1u] == '\r') --value_end;
+        if (value_end > start && data[value_end - 1u] == 13u) --value_end;
         for (i = start; i < value_end; ++i)
-            if (data[i] == '\r') goto invalid;
+            if (data[i] == 13u) goto invalid;
         name_end = start;
         while (name_end < value_end && data[name_end] != ':') ++name_end;
         if (name_end == value_end) {

@@ -10,10 +10,9 @@ The default build uses `/sd/SEE64YOU/`. A full rebuild with `STORAGE_ROOT` selec
 
 ## Publication
 
-The separately launched Publisher loads source using the shared codec/storage path. Publishing metadata (page/post, slug, publication state and optional ordering) is separate from the 8TML source. Authenticated requests stream JSON to the standalone PHP service over UCI Network `$03`. The server stores exact source and metadata together in a guarded JSON/PHP file and derives display content; its present HTML renderer supports a limited escaped subset of 8TML, not full conformance.
+The independently launched Publisher loads literal source using the shared codec/storage path and sends the same ASCII/LF bytes through standard API 1 status/challenge/list/put operations over UCI Network `$03`. Streaming HMAC appends its signature after the source; local filenames and remote paths stay separate. Existing names require explicit confirmation, with no conditional-write guarantee in the test draft.
 
-Settings holds site configuration and a per-site direct key. HTTPS pairing happens in a modern browser; C64U direct HTTP uses challenge/HMAC, protecting request integrity/authentication but **not confidentiality**. Neither editing nor source ownership requires a publishing account or remote service.
-
+Settings owns a standard endpoint URL, key ID, dedicated secret and explicit raw-HTTP consent. A tagged standard destination uses the existing record size and readback checks. Legacy key-only destinations cannot authenticate to the new route. Editor requires neither credentials nor network access. Legacy CMS/relay/WordPress source remains pending caller tracing and replacement acceptance; it is excluded from the independent Publisher link.
 ## Boundaries and validation
 
 Source format, local storage, publishing transport, authentication, HTML conversion and external browsing remain separate responsibilities. 8TML-capable browsing is provided by the wider ecosystem rather than another SEE64YOU client. Preserve bounded REU/conventional-RAM layouts, package manifests, clean BASIC return and restoration of machine settings. See [protocol](PROTOCOL.md), [validation](LOCAL_TESTING.md) and [product scope](PRODUCT.md).

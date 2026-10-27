@@ -2,7 +2,7 @@
 
 ## Requirements
 
-A **Commodore 64 Ultimate** with Command Interface enabled, a **16 MiB REU**, Ultimate-DOS, and an SD card or supported USB storage mount. Tested hardware baseline is C64 Ultimate firmware 1.1.0. The Editor needs no network connection. Optional publishing requires a separate PHP 8.1+ website and a reachable HTTP publishing endpoint.
+A **Commodore 64 Ultimate** with Command Interface enabled, a **16 MiB REU**, Ultimate-DOS, and an SD card or supported USB storage mount. Tested hardware baseline is C64 Ultimate firmware 1.1.0. The Editor needs no network connection. Optional publishing requires a compatible independent 8TML publishing API 1 endpoint and its standard publishing key.
 
 This is a test release. Back up your files and machine configuration first. Choose the complete matching package for your actual storage mount; verify its checksums when supplied. For USB mounts other than the package's exact root, rebuild with `make -B -C client STORAGE_ROOT=/YOURMOUNT/ independent-package`. A folder rename does not change the executable's embedded root.
 
@@ -16,7 +16,7 @@ Copy all matching program, BIN and manifest files into `/sd/SEE64YOU/` by defaul
 | --- | --- |
 | `SEE64YOU.PRG` | Open the Editor |
 | `S64CFG.PRG` | Configure optional publishing |
-| `S64PUB.PRG` | Publish or download source |
+| `S64PUB.PRG` | Publish local source |
 
 Launch each program **independently** and return to BASIC when finished. `S64EDIT.PRG` and the BIN/manifest files are internal; do not launch or mix them separately. A packaged `S64WEB.PRG` is not an 8TML reader and is not part of the intended 8TML workflow.
 
@@ -42,20 +42,21 @@ Launch each program **independently** and return to BASIC when finished. `S64EDI
 
 **Save manually.** There are no timed background saves. Existing `SEE64YOU.REC` snapshots may offer `Recover snapshot? Y/N`; failed reads preserve them, and recovered content must be saved again. Retain any completed `.tmp` file if a disk operation fails. Back up important `.8tml` files independently. Current source is ASCII/LF; CR/CRLF input normalizes to LF; complete source limit is 61,440 bytes.
 
-## Optional: publish to your own PHP site
+## Optional: publish to a standard endpoint
 
-1. Upload the separate SEE64YOU PHP site package to an **empty/disposable** PHP 8.1+ hosting directory, including hidden access-control files. Ensure `data/` is blocked from direct web access and the server can write its configuration, `pages/` and `posts/`.
-2. Open `start.php`, then `setup.php` in a modern browser. Complete setup; use `pair.php` **over HTTPS** to provision a dedicated publishing key.
-3. Run `S64CFG.PRG`. Configure the site-folder URL (without `api.php`) and dedicated key, and confirm `SETTINGS SAVED AND VERIFIED`. Direct firmware-1.1 publishing accepts an explicit `http://` URL and port 1–65535; its content is **unencrypted**. Enable the explicit HTTP consent only when appropriate. Do not put your site login password into the C64U Publisher.
-4. Save the page in Editor and exit. Launch `S64PUB.PRG`, press **L** to load its `.8tml` file, **2** to test the key, **T** to select page/post, and **4** to select draft/published. Press **3** to publish; a first upload asks for a remote slug. Wait for the success message before closing.
-5. Check the public page in a modern browser. For an existing remote item, the Publisher can select page/post with **6**/**7** and save its source under a **new** local name with **D**. Reopen the downloaded source in Editor. Never assume a document was updated merely because the Publisher exited successfully.
+The native client targets the **26 October 2026 API 1 test draft**. Independent-server acceptance is still required before release.
 
-The Publisher also exposes remote deletion; it is not necessary for ordinary first-page publishing. Use it only when certain of the remote document. Authentication prevents unauthorized writes and replay but does **not** keep HTTP source private. Public HTML currently supports only a subset of the 8TML language. Publishing to T8WN or other external services is not yet supported.
+1. Obtain a dedicated standard publishing key file from your server through its HTTPS interface. Copy it as `8TMLKEY.TXT` into the selected `SEE64YOU` folder. Do not use an ordinary account password or the old key-only `SEE64KEY.TXT`.
+2. Launch `S64CFG.PRG`: **I** imports the standard key, **H** changes HTTP consent, **T** validates configuration and **S** saves. Check the endpoint and ID; the secret stays hidden. A new import clears previous HTTP consent. Source sent over HTTP is not confidential; HTTPS is never silently downgraded.
+3. Save your source in Editor, exit and launch `S64PUB.PRG`. Press **L** to load the local `.8tml` file and **N** to choose its remote relative path, such as `index.8tml`.
+4. Press **P**. Publisher checks server limits and existing filenames, displays the endpoint/path, then asks to publish or explicitly replace. Uploaded files are public. The standard has no conditional-write protection against concurrent writers.
+5. Wait for the reported URL and any server warning. After an uncertain outcome, inspect the remote file before trying again. Press **R** to reload saved Settings or **T** to test the endpoint. RUN/STOP returns to BASIC.
 
+Publisher does not provide remote editing, deletion, page/post categories or draft visibility. Keep unpublished drafts as local files and read public source through an external compatible 8TML browser. See [protocol](PROTOCOL.md) for transport limits.
 ## Troubleshooting
 
 - **Missing UCI/REU:** verify the Ultimate settings above; power-cycle only as instructed by the hardware, and recheck.
 - **File not found:** check the selected SD/USB mount and exact folder/filename. The application does not search another device.
-- **Key or connection failure:** verify the site URL, port, HTTPS pairing, dedicated key, explicit HTTP consent and C64U network access. No silent HTTPS downgrade is supported.
+- **Key or connection failure:** verify the endpoint URL, port, key ID, dedicated standard key, explicit HTTP consent and C64U network access. No silent HTTPS downgrade is supported.
 - **USB corruption/readback mismatch:** do not execute or trust the copied program. Verify package hashes and readback. USB hardware acceptance remains incomplete on the tested firmware.
 - **Unexpected exit or failed save:** preserve `.tmp`/recovery files, note the error and keep the original source backed up.

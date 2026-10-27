@@ -11,18 +11,26 @@
 #define SOURCE_EXTENSION ".s64"
 #endif
 
+enum { FILENAME_EXACT, FILENAME_SAVE_AS, FILENAME_OPEN };
+
 typedef struct {
     S64Dos* dos;
     S64DosResult result;
 } S64LocalWriteSink;
 
-static uint8_t filename_copy(char* destination, const char* filename, uint8_t add_extension)
+static uint8_t filename_copy(char* destination, const char* filename, uint8_t mode)
 {
-    uint8_t length = 0u;
+    /* Synchronous storage calls share this counter to keep cc65 stack/code fit. */
+    static uint8_t length;
     uint8_t basename = 0u;
     uint8_t has_extension = 0u;
     char value;
 
+#ifndef S64_DOCUMENT_8TML
+    /* Extensionless legacy files retain their exact filename. */
+    if (mode == FILENAME_OPEN) mode = FILENAME_EXACT;
+#endif
+    length = 0u;
     if (destination == 0 || filename == 0 || filename[0] == '\0') return 0u;
 
     while ((value = filename[length]) != '\0') {
@@ -40,7 +48,7 @@ static uint8_t filename_copy(char* destination, const char* filename, uint8_t ad
     }
 
     strcpy(destination, filename);
-    if (add_extension) {
+    if (mode != FILENAME_EXACT) {
         if (basename == length) return 0u;
         if (!has_extension) {
             if (length > S64_LOCAL_FILENAME_CAPACITY - sizeof(SOURCE_EXTENSION)) return 0u;
@@ -49,7 +57,7 @@ static uint8_t filename_copy(char* destination, const char* filename, uint8_t ad
     }
 #ifdef S64_DOCUMENT_8TML
     /* Enforce the new-source suffix while allowing Open of retained .tmp files. */
-    if (add_extension) {
+    if (mode == FILENAME_SAVE_AS) {
         const char* extension = SOURCE_EXTENSION;
         uint8_t position;
         uint8_t ascii;
@@ -275,7 +283,7 @@ S64LocalResult s64_local_open(
 
     if (local == 0 || local->dos == 0 || local->document == 0
         || local->document->body == 0
-        || !filename_copy(checked_filename, filename, 0u)) {
+        || !filename_copy(checked_filename, filename, FILENAME_OPEN)) {
         return S64_LOCAL_INVALID_ARGUMENT;
     }
     if (!discard_dirty) return S64_LOCAL_DIRTY;

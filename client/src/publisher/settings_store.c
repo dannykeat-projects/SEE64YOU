@@ -351,6 +351,18 @@ static S64SettingsStoreResult save_named(
         ? S64_SETTINGS_STORE_OK : S64_SETTINGS_STORE_VERIFY_ERROR;
 }
 
+S64SettingsStoreResult s64_settings_publish_store_load(
+    S64Dos* dos, S64SettingsExchange* settings)
+{
+    S64SettingsStoreResult result = load_named(dos, S64_PACKAGE_DIRECTORY,
+        S64_SETTINGS_FILENAME, settings);
+    if (result == S64_SETTINGS_STORE_OK
+        && settings->destination_type != S64_DESTINATION_STANDARD
+        && settings->destination_type != S64_DESTINATION_NONE)
+        return S64_SETTINGS_STORE_INVALID;
+    return result;
+}
+
 S64SettingsStoreResult s64_settings_store_load(
     S64Dos* dos,
     S64SettingsExchange* settings

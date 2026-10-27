@@ -67,6 +67,6 @@ invalid:
 
 int s64_publish_reply_finish(const S64PublishReplyReader* reader)
 {
-    return reader && !reader->failed && reader->saw_status
+    return reader != 0 && !reader->failed && reader->saw_status
         && reader->length == 0u;
 }

@@ -143,7 +143,7 @@ cc -std=c99 -Wall -Wextra -Werror -ffunction-sections -Wl,--gc-sections \
 "$TMP_BIN"
 
 echo "== Host editor tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/editor_test.c client/src/buffer.c client/src/history.c client/src/clipboard.c client/src/editor.c client/src/editor_format.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/editor_test.c client/src/buffer.c client/src/history.c client/src/clipboard.c client/src/editor.c client/src/editor_format.c client/src/charset.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host Editor menu tests (historical and independent) =="
@@ -200,6 +200,19 @@ cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
     client/tests/standard_request_test.c client/src/publisher/standard_request.c \
     client/src/publisher/standard_publish_names.c -o "$TMP_BIN"
 "$TMP_BIN"
+
+echo "== Standard transport and DOS path tests =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/standard_transport_test.c client/src/publisher/standard_transport.c \
+    client/src/publisher/standard_request.c client/src/publisher/standard_reply.c \
+    client/src/publisher/standard_publish.c client/src/publisher/standard_publish_names.c \
+    client/src/publisher/direct_auth.c client/src/publisher/direct_key.c \
+    client/src/crypto/sha256.c client/src/charset.c -o "$TMP_BIN"
+"$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/dos_path_test.c client/src/platform/dos_path.c client/src/charset.c -o "$TMP_BIN"
+"$TMP_BIN"
+python3 tools/tests/standard_publish_fixture_test.py
 
 echo "== Host C64U platform requirement tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
@@ -496,7 +509,7 @@ cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
 
 echo "== Host publisher settings persistence tests =="
 cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
-    client/tests/publisher_settings_store_test.c \
+    client/tests/publisher_settings_store_test.c client/src/publisher/standard_key_store.c client/src/publisher/standard_keyfile.c client/src/publisher/standard_publish_names.c client/src/publisher/direct_key.c \
     client/src/charset.c client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c client/src/publisher/settings_store.c \
     -o "$TMP_BIN"
 "$TMP_BIN"

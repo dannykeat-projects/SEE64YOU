@@ -1,41 +1,36 @@
-# 8TML publishing service contract
+# Standard 8TML publishing protocol
 
-The independent Publisher communicates with the **optional SEE64YOU self-hosted PHP service**. This transport is not part of the 8TML format or a T8WN publishing API. The source remains a standalone `.8tml` document.
+The independent Publisher targets the **8TML publishing API 1 test draft dated 26 October 2026**. The API is experimental. Independent-server interoperability is a separate acceptance gate; passing a disposable test endpoint does not establish conformance.
 
-## Stored document
+## Credentials and transport
 
-Authenticated `POST api.php?action=save&ack=1` accepts JSON fields `type` (`page`/`post`), `slug`, `status` (`draft`/`published`), and `raw8tml` (the complete source, including header). Optional `date` and `order` update stored metadata only when supplied; omission preserves existing values, or uses defaults for new records. The native Publisher omits both. Type, slug, status, date and order are **service metadata**, not inserted into the source.
+Settings imports `8TMLKEY.TXT` from the selected application's folder. It contains ASCII `8tml-publish: 1`, `url:`, `id:` and a 64-hex-digit `key:`. Unknown fields are ignored; malformed, duplicate or missing required fields are rejected. Import replaces all three fields together and clears HTTP consent. The secret is never displayed. Save validates temporary and final configuration readback; failed final rename can leave the complete temporary record for recovery.
 
-Source must be ASCII/LF, at most 61,440 bytes, and contain a closed 8TML version-1 header whose first metadata key is `8tml: 1`. Reject invalid source without changing the stored record. The PHP service bounds the complete incoming HTTP body to 128 KiB, and caps outstanding unexpired challenges at 128.
+A standard destination is explicitly tagged in the existing configuration record. Its otherwise unused relay field holds the key ID; legacy destinations are never silently treated as standard credentials. Existing local documents and legacy configuration are not rewritten by importing a key until the user saves.
 
-Documents are single guarded JSON/PHP snapshots under `pages/SLUG.8tml.php` or `posts/SLUG.8tml.php`. Each contains exact source and metadata together; temporary writes are renamed under a persistent type-level `.documents.lock`. Neither the guarded file nor the JSON envelope is a source format. Public HTML is currently limited to the safely escaped supported subset of 8TML.
+Direct transport uses UCI Network `$03`, HTTP/1.0 and HMAC-SHA256. Source is unencrypted and uploaded files are public. Explicit HTTP consent is required. HTTPS credentials can be retained but the native transport refuses HTTPS without downgrading it. Provision and revoke credentials through the independent server's HTTPS interface.
 
-## Read and list
+## Requests
 
-- Authenticated `GET api.php?action=get&type=page&slug=example&format=8tml` exports the exact source as `text/8tml; charset=us-ascii`, with a `.8tml` attachment name, `Cache-Control: no-store` and required `X-See64You-Status` (`draft` or `published`).
-- Without `format=8tml`, GET returns document JSON metadata including `raw8tml`.
-- List via `GET api.php?action=list&type=page&source=8tml` (or `post`) filters to supported source records. The native client uses bounded summaries and validates remote identity before updating or deleting.
-- Protected `POST api.php?action=delete` removes the selected type/slug. Deletion is not required for the core publishing workflow.
-- Public site pages display **published** content only. Draft previews must remain authenticated/no-store.
+- `GET ?op=status`: require API 1, supported HMAC authentication and a valid advertised maximum size.
+- `POST ?op=challenge&id=ID`: empty body, a fresh single-use 32-hex challenge.
+- `POST ?op=list&id=ID&size=0&c=CHALLENGE`: authenticate the empty content, scan bounded `file: SIZE NAME` lines for the chosen path.
+- `POST ?op=put&id=ID&name=NAME&size=N&c=CHALLENGE`: exactly N source bytes followed by 64 lowercase signature digits; `Content-Length` is N+64.
 
-## Authentication and transport
-
-Use modern HTTPS `pair.php` to provision a site-specific 256-bit direct key. The C64U obtains a one-time hex challenge with `GET api.php?action=challenge` and authenticates each protected request using `X-See64You-Challenge` and `X-See64You-Signature` (HMAC-SHA256).
-
-HMAC input is five newline-separated lines:
+The signed bytes are:
 
 ~~~text
-see64you-direct/1
-<challenge>
-<METHOD>
-<exact request URI>
-<SHA-256(body) as 64 lowercase hex characters>
+8tml-publish/1 LF OP LF ID LF CHALLENGE LF NAME LF SIZE LF CONTENT
 ~~~
 
-The server checks the key, method, URI and exact body hash and consumes accepted challenges. **Direct HTTP is not encrypted**; require explicit consent for suitable content and networks. Never send a reusable website password/bearer token over this channel or silently downgrade HTTPS. Pairing and browser administration require HTTPS outside loopback testing.
+List uses an empty NAME and canonical decimal size 0. Put signs source while streaming it once; no JSON envelope or page/post/draft metadata is sent. Reply lines are ASCII `key: value` with LF, bounded to 255 characters. Unknown fields are ignored. Required fields and HTTP framing are validated before success; errors, warnings and the reported public URL are surfaced.
 
-The native URL parser accepts DNS/IPv4 hostname plus optional decimal port 1–65535, default 80; it rejects invalid ports, credentials and header injection before connecting through Network Target `$03`. IPv6 and general TLS are not established features. Remote writes should preserve original source on connection, authentication and validation failure.
+Remote paths have at most 64 characters and use letters, digits, hyphen, underscore, dot and slash-separated nonempty segments. Dot and dot-dot segments are refused. The Publisher lowercases the chosen path before checking collisions and showing confirmation, matching standard server normalization. Local paths remain separate.
 
-## Scope
+## Replacement and failure
 
-The PHP endpoint is one optional destination. A compatible external 8TML browser can read hosted source without using this private write API. T8WN/VVV interoperability and complete source-to-HTML conformance require separate verification.
+Publisher checks the advertised size cap and requests the existing-name list before asking to publish or replace. An observed existing name requires affirmative replacement confirmation. The draft has no conditional write operation: another writer can change the destination between list and put. The UI discloses this limitation.
+
+Each signed operation requests a new challenge. Uncertain writes are never retried automatically. A disconnect after transmission can mean the server committed the file; inspect the remote result before another attempt. Local source is never modified by publication.
+
+Legacy CMS, WordPress, relay and custom JSON handlers remain in the repository pending replacement acceptance and caller tracing. They are not the independent Publisher's protocol. Prior release assets retain their original behavior.

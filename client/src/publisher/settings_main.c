@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "platform/journal_migration.h"
 #include "platform/turbo.h"
+#include "platform/dos_path.h"
 #endif
 
 #include "charset.h"
@@ -114,10 +115,14 @@ typedef struct {
 #else
 static S64SettingsExchange settings;
 static S64SettingsExchange original_settings;
+#ifndef S64_INDEPENDENT_SETTINGS
 static S64SettingsExchange profile_settings;
 #endif
+#endif
 #ifndef S64_PERSISTENT_RUNTIME_FIT
+#ifndef S64_INDEPENDENT_SETTINGS
 static S64PublishDestination checked_destination;
+#endif
 #endif
 static S64Dos dos;
 static S64UciCapabilities capabilities;
@@ -125,7 +130,9 @@ static char status_text[SCREEN_COLUMNS + 1u];
 #ifdef S64_PERSISTENT_RUNTIME_FIT
 #define relay_replacement (profile_settings.direct_key)
 #else
+#ifndef S64_INDEPENDENT_SETTINGS
 static char relay_replacement[S64_RELAY_KEY_CAPACITY];
+#endif
 #endif
 #ifdef S64_PERSISTENT_RUNTIME_FIT
 #define key_diag_scratch (*(S64PersistentKeyDiagScratch*)&s64_publisher_workspace.bytes[S64_SETTINGS_WORK_SCRATCH_OFFSET])
@@ -134,14 +141,19 @@ static char relay_replacement[S64_RELAY_KEY_CAPACITY];
 #define key_diag_close (key_diag_scratch.close)
 #define key_diag_bytes (key_diag_scratch.bytes)
 #else
+#ifndef S64_INDEPENDENT_SETTINGS
 static char key_diag_open[S64_KEY_DIAG_STATUS_CAPACITY];
 static char key_diag_read[S64_KEY_DIAG_STATUS_CAPACITY];
 static char key_diag_close[S64_KEY_DIAG_STATUS_CAPACITY];
 static uint16_t key_diag_bytes;
 #endif
+#endif
 static uint8_t advanced_view;
 #ifdef S64_INDEPENDENT_SETTINGS
 static uint8_t setup_step;
+static uint8_t original_background, original_border, original_text;
+static uint8_t original_path_valid;
+static char original_path[256], restored_path[256];
 #endif
 
 static uint8_t validate_settings(void);
@@ -221,12 +233,14 @@ static void set_status(const char* text)
 }
 
 #ifndef S64_PERSISTENT_RUNTIME_FIT
+#ifndef S64_INDEPENDENT_SETTINGS
 static const char* destination_name(void)
 {
     if (settings.destination_type == (uint8_t)S64_DESTINATION_STANDALONE) return "Standalone";
     if (settings.destination_type == (uint8_t)S64_DESTINATION_WORDPRESS) return "WordPress";
     return "None";
 }
+#endif
 
 static void print_value(unsigned char row, const char* label, const char* value)
 {
@@ -245,6 +259,25 @@ static void print_value(unsigned char row, const char* label, const char* value)
 
 static void render_basic(void)
 {
+#ifdef S64_INDEPENDENT_SETTINGS
+    clrscr();
+    revers(1); cputs(" SEE64YOU PUBLISHING SETTINGS          "); revers(0);
+    print_value(3u, "Endpoint: ", settings.destination_type == S64_DESTINATION_STANDARD
+        ? settings.base_url : "(import a standard key file)");
+    print_value(6u, "Key ID: ", s64_settings_publish_id(&settings));
+    print_value(8u, "Secret: ", settings.destination_type == S64_DESTINATION_STANDARD
+        ? "configured (hidden)" : "not configured");
+    print_value(10u, "Unencrypted HTTP: ", settings.allow_insecure_http ? "allowed" : "blocked");
+    gotoxy(0u, 13u); cputs("I IMPORT 8TMLKEY.TXT");
+    gotoxy(0u, 14u); cputs("H CHANGE HTTP CONSENT");
+    gotoxy(0u, 15u); cputs("D DISABLE PUBLISHING");
+    gotoxy(0u, 17u); cputs("T CHECK CONFIGURATION");
+    gotoxy(0u, 18u); cputs("S SAVE + RETURN");
+    gotoxy(0u, 19u); cputs("RUN/STOP CANCEL + RETURN");
+    gotoxy(0u, 21u); cputs("HTTP exposes document text.\r\nProvision/revoke keys over HTTPS.");
+    print_value(STATUS_ROW, "", status_text);
+#else
+
     const char* publishing;
 
     clrscr();
@@ -276,8 +309,10 @@ static void render_basic(void)
     clear_row(STATUS_ROW);
     gotoxy(0u, STATUS_ROW);
     revers(1); cputs(status_text); revers(0);
+#endif
 }
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static void render_advanced(void)
 {
     clrscr();
@@ -310,10 +345,12 @@ static void render_advanced(void)
     gotoxy(0u, STATUS_ROW);
     revers(1); cputs(status_text); revers(0);
 }
+#endif
 
 #endif
 
 #ifdef S64_INDEPENDENT_SETTINGS
+#ifndef S64_INDEPENDENT_SETTINGS
 static void render_setup(void)
 {
     clrscr();
@@ -335,6 +372,7 @@ static void render_setup(void)
     print_value(STATUS_ROW, "", status_text);
 }
 #endif
+#endif
 
 #ifdef S64_INDEPENDENT_SETTINGS
 typedef struct {
@@ -342,6 +380,7 @@ typedef struct {
     S64SystemState system;
 } S64SettingsMigrationRuntime;
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static uint8_t migration_restore(void* context,
     const S64SystemSnapshot* snapshot)
 {
@@ -349,14 +388,18 @@ static uint8_t migration_restore(void* context,
     return s64_system_state_adopt(&runtime->system, snapshot) == S64_SYSTEM_OK
         && s64_system_state_restore(&runtime->system) == S64_SYSTEM_OK;
 }
+#endif
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static uint8_t migration_verify(void* context,
     const S64SystemSnapshot* snapshot)
 {
     S64SettingsMigrationRuntime* runtime = (S64SettingsMigrationRuntime*)context;
     return runtime->system.backend.verify(&runtime->turbo, snapshot);
 }
+#endif
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static void migrate_session_files(void)
 {
     S64SettingsMigrationRuntime runtime;
@@ -403,13 +446,13 @@ static void migrate_session_files(void)
     while ((unsigned char)cgetc() != CH_ENTER) { }
 }
 #endif
+#endif
 
 static void render(void)
 {
 #ifdef S64_INDEPENDENT_SETTINGS
-    if (setup_step) { render_setup(); return; }
-#endif
-#ifdef S64_PERSISTENT_RUNTIME_FIT
+    render_basic();
+#elif defined(S64_PERSISTENT_RUNTIME_FIT)
     if (!s64_persistent_settings_screen(
             &settings,
             advanced_view,
@@ -426,13 +469,16 @@ static void render(void)
 #endif
 }
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static uint8_t printable(unsigned char key)
 {
     uint8_t ascii;
     return s64_charset_native_to_ascii(key, &ascii)
         && ascii >= 0x20u && ascii <= 0x7eu;
 }
+#endif
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static unsigned char edit_text(
     const char* label,
     char* value,
@@ -488,7 +534,9 @@ static unsigned char edit_text(
         }
     }
 }
+#endif
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static void edit_site_url(void)
 {
     if (edit_text(
@@ -504,7 +552,9 @@ static void edit_site_url(void)
         set_status("Website updated; S to save");
     }
 }
+#endif
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static void replace_direct_key(void)
 {
     relay_replacement[0] = '\0';
@@ -532,6 +582,7 @@ static void replace_direct_key(void)
     }
     memset(relay_replacement, 0, sizeof(relay_replacement));
 }
+#endif
 
 static void toggle_plain_http(void)
 {
@@ -572,6 +623,7 @@ static void check_settings(void)
     if (validate_settings()) set_status("Settings are valid");
 }
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static void choose_destination(void)
 {
     unsigned char key;
@@ -600,6 +652,7 @@ static void choose_destination(void)
     revers(0);
     set_status("Destination type changed");
 }
+#endif
 
 static uint8_t validate_values(S64SettingsExchange* target)
 {
@@ -617,8 +670,17 @@ static uint8_t validate_values(S64SettingsExchange* target)
     }
     return 0u;
 #else
+#ifndef S64_INDEPENDENT_SETTINGS
     S64DestinationResult result;
+#endif
 
+#ifdef S64_INDEPENDENT_SETTINGS
+    if (target != 0 && (target->destination_type == S64_DESTINATION_STANDARD
+        || target->destination_type == S64_DESTINATION_NONE)
+        && s64_settings_exchange_values_valid(target)) return 1u;
+    set_status("Import a standard key file first");
+    return 0u;
+#else
     if (target == 0) return 0u;
     if (target->destination_type == (uint8_t)S64_DESTINATION_NONE) {
         target->base_url[0] = '\0';
@@ -648,6 +710,7 @@ static uint8_t validate_values(S64SettingsExchange* target)
     }
     return 1u;
 #endif
+#endif
 }
 
 static uint8_t validate_settings(void)
@@ -655,6 +718,7 @@ static uint8_t validate_settings(void)
     return validate_values(&settings);
 }
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static uint8_t choose_profile_slot(void)
 {
     unsigned char key;
@@ -676,7 +740,9 @@ static uint8_t choose_profile_slot(void)
         }
     }
 }
+#endif
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static void load_profile(void)
 {
     uint8_t slot;
@@ -735,7 +801,9 @@ static void load_profile(void)
     }
 #endif
 }
+#endif
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static void save_profile(void)
 {
     uint8_t slot;
@@ -780,8 +848,10 @@ static void save_profile(void)
     }
 #endif
 }
+#endif
 
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static uint8_t diag_count_bytes(
     const uint8_t* data,
     uint16_t length,
@@ -793,7 +863,9 @@ static uint8_t diag_count_bytes(
     *count = (uint16_t)(*count + length);
     return 1u;
 }
+#endif
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static void diag_copy_status(
     char* destination,
     const char* source,
@@ -811,7 +883,9 @@ static void diag_copy_status(
     destination[copy] = '\0';
     if (copy == 0u) strcpy(destination, "(empty)");
 }
+#endif
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static void diagnose_direct_key_io(void)
 {
     static const char filename[] = S64_DIRECT_KEY_FILENAME;
@@ -880,7 +954,9 @@ static void diagnose_direct_key_io(void)
     (void)s64_uci_execute(&part, 1u, &reply);
     diag_copy_status(key_diag_close, status, reply.status_length);
 }
+#endif
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static void show_direct_key_diagnostics(void)
 {
     char number[6];
@@ -906,8 +982,10 @@ static void show_direct_key_diagnostics(void)
     cputs("PRESS A KEY TO RETURN");
     cgetc();
 }
+#endif
 
 
+#ifndef S64_INDEPENDENT_SETTINGS
 static void show_system_diagnostics(void)
 {
     uint16_t banks;
@@ -945,9 +1023,24 @@ static void show_system_diagnostics(void)
         show_direct_key_diagnostics();
     }
 }
+#endif
 
 static void import_direct_key(void)
 {
+#ifdef S64_INDEPENDENT_SETTINGS
+    S64SettingsStoreResult result;
+    if (!capabilities.dos_target) {
+        set_status("Settings storage unavailable");
+        return;
+    }
+    result = s64_settings_import_publish_key(&dos, &settings);
+    if (result == S64_SETTINGS_STORE_OK) set_status("Imported; review HTTP consent then save");
+    else if (result == S64_SETTINGS_STORE_NOT_FOUND) set_status("8TMLKEY.TXT not found in app folder");
+    else if (result == S64_SETTINGS_STORE_INVALID) set_status("Standard key file invalid; unchanged");
+    else set_status("Key import failed; settings unchanged");
+    return;
+#else
+
     if (!capabilities.dos_target) {
         set_status("Settings storage unavailable");
         return;
@@ -996,12 +1089,23 @@ static void import_direct_key(void)
         memset(relay_replacement, 0, sizeof(relay_replacement));
     }
 #endif
+#endif
 }
 
 #ifndef S64_PERSISTENT_RUNTIME_FIT
 static void return_to_publisher(void)
 {
 #ifdef S64_INDEPENDENT_SETTINGS
+    if (original_path_valid
+        && (s64_dos_change_dir(&dos, original_path) != S64_DOS_OK
+            || s64_dos_get_path(&dos, restored_path, sizeof(restored_path)) != S64_DOS_OK
+            || strcmp(original_path, restored_path) != 0)) {
+        set_status("DOS restore failed; STOP retries exit");
+        return;
+    }
+    bgcolor(original_background);
+    bordercolor(original_border);
+    textcolor(original_text);
     cursor(1);
     exit(0);
 #elif defined(S64_MANAGED_OVERLAY)
@@ -1212,9 +1316,15 @@ int main(void)
     unsigned char have_exchange;
 #endif
 
+#ifdef S64_INDEPENDENT_SETTINGS
+    original_background = bgcolor(COLOR_BLUE);
+    original_border = bordercolor(COLOR_BLUE);
+    original_text = textcolor(COLOR_LIGHTBLUE);
+#else
     bgcolor(COLOR_BLUE);
     bordercolor(COLOR_BLUE);
     textcolor(COLOR_LIGHTBLUE);
+#endif
     clrscr();
     cursor(0);
 
@@ -1246,15 +1356,26 @@ int main(void)
 #else
     if (!s64_reu_probe() || s64_reu_probe_banks() < 2u) {
         cputs("SEE64YOU SETTINGS\r\n128K REU REQUIRED\r\n");
+#ifdef S64_INDEPENDENT_SETTINGS
+        bgcolor(original_background);
+        bordercolor(original_border);
+        textcolor(original_text);
+        cursor(1);
+#endif
         return 1;
     }
 
     s64_dos_init(&dos, s64_uci_execute, S64_DOS_TARGET_PRIMARY);
 #ifdef S64_INDEPENDENT_SETTINGS
     s64_uci_probe_capabilities(&capabilities);
+    if (capabilities.dos_target) {
+        original_path_valid = s64_dos_get_path(&dos, original_path,
+            sizeof(original_path)) == S64_DOS_OK;
+        if (!original_path_valid) capabilities.dos_target = 0u;
+    }
     s64_settings_exchange_init(&settings);
     if (capabilities.dos_target) {
-        S64SettingsStoreResult result = s64_settings_store_load(&dos, &settings);
+        S64SettingsStoreResult result = s64_settings_publish_store_load(&dos, &settings);
         if (result != S64_SETTINGS_STORE_OK || !validate_settings()) {
             s64_settings_exchange_init(&settings);
         }
@@ -1287,56 +1408,33 @@ int main(void)
 #endif
 #endif
 
+#ifndef S64_INDEPENDENT_SETTINGS
     s64_uci_probe_capabilities(&capabilities);
+#endif
 #ifndef S64_PERSISTENT_RUNTIME_FIT
     original_settings = settings;
 #endif
     advanced_view = 0u;
     status_text[0] = '\0';
 #ifdef S64_INDEPENDENT_SETTINGS
-    setup_step = settings.base_url[0] && settings.direct_key[0] ? 0u : 1u;
+    if (!original_path_valid) set_status("DOS path not captured; storage blocked");
+    setup_step = 0u;
 #endif
     for (;;) {
         render();
         key = (unsigned char)cgetc();
 
 #ifdef S64_INDEPENDENT_SETTINGS
-        if (key == 'm' || key == 'M') {
-            migrate_session_files();
-            continue;
-        }
-        if (setup_step) {
-            if (key == CH_STOP) cancel_and_return();
-            else if (key == 'w' || key == 'W') setup_step = 0u;
-            else if ((key == 'b' || key == 'B') && setup_step > 1u) --setup_step;
-            else if (key == '1') {
-                if (setup_step == 1u) edit_site_url();
-                else if (setup_step == 2u) import_direct_key();
-                else toggle_plain_http();
-            } else if (key == '2' && setup_step == 2u) replace_direct_key();
-            else if (key == 'n' || key == 'N') {
-                if (setup_step == 1u) {
-                    if (settings.base_url[0]) ++setup_step;
-                    else set_status("Enter your website first");
-                } else if (setup_step == 2u) {
-                    if (settings.direct_key[0] && s64_settings_exchange_values_valid(&settings)) ++setup_step;
-                    else set_status("Import or enter a valid key first");
-                }
-            } else if ((key == 's' || key == 'S') && setup_step == 3u) {
-                if (settings.destination_type != (uint8_t)S64_DESTINATION_STANDALONE
-                    || !settings.base_url[0] || !settings.direct_key[0]) {
-                    set_status("Direct site and key required");
-                } else if (!settings.allow_insecure_http) {
-                    set_status("HTTP consent required; or use Advanced");
-                } else {
-                    print_value(STATUS_ROW, "", "Saving...");
-                    save_and_return();
-                }
-            }
-            continue;
-        }
-#endif
-
+        if (key == 'i' || key == 'I') import_direct_key();
+        else if (key == 'h' || key == 'H') toggle_plain_http();
+        else if (key == 't' || key == 'T') check_settings();
+        else if (key == 'd' || key == 'D') {
+            s64_settings_exchange_init(&settings);
+            set_status("Publishing disabled; S to save");
+        } else if (key == 's' || key == 'S') save_and_return();
+        else if (key == CH_STOP) cancel_and_return();
+        continue;
+#else
         if (!advanced_view) {
             if (key == '1') {
                 edit_site_url();
@@ -1417,6 +1515,7 @@ int main(void)
         } else if (key == CH_STOP) {
             cancel_and_return();
         }
+#endif
     }
     return 0;
 }
