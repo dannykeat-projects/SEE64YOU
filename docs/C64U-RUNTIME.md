@@ -4,9 +4,9 @@
 
 ## Program and package boundaries
 
-Editor (`SEE64YOU.PRG` through its launcher/internal overlays), Publisher (`S64PUB.PRG`) and Settings (`S64CFG.PRG`) launch independently and return to BASIC. No cross-program live editing session or REU handoff. The shipped eleven-file package currently also contains a standalone site browser program that is not an 8TML reader. Do not delete it or change launcher manifests/preloads until callers and release tests are verified. Publisher and launcher must retain at least 1,024 bytes of measured headroom; preserve Editor overlay and resident-RAM fit checks.
+Editor (`SEE64YOU.PRG` through its launcher/internal overlays), Publisher (`S64PUB.PRG`) and Settings (`S64CFG.PRG`) launch independently and return to BASIC. No cross-program live editing session or REU handoff. The active independent package contains ten files and excludes the legacy browser. Install the complete matching package; retain the Editor launcher assets and manifests. Existing release assets are separate and must not be modified. Publisher and launcher must retain at least 1,024 bytes of measured headroom; preserve Editor overlay and resident-RAM fit checks.
 
-Use a complete consistently built package for one storage root. Default: `/sd/SEE64YOU/`. A forced rebuild with `STORAGE_ROOT=/Usb0/` (or the exact mounted name with trailing slash) changes embedded paths in all assets. No cross-device fallback or automatic migration is supported.
+Use a complete consistently built package for one storage root. Default: `/sd/SEE64YOU/`. A forced rebuild with `STORAGE_ROOT=/USB1/` (or the exact mounted name with trailing slash) changes embedded paths in all assets. No cross-device fallback or automatic migration is supported.
 
 ~~~text
 SEE64YOU.PRG        Editor entry
