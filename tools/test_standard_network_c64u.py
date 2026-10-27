@@ -9,14 +9,18 @@ def main():
     p.add_argument('--host',required=True)
     p.add_argument('--prg',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--status-only',action='store_true',help='Report read-only endpoint reachability, not authenticated publishing')
     a=p.parse_args()
     a.output.mkdir(parents=True,exist_ok=False)
-    state={'input':'REST-assisted; not physical keyboard','restored':False,'active':False}
+    state={'input':'REST-assisted; not physical keyboard','restored':False,'active':False,
+           'scope':'status only' if a.status_only else 'disposable fixture operations'}
     def save(): (a.output/'state.json').write_text(json.dumps(state,indent=2)+'\n')
     def api(path,method='GET',**q):
         url='http://'+a.host+'/v1/'+path
         if q: url+='?'+urllib.parse.urlencode(q)
         with urllib.request.urlopen(urllib.request.Request(url,method=method),timeout=12) as r:return r.read()
+    def capture_configs():
+        return json.dumps(json.loads(api('configs/*')),sort_keys=True).encode('utf-8')
     def mem(address,size):return api('machine:readmem',address=f'{address:04X}',length=size)
     def screen():
         b=mem(0x400,1000)
@@ -44,7 +48,9 @@ def main():
     saved_scratch=mem(827,1)
     state['scratch_827']=saved_scratch.hex();save()
     original={'irq':mem(0x314,2).hex(),'turbo':live(53297),'colours':[live(x) for x in (53280,53281,646)]}
-    drives=api('drives');configs=api('configs')
+    drives=api('drives');configs=capture_configs()
+    (a.output/'drives-before.json').write_bytes(drives)
+    (a.output/'configs-before.json').write_bytes(configs)
     state['before']=original
     data=a.prg.read_bytes();state['prg_sha256']=hashlib.sha256(data).hexdigest()
     state['source_commit']=__import__('subprocess').check_output(['git','rev-parse','HEAD'],text=True).strip()
@@ -58,7 +64,11 @@ def main():
         read=io.BytesIO();ftp.retrbinary('RETR '+remote,read.write)
         assert read.getvalue()==data,'Program readback differs'
         save();api('runners:load_prg','PUT',file=remote);time.sleep(.7)
-        keys(f"POKE53297,{original['turbo']}\r".encode());wait_ready()
+        # REST load_prg resets BASIC, including colours. Reapply the captured
+        # entry baseline before SYS so the diagnostic can restore that same state.
+        for address,value in zip((53297,53280,53281,646),[original['turbo']]+original['colours']):
+            keys(f'POKE{address},{value}\r'.encode());wait_ready()
+        assert [live(x) for x in (53280,53281,646)]==original['colours']
         # POKE returns to BASIC; clear screen so an old READY cannot certify exit.
         keys(b'\x93SYS'+entry.group(1)+b'\r');state['active']=True;save()
         deadline=time.monotonic()+180
@@ -79,7 +89,7 @@ def main():
         keys(b'\x03');wait_ready();state['active']=False
         after={'irq':mem(0x314,2).hex(),'turbo':live(53297),'colours':[live(x) for x in (53280,53281,646)]}
         assert after==original,(original,after)
-        assert api('drives')==drives and api('configs')==configs,'Configuration changed'
+        assert api('drives')==drives and capture_configs()==configs,'Configuration changed'
         keys(b'\x93PRINT 6*7\r');wait_ready();assert re.search(r'(?:^|\n)\s*42\s*(?:\n|$)',screen())
         keys(b'\x93PRINT"OK"\r');wait_ready();assert re.search(r'(?:^|\n)OK\s*(?:\n|$)',screen())
         keys(b'NEW\r');wait_ready()
@@ -95,6 +105,6 @@ def main():
                 ftp.delete(remote);ftp.rmd(folder);state['test_files_removed']=True
             ftp.quit()
         save()
-    print('PASS real C64U standard network; exact temporary PRG readback; DOS contexts, IRQ/turbo/colours/config/drives and responsive BASIC verified')
+    print('PASS real C64U '+state['scope']+'; exact temporary PRG readback; DOS contexts, IRQ/turbo/colours/config/drives and responsive BASIC verified')
 
 if __name__=='__main__':main()

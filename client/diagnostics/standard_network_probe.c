@@ -53,6 +53,9 @@ static uint8_t exercise(void)
  result=s64_standard_status(&client,&reply);
  if(result!=S64_STANDARD_OK) return (uint8_t)result;
  if(reply.max_size<24u) return 0x81u;
+#ifdef S64_STANDARD_STATUS_ONLY
+ return 0u; /* Read-only reachability gate: no challenge, key use or writes. */
+#endif
  PROGRESS=2u;
  result=s64_standard_list(&client,"codex-test.8tml",&reply);
  if(result!=S64_STANDARD_OK) return (uint8_t)result;

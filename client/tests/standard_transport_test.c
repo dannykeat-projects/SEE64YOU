@@ -79,6 +79,7 @@ S64NetResult s64_net_read(S64NetTransport* t,uint8_t handle,uint16_t maximum,S64
    if(scenario==4) return S64_NET_TRANSPORT_ERROR;
    if(scenario==5) reply("status: error\nerror: quota\nmessage: Storage full\n",403u);
    else if(scenario==6) reply("status: ok\nname: index.8tml\nsize: 25\nurl: http://example.test/index.8tml\nwarning: Converted\n",200u);
+   else if(scenario==18) reply("status: ok\nname: index.8tml\nsize: 24\nurl: http://example.test/@keato/index.8tml\n",200u);
    else if(scenario==15) reply("status: ok\nname: index.8tml\nsize: 24\nurl: http://user@example.test/index.8tml\n",200u);
    else if(scenario==7) reply("status: ok\nname: index.8tml\nsize: 24\n",200u);
    else reply("status: ok\nname: index.8tml\nsize: 24\nurl: http://example.test/index.8tml\n",200u);
@@ -123,6 +124,7 @@ int main(void)
  reset(13); count=0u; assert(s64_standard_put(&client,"index.8tml",24u,writer,&count,&result)==S64_STANDARD_OK); assert(result.warning && !strcmp(result.message,"Published, socket close failed")); assert(opens==closes);
  reset(14); assert(s64_standard_list(&client,"index.8tml",&result)==S64_STANDARD_OK); assert(result.exists); assert(opens==closes);
  reset(15); count=0u; assert(s64_standard_put(&client,"index.8tml",24u,writer,&count,&result)==S64_STANDARD_UNCERTAIN); assert(opens==closes);
+ reset(18); count=0u; assert(s64_standard_put(&client,"index.8tml",24u,writer,&count,&result)==S64_STANDARD_OK); assert(!strcmp(result.url,"http://example.test/@keato/index.8tml")); assert(opens==closes);
  reset(16); count=0u; assert(s64_standard_put(&client,"index.8tml",24u,writer,&count,&result)==S64_STANDARD_NETWORK); assert(count==1u && !put_count); assert(opens==closes);
  reset(17); count=0u; assert(s64_standard_put(&client,"index.8tml",24u,writer,&count,&result)==S64_STANDARD_UNCERTAIN); assert(count==1u && !put_count); assert(opens==closes);
  reset(0); client.url="http://user@example.test:8080/publish"; assert(s64_standard_status(&client,&result)==S64_STANDARD_INVALID); assert(!opens);

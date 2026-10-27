@@ -90,7 +90,7 @@ static int url_valid(const char* url, uint8_t public_url)
   ch=*cursor++;
   if (!((ch>='a' && ch<='z') || (ch>='A' && ch<='Z')
    || (ch>='0' && ch<='9')
-   || strchr("/-._~!$&'()*+,;=:%[]^`{|}",ch)
+   || strchr("/@-._~!$&'()*+,;=:%[]^`{|}",ch)
    || (public_url && (ch=='?' || ch=='#')))) return 0;
  }
  return 1;

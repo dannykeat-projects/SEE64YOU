@@ -25,6 +25,8 @@ The signed bytes are:
 
 List uses an empty NAME and canonical decimal size 0. Put signs source while streaming it once; no JSON envelope or page/post/draft metadata is sent. Reply lines are ASCII `key: value` with LF, bounded to 255 characters. Unknown fields are ignored. Required fields and HTTP framing are validated before success; errors, warnings and the reported public URL are surfaced.
 
+Returned public URLs may contain `@` in the path (for example `/@keato/index.8tml`); this does not permit user credentials in the URL authority.
+
 Remote paths have at most 64 characters and use letters, digits, hyphen, underscore, dot and slash-separated nonempty segments. Dot and dot-dot segments are refused. The Publisher lowercases the chosen path before checking collisions and showing confirmation, matching standard server normalization. Local paths remain separate.
 
 ## Replacement and failure

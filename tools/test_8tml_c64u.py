@@ -183,7 +183,7 @@ def main():
     colours = [live(a) for a in (53280, 53281, 646)]
     irq = mem(0x314, 2)
     drives = api("drives")
-    configs = api("configs")
+    configs = api("configs/*")
     (out / "info-before.json").write_bytes(api("info"))
     (out / "drives-before.json").write_bytes(drives)
     (out / "configs-before.json").write_bytes(configs)
@@ -269,6 +269,9 @@ def main():
         api("runners:load_prg", "PUT", file=folder + "/" + name)
         time.sleep(.6)
         setlive(53297, prior)
+        # REST load_prg resets BASIC colours before entering the application.
+        for address, value in zip((53280, 53281, 646), colours):
+            setlive(address, value)
         state["active"] = True
         save()
         keys(b"SYS" + entry.group(1) + b"\r")
@@ -526,7 +529,7 @@ def main():
                     setlive(address, value)
                 assert live(53297) == prior
                 assert [live(a) for a in (53280, 53281, 646)] == colours
-                assert mem(0x314, 2) == irq and api("drives") == drives and api("configs") == configs
+                assert mem(0x314, 2) == irq and api("drives") == drives and api("configs/*") == configs
                 basic("restored-basic")
                 api("machine:writemem", "PUT", address="033B", data=scratch.hex())
                 keys(b"NEW\r")
