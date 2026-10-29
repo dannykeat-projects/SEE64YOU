@@ -10,6 +10,7 @@
 #include "platform/package_paths.h"
 #include "publisher/settings_store.h"
 #include "publisher/standard_transport.h"
+#include "publisher/local_picker.h"
 #include "publisher/standard_publish_names.h"
 
 static S64Buffer body;
@@ -58,7 +59,7 @@ static void render(void)
     put_text(8u, "SERVER", 39u);
     put_text(9u, s64_settings_publish_id(&settings)[0] ? settings.base_url : "Import key in S64CFG.PRG", 39u);
 
-    draw_action(11u, "[1] CHOOSE LOCAL FILE");
+    draw_action(11u, "[1] BROWSE LOCAL FILES");
     draw_action(13u, "[2] SET REMOTE NAME");
     draw_action(15u, "[3] PUBLISH / REPLACE");
     draw_action(17u, "[4] TEST CONNECTION");
@@ -159,6 +160,7 @@ int main(void)
 {
     unsigned char key;
     S64LocalResult result;
+    uint8_t selection;
     old_background = bgcolor(COLOR_BLUE);
     old_border = bordercolor(COLOR_BLUE);
     old_text = textcolor(COLOR_LIGHTBLUE);
@@ -191,9 +193,15 @@ int main(void)
             if (key == 'r' || key == 'R') load_settings();
             else if (key == '1' || key == 'l' || key == 'L') {
                 if (!capabilities.dos_target) { message("C64U DOS unavailable"); continue; }
-                if (!input("OPEN .8TML:", prompt, S64_LOCAL_FILENAME_CAPACITY)) continue;
                 if (s64_dos_change_dir(&dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK) {
                     message("Storage not ready"); continue;
+                }
+                selection = s64_local_pick(&dos, prompt, sizeof(prompt));
+                if (!selection) continue;
+                if (selection == 2u || selection == 3u) {
+                    if (!input(selection == 3u ? "LIST ERROR. TYPE .8TML:"
+                                               : "OPEN .8TML:",
+                               prompt, S64_LOCAL_FILENAME_CAPACITY)) continue;
                 }
                 result = s64_local_open(&local, prompt, 1u);
                 loaded = result == S64_LOCAL_OK;
