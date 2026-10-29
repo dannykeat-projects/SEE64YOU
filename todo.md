@@ -56,7 +56,7 @@
 
 - [x] Implement a compact numbered keyboard home screen and numbered publish/replace confirmation without changing standard network/storage paths (PR #66). **Code committed; build, fit, VICE and C64U tests are unverified.** Legacy letter shortcuts remain available.
 - [ ] Build/test the modified Publisher and its matching SD/USB packages, check >=1,024-byte Publisher/launcher headroom, and validate actual number keys, confirmation/cancellation and BASIC/DOS restoration before calling the UI accepted.
-- [ ] Implement a small bounded Ultimate-DOS local .8tml file selector with six numbered rows, folders, type-name fallback, safe configured-root paths and error handling. Reuse in Editor Open only if practical and measurably worthwhile.
+- [x] **Initial local picker coded:** bounded Ultimate-DOS OPEN_DIR/READ_DIR module, six numbered `.8tml` rows, paging and manual-name fallback. Host GCC directory-parser and picker tests pass (mock UCI); the new modules are Publisher-only. **C64 compilation, fit, VICE and hardware remain unverified**, so this is not a completed release gate. Folder traversal remains deferred to avoid unnecessary complexity.
 - [ ] Add a bounded server-name selector using the **existing** standard authenticated list parser. Choosing an entry sets only the remote target; retain manual entry and fresh-list explicit replacement confirmation.
 - [ ] Optional: reuse a *small* portion of Editor mouse/joystick code for clickable numbered rows **only if measured fit and hardware reliability allow**. Keyboard-only operation is sufficient for release.
 - [ ] Exercise focused host/VICE and exact real-C64U input, storage, server and restoration acceptance with the new file controls. No automatic retries of uncertain uploads.
