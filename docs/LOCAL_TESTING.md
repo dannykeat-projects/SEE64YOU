@@ -58,6 +58,8 @@ The disposable automated Editor/storage gate is:
 python3 tools/test_8tml_c64u.py --host C64U_IP --output client/build/NEW-RECEIPT --reference-tools PATH
 ~~~
 
+For focused native storage checks, add `--storage-only`; this retains package readback, app-folder backup and DOS/machine restoration but skips shipping Editor UI acceptance. Add `--source-benchmark` to check exact 1/16/60 KiB open/save/reopen sources and record native `clock()` ticks plus `CLOCKS_PER_SEC`. Those timings include source codec and DOS work, exclude shipping UI/startup, and do not establish a speedup without a comparable baseline. The extra timing scratch is captured and restored.
+
 Use a matching `--package-dir`/`--storage-root` where needed. It stages and verifies a complete package, tests Editor create/save/recovery and a native local source/storage/fault probe, then restores original files and machine state. Check the receipt rather than inferring restoration. Remote key injection is **not** physical keyboard evidence; private receipts and storage backups must not be committed.
 
 Before release acceptance, perform these additional checks and mark each **passed, failed, blocked or unverified**:
