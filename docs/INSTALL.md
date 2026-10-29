@@ -4,7 +4,7 @@
 
 A **Commodore 64 Ultimate** with Command Interface enabled, a **16 MiB REU**, Ultimate-DOS, and an SD card or supported USB storage mount. Tested hardware baseline is C64 Ultimate firmware 1.1.0. The Editor needs no network connection. Optional publishing requires a compatible independent 8TML publishing API 1 endpoint and its standard publishing key.
 
-This is a test release. Back up your files and machine configuration first. Choose the complete matching package for your actual storage mount; verify its checksums when supplied. For USB mounts other than the package's exact root, rebuild with `make -B -C client STORAGE_ROOT=/YOURMOUNT/ independent-package`. A folder rename does not change the executable's embedded root.
+This is an alpha test release. SD source replacement/recovery has bounded real-C64U evidence; physical input on this exact package, cold-power/interruption recovery, USB-only operation and complete external-reader navigation remain unverified. Back up your files and machine configuration first. Choose the complete matching package for your actual storage mount; verify its checksums when supplied. For USB mounts other than the package's exact root, rebuild with `make -B -C client STORAGE_ROOT=/YOURMOUNT/ independent-package`. A folder rename does not change the executable's embedded root.
 
 In the Ultimate **Memory & ROMs** settings (called **C64 and Cartridge Settings** on some menus), enable **Command Interface**, **RAM Expansion Unit**, and **REU Size: 16 MB**. Recheck after a settings reset.
 
@@ -44,7 +44,7 @@ Launch each program **independently** and return to BASIC when finished. `S64EDI
 
 ## Optional: publish to a standard endpoint
 
-The native client targets the **26 October 2026 API 1 test draft**. Complete hardware and compatible-reader acceptance is required before release.
+The native client targets the **26 October 2026 API 1 test draft**. Complete hardware and compatible-reader acceptance is required before stable promotion. Alpha previews disclose the outstanding gates.
 
 1. Obtain a dedicated standard publishing key file from your server through its HTTPS interface. Copy it as `8TMLKEY.TXT` into the selected `SEE64YOU` folder. Do not use an ordinary account password or the old key-only `SEE64KEY.TXT`. For T8wn, create the key through its [HTTPS Account page](https://t8wn.com/account/), as described in its [publishing guide](https://t8wn.com/8tml/guides/publishing/). A downloaded `.key` file is standard text; name the C64U copy `8TMLKEY.TXT`. Keep the key out of public pages and source documents.
 2. Launch `S64CFG.PRG`: **I** imports the standard key, **H** changes HTTP consent, **T** validates configuration and **S** saves. Check the endpoint and ID; the secret stays hidden. A new import clears previous HTTP consent. Source sent over HTTP is not confidential; HTTPS is never silently downgraded.

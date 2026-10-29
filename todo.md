@@ -41,7 +41,7 @@
 
 **Review only — none of these changes is implemented or validated.** Investigate with the shipping independent Editor/Publisher paths; keep autosave disabled. Prioritize measured user impact and data safety over broad rewrites.
 
-- [ ] **P0 — Protect the previous saved document and existing recovery temporaries.** In `client/src/storage/local.c:write_document_file`, an overwrite deletes the destination before the temporary rename; a failed rename retains the new `.tmp` but removes the old file. The current overwrite-open can also replace an earlier recoverable `.tmp`. Design a verified backup/rollback or safe collision policy compatible with Ultimate-DOS rather than assuming atomic replacement. Inject faults at each write/close/delete/rename boundary and confirm a byte-exact recoverable copy survives, including retry after a failed rename.
+- [ ] **P0 — Protect the previous saved document and existing recovery temporaries.** The shared writer now blocks existing `.tmp`/`.bak`, retains the original during replacement and attempts rollback after failed installation. Host faults and bounded native-DOS checks verify distinct old/new recoverable bytes and retry refusal. Cold-power/interruption guarantees remain unverified.
 - [ ] **P1 — Bulk-load source into REU instead of writing each byte.** `document_wire_reader_write` converts each input byte and calls `s64_buffer_insert`, which issues a single-byte REU store. Benchmark C64U Editor/Publisher load of 1 KiB, 16 KiB and near-60 KiB before changing the shared path; prototype bounded, validated chunk append while preserving ASCII/LF conversion, gap invariants and failure handling. Real-C64U Publisher loaded 16,385 bytes in 91.87 seconds with Turbo Control Off; the relative cost of DOS and REU is not yet isolated.
 - [ ] **P1 — Profile first edit after a distant cursor move, large paste and undo.** The REU gap moves 64 bytes per load/store pair (`buffer_reu.c:move_gap`), paste inserts individual bytes (`editor.c:s64_editor_paste`), and history swap processes individual replacements. Use existing host REU counters and VICE jiffy diagnostics, then measure end-to-end shipping UI/hardware. Change buffer size, bulk operations or selective compute acceleration only if timings and RAM/overlay guards justify them.
 - [ ] **P1 — Reduce redundant full-source passes on Save.** `write_document_file` calls `s64_document_write_wire` for validation then again for the actual file; each 8TML writer invocation validates and walks the entire document. Measure the cost and consider a single validated streaming pass without compromising preflight, recovery or write-failure behavior; also check duplicated file-existence probes.
@@ -52,9 +52,9 @@
 
 ## P1 — Retire obsolete product paths after acceptance
 
-- [x] Trace active/legacy compile, validation and release-package callers; see the keep/retire boundaries in [architecture](docs/ARCHITECTURE.md). Legacy release packaging still emits a PHP site ZIP; shared configuration layout, crypto helpers and recovery remain required.
+- [x] Trace active/legacy compile, validation and release-package callers; see the keep/retire boundaries in [architecture](docs/ARCHITECTURE.md). Current alpha packaging contains only the standard client SD/USB packages; shared configuration layout, crypto helpers and recovery remain required.
 - [ ] Once replacements pass required hardware/interoperability gates, remove obsolete code/assets/tests and stale server instructions incrementally. CI package count and standard test dependencies are corrected; the historical native overlay failure remains explicit. Preserve user files, credentials/recovery data, shared safety code and existing release assets.
-- [ ] Complete exact release/package checksum and rollback audit. No merge, deployment or release while required gates remain failed, blocked or unverified.
+- [ ] Complete exact release/package checksum and rollback audit. No merge, deployment or stable promotion while required gates remain failed, blocked or unverified. User-authorized alpha previews must disclose these limits.
 
 ## Existing unresolved limits
 
