@@ -50,16 +50,20 @@
 - [ ] **P2 â€” Strengthen Editor recovery/error-path coverage.** Test invalid/oversized file Open, interruption, pre-existing `.tmp`, partial REU paste/undo, full-history boundary, mid-save power loss, and source/header preservation. Keep failures visible and preserve dirty state and recoverability; do not claim a partially failed edit is rolled back.
 - [ ] **P2 â€” Establish reproducible responsiveness gates.** Pin build/firmware/REU/turbo/root and exact package hashes, benchmark 1/16/60 KiB short-line and single-long-line fixtures, capture median/worst-case input-to-screen response, first edit after navigation, load/save times and REU transaction counts. Host counters and direct VICE jiffies omit shipping overlays/UI; confirm meaningful gains on C64U with physical keyboard, plus separate SD/USB acceptance. Preserve 1,024-byte Publisher/launcher headroom and all Editor fit guards.
 
-## P1 — Publisher GUI and file workflow
+## P1 — Slim Publisher interface after existing acceptance
 
-**Approved design; not yet implemented.** The single full specification is [Publisher design](docs/PUBLISHER.md). Retain PR #66's standard protocol implementation and PR #67's separate loading work. Do not treat planned screens as released.
+**Scope:** no GUI framework, new browser, proprietary server or remote manager. [Publisher UI](docs/PUBLISHER.md) is the concise target. First finish the Editor and standard API hardware gates above, including the separate PR #67 REU-load optimisation.
 
-- [ ] Implement the 40x25 PETSCII screen with framed numbered buttons, focused selection, number keys, optional 1351-compatible mouse clicks, arrows/Return, and joystick/Fire. Ensure keyboard-only operation, correct input mode for typed names, safe exit, and measured Publisher/launcher memory headroom.
-- [ ] Add Ultimate-DOS directory enumeration and a six-item local file picker with folder navigation, manual name fallback, safe path boundaries, storage guards, and tested DOS restoration.
-- [ ] Expose validated remote names and sizes from the existing authenticated list parser through a bounded file picker. Selecting a server file offers Use as target, Download source when supported, and Back. Keep full remote identity visible.
-- [ ] Replace the current text-menu publish action with a numbered confirmation that distinguishes create from replace, shows local/remote details, checks existence immediately before confirmation, and preserves warning/uncertain-write behavior.
-- [ ] Establish whether independent servers expose verifiable raw source via C64U-supported HTTP. Only then add a single-file download, staged validation, new-filename collision protection, and separate-Editor edit/republish cycle. On unsupported servers, show Download unavailable; never assume the publish API supplies raw GET.
-- [ ] Validate host fixtures, SD/USB builds, manifests and VICE; then use exact bytes on real C64U for physical keys, optional mouse, local/server lists, publishing and conditional download, failure recovery and machine-state restoration. Record passed, failed, blocked or unverified gates.
+- [x] Implement a compact numbered keyboard home screen and numbered publish/replace confirmation without changing standard network/storage paths (PR #66). **Code committed; build, fit, VICE and C64U tests are unverified.** Legacy letter shortcuts remain available.
+- [ ] Build/test the modified Publisher and its matching SD/USB packages, check >=1,024-byte Publisher/launcher headroom, and validate actual number keys, confirmation/cancellation and BASIC/DOS restoration before calling the UI accepted.
+- [ ] Implement a small bounded Ultimate-DOS local .8tml file selector with six numbered rows, folders, type-name fallback, safe configured-root paths and error handling. Reuse in Editor Open only if practical and measurably worthwhile.
+- [ ] Add a bounded server-name selector using the **existing** standard authenticated list parser. Choosing an entry sets only the remote target; retain manual entry and fresh-list explicit replacement confirmation.
+- [ ] Optional: reuse a *small* portion of Editor mouse/joystick code for clickable numbered rows **only if measured fit and hardware reliability allow**. Keyboard-only operation is sufficient for release.
+- [ ] Exercise focused host/VICE and exact real-C64U input, storage, server and restoration acceptance with the new file controls. No automatic retries of uncertain uploads.
+
+## P2 — Optional download-to-edit, not part of initial release
+
+- [ ] Check whether T8WN or another compatible reader already saves raw source locally. If not, first verify independently documented raw 8TML URLs and C64U-compatible HTTP GET. Implement a single staged, collision-safe download only when needed and technically proven; never add a proprietary endpoint, HTTPS downgrade or bulk file manager. Test the Editor/republication round trip separately.
 ## P1 â€” Retire obsolete product paths after acceptance
 
 - [x] Trace active/legacy compile, validation and release-package callers; see the keep/retire boundaries in [architecture](docs/ARCHITECTURE.md). Current alpha packaging contains only the standard client SD/USB packages; shared configuration layout, crypto helpers and recovery remain required.
