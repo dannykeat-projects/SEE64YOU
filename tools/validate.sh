@@ -78,7 +78,7 @@ cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
 "$TMP_BIN"
 
 echo "== Host numbered local file picker tests =="
-cc -std=c99 -Wall -Wextra -Werror -Iclient/tests/local_picker_stubs -Iclient/src \
+cc -std=c99 -Wall -Wextra -Werror -DS64_INDEPENDENT_PUBLISHER=1 -Iclient/tests/local_picker_stubs -Iclient/src \
     client/tests/local_picker_test.c client/src/publisher/local_picker.c \
     client/src/platform/dos_dir.c client/src/platform/dos.c \
     client/src/charset.c -o "$TMP_BIN"
