@@ -2,6 +2,17 @@
 
 **Target:** offline C64U `.8tml` Editor, minimal standard Publisher and Settings. [Product scope](docs/PRODUCT.md) pins the 26 October 2026 publishing API 1 test draft. Implementation is on `feature/8tml-standard-core-20261027` / draft PR #66; migration and release acceptance remain incomplete.
 
+## Active Editor priorities
+
+1. **P0 — Save integrity:** preserve existing `.tmp`/`.bak` recovery copies and retain the original through replacement. Host regressions cover collision, backup/install/rollback/cleanup failures. Complete matching SD/USB fit/manifests, VICE and bounded real-C64U disk acceptance before promotion.
+2. **P1 — Large-source loading:** measure and batch the per-byte REU writes in the existing source reader; retain byte-exact source, line-ending normalization and bounded memory.
+3. **P1 — Editing and saving cost:** benchmark long-distance gap movement and redundant save scans before making a bounded change.
+4. **P1 — REU error reporting:** distinguish failed reads from missing characters/search misses and preserve recoverable dirty text.
+5. **P2 — Rendering, paste and undo:** use repeatable measurements and fault injection to target redraws and bulk edits.
+
+- [x] Save integrity implementation and focused host fault regressions.
+- [x] Save integrity SD and `/USB1/` shipping builds/fit/manifests, both packaged VICE startup/BASIC-return checks, and bounded real-C64U SD native-DOS replacement rollback and recovery-collision acceptance. Exact source/package hashes: `client/build/save-safety-validation.json`; hardware receipt: `client/build/save-safety-hardware-20261029-r2/`. All 44 original files, configuration, DOS contexts, IRQ/turbo/colours, scratch byte and responsive BASIC restored and verified. Physical input, cold power, uncontrolled interruption and real USB-only acceptance remain separate release gates.
+
 ## Implemented software
 
 - [x] Preserve PR #64 Editor/input/history/storage improvements through `4e43eef`, plus Editor-only Link work from `e6f4647`; exclude that PR's PHP additions. Fix native Link URL/backslash comparisons and retain extensionless legacy-file behavior outside 8TML mode.

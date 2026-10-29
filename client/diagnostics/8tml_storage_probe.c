@@ -18,12 +18,18 @@ static S64Document document;
 static S64LocalDocument local;
 static uint8_t fault;
 static uint8_t fault_hits;
+static uint8_t fault_skip;
 
 static S64UciResult execute(const S64UciCommandPart* parts, uint8_t count, S64UciReply* reply)
 {
     if (count && parts[0].length >= 2u && parts[0].data[0] == S64_DOS_TARGET_SECONDARY
         && fault && parts[0].data[1] == fault) {
+        if (fault_skip) {
+            --fault_skip;
+            return s64_uci_execute(parts, count, reply);
+        }
         ++fault_hits;
+        fault = 0u;
         return S64_UCI_UNAVAILABLE;
     }
     return s64_uci_execute(parts, count, reply);
@@ -129,9 +135,16 @@ int main(void)
     CHECK(s64_buffer_move_cursor(&body, s64_buffer_length(&body))
         && s64_buffer_insert(&body, '!'), 16);
     fault = 0x0au;
+    fault_skip = 1u; /* Allow original -> backup; fail temporary -> destination. */
     CHECK(s64_local_save(&local) == S64_LOCAL_IO_ERROR, 17);
     fault = 0u;
     CHECK(fault_hits == 2u, 18);
+    CHECK(s64_dos_file_exists(&dos, "T8COPY.8tml", &exists) == S64_DOS_OK && exists, 38);
+    CHECK(s64_dos_file_exists(&dos, "T8COPY.8tml.bak", &exists) == S64_DOS_OK && !exists, 39);
+    CHECK(s64_local_save(&local) == S64_LOCAL_RECOVERY_CONFLICT, 40);
+    CHECK(s64_dos_rename_file(&dos, "T8COPY.8tml.tmp", "T8COPY.8tml.bak") == S64_DOS_OK, 41);
+    CHECK(s64_local_save(&local) == S64_LOCAL_RECOVERY_CONFLICT, 42);
+    CHECK(s64_dos_rename_file(&dos, "T8COPY.8tml.bak", "T8COPY.8tml.tmp") == S64_DOS_OK, 43);
     CHECK(s64_local_open(&local, "T8COPY.8tml.tmp", 1u) == S64_LOCAL_OK, 19);
     CHECK(s64_local_save_as(&local, "T8RECOVER", 0u) == S64_LOCAL_OK, 20);
     CHECK(s64_local_save_as(&local, "T8WRONG.s64", 0u) == S64_LOCAL_INVALID_ARGUMENT, 21);

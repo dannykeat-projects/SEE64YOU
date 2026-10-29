@@ -25,6 +25,7 @@ Launcher/journal operations own DOS `$01`; Editor document/recovery owns `$02`. 
 ## File integrity and recovery
 
 - Source uses complete ASCII/LF 8TML 1 draft text, up to 61,440 bytes. Publisher loads a local source file and never writes source during publication. Failed rename can leave a recoverable complete `.tmp` file.
+- Local saves refuse an existing `<filename>.tmp` or `<filename>.bak` before writing. Replacement writes and closes `.tmp`, renames the original to `.bak`, installs `.tmp`, then removes `.bak`. Failed installation attempts to restore the original; failed restoration leaves both recovery files. A backup-cleanup error leaves the installed source and old backup and reports failure. Inspect/recover retained files explicitly before retrying; no automatic deletion of pre-existing recovery copies. This sequence is recoverable, not an atomic or power-loss guarantee.
 - Editor has no periodic autosave. Existing `SEE64YOU.REC` may be offered; a failed read preserves the snapshot. Recovered content is dirty until manually saved.
 - Configuration writes validate the temporary record before replacement and validate final readback. Current delete-then-rename is **not** fully atomic if final rename fails; preserve temporary data and surface errors.
 - The fixed-size two-slot journal records version, sequence and ACTIVE/CLEAN machine-state ownership. Write/readback the alternate slot before superseding valid state. Corrupt/conflicting state must block unsafe changes.

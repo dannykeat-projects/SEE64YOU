@@ -162,7 +162,9 @@ static S64LocalResult write_document_file(
     S64DosResult result;
     S64DosResult close_result;
     uint8_t exists;
+    uint8_t collision;
     char temporary[S64_LOCAL_FILENAME_CAPACITY + 4u];
+    char backup[S64_LOCAL_FILENAME_CAPACITY + 4u];
 
     result = s64_dos_file_exists(local->dos, filename, &exists);
     if (result != S64_DOS_OK) {
@@ -171,13 +173,26 @@ static S64LocalResult write_document_file(
     }
     if (exists && !overwrite) return S64_LOCAL_EXISTS;
 
+    strcpy(temporary, filename);
+    strcat(temporary, ".tmp");
+    strcpy(backup, filename);
+    strcat(backup, ".bak");
+    result = s64_dos_file_exists(local->dos, temporary, &collision);
+    if (result == S64_DOS_OK && !collision) {
+        result = s64_dos_file_exists(local->dos, backup, &collision);
+    }
+    if (result != S64_DOS_OK) {
+        local->dos_result = result;
+        return S64_LOCAL_IO_ERROR;
+    }
+    /* Either file may be the only recoverable copy from an interrupted save. */
+    if (collision) return S64_LOCAL_RECOVERY_CONFLICT;
+
     document_result = s64_document_write_wire(document, discard_sink, 0);
     if (document_result != S64_DOCUMENT_OK) {
         return S64_LOCAL_INVALID_DOCUMENT;
     }
 
-    strcpy(temporary, filename);
-    strcat(temporary, ".tmp");
     result = s64_dos_open_write(local->dos, temporary);
     if (result != S64_DOS_OK) {
         local->dos_result = result;
@@ -199,10 +214,9 @@ static S64LocalResult write_document_file(
     }
 
     if (exists) {
-        result = s64_dos_delete_file(local->dos, filename);
+        result = s64_dos_rename_file(local->dos, filename, backup);
         if (result != S64_DOS_OK) {
             local->dos_result = result;
-            (void)s64_dos_delete_file(local->dos, temporary);
             return S64_LOCAL_IO_ERROR;
         }
     }
@@ -210,9 +224,18 @@ static S64LocalResult write_document_file(
     result = s64_dos_rename_file(local->dos, temporary, filename);
     if (result != S64_DOS_OK) {
         local->dos_result = result;
-        /* Replacement may already have removed the old destination. Keep the
-         * completed canonical source recoverable as <filename>.tmp. */
+        /* Keep the completed source even if restoring the original also fails.
+         * In that case the old source remains at <filename>.bak. */
+        if (exists) (void)s64_dos_rename_file(local->dos, backup, filename);
         return S64_LOCAL_IO_ERROR;
+    }
+
+    if (exists) {
+        result = s64_dos_delete_file(local->dos, backup);
+        if (result != S64_DOS_OK) {
+            local->dos_result = result;
+            return S64_LOCAL_IO_ERROR;
+        }
     }
 
     return S64_LOCAL_OK;
@@ -236,6 +259,7 @@ const char* s64_local_result_message(const S64LocalDocument* local, S64LocalResu
         case S64_LOCAL_DIRTY: return "Document has unsaved changes";
         case S64_LOCAL_NO_FILENAME: return "Use Save As first";
         case S64_LOCAL_EXISTS: return "File already exists";
+        case S64_LOCAL_RECOVERY_CONFLICT: return "Recover .tmp/.bak first";
         case S64_LOCAL_INVALID_DOCUMENT: return "Document metadata invalid";
         case S64_LOCAL_DOCUMENT_TOO_LARGE: return "Document too large";
         case S64_LOCAL_IO_ERROR:

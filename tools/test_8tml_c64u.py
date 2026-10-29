@@ -252,6 +252,7 @@ def main():
         reserved.add("8TMLKEY.TXT")
     fixture_names = {n.upper() for n in reserved - FILES}
     fixture_names.update(n + ".TMP" for n in tuple(fixture_names))
+    fixture_names.update((n + ".BAK").upper() for n in reserved)
     assert not any(path.rsplit("/", 1)[-1].upper() in fixture_names
                    for path in originals), "Disposable fixture names already exist"
     state["originals"] = {}
@@ -448,6 +449,10 @@ def main():
             exitcheck("native-storage-probe-exit")
             expected = SOURCE.replace(b"\r\n", b"\n") + b"Hardware edit.\n!"
             assert fetch(folder + "/T8COPY.8tml.tmp") == expected
+            assert fetch(folder + "/T8COPY.8tml") == expected[:-1]
+            assert not any(path.rsplit("/", 1)[-1].upper() == "T8COPY.8TML.BAK"
+                           for path in inventory(folder))
+            mark("native-save-original-restored-and-temp-backup-collisions-preserve-exact-bytes")
             assert fetch(folder + "/T8RECOVER.8tml") == expected
             assert fetch(folder + "/T8EMPTY.8tml") == EMPTY
             assert fetch(folder + "/" + "x" * 28 + ".8tml") == EMPTY
@@ -502,6 +507,7 @@ def main():
                     save()
                 known_temporary = {name.upper() for name in reserved}
                 known_temporary.update((name + ".tmp").upper() for name in reserved)
+                known_temporary.update((name + ".bak").upper() for name in reserved)
                 known_temporary.update(("SEE64YOU.REC", "SEE64YOU.REC.TMP", "S64JRN0.DAT", "S64JRN1.DAT"))
                 current = inventory(folder) if folder_existed or state["created_folder"] else {}
                 assert all(path in originals or path.rsplit("/", 1)[-1].upper() in known_temporary

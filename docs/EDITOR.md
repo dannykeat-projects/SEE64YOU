@@ -18,6 +18,8 @@ The Editor saves on explicit command only; **no periodic autosave or idle-time d
 
 Open and Save As accept a basename such as `notes`; `.8tml` is added automatically when no extension is supplied. Explicit filenames are kept, including `.8tml.tmp` when opening a recoverable temporary. Save uses the current filename. The same basename rule applies when Publisher loads a local source file.
 
+Replacement saves retain the original as `<filename>.bak` until the new file is installed. A failed final rename attempts to restore the original and preserves the completed `<filename>.tmp`. If either recovery file already exists, “Recover .tmp/.bak first” blocks writing. Inspect those copies and save recovered text under a new name before removing them explicitly. For a recovery filename longer than the Editor's 33-character path limit, first copy it to a shorter name using an external file manager. See [runtime](C64U-RUNTIME.md) for failure and recovery details.
+
 The existing 16 MiB REU provides working storage, but the current fixed document/history capacities remain. Resource expansion, new allocator designs and large clipboard work should be considered only after measurements show they are required. Preserve responsive incremental redraws, existing source, reversible operations and clean machine-state restoration.
 
 Copy/cut/paste supports the current 61,440-byte document/clipboard limit; an over-capacity paste is refused before replacing a selection. Undo history remains bounded, so a large edit may not be undoable. Help and menu dismissal repaint the covered document rows, including blank rows below short documents.

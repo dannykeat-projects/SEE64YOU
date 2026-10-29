@@ -16,6 +16,13 @@ static unsigned char temporary_data[FILE_CAPACITY];
 static unsigned int temporary_length;
 static char temporary_name[S64_LOCAL_FILENAME_CAPACITY + 4u];
 static unsigned char temporary_exists;
+static unsigned char backup_data[FILE_CAPACITY];
+static unsigned int backup_length;
+static char backup_name[S64_LOCAL_FILENAME_CAPACITY + 4u];
+static unsigned char backup_exists;
+static unsigned char fail_backup;
+static unsigned char fail_restore;
+static unsigned char fail_cleanup;
 static unsigned char open_mode;
 static unsigned int read_offset;
 static unsigned int close_count;
@@ -75,13 +82,11 @@ static S64UciResult mock_execute(
     if (opcode == 0x08u) {
         require(part_count == 2u, "stat parts");
         if (appear_on_second_stat && ++stat_count == 2u) file_exists = 1u;
-        reply_status(
-            reply,
-            file_exists && parts[1].length == strlen(file_name) + 1u
-                && memcmp(parts[1].data, file_name, parts[1].length) == 0
-                ? "00,OK"
-                : "88,FILE NOT FOUND"
-        );
+        reply_status(reply,
+            ((file_exists && !strcmp((const char*)parts[1].data, file_name))
+                || (temporary_exists && !strcmp((const char*)parts[1].data, temporary_name))
+                || (backup_exists && !strcmp((const char*)parts[1].data, backup_name)))
+            ? "00,OK" : "88,FILE NOT FOUND");
         return S64_UCI_OK;
     }
 
@@ -143,6 +148,10 @@ static S64UciResult mock_execute(
     }
 
     if (opcode == 0x09u) {
+        if (backup_exists && part_equals(&parts[1], backup_name)) {
+            if (fail_cleanup) { reply_status(reply, "87,ACCESS DENIED"); return S64_UCI_OK; }
+            backup_exists = 0u;
+        }
         if (file_exists && part_equals(&parts[1], file_name)) file_exists = 0u;
         if (temporary_exists && part_equals(&parts[1], temporary_name)) temporary_exists = 0u;
         reply_status(reply, "00,OK");
@@ -152,7 +161,28 @@ static S64UciResult mock_execute(
     if (opcode == 0x0au) {
         separator = parts[2].data;
         require(part_count == 4u && parts[2].length == 1u && separator[0] == 0u, "rename shape");
+        if (file_exists && part_equals(&parts[1], file_name)) {
+            if (fail_backup) { reply_status(reply, "87,ACCESS DENIED"); return S64_UCI_OK; }
+            require(!backup_exists, "backup never overwrites an existing file");
+            copy_part(backup_name, sizeof(backup_name), &parts[3]);
+            memcpy(backup_data, file_data, file_length);
+            backup_length = file_length;
+            backup_exists = 1u;
+            file_exists = 0u;
+            reply_status(reply, "00,OK"); return S64_UCI_OK;
+        }
+        if (backup_exists && part_equals(&parts[1], backup_name)) {
+            if (fail_restore) { reply_status(reply, "87,ACCESS DENIED"); return S64_UCI_OK; }
+            require(!file_exists, "restore never overwrites a destination");
+            copy_part(file_name, sizeof(file_name), &parts[3]);
+            memcpy(file_data, backup_data, backup_length);
+            file_length = backup_length;
+            file_exists = 1u;
+            backup_exists = 0u;
+            reply_status(reply, "00,OK"); return S64_UCI_OK;
+        }
         require(temporary_exists && part_equals(&parts[1], temporary_name), "rename temp source");
+        require(!file_exists || !part_equals(&parts[3], file_name), "install never overwrites a destination");
         if (fail_rename) {
             reply_status(reply, "87,ACCESS DENIED");
             return S64_UCI_OK;
@@ -282,14 +312,67 @@ int main(void)
     require(file_exists && !temporary_exists && file_checksum() == saved_checksum,
         "late collision preserves original without temporary output");
     appear_on_second_stat = 0u;
+    strcpy(temporary_name, "source.8tml.tmp");
+    memcpy(temporary_data, "recoverable", 11u);
+    temporary_length = 11u;
+    temporary_exists = 1u;
+    require(s64_local_save(&local) == S64_LOCAL_RECOVERY_CONFLICT, "existing temp blocks save");
+    require(temporary_exists && temporary_length == 11u
+        && !memcmp(temporary_data, "recoverable", 11u)
+        && file_exists && file_checksum() == saved_checksum,
+        "existing recoverable temp and original stay byte exact");
+    temporary_exists = 0u;
     fail_write = 1u;
     require(s64_local_save(&local) == S64_LOCAL_IO_ERROR, "write failure reported");
     require(!temporary_exists && file_length == saved_length && file_checksum() == saved_checksum,
         "write failure preserves original and removes temp");
     fail_write = 0u;
+    strcpy(backup_name, "source.8tml.bak");
+    memcpy(backup_data, "old backup", 10u);
+    backup_length = 10u;
+    backup_exists = 1u;
+    require(s64_local_save(&local) == S64_LOCAL_RECOVERY_CONFLICT, "existing backup blocks save");
+    require(backup_exists && backup_length == 10u && !memcmp(backup_data, "old backup", 10u)
+        && !temporary_exists && file_checksum() == saved_checksum,
+        "backup collision preserves all disk bytes");
+    backup_exists = 0u;
+    require(s64_buffer_move_cursor(&body, s64_buffer_length(&body)), "move before unsaved fault fixture");
+    insert_text(&body, "Unsaved\n");
+    fail_backup = 1u;
+    require(s64_local_save(&local) == S64_LOCAL_IO_ERROR, "backup rename failure reported");
+    require(file_exists && !backup_exists && temporary_exists && file_checksum() == saved_checksum,
+        "backup failure keeps original and completed temporary");
+    fail_backup = 0u;
+    temporary_exists = 0u;
+    fail_restore = 1u;
+    fail_rename = 1u;
+    require(s64_local_save(&local) == S64_LOCAL_IO_ERROR, "rollback failure reported");
+    require(!file_exists && backup_exists && temporary_exists && backup_length == saved_length
+        && !memcmp(backup_data, file_data, saved_length)
+        && temporary_length == saved_length + 8u
+        && !memcmp(temporary_data + saved_length, "Unsaved\n", 8u),
+        "rollback failure retains exact original backup and completed temporary");
+    /* Simulate user restoration before continuing other independent cases. */
+    fail_restore = 0u;
+    fail_rename = 0u;
+    backup_exists = 0u;
+    temporary_exists = 0u;
+    file_exists = 1u;
+    fail_cleanup = 1u;
+    require(s64_local_save(&local) == S64_LOCAL_IO_ERROR, "backup cleanup failure reported");
+    require(file_exists && backup_exists && !temporary_exists && file_length == saved_length + 8u
+        && backup_length == saved_length && !memcmp(file_data + saved_length, "Unsaved\n", 8u),
+        "cleanup failure retains installed source and original backup");
+    require(s64_local_save(&local) == S64_LOCAL_RECOVERY_CONFLICT, "retry preserves retained backup");
+    fail_cleanup = 0u;
+    memcpy(file_data, backup_data, backup_length);
+    file_length = backup_length;
+    backup_exists = 0u;
     fail_rename = 1u;
     require(s64_local_save(&local) == S64_LOCAL_IO_ERROR, "rename failure reported");
     require(temporary_exists && open_mode == 0u, "rename failure retains closed recoverable temp");
+    require(file_exists && file_length == saved_length && file_checksum() == saved_checksum,
+        "failed replacement restores byte-exact original");
     fail_rename = 0u;
     strcpy(file_name, temporary_name);
     memcpy(file_data, temporary_data, temporary_length);
@@ -298,7 +381,7 @@ int main(void)
     temporary_exists = 0u;
     require(s64_local_open(&local, file_name, 1u) == S64_LOCAL_OK,
         "retained temporary source reopens");
-    require(s64_buffer_length(&body) == saved_length, "retained temp preserves full source");
+    require(s64_buffer_length(&body) == saved_length + 8u, "retained temp preserves full source");
 
     set_file("invalid.8tml", "---\n8tml: 2\n---\nwrong version\n");
     require(s64_local_open(&local, "invalid.8tml", 1u) == S64_LOCAL_INVALID_DOCUMENT,
