@@ -35,7 +35,7 @@ Target home screen:
 
 Press an on-screen number to activate that action; optional C64U-mapped 1351 mouse click selects its text rectangle, or arrows/Return and optionally joystick/Fire operate the focused entry. RUN/STOP cancels or safely exits. In a dedicated filename-entry prompt, digit keys type characters rather than invoke actions.
 
-**Current incremental state:** PR #66 has a numbered-key home screen (1 Local, 2 Remote name, 3 Publish, 4 Test, 0 Exit), numbered upload confirmation and a six-row paged local `.8tml` selector with manual-name fallback. Directory commands use a separately linked module, preserving Editor fit. Local folder traversal, authenticated server selection and optional mouse are **not implemented**. Both new host tests pass; the linked C64 program, memory fit, VICE and hardware acceptance remain **unverified**. The target layout above is not shipped.
+**Current incremental state:** PR #66 has a numbered-key home screen (1 Local, 2 Remote name, 3 Publish, 4 Test, 0 Exit), numbered upload confirmation and a six-row paged local `.8tml` selector with manual-name fallback. Directory commands use a separately linked module, preserving Editor fit. Local folder traversal, authenticated server selection and optional mouse are **not implemented**. Earlier host fixtures passed but incorrectly modeled READ_DIR as one entry per command. They have now been replaced with packet-stream fixtures; **the new fixtures have not been run here**. The linked C64 program, memory fit, VICE and hardware acceptance remain **unverified**. The target layout above is not shipped.
 
 ## Local and server selectors
 
