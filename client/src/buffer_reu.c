@@ -312,6 +312,20 @@ int s64_buffer_insert(S64Buffer* buffer, unsigned char value)
     return 1;
 }
 
+int s64_buffer_append(S64Buffer* buffer, const unsigned char* data, unsigned int length)
+{
+    if (buffer == 0 || (length != 0u && data == 0)
+        || buffer->gap_end != S64_BUFFER_CAPACITY || buffer->cursor != buffer->gap_start
+        || length > buffer->gap_end - buffer->gap_start) return 0;
+    if (length == 0u) return 1;
+    invalidate_window(buffer);
+    if (!s64_reu_store(S64_REU_DOCUMENT_BANK, (uint16_t)buffer->gap_start,
+            data, (uint16_t)length)) return 0;
+    buffer->gap_start += length;
+    buffer->cursor += length;
+    return 1;
+}
+
 int s64_buffer_backspace(S64Buffer* buffer)
 {
     if (buffer->cursor == 0u) {

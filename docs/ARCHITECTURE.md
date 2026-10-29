@@ -4,7 +4,7 @@ SEE64YOU is C64 Ultimate-only and uses UCI, Ultimate-DOS and a required 16 MiB R
 
 ## Source and storage
 
-`.8tml` is the only supported editing format. The 8TML 1 draft header and body are one literal ASCII/LF document, retained in the current 61,440-byte REU document region. The Editor preserves unknown header entries and markup; input with CR/CRLF is normalized to LF. Generated HTML is not saved back into source. No automatic disk autosave occurs.
+`.8tml` is the only supported editing format. The 8TML 1 draft header and body are one literal ASCII/LF document, retained in the current 61,440-byte REU document region. The Editor preserves unknown header entries and markup; input with CR/CRLF is normalized to LF. Generated HTML is not saved back into source. No automatic disk autosave occurs. Source reads normalize and convert through the existing 64-byte codec workspace, appending validated chunks to an EOF gap. A failed append does not advance logical length; failed input is cleared when the reader finishes.
 
 The default build uses `/sd/SEE64YOU/`. A full rebuild with `STORAGE_ROOT` selects another mount, with no silent fallback. Editor local storage uses Ultimate-DOS `$02`; launcher/journal assets use `$01`. Existing files are protected against accidental collision, incomplete writes and failed renames as described in [runtime](C64U-RUNTIME.md).
 

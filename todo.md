@@ -5,12 +5,13 @@
 ## Active Editor priorities
 
 1. **P0 — Save integrity:** preserve existing `.tmp`/`.bak` recovery copies and retain the original through replacement. Host regressions cover collision, backup/install/rollback/cleanup failures. Complete matching SD/USB fit/manifests, VICE and bounded real-C64U disk acceptance before promotion.
-2. **P1 — Large-source loading:** measure and batch the per-byte REU writes in the existing source reader; retain byte-exact source, line-ending normalization and bounded memory.
+2. **P1 — Large-source loading (prototype in validation):** measure and batch the per-byte REU writes in the existing source reader; retain byte-exact source, line-ending normalization and bounded memory.
+   Host counters verify 1/16/60 KiB exact roundtrips; the bounded 64-byte append reduces LF REU stores by 64x, reusing the codec workspace. Chunk/failure/capacity, full host regressions, cc65/PETSCII codec VICE, both shipping-root fit/manifests and packaged VICE startup/BASIC-return pass. End-to-end C64U timing remains unverified; this prototype is excluded from alpha.4.
 3. **P1 — Editing and saving cost:** benchmark long-distance gap movement and redundant save scans before making a bounded change.
 4. **P1 — REU error reporting:** distinguish failed reads from missing characters/search misses and preserve recoverable dirty text.
 5. **P2 — Rendering, paste and undo:** use repeatable measurements and fault injection to target redraws and bulk edits.
 
-- [x] Save integrity implementation and focused host fault regressions.
+- [x] Save integrity implementation and focused host fault regressions; published as user-authorized `v0.2.0-alpha.4` at `055372c` with verified downloaded SD/USB1 ZIPs and checksums.
 - [x] Save integrity SD and `/USB1/` shipping builds/fit/manifests, both packaged VICE startup/BASIC-return checks, and bounded real-C64U SD native-DOS replacement rollback and recovery-collision acceptance. Exact source/package hashes: `client/build/save-safety-validation.json`; hardware receipt: `client/build/save-safety-hardware-20261029-r2/`. All 44 original files, configuration, DOS contexts, IRQ/turbo/colours, scratch byte and responsive BASIC restored and verified. Physical input, cold power, uncontrolled interruption and real USB-only acceptance remain separate release gates.
 
 ## Implemented software

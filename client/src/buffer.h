@@ -31,6 +31,8 @@ unsigned int s64_buffer_read(const S64Buffer* buffer, unsigned int start, unsign
 unsigned int s64_buffer_find_byte(const S64Buffer* buffer, unsigned int start, unsigned char value);
 int s64_buffer_move_cursor(S64Buffer* buffer, unsigned int position);
 int s64_buffer_insert(S64Buffer* buffer, unsigned char value);
+/* Stream loading only: append at an EOF cursor/gap, without moving existing text. */
+int s64_buffer_append(S64Buffer* buffer, const unsigned char* data, unsigned int length);
 int s64_buffer_backspace(S64Buffer* buffer);
 int s64_buffer_delete(S64Buffer* buffer);
 int s64_buffer_delete_range(S64Buffer* buffer, unsigned int start, unsigned int end);

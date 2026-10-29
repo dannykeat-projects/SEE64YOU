@@ -604,6 +604,7 @@ uint8_t s64_document_wire_reader_write(const uint8_t* data, uint16_t length, voi
     uint16_t i;
     uint8_t byte;
     uint8_t native;
+    uint8_t used = 0u;
     if (reader == 0 || (length != 0u && data == 0)
         || reader->result != S64_DOCUMENT_OK) return 0u;
     for (i = 0u; i < length; ++i) {
@@ -619,10 +620,19 @@ uint8_t s64_document_wire_reader_write(const uint8_t* data, uint16_t length, voi
             reader->result = S64_DOCUMENT_INVALID_METADATA;
             return 0u;
         }
-        if (!s64_buffer_insert(reader->document->body, native)) {
-            reader->result = S64_DOCUMENT_SINK_ERROR;
-            return 0u;
+        /* Reuse the synchronous codec workspace; do not allocate another buffer. */
+        wire_chunk[used++] = native;
+        if (used == S64_DOCUMENT_WIRE_CHUNK) {
+            if (!s64_buffer_append(reader->document->body, wire_chunk, used)) {
+                reader->result = S64_DOCUMENT_SINK_ERROR;
+                return 0u;
+            }
+            used = 0u;
         }
+    }
+    if (used != 0u && !s64_buffer_append(reader->document->body, wire_chunk, used)) {
+        reader->result = S64_DOCUMENT_SINK_ERROR;
+        return 0u;
     }
     return 1u;
 }
