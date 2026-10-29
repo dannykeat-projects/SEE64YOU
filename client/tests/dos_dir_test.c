@@ -128,6 +128,7 @@ int main(void)
     assert(s64_dos_dir_read(&dos, fake_packets, collect, &count)
            == S64_DOS_CONSUMER_ABORTED);
     deny_entry = 0u;
+    delivered = count = 0u;
     read_status = "85,NO FILE OPEN";
     assert(s64_dos_dir_read(&dos, fake_packets, collect, &count)
            == S64_DOS_TARGET_ERROR);
