@@ -1,6 +1,6 @@
 # SEE64YOU
 
-**Write 8TML pages on a Commodore 64 Ultimate.** SEE64YOU is an offline-first, source-text editor with optional tools for publishing to your own website.
+**Write 8TML pages on a Commodore 64 Ultimate.** SEE64YOU is an offline-first source editor with a small companion for publishing to a compatible 8TML server.
 
 Documents are portable `.8tml` text files. You can copy, back up, or host them independently. The Editor does not require an account or internet connection. Optional `.8ss` stylesheets are part of the wider 8TML ecosystem; stylesheet editing is not a dedicated SEE64YOU feature.
 
@@ -8,13 +8,12 @@ Documents are portable `.8tml` text files. You can copy, back up, or host them i
 
 - **Editor:** create, open, edit and manually save 8TML 1 draft source on SD or a configured USB mount. Includes cursor/selection, search, formatting shortcuts, undo/redo and existing-snapshot recovery. The complete source and unknown markup are preserved; files use ASCII with LF endings, with a 61,440-byte source limit.
 - **Publisher (experimental):** separately load local `.8tml`, choose a remote path and publish or explicitly replace through standard API 1. Settings imports the standard endpoint/ID/key. The 26 October 2026 API draft remains subject to interoperability and hardware acceptance.
-- Legacy PHP/WordPress/relay source remains pending replacement validation and caller tracing. It is excluded from the independent Publisher route. Existing release assets are unchanged.
 
 For reading 8TML on an 8-bit machine, use a compatible browser from the 8TML/T8WN ecosystem. SEE64YOU does not aim to maintain its own 8TML browser. The active package does not include a browser.
 
 ## Get started
 
-See [installation and first document](docs/INSTALL.md) for prerequisites, copying the complete matching package, Editor controls and optional website setup. The latest [GitHub Releases](https://github.com/dannykeat-projects/SEE64YOU/releases) include checksums; read the release's stated acceptance limits before testing. Back up any files on the target storage device.
+See [installation and first document](docs/INSTALL.md) for prerequisites, copying the complete matching package, Editor controls and optional publishing setup. The latest [GitHub Releases](https://github.com/dannykeat-projects/SEE64YOU/releases) include checksums; read the release's stated acceptance limits before testing. Back up any files on the target storage device.
 
 The Editor saves **only when you ask it to** (Ctrl+S / File → Save or Save As). It does not autosave. Existing recovery snapshots may be reopened, but unsaved edits are not continuously protected.
 
