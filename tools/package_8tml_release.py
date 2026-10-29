@@ -130,8 +130,9 @@ def main():
                 info.external_attr = 0o100644 << 16
                 zipped.writestr(info, data)
         with zipfile.ZipFile(path) as zipped:
-            assert zipped.testzip() is None and set(zipped.namelist()) == set(entries)
-            assert all(zipped.read(filename) == data for filename, data in entries.items())
+            if zipped.testzip() is not None or set(zipped.namelist()) != set(entries) \
+                    or any(zipped.read(filename) != data for filename, data in entries.items()):
+                raise RuntimeError("Archive verification failed")
         archives[name] = digest(path.read_bytes())
         print("Verified " + name, flush=True)
 
