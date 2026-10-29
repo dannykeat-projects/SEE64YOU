@@ -143,7 +143,10 @@ static void publish(void)
     }
     result = s64_standard_list(&client, remote_name, &reply);
     if (result != S64_STANDARD_OK) { show_result(result); return; }
-    clrscr(); cputs(settings.base_url); cputs("\r\n"); cputs(remote_name);
+    /* Confirm both identities; local source may differ from remote target. */
+    clrscr(); cputs("LOCAL SOURCE:\r\n"); cputs(local.filename);
+    cputs("\r\nSERVER:\r\n"); cputs(settings.base_url);
+    cputs("\r\nREMOTE TARGET:\r\n"); cputs(remote_name);
     cputs(reply.exists ? "\r\nREPLACE EXISTING FILE?\r\n" : "\r\nPUBLISH PUBLIC FILE?\r\n");
     cputs("List cannot prevent concurrent changes.\r\nUploaded source is public.\r\n[1] CONFIRM  [0] CANCEL");
     key = cgetc();
