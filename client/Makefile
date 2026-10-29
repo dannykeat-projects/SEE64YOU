@@ -416,7 +416,7 @@ independent-publisher: $(INDEPENDENT_PUBLISHER_TARGET)
 
 $(INDEPENDENT_PUBLISHER_TARGET): $(INDEPENDENT_PUBLISHER_SOURCES)
 	@mkdir -p build/independent
-	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_STANDALONE_ONLY=1 -DS64_DIRECT_PUBLISHER=1 -DS64_INDEPENDENT_PUBLISHER=1 -m build/independent/publisher.map -o $@ $(INDEPENDENT_PUBLISHER_SOURCES)
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_STANDALONE_ONLY=1 -DS64_DIRECT_PUBLISHER=1 -DS64_INDEPENDENT_PUBLISHER=1 -DS64_STORAGE_READ_ONLY=1 -m build/independent/publisher.map -o $@ $(INDEPENDENT_PUBLISHER_SOURCES)
 	python3 ../tools/check_memory_headroom.py build/independent/publisher.map --label independent-publisher --min-headroom 1024
 
 $(PUBLISHER_TARGET): $(PUBLISHER_SOURCES)

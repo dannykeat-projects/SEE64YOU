@@ -80,6 +80,8 @@ static void clear_document(S64LocalDocument* local)
     s64_document_init(local->document, body);
 }
 
+/* Publisher only reads source; keep Editor write/recovery code out of its link. */
+#ifndef S64_STORAGE_READ_ONLY
 static uint8_t discard_sink(const uint8_t* data, uint16_t length, void* context)
 {
     (void)data;
@@ -241,6 +243,8 @@ static S64LocalResult write_document_file(
     return S64_LOCAL_OK;
 }
 
+#endif
+
 void s64_local_init(S64LocalDocument* local, S64Dos* dos, S64Document* document)
 {
     if (local == 0) return;
@@ -357,6 +361,7 @@ S64LocalResult s64_local_open(
     return S64_LOCAL_OK;
 }
 
+#ifndef S64_STORAGE_READ_ONLY
 static S64LocalResult save_named(
     S64LocalDocument* local,
     const char* filename,
@@ -516,3 +521,5 @@ S64LocalResult s64_local_delete_recovery(S64LocalDocument* local)
     }
     return S64_LOCAL_OK;
 }
+
+#endif

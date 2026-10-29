@@ -18,6 +18,7 @@ typedef struct {
 
 #define S64_SETTINGS_V1_VERSION 1u
 
+#ifndef S64_STORAGE_READ_ONLY
 typedef struct {
     char key[65];
     uint8_t count;
@@ -57,6 +58,7 @@ static uint8_t direct_key_read(
     }
     return 1u;
 }
+#endif
 #define S64_SETTINGS_V1_CHECKSUM_OFFSET ((uint16_t)offsetof(S64SettingsExchange, direct_key))
 #define S64_SETTINGS_V1_SIZE (S64_SETTINGS_V1_CHECKSUM_OFFSET + 2u)
 
@@ -120,6 +122,7 @@ static uint8_t read_settings(
     return 1u;
 }
 
+#ifndef S64_STORAGE_READ_ONLY
 static uint8_t profile_filename(uint8_t slot, char* filename)
 {
     static const char template_name[] = "S64DEST1.CFG";
@@ -129,6 +132,8 @@ static uint8_t profile_filename(uint8_t slot, char* filename)
     filename[7] = (char)('1' + slot);
     return 1u;
 }
+
+#endif
 
 static S64SettingsStoreResult select_storage_path(
     S64Dos* dos,
@@ -202,6 +207,8 @@ static S64SettingsStoreResult load_named(
     return S64_SETTINGS_STORE_INVALID;
 }
 
+/* Publisher loads the current standard destination without writing or migration. */
+#ifndef S64_STORAGE_READ_ONLY
 static uint8_t verify_named(
     S64Dos* dos,
     const char* path,
@@ -351,6 +358,8 @@ static S64SettingsStoreResult save_named(
         ? S64_SETTINGS_STORE_OK : S64_SETTINGS_STORE_VERIFY_ERROR;
 }
 
+#endif
+
 S64SettingsStoreResult s64_settings_publish_store_load(
     S64Dos* dos, S64SettingsExchange* settings)
 {
@@ -363,6 +372,7 @@ S64SettingsStoreResult s64_settings_publish_store_load(
     return result;
 }
 
+#ifndef S64_STORAGE_READ_ONLY
 S64SettingsStoreResult s64_settings_store_load(
     S64Dos* dos,
     S64SettingsExchange* settings
@@ -509,3 +519,5 @@ S64SettingsStoreResult s64_settings_import_direct_key(
     if (result != S64_SETTINGS_STORE_NOT_FOUND) return result;
     return import_direct_key_from(dos, S64_SD_ROOT_DIRECTORY, direct_key);
 }
+
+#endif

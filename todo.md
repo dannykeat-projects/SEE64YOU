@@ -16,7 +16,7 @@
 ## Current validation blockers
 
 - [x] Exact `82dfda1` full host suite passed, including directory-stream and picker fixtures.
-- [ ] Publisher at `82dfda1` fails the cc65 SD link: BSS ends at `$D19A`, overflowing by 1,435 bytes, before the required 1,024-byte reserve. Reclaim at least 2,459 bytes or review the picker scope; do not weaken guards or execute this failed package. USB/package VICE/C64U confirmation acceptance is blocked by fit.
+- [x] Resolve Publisher cc65 overflow by excluding uncalled source-save/recovery and configuration-write/migration code from its read-only storage build. Editor and Settings retain their writers. Full host suite, forced SD/USB packages, fit/manifests and three-program VICE startup/unavailable-service/BASIC-return checks pass. Publisher headroom: 2,720/2,716 bytes; launcher: 1,044/1,030 bytes (SD/USB). Receipt: `client/build/publisher-read-only-validation.json`. Real-C64U picker/confirmation acceptance remains unverified.
 - [x] Correct the CI standalone-direct host command to avoid linking the implementation twice; the test already includes it. Original failed run: `40962868301`; corrected-command run: `40963057669`.
 - [ ] The shared runner is restricted to private repositories; SEE64YOU currently reports PUBLIC, so its self-hosted job must remain excluded. Use local tools and public-runner CI unless that policy or repository visibility is explicitly changed.
 - [ ] Directory hardware framing remains unverified; the current picker scan limit does not bound total transport/drain time or allow RUN/STOP during enumeration. Keep these limits visible before expanding the picker.
