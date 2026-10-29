@@ -1,6 +1,6 @@
 # SEE64YOU work queue
 
-**Target:** offline C64U `.8tml` Editor, minimal standard Publisher and Settings. [Product scope](docs/PRODUCT.md) pins the 26 October 2026 publishing API 1 test draft. Implementation is on `feature/8tml-standard-core-20261027` / draft PR #66; migration and release acceptance remain incomplete.
+**Target:** offline C64U `.8tml` Editor, standard Publisher with numbered character GUI and local/server file selectors, and separate Settings. [Product scope](docs/PRODUCT.md) pins the 26 October 2026 publishing API 1 test draft; [Publisher design](docs/PUBLISHER.md) defines the new GUI and conditional download-to-edit workflow. Implementation is on `feature/8tml-standard-core-20261027` / draft PR #66; migration and release acceptance remain incomplete.
 
 ## Active Editor priorities
 
