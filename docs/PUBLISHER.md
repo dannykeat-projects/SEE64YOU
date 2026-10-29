@@ -4,7 +4,7 @@
 
 ## Release priorities
 
-1. **First:** finish the independent Editor and standard Publisher acceptance (including the separate PR #67 loading optimisation and real-C64U tests). Do not merge or promote unverified binaries.
+1. **First:** finish the independent Editor and standard Publisher acceptance (including exact-package real-C64U tests; PR #67 loading optimisation has separate acceptance and is excluded from the current alpha). Do not merge or promote unverified binaries.
 2. **Next:** a compact numbered character interface and a practical local file selector. Use a few screens and existing routines, not a reusable GUI framework.
 3. **Then:** display/select names from the existing standard authenticated server list, with manual remote name still available.
 4. **Later, optional:** download a single file for editing, but only when independent raw-source retrieval and supported C64U transport have been demonstrated. Download is **not a blocker** for the first usable release.
@@ -35,7 +35,7 @@ Target home screen:
 
 Press an on-screen number to activate that action; optional C64U-mapped 1351 mouse click selects its text rectangle, or arrows/Return and optionally joystick/Fire operate the focused entry. RUN/STOP cancels or safely exits. In a dedicated filename-entry prompt, digit keys type characters rather than invoke actions.
 
-**Current incremental state:** PR #66 has a numbered-key home screen (1 Local, 2 Remote name, 3 Publish, 4 Test, 0 Exit), numbered upload confirmation and a six-row paged local `.8tml` selector with manual-name fallback. Directory commands use a separately linked module, preserving Editor fit. Local folder traversal, authenticated server selection and optional mouse are **not implemented**. Earlier host fixtures passed but incorrectly modeled READ_DIR as one entry per command. They have now been replaced with packet-stream fixtures; **the new fixtures have not been run here**. The linked C64 program, memory fit, VICE and hardware acceptance remain **unverified**. The target layout above is not shipped.
+**Current incremental state:** PR #66 has a numbered-key home screen (1 Local, 2 Remote name, 3 Publish, 4 Test, 0 Exit), numbered upload confirmation and a six-row paged local `.8tml` selector with manual-name fallback. Directory commands use a separately linked module, preserving Editor fit. Local folder traversal, authenticated server selection and optional mouse are **not implemented**. Packet-stream host fixtures, complete SD/USB cc65 fit/manifests and VICE startup/exit checks pass. REST-assisted real-C64U SD tests pass numbered source selection/filtering and independent-server create/replace/cancel, three-identity confirmation, byte-exact readback, size-limit and invalid-key refusal. Publisher retains at least 1,024 bytes of headroom. Physical number keys, cold-power/interruption and real USB-only operation remain unverified. The target layout above is not the implemented menu.
 
 ## Local and server selectors
 

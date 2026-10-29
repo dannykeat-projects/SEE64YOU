@@ -16,10 +16,10 @@
 ## Current validation blockers
 
 - [x] Exact `82dfda1` full host suite passed, including directory-stream and picker fixtures.
-- [x] Resolve Publisher cc65 overflow by excluding uncalled source-save/recovery and configuration-write/migration code from its read-only storage build. Editor and Settings retain their writers. Full host suite, forced SD/USB packages, fit/manifests and three-program VICE startup/unavailable-service/BASIC-return checks pass. Publisher headroom: 2,720/2,716 bytes; launcher: 1,044/1,030 bytes (SD/USB). Receipt: `client/build/publisher-read-only-validation.json`. Real-C64U picker/confirmation acceptance remains unverified.
+- [x] Resolve Publisher cc65 overflow by excluding uncalled source-save/recovery and configuration-write/migration code from its read-only storage build. Editor and Settings retain their writers. Full host suite, forced SD/USB packages, fit/manifests and three-program VICE startup/unavailable-service/BASIC-return checks pass. Publisher headroom: 2,720/2,716 bytes; launcher: 1,044/1,030 bytes (SD/USB). Receipt: `client/build/publisher-read-only-validation.json`. REST-assisted exact-package SD numbered selection/filtering and three-identity confirmation, independent-server create/replace/cancel and byte-exact readback pass (`client/build/publisher-picker-hardware-20261030-r2/`); size-limit and invalid-key refusal plus full restoration pass separately (`client/build/publisher-failures-hardware-20261030/`). Initial monitor and 70-second load-harness failures remain recorded; physical keyboard, cold power/interruption and real USB-only gates remain open.
 - [x] Correct the CI standalone-direct host command to avoid linking the implementation twice; the test already includes it. Original failed run: `40962868301`; corrected-command run: `40963057669`.
 - [ ] The shared runner is restricted to private repositories; SEE64YOU currently reports PUBLIC, so its self-hosted job must remain excluded. Use local tools and public-runner CI unless that policy or repository visibility is explicitly changed.
-- [ ] Directory hardware framing remains unverified; the current picker scan limit does not bound total transport/drain time or allow RUN/STOP during enumeration. Keep these limits visible before expanding the picker.
+- [ ] Real-C64U packet framing passes bounded numbered source selection. The current picker scan limit does not bound total transport/drain time or allow RUN/STOP during enumeration; keep these limits visible before expanding the picker.
 
 ## P0 — Remaining release acceptance
 
