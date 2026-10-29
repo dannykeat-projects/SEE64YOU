@@ -70,6 +70,20 @@ echo "== Host charset tests =="
 TMP_BIN=$(mktemp)
 TMP_MODULE_DIR=""
 trap 'rm -f "$TMP_BIN"; if [ -n "$TMP_MODULE_DIR" ]; then rm -rf "$TMP_MODULE_DIR"; fi' EXIT
+
+echo "== Host bounded Ultimate-DOS directory tests =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/dos_dir_test.c client/src/platform/dos_dir.c \
+    client/src/platform/dos.c client/src/charset.c -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host numbered local file picker tests =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/tests/local_picker_stubs -Iclient/src \
+    client/tests/local_picker_test.c client/src/publisher/local_picker.c \
+    client/src/platform/dos_dir.c client/src/platform/dos.c \
+    client/src/charset.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host public browser protocol/HTTP tests =="
 cc -std=c89 -Wall -Wextra -Werror -Iclient/src \
     client/tests/browser_protocol_test.c client/src/browser/protocol.c -o "$TMP_BIN"
