@@ -11,41 +11,47 @@ static const char* files[] = {
     "FILE05.8TML", "FILE06.8TML", "FILE07.8TML",
     "FILE08.8TML", "FILE09.8TML"
 };
-static unsigned char dir_cursor;
 static unsigned char key_pos;
 static const char* keys;
 static unsigned char unreadable;
 
-static S64UciResult fake_uci(const S64UciCommandPart* parts,
+static S64UciResult fake_open(const S64UciCommandPart* parts,
     uint8_t count, S64UciReply* reply)
 {
-    uint8_t command, attribute;
-    const char* name;
-    unsigned char bytes[36];
-    uint16_t length;
-
+    const char* status;
     assert(count == 1u && parts[0].length == 2u);
-    command = parts[0].data[1];
     assert(parts[0].data[0] == S64_DOS_TARGET_PRIMARY);
-    if (command == 0x13u) {
-        dir_cursor = 0u;
-        strcpy(reply->status, unreadable ? "86,CAN'T READ DIRECTORY" : "00,OK");
-    } else {
-        assert(command == 0x14u);
-        strcpy(reply->status, "00,OK");
-        if (dir_cursor < (sizeof(files)/sizeof(files[0]))) {
-            name = files[dir_cursor];
-            attribute = dir_cursor == 0u ? 0x10u
-                : dir_cursor == 1u ? 0x02u : 0x20u;
-            ++dir_cursor;
-            length = (uint16_t)strlen(name);
-            bytes[0] = attribute;
-            memcpy(bytes + 1u, name, length + 1u);
-            assert(reply->data_sink(bytes, (uint16_t)(length + 2u),
-                reply->data_context));
-        }
+    assert(parts[0].data[1] == 0x13u);
+    status = unreadable ? "86,CAN'T READ DIRECTORY" : "00,OK";
+    strcpy(reply->status, status);
+    reply->status_length = (uint16_t)strlen(status);
+    return S64_UCI_OK;
+}
+
+S64UciResult s64_uci_execute_packets(const S64UciCommandPart* parts,
+    uint8_t count, S64UciReply* reply,
+    S64UciPacketSink sink, void* context)
+{
+    uint8_t i, attribute;
+    uint16_t length;
+    unsigned char bytes[36];
+    const char* name;
+    assert(count == 1u && parts[0].length == 2u);
+    assert(parts[0].data[0] == S64_DOS_TARGET_PRIMARY);
+    assert(parts[0].data[1] == 0x14u);
+
+    /* One READ_DIR command streams all entries, each in its own packet. */
+    for (i = 0u; i < sizeof(files)/sizeof(files[0]); ++i) {
+        name = files[i];
+        attribute = i == 0u ? 0x10u : i == 1u ? 0x02u : 0x20u;
+        length = (uint16_t)strlen(name);
+        bytes[0] = attribute;
+        memcpy(bytes + 1u, name, length + 1u);
+        if (!sink(bytes, (uint16_t)(length + 2u), 1u, context))
+            return S64_UCI_CONSUMER_ABORTED;
     }
-    reply->status_length = (uint16_t)strlen(reply->status);
+    strcpy(reply->status, "00,OK");
+    reply->status_length = 5u;
     return S64_UCI_OK;
 }
 
@@ -72,16 +78,14 @@ int main(void)
 {
     S64Dos dos;
     char filename[65];
-    s64_dos_init(&dos, fake_uci, S64_DOS_TARGET_PRIMARY);
+    s64_dos_init(&dos, fake_open, S64_DOS_TARGET_PRIMARY);
 
     set_keys("91");
     assert(s64_local_pick(&dos, filename, sizeof(filename)) == 1u);
     assert(!strcmp(filename, "FILE07.8TML"));
-
     set_keys("92");
     assert(s64_local_pick(&dos, filename, sizeof(filename)) == 1u);
     assert(!strcmp(filename, "FILE08.8TML"));
-
     set_keys("91");
     assert(s64_local_pick(&dos, filename, sizeof(filename)) == 1u);
     assert(!strcmp(filename, "FILE07.8TML"));
@@ -90,15 +94,13 @@ int main(void)
     set_keys("0");
     assert(s64_local_pick(&dos, filename, sizeof(filename)) == 0u);
     assert(!strcmp(filename, "UNCHANGED"));
-
     set_keys("7");
     assert(s64_local_pick(&dos, filename, sizeof(filename)) == 2u);
     assert(!strcmp(filename, "UNCHANGED"));
-
     unreadable = 1u;
     assert(s64_local_pick(&dos, filename, sizeof(filename)) == 3u);
     assert(!strcmp(filename, "UNCHANGED"));
 
-    puts("local_picker host tests passed");
+    puts("local_picker packet-stream host tests passed");
     return 0;
 }
