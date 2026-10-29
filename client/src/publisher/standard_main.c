@@ -37,21 +37,35 @@ static void put_text(uint8_t row, const char* text, uint8_t maximum)
     while (*text && maximum--) cputc(*text++);
 }
 
+/* Every action fits on one 40-column row; digits work without a mouse. */
+static void draw_action(uint8_t row, const char* text)
+{
+    gotoxy(2u, row);
+    revers(1u);
+    cputs(text);
+    revers(0u);
+}
+
 static void render(void)
 {
     clrscr();
     put_text(0u, "SEE64YOU 8TML PUBLISHER", 39u);
-    put_text(2u, "Local:", 39u);
-    put_text(3u, loaded ? local.filename : "(choose file)", 39u);
-    put_text(5u, "Remote:", 39u);
-    put_text(6u, remote_name[0] ? remote_name : "(choose name)", 65u);
-    put_text(8u, "Endpoint (full URL at confirmation):", 39u);
-    put_text(9u, s64_settings_publish_id(&settings)[0] ? settings.base_url : "Import key in S64CFG.PRG", 79u);
-    gotoxy(0u, 12u);
-    cputs("L CHOOSE LOCAL .8TML\r\nN REMOTE NAME\r\nP PUBLISH / REPLACE\r\nT TEST ENDPOINT\r\nR RELOAD SETTINGS");
-    put_text(19u, "HTTP source is not encrypted.", 39u);
-    put_text(20u, "RUN/STOP  EXIT TO BASIC", 39u);
-    put_text(22u, status, 79u);
+    put_text(1u, "---------------------------------------", 39u);
+    put_text(2u, "LOCAL SOURCE", 39u);
+    put_text(3u, loaded ? local.filename : "(choose .8tml file)", 39u);
+    put_text(5u, "REMOTE TARGET", 39u);
+    put_text(6u, remote_name[0] ? remote_name : "(choose name)", 39u);
+    put_text(8u, "SERVER", 39u);
+    put_text(9u, s64_settings_publish_id(&settings)[0] ? settings.base_url : "Import key in S64CFG.PRG", 39u);
+
+    draw_action(11u, "[1] CHOOSE LOCAL FILE");
+    draw_action(13u, "[2] SET REMOTE NAME");
+    draw_action(15u, "[3] PUBLISH / REPLACE");
+    draw_action(17u, "[4] TEST CONNECTION");
+    draw_action(19u, "[0] EXIT TO BASIC");
+
+    put_text(21u, "HTTP source is not encrypted.", 39u);
+    put_text(23u, status, 39u);
 }
 
 static uint8_t input(const char* label, char* output, uint8_t capacity)
@@ -62,7 +76,7 @@ static uint8_t input(const char* label, char* output, uint8_t capacity)
     cursor(1);
     for (;;) {
         key = cgetc();
-        if (key == CH_STOP) { cursor(0); return 0u; }
+        if (key == CH_STOP || key == '0') { cursor(0); return 0u; }
         if (key == CH_ENTER) {
             output[length] = 0; cursor(0); return length != 0u;
         }
@@ -175,7 +189,7 @@ int main(void)
                 break;
             }
             if (key == 'r' || key == 'R') load_settings();
-            else if (key == 'l' || key == 'L') {
+            else if (key == '1' || key == 'l' || key == 'L') {
                 if (!capabilities.dos_target) { message("C64U DOS unavailable"); continue; }
                 if (!input("OPEN .8TML:", prompt, S64_LOCAL_FILENAME_CAPACITY)) continue;
                 if (s64_dos_change_dir(&dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK) {
@@ -196,7 +210,7 @@ int main(void)
                     s64_buffer_init(&body); s64_document_init(&document, &body);
                     message(s64_local_result_message(&local, result));
                 }
-            } else if (key == 'n' || key == 'N') {
+            } else if (key == '2' || key == 'n' || key == 'N') {
                 if (input("REMOTE NAME:", prompt, sizeof(prompt))) {
                     if (s64_publish_name_valid(prompt)) {
                         strcpy(remote_name, prompt);
@@ -207,9 +221,9 @@ int main(void)
                         message("Remote name selected");
                     } else message("Invalid remote name");
                 }
-            } else if (key == 't' || key == 'T') {
+            } else if (key == '4' || key == 't' || key == 'T') {
                 if (ready()) show_result(s64_standard_status(&client, &reply));
-            } else if (key == 'p' || key == 'P') publish();
+            } else if (key == '3' || key == 'p' || key == 'P') publish();
         }
     }
     memset(&settings, 0, sizeof(settings));
