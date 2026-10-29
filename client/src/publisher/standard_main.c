@@ -76,7 +76,7 @@ static uint8_t input(const char* label, char* output, uint8_t capacity)
     cursor(1);
     for (;;) {
         key = cgetc();
-        if (key == CH_STOP || key == '0') { cursor(0); return 0u; }
+        if (key == CH_STOP) { cursor(0); return 0u; }
         if (key == CH_ENTER) {
             output[length] = 0; cursor(0); return length != 0u;
         }
@@ -179,7 +179,7 @@ int main(void)
         load_settings();
         for (;;) {
             render(); key = cgetc();
-            if (key == CH_STOP) {
+            if (key == CH_STOP || key == '0') {
                 if (path_captured && (s64_dos_change_dir(&dos, original_path) != S64_DOS_OK
                     || s64_dos_get_path(&dos, verify_path, sizeof(verify_path)) != S64_DOS_OK
                     || strcmp(original_path, verify_path))) {
