@@ -48,7 +48,7 @@ static uint8_t directory_entry(const uint8_t* data,
         } else if (!read->entry->skipped) {
             if (read->count >= S64_DOS_DIR_NAME_CAPACITY
                 || data[i] < 32u || data[i] > 126u
-                || data[i] == '/' || data[i] == '\\'
+                || data[i] == 0x2Fu || data[i] == 0x5Cu
                 || !s64_charset_ascii_to_native(data[i], &native)) {
                 read->entry->skipped = 1u;
             } else {
