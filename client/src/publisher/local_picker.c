@@ -1,0 +1,114 @@
+#include <conio.h>
+#include <string.h>
+#include "publisher/local_picker.h"
+#include "platform/dos_dir.h"
+#include "charset.h"
+
+#define PICKER_ROWS 6u
+#define PICKER_SCAN_LIMIT 1024u
+
+/* Static to avoid the small C64 software stack. One page only. */
+static S64DosDirEntry current;
+static char names[PICKER_ROWS][S64_DOS_DIR_NAME_CAPACITY];
+static uint8_t count, more, page;
+
+static uint8_t is_source(const char* name)
+{
+    uint8_t c, i;
+    uint8_t n = (uint8_t)strlen(name);
+    static const char suffix[] = ".8tml";
+    if (n < 5u) return 0u;
+    for (i = 0u; i < 5u; ++i) {
+        if (!s64_charset_native_to_ascii(
+                (uint8_t)name[(uint8_t)(n - 5u + i)], &c)) return 0u;
+        if (c >= 'A' && c <= 'Z') c = (uint8_t)(c + ('a' - 'A'));
+        if (c != (uint8_t)suffix[i]) return 0u;
+    }
+    return 1u;
+}
+
+static uint8_t read_page(S64Dos* dos)
+{
+    uint8_t empty, found;
+    uint16_t scanned, eligible;
+    S64DosResult result;
+
+    count = more = 0u;
+    result = s64_dos_dir_open(dos, &empty);
+    if (result != S64_DOS_OK) return 0u;
+    if (empty) return 1u;
+
+    eligible = 0u;
+    for (scanned = 0u; scanned < PICKER_SCAN_LIMIT; ++scanned) {
+        result = s64_dos_dir_next(dos, &current, &found);
+        if (result != S64_DOS_OK) return 0u;
+        if (!found) return 1u;
+        if (current.skipped
+            || (current.attributes & 0x1Eu) != 0u
+            || !is_source(current.name)) continue;
+        if (eligible < (uint16_t)page * PICKER_ROWS) {
+            ++eligible;
+            continue;
+        }
+        if (count == PICKER_ROWS) {
+            more = 1u;
+            return 1u;
+        }
+        strcpy(names[count++], current.name);
+    }
+    /* Never present a possibly incomplete directory as a complete list. */
+    return 0u;
+}
+
+static void show_page(void)
+{
+    uint8_t i, row;
+    clrscr();
+    cputs("SEE64YOU - LOCAL .8TML FILES\r\n");
+    cputs("---------------------------------------\r\n");
+    for (i = 0u; i < count; ++i) {
+        row = (uint8_t)(3u + i * 2u);
+        gotoxy(1u, row);
+        revers(1u);
+        cputc('[');
+        cputc((char)('1' + i));
+        cputs("] ");
+        cputs(names[i]);
+        revers(0u);
+    }
+    if (!count) {
+        gotoxy(1u, 5u);
+        cputs("No .8tml files on this page");
+    }
+    gotoxy(0u, 17u);
+    cputs("[7] TYPE NAME  [8] PREV  [9] NEXT\r\n");
+    cputs("[0] BACK\r\n");
+    if (page) cputs("Previous page available\r\n");
+    if (more) cputs("Next page available\r\n");
+    cputs("SELECT NUMBER OR RUN/STOP TO BACK");
+}
+
+uint8_t s64_local_pick(S64Dos* dos, char* filename, uint8_t capacity)
+{
+    unsigned char key;
+    page = 0u;
+    if (!dos || !filename || capacity < S64_DOS_DIR_NAME_CAPACITY)
+        return 3u;
+
+    for (;;) {
+        if (!read_page(dos)) return 3u;
+        show_page();
+        key = cgetc();
+        if (key == CH_STOP || key == '0') return 0u;
+        if (key == '7') return 2u;
+        if (key == '8' && page) {
+            --page;
+        } else if (key == '9' && more) {
+            if (page >= (PICKER_SCAN_LIMIT / PICKER_ROWS)) return 3u;
+            ++page;
+        } else if (key >= '1' && key < (unsigned char)('1' + count)) {
+            strcpy(filename, names[(uint8_t)(key - '1')]);
+            return 1u;
+        }
+    }
+}
