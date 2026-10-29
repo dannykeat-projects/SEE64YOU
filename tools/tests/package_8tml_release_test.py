@@ -50,7 +50,8 @@ class PackageTest(unittest.TestCase):
 
     def test_receipt_rejections(self):
         PACK.verify_receipts(self.validation, self.receipt, "release")
-        for kind in ("extra", "restoration", "package", "root", "gate", "runtime", "missing-runtime"):
+        for kind in ("extra", "restoration", "package", "root", "gate", "runtime", "missing-runtime",
+                     "native-only", "UI-not-tested"):
             validation, receipt = copy.deepcopy(self.validation), copy.deepcopy(self.receipt)
             if kind == "extra": receipt["package_sha256"]["UNEXPECTED.PRG"] = "x"
             if kind == "restoration": receipt["restored"] = False
@@ -59,6 +60,8 @@ class PackageTest(unittest.TestCase):
             if kind == "gate": validation["gates"]["host_suite"] = "failed"
             if kind == "runtime": validation["source_sha256"]["client/src/test.c"] = "wrong"
             if kind == "missing-runtime": validation["source_sha256"] = {}
+            if kind == "native-only": receipt["storage_only"] = True
+            if kind == "UI-not-tested": receipt["shipping_editor_UI_tested"] = False
             with self.subTest(kind=kind), self.assertRaises(ValueError):
                 PACK.verify_receipts(validation, receipt, "release")
 

@@ -6,13 +6,21 @@
 
 1. **P0 — Save integrity:** preserve existing `.tmp`/`.bak` recovery copies and retain the original through replacement. Host regressions cover collision, backup/install/rollback/cleanup failures. Complete matching SD/USB fit/manifests, VICE and bounded real-C64U disk acceptance before promotion.
 2. **P1 — Large-source loading (prototype in validation):** measure and batch the per-byte REU writes in the existing source reader; retain byte-exact source, line-ending normalization and bounded memory.
-   Host counters verify 1/16/60 KiB exact roundtrips; the bounded 64-byte append reduces LF REU stores by 64x, reusing the codec workspace. Chunk/failure/capacity, full host regressions, cc65/PETSCII codec VICE, both shipping-root fit/manifests and packaged VICE startup/BASIC-return pass. End-to-end C64U timing remains unverified; this prototype is excluded from alpha.4.
+   Host counters verify 1/16/60 KiB exact roundtrips; the bounded 64-byte append reduces LF REU stores by 64x, reusing the codec workspace. Chunk/failure/capacity, full host regressions, cc65/PETSCII codec VICE, both shipping-root fit/manifests and packaged VICE startup/BASIC-return pass. Native 1/16/60 KiB open/save/reopen and exact FTP readback now pass with complete app-file and captured machine restoration. Shipping UI/startup timing, a comparable pre-change C64U baseline and physical acceptance remain unverified; this prototype is excluded from alpha.4.
 3. **P1 — Editing and saving cost:** benchmark long-distance gap movement and redundant save scans before making a bounded change.
 4. **P1 — REU error reporting:** distinguish failed reads from missing characters/search misses and preserve recoverable dirty text.
 5. **P2 — Rendering, paste and undo:** use repeatable measurements and fault injection to target redraws and bulk edits.
 
 - [x] Save integrity implementation and focused host fault regressions; published as user-authorized `v0.2.0-alpha.4` at `055372c` with verified downloaded SD/USB1 ZIPs and checksums.
 - [x] Save integrity SD and `/USB1/` shipping builds/fit/manifests, both packaged VICE startup/BASIC-return checks, and bounded real-C64U SD native-DOS replacement rollback and recovery-collision acceptance. Exact source/package hashes: `client/build/save-safety-validation.json`; hardware receipt: `client/build/save-safety-hardware-20261029-r2/`. All 44 original files, configuration, DOS contexts, IRQ/turbo/colours, scratch byte and responsive BASIC restored and verified. Physical input, cold power, uncontrolled interruption and real USB-only acceptance remain separate release gates.
+
+## Current validation results
+
+- [x] PR #67 shared native codec/DOS checks: exact 1/16/60 KiB open/save/reopen passed at application source `8f5b735`, diagnostic harness `a667a4b`. At 60 ticks/second, open/save/reopen took 3.783/12.800/3.800 seconds (1 KiB), 56.650/186.417/56.450 (16 KiB), and 210.900/695.917/210.933 (60 KiB). One run, no acceleration change; these exclude shipping UI and do not establish a comparable-baseline speedup.
+- [x] A REST monitoring timeout was recovered without reset or replaying writes. All 45 original app files, captured DOS/machine/configuration state and both scratch areas were restored and verified. The original SD root listing was not retained across the interrupted monitor, so that initial listing comparison remains unverified. Receipt: `client/build/source-loading-hardware-20261030/`; bounded read-only retry tests now pass.
+- [x] User-authorized SD cleanup removed 23 obsolete files plus the empty legacy backup directory, retaining 22 byte-exact files: matching installed ten-file package, credentials/configuration, current journal pair and eight test documents. Both manifests, latest CLEAN journal, SD root inventory across cleanup and machine state were verified. No package replacement or release performed.
+- [ ] PR #66 application `82dfda1` fails Publisher cc65 linking by 1,435 bytes (BSS end `$D19A`), before the required 1,024-byte reserve. Its full local host suite passed; public CI reproduced the same native failure after duplicate-link command repair (`2177756`, run `40963057669`). Reclaim at least 2,459 bytes or review picker scope before shipping-package VICE/C64U UI acceptance. No failed build was executed.
+- [ ] The shared runner is private-only and SEE64YOU currently reports PUBLIC; its job remains excluded and the service remained inactive. Use local tools/public runners unless policy or repository visibility is explicitly changed.
 
 ## Implemented software
 

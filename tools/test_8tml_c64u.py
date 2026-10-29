@@ -14,6 +14,7 @@ from pathlib import Path
 import re
 import subprocess
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -149,13 +150,23 @@ def main():
 
     def wait(expected, label, timeout=70):
         deadline = time.monotonic() + timeout
+        text = "No screen read completed"
         while time.monotonic() < deadline:
-            text = screen(label)
+            try:
+                text = screen(label)
+            except (TimeoutError, urllib.error.URLError) as error:
+                # A busy device can miss a monitoring GET while native DOS work
+                # continues. Retry reads within the original bound, never writes.
+                state.setdefault("monitor_read_errors", []).append(
+                    {"label": label, "error": repr(error)})
+                save()
+                time.sleep(2)
+                continue
             if expected.upper() in text.upper() and mem(0xc6, 1) == b"\0":
                 return text
             if "8TML FAIL" in text:
                 raise AssertionError(text)
-            time.sleep(.25)
+            time.sleep(5 if args.storage_only else .25)
         raise AssertionError(f"{label}: missing {expected!r}; {text}")
 
     def basic(label):
