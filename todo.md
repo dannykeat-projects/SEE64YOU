@@ -13,6 +13,14 @@
 - [x] Save integrity implementation and focused host fault regressions.
 - [x] Save integrity SD and `/USB1/` shipping builds/fit/manifests, both packaged VICE startup/BASIC-return checks, and bounded real-C64U SD native-DOS replacement rollback and recovery-collision acceptance. Exact source/package hashes: `client/build/save-safety-validation.json`; hardware receipt: `client/build/save-safety-hardware-20261029-r2/`. All 44 original files, configuration, DOS contexts, IRQ/turbo/colours, scratch byte and responsive BASIC restored and verified. Physical input, cold power, uncontrolled interruption and real USB-only acceptance remain separate release gates.
 
+## Current validation blockers
+
+- [x] Exact `82dfda1` full host suite passed, including directory-stream and picker fixtures.
+- [ ] Publisher at `82dfda1` fails the cc65 SD link: BSS ends at `$D19A`, overflowing by 1,435 bytes, before the required 1,024-byte reserve. Reclaim at least 2,459 bytes or review the picker scope; do not weaken guards or execute this failed package. USB/package VICE/C64U confirmation acceptance is blocked by fit.
+- [x] Correct the CI standalone-direct host command to avoid linking the implementation twice; the test already includes it. Original failed run: `40962868301`; corrected-command run: `40963057669`.
+- [ ] The shared runner is restricted to private repositories; SEE64YOU currently reports PUBLIC, so its self-hosted job must remain excluded. Use local tools and public-runner CI unless that policy or repository visibility is explicitly changed.
+- [ ] Directory hardware framing remains unverified; the current picker scan limit does not bound total transport/drain time or allow RUN/STOP during enumeration. Keep these limits visible before expanding the picker.
+
 ## P0 — Remaining release acceptance
 
 **Previously validated (older build):** Standard API 1 signing, independent Publisher/Settings, local storage fault guards, SD/USB matching package/manifest checks, VICE startup/return and bounded real-C64U SD create/replace and rollback tests. The earlier `45d2069` package had Publisher headroom 2,047/2,041 bytes and launcher 1,070/1,056 bytes. Receipts and exact hashes are in Git history and `client/build/`; **none certify the later numbered-GUI/directory-picker commits or replace their new build/fit gates**.
