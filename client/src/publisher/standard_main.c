@@ -28,7 +28,7 @@ static char original_path[440];
 /* Browsed server rows are no longer used when the exit-only DOS readback
  * starts. Sharing this scratch space saves 390 bytes of C64 program memory. */
 static union {
-    char scratch.remote_rows[6][65];
+    char remote_rows[6][65];
     char verify_path[440];
 } scratch;
 static unsigned char old_background, old_border, old_text;
