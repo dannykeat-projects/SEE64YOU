@@ -4,7 +4,7 @@
 
 ## Program and package boundaries
 
-Editor (`SEE64YOU.PRG` through its launcher/internal overlays), Publisher (`S64PUB.PRG`) and Settings (`S64CFG.PRG`) launch independently and return to BASIC. No cross-program live editing session or REU handoff. The active independent package contains ten files: four root PRGs and six support files under `SYSTEM/`. It excludes the legacy browser. Install the complete matching package including its `SYSTEM/` folder; never mix flat-layout assets with a new launcher. Existing release assets are separate and must not be modified. Publisher links source/configuration readers without the Editor save/recovery writers or Settings writers (`S64_STORAGE_READ_ONLY`); these remain available in their owning programs. Publisher and launcher must retain at least 1,024 bytes of measured headroom; preserve Editor overlay fit and at least 1,024 bytes of independent Editor resident reserve. Cache-rebind descriptor validation remains resident even when session helpers use PREP.
+Editor (`SEE64YOU.PRG` through its launcher/internal overlays), Publisher (`S64PUB.PRG`) and Settings (`S64CFG.PRG`) launch independently and return to BASIC. No cross-program live editing session or REU handoff. The new, unreleased package layout contains ten files: four root PRGs and six support files under `SYSTEM/`. Earlier published alpha packages retain their original flat layout. It excludes the legacy browser. Install the complete matching package including its `SYSTEM/` folder; never mix flat-layout assets with a new launcher. Existing release assets are separate and must not be modified. Publisher links source/configuration readers without the Editor save/recovery writers or Settings writers (`S64_STORAGE_READ_ONLY`); these remain available in their owning programs. Publisher and launcher must retain at least 1,024 bytes of measured headroom; preserve Editor overlay fit and at least 1,024 bytes of independent Editor resident reserve. Cache-rebind descriptor validation remains resident even when session helpers use PREP.
 
 Use a complete consistently built package for one storage root. Default: `/sd/SEE64YOU/`. A forced rebuild with `STORAGE_ROOT=/USB1/` (or the exact mounted name with trailing slash) changes embedded paths in all assets. No cross-device fallback or automatic migration is supported.
 
@@ -14,7 +14,7 @@ S64EDIT.PRG         internal Editor executable
 S64PUB.PRG          Publisher
 S64CFG.PRG          Settings
 SYSTEM/
-  S64MODULE.MNF     signed/verified module inventory
+  S64MODULE.MNF     checksummed module inventory
   S64OVL.MNF        verified Editor overlay manifest
   S64MODEL.BIN      Editor overlay
   S64FILE.BIN       Editor overlay
