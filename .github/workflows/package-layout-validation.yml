@@ -77,6 +77,14 @@ jobs:
             client/src/platform/reu_runtime_write.c client/src/platform/dos.c \
             client/src/platform/turbo.c client/src/platform/turbo_capture.c client/src/charset.c -o "$tmp"
           "$tmp"
+          # The local picker must draw a visible pending status before each
+          # blocked directory read, including paging and failed directory reads.
+          cc -std=c99 -Wall -Wextra -Werror -DS64_INDEPENDENT_PUBLISHER=1 \
+            -Iclient/tests/local_picker_stubs -Iclient/src \
+            client/tests/local_picker_test.c client/src/publisher/local_picker.c \
+            client/src/platform/dos_dir.c client/src/platform/dos.c \
+            client/src/charset.c -o "$tmp"
+          "$tmp"
 
       - name: Build and check exact SD package and C64 memory guards
         run: |
