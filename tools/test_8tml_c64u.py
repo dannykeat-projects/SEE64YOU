@@ -583,7 +583,9 @@ def main():
                 known_temporary.update((name + ".bak").upper() for name in reserved)
                 known_temporary.update(("SEE64YOU.REC", "SEE64YOU.REC.TMP", "S64JRN0.DAT", "S64JRN1.DAT"))
                 current = inventory(folder) if folder_existed or state["created_folder"] else {}
-                assert all(path in originals or path.rsplit("/", 1)[-1].upper() in known_temporary
+                assert all(path in originals
+                           or path.removeprefix(folder + "/") in FILES
+                           or path.rsplit("/", 1)[-1].upper() in known_temporary
                            for path in current), "Unexpected new file; preserve it for review"
                 for path in current:
                     if path not in originals:
