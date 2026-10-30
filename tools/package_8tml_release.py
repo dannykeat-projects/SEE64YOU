@@ -161,7 +161,7 @@ def main():
                  "acceptance": "Alpha preview; remaining gates are not certified by this release",
                  "remaining_gates": ["physical keyboard/Link on this package", "cold-power exact-source reopen",
                     "uncontrolled interruption/recovery", "real USB-only operation",
-                    "external compatible-reader navigation", "Publisher/Settings hardware on this exact package",
+                    "external compatible-reader navigation", "full Publisher upload/replace/failure coverage on this exact package",
                     "historical non-shipping native matrix reconciliation"]}
         payload["BUILD.json"] = (json.dumps(build, indent=2, sort_keys=True) + "\n").encode()
         payload["README.md"] = guide
