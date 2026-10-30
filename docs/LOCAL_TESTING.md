@@ -14,6 +14,7 @@ From the repository root, with suitable C compiler, cc65, Python 3, PHP 8.1+ and
 
 ~~~sh
 python3 tools/test_8tml.py
+python3 tools/test_source_loading.py --output client/build/source-loading.json
 python3 tools/test_standard_protocol_vice.py --rom-dir LOCAL_ROM_DIRECTORY
 php site/tests/eighttml.php
 python3 site/tests/eighttml_http.py
@@ -21,6 +22,8 @@ python3 tools/test_publisher_8tml.py
 python3 tools/test_storage_paths.py
 make -C client independent-package
 ~~~
+
+`test_source_loading.py` checks 1/16/60 KiB exact normalized source, REU transfer bounds and EOF/capacity/failure handling. Its host counters exclude DOS, overlays, UI and C64 latency. Measure real-C64U end-to-end load time separately before claiming a speed improvement.
 
 Optional `--reference-tools PATH` in the 8TML scripts invokes the externally supplied 8TML 1 draft validator; it is not bundled pending licensing. Optional `--rom-dir PATH` enables cc65/PETSCII and VICE checks where supported. The legacy Publisher host test uses isolated PHP and remains a regression check for retained code. Standard transport tests and native protocol VICE tests exercise the replacement separately; neither proves real C64U networking or publisher UI. Validate strict source bytes, preserved unknown markup, JSON escaping, size bounds, authentication/replay, failed write/rename, collision refusal, draft privacy, state and identity handling.
 
@@ -54,6 +57,8 @@ The disposable automated Editor/storage gate is:
 ~~~sh
 python3 tools/test_8tml_c64u.py --host C64U_IP --output client/build/NEW-RECEIPT --reference-tools PATH
 ~~~
+
+For focused native storage checks, add `--storage-only`; this retains package readback, app-folder backup and DOS/machine restoration but skips shipping Editor UI acceptance. Add `--source-benchmark` to check exact 1/16/60 KiB open/save/reopen sources and record native `clock()` ticks plus `CLOCKS_PER_SEC`. Those timings include source codec and DOS work, exclude shipping UI/startup, and do not establish a speedup without a comparable baseline. The extra timing scratch is captured and restored. Transient screen-monitor GET failures retry only within the selected wait deadline; writes are never replayed. Native-only receipts cannot substitute for shipping Editor UI acceptance in the release packager.
 
 Use a matching `--package-dir`/`--storage-root` where needed. It stages and verifies a complete package, tests Editor create/save/recovery and a native local source/storage/fault probe, then restores original files and machine state. Check the receipt rather than inferring restoration. Remote key injection is **not** physical keyboard evidence; private receipts and storage backups must not be committed.
 

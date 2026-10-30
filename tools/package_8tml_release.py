@@ -33,6 +33,8 @@ def committed_source():
 
 
 def verify_receipts(validation, receipt, commit):
+    if receipt.get("storage_only") is True or receipt.get("shipping_editor_UI_tested") is False:
+        raise ValueError("Native-storage-only evidence does not certify shipping Editor UI acceptance")
     if receipt.get("restored") is not True or receipt.get("active") is not False \
             or receipt.get("dos_context_restored") is not True or receipt.get("storage_root") != "/sd/":
         raise ValueError("Hardware receipt must confirm complete SD restoration")

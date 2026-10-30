@@ -7,13 +7,19 @@
 ## Active Editor priorities
 
 1. **P0 — Save integrity:** preserve existing `.tmp`/`.bak` recovery copies and retain the original through replacement. Host regressions cover collision, backup/install/rollback/cleanup failures. Complete matching SD/USB fit/manifests, VICE and bounded real-C64U disk acceptance before promotion.
-2. **P1 — Large-source loading:** measure and batch the per-byte REU writes in the existing source reader; retain byte-exact source, line-ending normalization and bounded memory.
+2. **P1 — Large-source loading (integrated PR #67):** measure and batch the per-byte REU writes in the existing source reader; retain byte-exact source, line-ending normalization and bounded memory.
 3. **P1 — Editing and saving cost:** benchmark long-distance gap movement and redundant save scans before making a bounded change.
 4. **P1 — REU error reporting:** distinguish failed reads from missing characters/search misses and preserve recoverable dirty text.
 5. **P2 — Rendering, paste and undo:** use repeatable measurements and fault injection to target redraws and bulk edits.
 
 - [x] Save integrity implementation and focused host fault regressions.
 - [x] Save integrity SD and `/USB1/` shipping builds/fit/manifests, both packaged VICE startup/BASIC-return checks, and bounded real-C64U SD native-DOS replacement rollback and recovery-collision acceptance. Exact source/package hashes: `client/build/save-safety-validation.json`; hardware receipt: `client/build/save-safety-hardware-20261029-r2/`. All 44 original files, configuration, DOS contexts, IRQ/turbo/colours, scratch byte and responsive BASIC restored and verified. Physical input, cold power, uncontrolled interruption and real USB-only acceptance remain separate release gates.
+
+## PR #67 loading validation
+
+- [x] Earlier isolated prototype: host exact 1/16/60 KiB roundtrips, bounded 64-byte append, failure/capacity checks and 64x fewer LF REU stores passed. Prior native codec/DOS roundtrips passed; these are not shipping UI timing or a comparable-baseline speedup.
+- [x] Integrate alpha.5 and Ctrl+Delete source. Combined full host suite, focused source/fault and Editor tests, complete SD/USB fit/manifests and three-program VICE startup/BASIC return pass. Reuse existing free-capacity helper and validated cursor/gap equality to restore fit without weakening bounds. Editor resident space before overlay is only 7/5 bytes (SD/USB); Publisher headroom 2,385/2,381, launcher 1,044/1,030. Receipt: `client/build/combined-loading-validation.json`.
+- [ ] Complete exact combined-package C64U shipping UI/storage acceptance and comparable baseline timings before promotion or speed claims. Historical receipts do not certify these combined bytes. Keep installed alpha.5 and released assets unchanged.
 
 ## Current validation blockers
 
@@ -79,3 +85,5 @@
 - [ ] Remote deletion is blocked: supported standard API 1 has no delete operation; requires a compatible server contract before implementation.
 
 - [x] Install the complete validated remote-picker SD package to `/sd/SEE64YOU/`; all ten installed hashes match `remote-picker-validation.json`, and non-package files including configuration, documents and recovery remain unchanged. Deployment receipt: `client/build/remote-picker-deployment-20261030/receipt.json`. Existing Settings program left running; relaunch and real-C64U UI acceptance remain required.
+
+- [x] Resident-memory recovery: move cold manifest/session helpers into existing PREP, retain descriptor validators resident during cache rebinding, and exclude unreachable outbound transfer stub. SD/USB resident reserve is 1,122/1,120 bytes with a new >=1,024-byte guard; overlay/manifest and bridge ABI checks pass. Exact-package REST-assisted C64U editing/save/recovery/fault checks and full 22-file/configuration/DOS/IRQ/turbo/colour restoration pass (`client/build/editor-memory-fixed-hardware-20261030/`). The first layout failed closed during cache rebinding; its necessary-reset recovery is retained separately. Receipt: `client/build/editor-memory-validation.json`. Physical/cold-power/USB-only gates remain separate; installed alpha.5 is unchanged.

@@ -14,6 +14,7 @@ from pathlib import Path
 import re
 import subprocess
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -39,7 +40,7 @@ def storage_root(text):
     return text
 
 
-def build_probe(out, selected_root, large_source=False):
+def build_probe(out, selected_root, large_source=False, source_benchmark=False):
     sources = ["diagnostics/8tml_storage_probe.c", "src/buffer_reu.c", "src/document.c",
                "src/charset.c", "src/storage/local.c", "src/platform/dos.c", "src/platform/uci.c",
                "src/platform/reu.c", "src/platform/reu_dma.s", "src/platform/basic_workspace_reset.s"]
@@ -47,6 +48,8 @@ def build_probe(out, selected_root, large_source=False):
     for index, source in enumerate(sources):
         obj = out / f"probe-{index}.o"
         flags = ["-DS64_STORAGE_MAX_SOURCE_PROBE=1"] if large_source else []
+        if source_benchmark:
+            flags.append("-DS64_STORAGE_SOURCE_BENCHMARK=1")
         subprocess.run(["cl65", "-t", "c64", "-Os", *flags, "-I", str(ROOT / "client/src"),
                         "-DS64_REU_BUFFER=1", "-DS64_NATIVE_PETSCII=1", "-DS64_INDEPENDENT_EDITOR=1",
                         '-DS64_STORAGE_ROOT_DIRECTORY="' + selected_root + '"',
@@ -72,7 +75,15 @@ def main():
                         help="Seconds allowed for module preload/verification (15..1800)")
     parser.add_argument("--settings-only", action="store_true",
                         help="Test standard key import/persistence instead of Editor editing")
+    parser.add_argument("--storage-only", action="store_true",
+                        help="Run native DOS/source checks without shipping Editor UI runs")
+    parser.add_argument("--source-benchmark", action="store_true",
+                        help="With --storage-only, time 1/16/60 KiB native DOS open/save/reopen")
     args = parser.parse_args()
+    if args.storage_only and args.settings_only:
+        parser.error("--storage-only and --settings-only are mutually exclusive")
+    if args.source_benchmark and not args.storage_only:
+        parser.error("--source-benchmark requires --storage-only")
     if not 15 <= args.startup_timeout <= 1800:
         parser.error("--startup-timeout must be between 15 and 1800 seconds")
     out = args.output.resolve()
@@ -89,10 +100,12 @@ def main():
     candidate = {p.name: p.read_bytes() for p in package.iterdir() if p.is_file()}
     assert native(folder + "/") + b"\0" in candidate["SEE64YOU.PRG"], \
         "Launcher storage root differs from requested test volume"
-    candidate["T8PROBE.PRG"] = build_probe(out, args.storage_root, args.large_source)
+    candidate["T8PROBE.PRG"] = build_probe(out, args.storage_root, args.large_source, args.source_benchmark)
     state = {"commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
              "active": False, "restored": False, "tests": [], "input": "REST keyboard-buffer injection",
              "physical_keyboard": False, "cold_power_cycle": False,
+             "storage_only": args.storage_only, "source_benchmark": args.source_benchmark,
+             "shipping_editor_UI_tested": not args.storage_only and not args.settings_only,
              "storage_root": args.storage_root, "folder": folder, "created_folder": False,
              "test_source_sha256": {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
                  for name in ("client/diagnostics/8tml_storage_probe.c", "tools/test_8tml_c64u.py")},
@@ -137,13 +150,23 @@ def main():
 
     def wait(expected, label, timeout=70):
         deadline = time.monotonic() + timeout
+        text = "No screen read completed"
         while time.monotonic() < deadline:
-            text = screen(label)
+            try:
+                text = screen(label)
+            except (TimeoutError, urllib.error.URLError) as error:
+                # A busy device can miss a monitoring GET while native DOS work
+                # continues. Retry reads within the original bound, never writes.
+                state.setdefault("monitor_read_errors", []).append(
+                    {"label": label, "error": repr(error)})
+                save()
+                time.sleep(2)
+                continue
             if expected.upper() in text.upper() and mem(0xc6, 1) == b"\0":
                 return text
             if "8TML FAIL" in text:
                 raise AssertionError(text)
-            time.sleep(.25)
+            time.sleep(5 if args.storage_only else .25)
         raise AssertionError(f"{label}: missing {expected!r}; {text}")
 
     def basic(label):
@@ -175,6 +198,9 @@ def main():
             f"Enable {name}: {expected} in C64 and Cartridge Settings before testing"
     assert "READY." in screen("before") and mem(0xc6, 1) == b"\0", "Need idle BASIC"
     assert mem(int.from_bytes(mem(0x2b, 2), "little"), 2) == b"\0\0", "Existing BASIC program"
+    benchmark_before = mem(0xc500, 50) if args.source_benchmark else None
+    if benchmark_before is not None:
+        (out / "benchmark-scratch-before.bin").write_bytes(benchmark_before)
     scratch = mem(827, 1)
     state["scratch_827"] = scratch.hex()
     save()
@@ -248,6 +274,12 @@ def main():
     reserved = set(candidate) | {"T8LARGE.8tml", "T8MAXCOPY.8tml", "T8EDIT.8tml", "T8EDIT2.8tml", "T8EMPTY.8tml", "T8IN.8tml",
                 "T8BAD.8tml", "T8COPY.8tml", "T8COPY.8tml.tmp", "T8RECOVER.8tml",
                 "x" * 28 + ".8tml"}
+    benchmark_sources = {}
+    if args.source_benchmark:
+        for label, size in (("1", 1024), ("16", 16384), ("60", 61440)):
+            source = LARGE_HEADER + (b"0123456789012345678901234567890123456789\n" * 1536)[:size - len(LARGE_HEADER)]
+            benchmark_sources[label] = source
+            reserved.update(("T8LOAD" + label + ".8tml", "T8SAVE" + label + ".8tml"))
     if args.settings_only:
         reserved.add("8TML.KEY")
     fixture_names = {n.upper() for n in reserved - FILES}
@@ -304,9 +336,10 @@ def main():
             save()
         for name, data in candidate.items():
             put(folder + "/" + name, data)
-        for path in originals:
-            if path.rsplit("/", 1)[-1].upper() in ("SEE64YOU.REC", "SEE64YOU.REC.TMP"):
-                ftp.delete(path)
+        if not args.storage_only:
+            for path in originals:
+                if path.rsplit("/", 1)[-1].upper() in ("SEE64YOU.REC", "SEE64YOU.REC.TMP"):
+                    ftp.delete(path)
         mark("candidate-package-readback")
         launch("T8PROBE.PRG", "C CAPTURE T TEST R RESTORE")
         keys(b"C")
@@ -364,7 +397,7 @@ def main():
             exitcheck("settings-cancel-replacement-exit")
             assert fetch(folder + "/SEE64YOU.CFG") == stored
             mark("standard-settings-key-replacement-resets-consent-and-cancel-preserves-disk")
-        else:
+        elif not args.storage_only:
             launch("SEE64YOU.PRG", "FILE EDIT SEARCH FORMAT")
             assert "PUB" not in screen("editor-header")[:40], "Independent Editor still exposes PUB"
             keys(b"\x8c")  # Native F8.
@@ -438,14 +471,38 @@ def main():
             assert resaved == EMPTY + b"Updated Hardware 8TML.\n", repr(resaved)
             (out / "editor-recovered-edited.8tml").write_bytes(resaved)
             mark("shipping-editor-recovery-reopen-edit-save-exact-source")
+        if not args.settings_only:
             put(folder + "/T8IN.8tml", SOURCE)
             if args.large_source:
                 put(folder + "/T8LARGE.8tml", LARGE)
             put(folder + "/T8BAD.8tml", EMPTY + b"bad\x80input")
+            for label, source in benchmark_sources.items():
+                put(folder + "/T8LOAD" + label + ".8tml", source)
             launch("T8PROBE.PRG", "C CAPTURE T TEST R RESTORE")
             keys(b"T")
             wait("8TML STORAGE TESTS PASSED", "native-storage-tests",
-                 timeout=2400 if args.large_source else 70)
+                 timeout=2400 if args.large_source or args.storage_only else 70)
+            if args.source_benchmark:
+                raw = mem(0xc500, 50)
+                (out / "native-source-benchmark.bin").write_bytes(raw)
+                assert raw[:4] == b"S8T1", "Incomplete native benchmark record"
+                frequency = int.from_bytes(raw[4:8], "little")
+                assert 0 < frequency <= 1000, "Invalid native CLOCKS_PER_SEC"
+                rows = []
+                for index, (label, source) in enumerate(benchmark_sources.items()):
+                    offset = 8 + index * 14
+                    assert int.from_bytes(raw[offset:offset + 2], "little") == len(source)
+                    ticks = [int.from_bytes(raw[offset + 2 + op * 4:offset + 6 + op * 4], "little")
+                             for op in range(3)]
+                    assert fetch(folder + "/T8LOAD" + label + ".8tml") == source
+                    assert fetch(folder + "/T8SAVE" + label + ".8tml") == source
+                    rows.append({"bytes": len(source), "open_ticks": ticks[0],
+                                 "save_as_new_ticks": ticks[1], "reopen_ticks": ticks[2],
+                                 "source_sha256": hashlib.sha256(source).hexdigest()})
+                state["native_source_benchmark"] = {
+                    "scope": "Native compiled source/storage/DOS open-save-reopen; excludes shipping UI startup; REST-assisted, not physical keyboard",
+                    "CLOCKS_PER_SEC": frequency, "rows": rows}
+                mark("native-DOS-source-1-16-60-KiB-exact-readback-and-clock-ticks")
             exitcheck("native-storage-probe-exit")
             expected = SOURCE.replace(b"\r\n", b"\n") + b"Hardware edit.\n!"
             assert fetch(folder + "/T8COPY.8tml.tmp") == expected
@@ -464,9 +521,11 @@ def main():
             (out / "native-storage-recovered.8tml").write_bytes(expected)
             mark("native-real-DOS-open-edit-save-metadata-CRLF-empty-filename-limit-injected-fault-recovery")
             if args.reference_tools:
+                sources = [out / "native-storage-recovered.8tml"]
+                if not args.storage_only:
+                    sources += [out / "editor-created.8tml", out / "editor-recovered-edited.8tml"]
                 command = ["python3", str(args.reference_tools.resolve() / "8tml"), "check", "-v",
-                           str(out / "editor-created.8tml"), str(out / "editor-recovered-edited.8tml"),
-                           str(out / "native-storage-recovered.8tml")]
+                           *(str(path) for path in sources)]
                 result = subprocess.run(command, cwd=ROOT, text=True, stdout=subprocess.PIPE,
                                         stderr=subprocess.STDOUT)
                 (out / "validator.txt").write_text(result.stdout)
@@ -538,6 +597,10 @@ def main():
                 assert mem(0x314, 2) == irq and api("drives") == drives and api("configs/*") == configs
                 basic("restored-basic")
                 api("machine:writemem", "PUT", address="033B", data=scratch.hex())
+                if benchmark_before is not None:
+                    api("machine:writemem", "PUT", address="C500", data=benchmark_before.hex())
+                    assert mem(0xc500, 50) == benchmark_before, "Benchmark scratch restoration differs"
+                    state["benchmark_scratch_restored"] = True
                 keys(b"NEW\r")
                 wait("READY.", "restored-final")
                 assert mem(int.from_bytes(mem(0x2b, 2), "little"), 2) == b"\0\0"

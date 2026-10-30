@@ -117,6 +117,16 @@ int s64_buffer_insert(S64Buffer* buffer, unsigned char value)
     return 1;
 }
 
+int s64_buffer_append(S64Buffer* buffer, const unsigned char* data, unsigned int length)
+{
+    if (buffer == 0 || (length != 0u && data == 0)
+        || buffer->gap_end != S64_BUFFER_CAPACITY
+        || length > buffer->gap_end - buffer->gap_start) return 0;
+    if (length != 0u) memcpy(buffer->data + buffer->gap_start, data, length);
+    buffer->gap_start += length;
+    return 1;
+}
+
 int s64_buffer_backspace(S64Buffer* buffer)
 {
     if (buffer->gap_start == 0u) {

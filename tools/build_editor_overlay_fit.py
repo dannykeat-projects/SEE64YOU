@@ -348,22 +348,44 @@ def bss_end(map_path: Path) -> int:
     raise FitError(f"Could not find BSS segment in {map_path}")
 
 
+def require_resident_headroom(map_path: Path, minimum: int) -> int:
+    free = RESIDENT_BSS_LIMIT - bss_end(map_path) - 1
+    if free < minimum:
+        raise FitError(f"Resident headroom {free} bytes is below required {minimum}")
+    print(f"Independent Editor resident headroom: {free} bytes (minimum {minimum})")
+    return free
+
+
+def require_resident_descriptor_validation(map_path: Path) -> None:
+    # Cache binding clears the registry before validating the descriptor.
+    text = map_path.read_text(encoding="utf-8")
+    name = "s64_module_descriptor_loadable"
+    symbol = re.search(r"_" + name + r"\s+([0-9A-Fa-f]{6})\s+RLA", text)
+    if (not symbol or int(symbol.group(1), 16) >= RESIDENT_BSS_LIMIT
+            or re.search(r"_s64_overlay_[a-z]+_" + name + r"\b", text)):
+        raise FitError("Descriptor validation must run with the overlay registry cleared")
+
+
 def compile_overlay_layout(
     client: Path, output_dir: Path, sources: list[str],
     groups: dict[str, tuple[str, ...]], group_ids: dict[str, int],
     bridges: dict[str, tuple[str, ...]], cfg: Path, flags: list[str], *,
     compiler: str, od65: str = "od65", image_name: str,
+    resident_symbols: Iterable[str] = (),
 ) -> Path:
     group_for_source = {
         path: group for group, paths in groups.items() for path in paths
     }
+    resident_symbols = set(resident_symbols)
     grouped_names: dict[str, list[str]] = {group: [] for group in groups}
     for group, paths in groups.items():
         for path in paths:
             full = client / path
             if not full.is_file():
                 raise FitError(f"Required overlay source is missing: {path}")
-            grouped_names[group].extend(public_s64_definitions(full.read_text(encoding="utf-8")))
+            grouped_names[group].extend(name for name in
+                public_s64_definitions(full.read_text(encoding="utf-8"))
+                if name not in resident_symbols)
     definitions = {
         name: group for group, names in grouped_names.items() for name in names
     }
@@ -547,6 +569,7 @@ def compile_editor_overlay_fit(
             "src/publisher/settings_validate.c",
             "src/platform/application_state_build.c",
             "src/platform/application_state_editor.c",
+            "src/platform/module_transfer_stub.s",
         }
         sources = [source for source in sources if source not in retired]
         groups = {name: tuple(source for source in items
@@ -554,8 +577,19 @@ def compile_editor_overlay_fit(
                   for name, items in GROUPS.items()}
         # Use the existing PREP slot for formatting, retaining the four-asset
         # manifest and existing checked overlay entry/return mechanism.
-        groups["PUBLICATION"] += ("src/editor_format.c",)
+        # These entry/session helpers run after overlay bootstrap, outside the
+        # typing path. Keep their state resident and use checked return bridges.
+        groups["PUBLICATION"] += (
+            "src/editor_format.c", "src/platform/module_manifest.c",
+            "src/platform/application_state.c", "src/platform/managed_editor_state.c",
+            "src/publisher/settings_session_revoke.c",
+        )
         bridges = dict(BRIDGES)
+        bridges["RUNTIME"] = (
+            "s64_module_manifest_init", "s64_module_manifest_loadable",
+            "s64_application_state_allocation",
+            "s64_application_state_active",
+        )
         bridges["PUBLICATION"] = (
             "s64_editor_has_selection", "s64_editor_selection_start",
             "s64_editor_selection_end", "s64_editor_internal_line_start",
@@ -563,13 +597,19 @@ def compile_editor_overlay_fit(
             "s64_editor_internal_restore_history_state",
             "s64_editor_recalculate_position", "s64_editor_ensure_cursor_visible",
             "s64_managed_editor_state_revoke", "s64_system_state_set_mode",
+            "s64_application_state_load_wire", "s64_session_journal_encode",
         )
     program = compile_overlay_layout(
         client, output_dir, sources, groups, GROUP_IDS, bridges,
         client / "cfg" / "editor-overlay-fit.cfg", flags,
         compiler=cl65 or os.environ.get("CL65") or values["CL65"] or "cl65",
         od65=od65, image_name="editor-overlay-fit",
+        resident_symbols=("s64_module_descriptor_identity_valid",
+                          "s64_module_descriptor_loadable") if independent_editor else (),
     )
+    if independent_editor:
+        require_resident_headroom(output_dir / "editor-overlay-fit.map", 1024)
+        require_resident_descriptor_validation(output_dir / "editor-overlay-fit.map")
     generator = ROOT / "tools" / "generate_code_asset_manifest.py"
     manifest = output_dir / "S64OVL.MNF"
     run([sys.executable, str(generator), str(output_dir), "--root", str(program)], cwd=client)
