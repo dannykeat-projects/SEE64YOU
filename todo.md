@@ -33,7 +33,8 @@
 
 - [x] Consolidate current standard integration PR #66, remote picker PR #68 and REU-loading/memory-fit PR #67 into `main` (merge `1985046`). Historical drafts #64/#65 remain separate; do not merge their superseded legacy code blindly.
 - [x] Implement four PRGs directly under `SEE64YOU/`, with four `.BIN` files and two `.MNF` manifests under `SEE64YOU/SYSTEM/`. Update runtime loaders, independent/diagnostic build packaging, release inventory, native backup/restoration harnesses, test expectations and installation docs.
-- [ ] Validate complete SD/USB cc65 builds and fit, manifest integrity, all-three-program VICE startup/BASIC return and host regressions. USB launcher previously had **only six bytes above the minimum 1,024-byte headroom**. Never weaken the fit guard to permit this layout.
+- [x] Fresh public CI **passed on PR #69**: both SD and `/USB1/` cc65 packages, module/overlay manifests, nested ten-file inventories, release-package regressions and affected launcher/overlay/preload host tests. [Validation run #41012111317](https://github.com/dannykeat-projects/SEE64YOU/actions/runs/41012111317). Measured Editor resident reserve **1,122/1,120** bytes, Publisher free **1,046/1,042**, launcher free **1,086/1,072** (SD/USB); each required minimum is 1,024. A 192-byte bounded three-record module manifest and compact Publisher status buffer restored fit without relaxing guards.
+- [ ] Perform matching-package **VICE startup/BASIC return** for all three programs; the focused CI does not supply VICE/ROMs. Do not reuse older flat-package receipts.
 - [ ] Verify exact-package C64U SYSTEM directory loading, safe DOS exit and restoration with backup/receipt. No automatic deletion of old root assets or existing source/configuration/recovery/journals.
 - [ ] Consider moving documents and settings into separate folders in a later independently tested change. This needs an explicit non-destructive migration and recoverability design.
 ## P0 — Remaining release acceptance
@@ -45,7 +46,7 @@
 
 ## Editor reliability and responsiveness audit targets (28 October 2026)
 
-**Investigation targets; not completion claims.** PR #67 separately proposes batched REU source loading and must retain its own validation. Keep autosave disabled; benchmark shipping paths before wider rewrites. Prioritize measured user impact and data safety over broad rewrites.
+**Investigation targets; not completion claims.** PR #67 batched REU source loading is merged into main, but any speedup must be measured against a comparable baseline and accepted on exact hardware. Keep autosave disabled; benchmark shipping paths before wider rewrites. Prioritize measured user impact and data safety over broad rewrites.
 
 - [ ] **P0 — Protect the previous saved document and existing recovery temporaries.** The shared writer now blocks existing `.tmp`/`.bak`, retains the original during replacement and attempts rollback after failed installation. Host faults and bounded native-DOS checks verify distinct old/new recoverable bytes and retry refusal. Cold-power/interruption guarantees remain unverified.
 - [ ] **P1 — Validate PR #67's batched REU source loading.** `document_wire_reader_write` converts each input byte and calls `s64_buffer_insert`, which issues a single-byte REU store. Benchmark C64U Editor/Publisher load of 1 KiB, 16 KiB and near-60 KiB before changing the shared path; prototype bounded, validated chunk append while preserving ASCII/LF conversion, gap invariants and failure handling. Real-C64U Publisher loaded 16,385 bytes in 91.87 seconds with Turbo Control Off; the relative cost of DOS and REU is not yet isolated.
