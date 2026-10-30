@@ -12,19 +12,8 @@ The default build uses `/sd/SEE64YOU/`. A full rebuild with `STORAGE_ROOT` selec
 
 The independently launched Publisher loads literal source using the shared codec/storage path and sends the same ASCII/LF bytes through standard API 1 status/challenge/list/put operations over UCI Network `$03`. Streaming HMAC appends its signature after the source; local filenames and remote paths stay separate. Existing names require explicit confirmation, with no conditional-write guarantee in the test draft.
 
-Settings owns a standard endpoint URL, key ID, dedicated secret and explicit raw-HTTP consent. A tagged standard destination uses the existing record size and readback checks. Legacy key-only destinations cannot authenticate to the new route. Editor requires neither credentials nor network access. Legacy CMS/relay/WordPress source remains pending caller tracing and replacement acceptance; it is excluded from the independent Publisher link.
+Settings owns a standard endpoint URL, key ID, dedicated secret and explicit raw-HTTP consent. A tagged standard destination uses the existing record size and readback checks. The Editor requires neither credentials nor network access. Publisher links only the standard publishing client, not a bundled website or browser.
+
 ## Boundaries and validation
 
 Source format, local storage, publishing transport, authentication, HTML conversion and external browsing remain separate responsibilities. 8TML-capable browsing is provided by the wider ecosystem rather than another SEE64YOU client. Preserve bounded REU/conventional-RAM layouts, package manifests, clean BASIC return and restoration of machine settings. See [protocol](PROTOCOL.md), [validation](LOCAL_TESTING.md) and [product scope](PRODUCT.md).
-
-## Remaining legacy callers
-
-| Surface | Active caller and boundary |
-| --- | --- |
-| Standard programs | `client/Makefile` links `standard_main.c`/`standard_transport.c` for Publisher and standard key import for independent Settings. Neither depends on the PHP service. |
-| Shared safety | Keep source/storage, UCI/DOS/REU, configuration layout, journals, recovery and BASIC return. Standard signing still uses `direct_key.c` and digest formatting from `direct_auth.c`; their names do not imply they are unused. |
-| Old Publisher and browser | Legacy Makefile targets and `tools/test_publisher_8tml.py` still compile the former JSON Publisher; browser diagnostics and protocol tests remain. They are excluded from the independent package. |
-| Legacy release packaging | `tools/package_8tml_release.py` packages validated ten-file standard client SD and `/USB1/` snapshots with source/package hashes and explicit alpha acceptance limits. No PHP site is distributed. Existing release assets remain immutable. |
-| Legacy validation | `tools/validate.sh` and `.github/workflows/integration-validation.yml` still contain CMS, WordPress, relay, browser and managed-runtime checks. Retire those callers with their features after replacement acceptance; do not silently suppress failures. |
-
-Settings retains the fixed configuration record, with an explicitly tagged standard ID in the former relay slot. Removing old destination/relay headers requires preserving that layout and tracing their remaining constants/builders. Independent Editor formatting uses the existing PREP asset and return bridges; runtime teardown and recovery remain live dependencies.

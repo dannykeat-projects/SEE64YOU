@@ -10,6 +10,7 @@
 #include "platform/package_paths.h"
 #include "publisher/settings_store.h"
 #include "publisher/standard_transport.h"
+#include "publisher/local_picker.h"
 #include "publisher/standard_publish_names.h"
 
 static S64Buffer body;
@@ -37,21 +38,35 @@ static void put_text(uint8_t row, const char* text, uint8_t maximum)
     while (*text && maximum--) cputc(*text++);
 }
 
+/* Every action fits on one 40-column row; digits work without a mouse. */
+static void draw_action(uint8_t row, const char* text)
+{
+    gotoxy(2u, row);
+    revers(1u);
+    cputs(text);
+    revers(0u);
+}
+
 static void render(void)
 {
     clrscr();
     put_text(0u, "SEE64YOU 8TML PUBLISHER", 39u);
-    put_text(2u, "Local:", 39u);
-    put_text(3u, loaded ? local.filename : "(choose file)", 39u);
-    put_text(5u, "Remote:", 39u);
-    put_text(6u, remote_name[0] ? remote_name : "(choose name)", 65u);
-    put_text(8u, "Endpoint (full URL at confirmation):", 39u);
-    put_text(9u, s64_settings_publish_id(&settings)[0] ? settings.base_url : "Import key in S64CFG.PRG", 79u);
-    gotoxy(0u, 12u);
-    cputs("L CHOOSE LOCAL .8TML\r\nN REMOTE NAME\r\nP PUBLISH / REPLACE\r\nT TEST ENDPOINT\r\nR RELOAD SETTINGS");
-    put_text(19u, "HTTP source is not encrypted.", 39u);
-    put_text(20u, "RUN/STOP  EXIT TO BASIC", 39u);
-    put_text(22u, status, 79u);
+    put_text(1u, "---------------------------------------", 39u);
+    put_text(2u, "LOCAL SOURCE", 39u);
+    put_text(3u, loaded ? local.filename : "(choose .8tml file)", 39u);
+    put_text(5u, "REMOTE TARGET", 39u);
+    put_text(6u, remote_name[0] ? remote_name : "(choose name)", 39u);
+    put_text(8u, "SERVER", 39u);
+    put_text(9u, s64_settings_publish_id(&settings)[0] ? settings.base_url : "Import key in S64CFG.PRG", 39u);
+
+    draw_action(11u, "[1] BROWSE LOCAL FILES");
+    draw_action(13u, "[2] SET REMOTE NAME");
+    draw_action(15u, "[3] PUBLISH / REPLACE");
+    draw_action(17u, "[4] TEST CONNECTION");
+    draw_action(19u, "[0] EXIT TO BASIC");
+
+    put_text(21u, "HTTP source is not encrypted.", 39u);
+    put_text(23u, status, 39u);
 }
 
 static uint8_t input(const char* label, char* output, uint8_t capacity)
@@ -128,11 +143,14 @@ static void publish(void)
     }
     result = s64_standard_list(&client, remote_name, &reply);
     if (result != S64_STANDARD_OK) { show_result(result); return; }
-    clrscr(); cputs(settings.base_url); cputs("\r\n"); cputs(remote_name);
-    cputs(reply.exists ? "\r\nREPLACE EXISTING FILE? Y/N\r\n" : "\r\nPUBLISH PUBLIC FILE? Y/N\r\n");
-    cputs("List cannot prevent concurrent changes.\r\nUploaded source is public.");
+    /* Confirm both identities; local source may differ from remote target. */
+    clrscr(); cputs("LOCAL SOURCE:\r\n"); cputs(local.filename);
+    cputs("\r\nSERVER:\r\n"); cputs(settings.base_url);
+    cputs("\r\nREMOTE TARGET:\r\n"); cputs(remote_name);
+    cputs(reply.exists ? "\r\nREPLACE EXISTING FILE?\r\n" : "\r\nPUBLISH PUBLIC FILE?\r\n");
+    cputs("List cannot prevent concurrent changes.\r\nUploaded source is public.\r\n[1] CONFIRM  [0] CANCEL");
     key = cgetc();
-    if (key != 'y' && key != 'Y') { message("Publish cancelled"); return; }
+    if (key != '1' && key != 'y' && key != 'Y') { message("Publish cancelled"); return; }
     result = s64_standard_put(&client, remote_name, s64_buffer_length(&body), write_source, &document, &reply);
     if (result != S64_STANDARD_OK) { show_result(result); return; }
     clrscr(); cputs("PUBLISHED\r\n"); cputs(reply.url);
@@ -145,6 +163,7 @@ int main(void)
 {
     unsigned char key;
     S64LocalResult result;
+    uint8_t selection;
     old_background = bgcolor(COLOR_BLUE);
     old_border = bordercolor(COLOR_BLUE);
     old_text = textcolor(COLOR_LIGHTBLUE);
@@ -165,7 +184,7 @@ int main(void)
         load_settings();
         for (;;) {
             render(); key = cgetc();
-            if (key == CH_STOP) {
+            if (key == CH_STOP || key == '0') {
                 if (path_captured && (s64_dos_change_dir(&dos, original_path) != S64_DOS_OK
                     || s64_dos_get_path(&dos, verify_path, sizeof(verify_path)) != S64_DOS_OK
                     || strcmp(original_path, verify_path))) {
@@ -175,11 +194,17 @@ int main(void)
                 break;
             }
             if (key == 'r' || key == 'R') load_settings();
-            else if (key == 'l' || key == 'L') {
+            else if (key == '1' || key == 'l' || key == 'L') {
                 if (!capabilities.dos_target) { message("C64U DOS unavailable"); continue; }
-                if (!input("OPEN .8TML:", prompt, S64_LOCAL_FILENAME_CAPACITY)) continue;
                 if (s64_dos_change_dir(&dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK) {
                     message("Storage not ready"); continue;
+                }
+                selection = s64_local_pick(&dos, prompt, sizeof(prompt));
+                if (!selection) continue;
+                if (selection == 2u || selection == 3u) {
+                    if (!input(selection == 3u ? "LIST ERROR. TYPE .8TML:"
+                                               : "OPEN .8TML:",
+                               prompt, S64_LOCAL_FILENAME_CAPACITY)) continue;
                 }
                 result = s64_local_open(&local, prompt, 1u);
                 loaded = result == S64_LOCAL_OK;
@@ -196,7 +221,7 @@ int main(void)
                     s64_buffer_init(&body); s64_document_init(&document, &body);
                     message(s64_local_result_message(&local, result));
                 }
-            } else if (key == 'n' || key == 'N') {
+            } else if (key == '2' || key == 'n' || key == 'N') {
                 if (input("REMOTE NAME:", prompt, sizeof(prompt))) {
                     if (s64_publish_name_valid(prompt)) {
                         strcpy(remote_name, prompt);
@@ -207,9 +232,9 @@ int main(void)
                         message("Remote name selected");
                     } else message("Invalid remote name");
                 }
-            } else if (key == 't' || key == 'T') {
+            } else if (key == '4' || key == 't' || key == 'T') {
                 if (ready()) show_result(s64_standard_status(&client, &reply));
-            } else if (key == 'p' || key == 'P') publish();
+            } else if (key == '3' || key == 'p' || key == 'P') publish();
         }
     }
     memset(&settings, 0, sizeof(settings));

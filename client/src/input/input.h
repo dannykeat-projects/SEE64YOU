@@ -45,7 +45,8 @@ typedef enum {
     S64_INPUT_FORMAT_LIST,
     S64_INPUT_FORMAT_LINK,
     S64_INPUT_PUBLISH,
-    S64_INPUT_EXIT
+    S64_INPUT_EXIT,
+    S64_INPUT_DELETE_PREVIOUS_WORD
 } S64InputType;
 
 typedef struct {

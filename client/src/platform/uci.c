@@ -181,10 +181,13 @@ static uint8_t s64_uci_flush_data(
     return 1u;
 }
 
-S64UciResult s64_uci_execute(
+static S64UciResult execute_internal(
     const S64UciCommandPart* parts,
     uint8_t part_count,
     S64UciReply* reply
+#ifdef S64_INDEPENDENT_PUBLISHER
+    , S64UciPacketSink packet_sink, void* packet_context
+#endif
 )
 {
     uint8_t part;
@@ -236,10 +239,24 @@ S64UciResult s64_uci_execute(
         while ((S64_UCI_CONTROL & S64_UCI_DATA_AVAILABLE) != 0u) {
             stream_buffer[stream_length++] = S64_UCI_RESPONSE;
             if (stream_length == S64_UCI_STREAM_BUFFER) {
+#ifdef S64_INDEPENDENT_PUBLISHER
+                if (packet_sink != 0) {
+                    if (!consumer_failed
+                        && !packet_sink(stream_buffer, stream_length, 0u,
+                                        packet_context)) consumer_failed = 1u;
+                } else
+#endif
                 (void)s64_uci_flush_data(reply, stream_length, &consumer_failed);
                 stream_length = 0u;
             }
         }
+#ifdef S64_INDEPENDENT_PUBLISHER
+        if (packet_sink != 0) {
+            if (!consumer_failed
+                && !packet_sink(stream_buffer, stream_length, 1u,
+                                packet_context)) consumer_failed = 1u;
+        } else
+#endif
         (void)s64_uci_flush_data(reply, stream_length, &consumer_failed);
 
         while ((S64_UCI_CONTROL & S64_UCI_STATUS_AVAILABLE) != 0u) {
@@ -258,6 +275,26 @@ S64UciResult s64_uci_execute(
     if (status_invalid) return S64_UCI_PROTOCOL_ERROR;
     return consumer_failed ? S64_UCI_CONSUMER_ABORTED : S64_UCI_OK;
 }
+
+S64UciResult s64_uci_execute(
+    const S64UciCommandPart* parts, uint8_t part_count, S64UciReply* reply)
+{
+#ifdef S64_INDEPENDENT_PUBLISHER
+    return execute_internal(parts, part_count, reply, 0, 0);
+#else
+    return execute_internal(parts, part_count, reply);
+#endif
+}
+
+#ifdef S64_INDEPENDENT_PUBLISHER
+S64UciResult s64_uci_execute_packets(
+    const S64UciCommandPart* parts, uint8_t part_count, S64UciReply* reply,
+    S64UciPacketSink packet_sink, void* packet_context)
+{
+    if (!packet_sink) return S64_UCI_PROTOCOL_ERROR;
+    return execute_internal(parts, part_count, reply, packet_sink, packet_context);
+}
+#endif
 
 typedef struct {
     uint16_t count;

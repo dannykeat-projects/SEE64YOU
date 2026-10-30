@@ -923,6 +923,10 @@ int main(void)
                 cursor_only = 1u;
                 break;
 
+            case S64_INPUT_DELETE_PREVIOUS_WORD:
+                if (!s64_editor_delete_previous_word(&editor)) continue;
+                break;
+
             case S64_INPUT_DELETE:
                 if (!s64_editor_delete(&editor)) {
                     continue;

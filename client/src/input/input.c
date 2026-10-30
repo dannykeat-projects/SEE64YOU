@@ -83,6 +83,7 @@ static S64InputType s64_modifier_command(
 )
 {
     if ((modifiers & S64_MOD_CONTROL) != 0u) {
+        if (raw_key == S64_KEY_DELETE) return S64_INPUT_DELETE_PREVIOUS_WORD;
         if (raw_key == S64_KEY_CURSOR_HORIZONTAL) {
             return (modifiers & S64_MOD_SHIFT) != 0u
                 ? S64_INPUT_WORD_LEFT

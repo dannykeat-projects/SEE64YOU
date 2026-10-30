@@ -34,6 +34,7 @@ int s64_editor_insert(S64Editor* editor, unsigned char value);
 int s64_editor_newline(S64Editor* editor);
 int s64_editor_backspace(S64Editor* editor);
 int s64_editor_delete(S64Editor* editor);
+int s64_editor_delete_previous_word(S64Editor* editor);
 void s64_editor_left(S64Editor* editor);
 void s64_editor_right(S64Editor* editor);
 void s64_editor_up(S64Editor* editor);

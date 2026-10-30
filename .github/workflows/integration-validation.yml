@@ -49,7 +49,7 @@ jobs:
           "$tmp"
           cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src client/tests/publisher_settings_store_test.c client/src/publisher/standard_key_store.c client/src/publisher/standard_keyfile.c client/src/publisher/standard_publish_names.c client/src/publisher/direct_key.c client/src/charset.c client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c client/src/publisher/settings_store.c -o "$tmp"
           "$tmp"
-          cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_direct_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/network.c client/src/crypto/sha256.c client/src/publisher/direct_key.c client/src/publisher/direct_key_store.c client/src/publisher/direct_auth.c client/src/publisher/workspace.c client/src/publisher/standalone_direct.c -o "$tmp"
+          cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_direct_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/network.c client/src/crypto/sha256.c client/src/publisher/direct_key.c client/src/publisher/direct_key_store.c client/src/publisher/direct_auth.c client/src/publisher/workspace.c -o "$tmp"
           "$tmp"
 
       - name: Check standard publishing transport and disposable fixture
@@ -129,7 +129,7 @@ jobs:
           "$tmp"
           cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src client/tests/publisher_settings_store_test.c client/src/publisher/standard_key_store.c client/src/publisher/standard_keyfile.c client/src/publisher/standard_publish_names.c client/src/publisher/direct_key.c client/src/charset.c client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c client/src/publisher/settings_store.c -o "$tmp"
           "$tmp"
-          cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_direct_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/network.c client/src/crypto/sha256.c client/src/publisher/direct_key.c client/src/publisher/direct_key_store.c client/src/publisher/direct_auth.c client/src/publisher/workspace.c client/src/publisher/standalone_direct.c -o "$tmp"
+          cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_direct_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/network.c client/src/crypto/sha256.c client/src/publisher/direct_key.c client/src/publisher/direct_key_store.c client/src/publisher/direct_auth.c client/src/publisher/workspace.c -o "$tmp"
           "$tmp"
 
       - name: Check standard publishing transport and disposable fixture
