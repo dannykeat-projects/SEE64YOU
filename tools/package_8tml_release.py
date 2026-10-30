@@ -116,7 +116,9 @@ def main():
     receipt = json.loads(hardware_data)
     validation = json.loads(validation_data)
     verified_source = verify_receipts(validation, receipt, commit)
-    snapshots = {label: package_bytes(package.resolve(), validation["packages"][label]["sha256"])
+    # Do not resolve first: doing so hides a symlinked package root from
+    # package_bytes(), bypassing the fail-closed inventory safeguard.
+    snapshots = {label: package_bytes(package, validation["packages"][label]["sha256"])
                  for label, package in (("sd", args.sd_package), ("usb", args.usb_package))}
     hardware = {"tested_commit": receipt["commit"], "input": receipt["input"],
                 "physical_keyboard": receipt["physical_keyboard"],
