@@ -37,7 +37,7 @@ def main() -> int:
         rendered = module.render(directory)
         if len(rendered.encode("ascii")) > 192:
             raise AssertionError("rendered module manifest exceeds launcher bound")
-        if not rendered.startswith(module.MAGIC + "\\n"):
+        if not rendered.startswith(module.MAGIC + "\n"):
             raise AssertionError("manifest magic missing")
         lines = rendered.splitlines()
         if len(lines) != 4:
