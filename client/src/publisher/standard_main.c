@@ -24,7 +24,13 @@ static S64StandardReply reply;
 /* Main screen shows at most 39 characters of status, plus the NUL. */
 static char remote_name[65], prompt[65], status[40];
 static uint8_t loaded, network_available, path_captured;
-static char original_path[440], verify_path[440];
+static char original_path[440];
+/* Browsed server rows are no longer used when the exit-only DOS readback
+ * starts. Sharing this scratch space saves 390 bytes of C64 program memory. */
+static union {
+    char remote_rows[6][65];
+    char verify_path[440];
+} scratch;
 static unsigned char old_background, old_border, old_text;
 
 static void message(const char* text)
@@ -68,6 +74,15 @@ static void render(void)
 
     put_text(21u, "HTTP source is not encrypted.", 39u);
     put_text(23u, status, 39u);
+}
+
+/* conio writes screen memory synchronously: show feedback before a blocking
+ * DOS/NET operation rather than after its response arrives. */
+static void working(const char* operation)
+{
+    clrscr();
+    cputs(operation);
+    cputs("\r\nPLEASE WAIT...");
 }
 
 static uint8_t input(const char* label, char* output, uint8_t capacity)
@@ -125,7 +140,6 @@ static void show_result(S64StandardResult result)
     else message("Publishing failed; check endpoint/key");
 }
 
-static char remote_rows[6][65];
 static uint16_t remote_start, remote_seen;
 static uint8_t remote_count, remote_more;
 
@@ -133,7 +147,7 @@ static void remote_file(const char* name, uint32_t size)
 {
     (void)size;
     if (remote_seen++ < remote_start) return;
-    if (remote_count < 6u) strcpy(remote_rows[remote_count++], name);
+    if (remote_count < 6u) strcpy(scratch.remote_rows[remote_count++], name);
     else remote_more = 1u;
 }
 
@@ -147,6 +161,7 @@ static uint8_t browse_remote(void)
     remote_start = 0u;
     for (;;) {
         remote_seen = 0u; remote_count = 0u; remote_more = 0u;
+        working("READING SERVER FILES");
         result = s64_standard_browse(&client, &reply, remote_file);
         if (result != S64_STANDARD_OK) {
             show_result(result);
@@ -161,9 +176,9 @@ static uint8_t browse_remote(void)
         clrscr(); cputs("BROWSE REMOTE\r\n");
         for (row = 0u; row < remote_count; ++row) {
             gotoxy(0u, 3u + row * 2u); cputc('1' + row); cputs(" ");
-            for (col = 0u; remote_rows[row][col]; ++col) {
+            for (col = 0u; scratch.remote_rows[row][col]; ++col) {
                 if (col == 37u) gotoxy(2u, 4u + row * 2u);
-                cputc(remote_rows[row][col]);
+                cputc(scratch.remote_rows[row][col]);
             }
         }
         if (!remote_count) put_text(3u, "(no remote files)", 39u);
@@ -175,7 +190,7 @@ static uint8_t browse_remote(void)
             if (key == '0' || key == CH_STOP) return 0u;
             if (key == '7') return input("REMOTE NAME:", prompt, sizeof(prompt));
             if (key >= '1' && key < '1' + remote_count) {
-                strcpy(prompt, remote_rows[key - '1']); return 1u;
+                strcpy(prompt, scratch.remote_rows[key - '1']); return 1u;
             }
             if (key == '8' && remote_start) { remote_start -= 6u; break; }
             if (key == '9' && remote_more) { remote_start += 6u; break; }
@@ -195,11 +210,13 @@ static void publish(void)
     if (!loaded) { message("Choose local .8TML first"); return; }
     if (!remote_name[0]) { message("Choose remote name first"); return; }
     if (!ready()) return;
+    working("CHECKING SERVER");
     result = s64_standard_status(&client, &reply);
     if (result != S64_STANDARD_OK) { show_result(result); return; }
     if ((uint32_t)s64_buffer_length(&body) > reply.max_size) {
         message("Source exceeds server limit"); return;
     }
+    working("CHECKING REMOTE FILE");
     result = s64_standard_list(&client, remote_name, &reply);
     if (result != S64_STANDARD_OK) { show_result(result); return; }
     /* Confirm both identities; local source may differ from remote target. */
@@ -210,6 +227,7 @@ static void publish(void)
     cputs("List cannot prevent concurrent changes.\r\nUploaded source is public.\r\n[1] CONFIRM  [0] CANCEL");
     key = cgetc();
     if (key != '1' && key != 'y' && key != 'Y') { message("Publish cancelled"); return; }
+    working("UPLOADING FILE");
     result = s64_standard_put(&client, remote_name, s64_buffer_length(&body), write_source, &document, &reply);
     if (result != S64_STANDARD_OK) { show_result(result); return; }
     clrscr(); cputs("PUBLISHED\r\n"); cputs(reply.url);
@@ -244,17 +262,19 @@ int main(void)
         for (;;) {
             render(); key = cgetc();
             if (key == CH_STOP || key == '0') {
+                if (path_captured) working("RESTORING DOS PATH");
                 if (path_captured && (s64_dos_change_dir(&dos, original_path) != S64_DOS_OK
-                    || s64_dos_get_path(&dos, verify_path, sizeof(verify_path)) != S64_DOS_OK
-                    || strcmp(original_path, verify_path))) {
+                    || s64_dos_get_path(&dos, scratch.verify_path, sizeof(scratch.verify_path)) != S64_DOS_OK
+                    || strcmp(original_path, scratch.verify_path))) {
                     message("DOS restore failed; STOP retries exit");
                     continue;
                 }
                 break;
             }
-            if (key == 'r' || key == 'R') load_settings();
+            if (key == 'r' || key == 'R') { working("LOADING SETTINGS"); load_settings(); }
             else if (key == '1' || key == 'l' || key == 'L') {
                 if (!capabilities.dos_target) { message("C64U DOS unavailable"); continue; }
+                working("READING LOCAL FILES");
                 if (s64_dos_change_dir(&dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK) {
                     message("Storage not ready"); continue;
                 }
@@ -265,6 +285,7 @@ int main(void)
                                                : "OPEN .8TML:",
                                prompt, S64_LOCAL_FILENAME_CAPACITY)) continue;
                 }
+                working("OPENING LOCAL FILE");
                 result = s64_local_open(&local, prompt, 1u);
                 loaded = result == S64_LOCAL_OK;
                 remote_name[0] = 0;
@@ -292,7 +313,7 @@ int main(void)
                     } else message("Invalid remote name");
                 }
             } else if (key == '4' || key == 't' || key == 'T') {
-                if (ready()) show_result(s64_standard_status(&client, &reply));
+                if (ready()) { working("TESTING CONNECTION"); show_result(s64_standard_status(&client, &reply)); }
             } else if (key == '3' || key == 'p' || key == 'P') publish();
         }
     }

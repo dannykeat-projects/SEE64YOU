@@ -60,6 +60,8 @@ static uint8_t read_page(S64Dos* dos)
 
     count = more = 0u;
     scan.scanned = scan.eligible = 0u;
+    /* Print before the blocking directory query, including page changes. */
+    clrscr(); cputs("READING LOCAL FILES...\r\nPLEASE WAIT...");
     result = s64_dos_dir_open(dos, &empty);
     if (result != S64_DOS_OK) return 0u;
     if (empty) return 1u;

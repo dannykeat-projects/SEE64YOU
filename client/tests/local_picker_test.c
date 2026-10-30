@@ -14,6 +14,7 @@ static const char* files[] = {
 static unsigned char key_pos;
 static const char* keys;
 static unsigned char unreadable;
+static unsigned char working_displayed;
 
 static S64UciResult fake_open(const S64UciCommandPart* parts,
     uint8_t count, S64UciReply* reply)
@@ -22,6 +23,9 @@ static S64UciResult fake_open(const S64UciCommandPart* parts,
     assert(count == 1u && parts[0].length == 2u);
     assert(parts[0].data[0] == S64_DOS_TARGET_PRIMARY);
     assert(parts[0].data[1] == 0x13u);
+    /* The user must see pending feedback BEFORE the synchronous DOS call. */
+    assert(working_displayed);
+    working_displayed = 0u;
     status = unreadable ? "86,CAN'T READ DIRECTORY" : "00,OK";
     strcpy(reply->status, status);
     reply->status_length = (uint16_t)strlen(status);
@@ -63,7 +67,10 @@ unsigned char cgetc(void)
     return key;
 }
 void clrscr(void) {}
-void cputs(const char* s) {(void)s;}
+void cputs(const char* s) {
+    if (strstr(s, "READING LOCAL FILES...") && strstr(s, "PLEASE WAIT..."))
+        working_displayed = 1u;
+}
 void cputc(char c) {(void)c;}
 void gotoxy(unsigned char x,unsigned char y) {(void)x;(void)y;}
 void revers(unsigned char r) {(void)r;}
