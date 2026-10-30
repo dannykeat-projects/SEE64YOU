@@ -249,7 +249,7 @@ def main():
                 "T8BAD.8tml", "T8COPY.8tml", "T8COPY.8tml.tmp", "T8RECOVER.8tml",
                 "x" * 28 + ".8tml"}
     if args.settings_only:
-        reserved.add("8TMLKEY.TXT")
+        reserved.add("8TML.KEY")
     fixture_names = {n.upper() for n in reserved - FILES}
     fixture_names.update(n + ".TMP" for n in tuple(fixture_names))
     fixture_names.update((n + ".BAK").upper() for n in reserved)
@@ -321,7 +321,7 @@ def main():
             key_hex = b"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
             endpoint = b"http://127.0.0.1:8767/publish"
             key_file = b"8tml-publish: 1\r\nurl: " + endpoint + b"\r\nid: test-1\r\nkey: " + key_hex + b"\r\n"
-            key_path = folder + "/8TMLKEY.TXT"
+            key_path = folder + "/8TML.KEY"
             def hidden_key(label):
                 text = screen(label).replace("\n", "").upper()
                 assert key_hex.decode().upper() not in text, "Secret was displayed"

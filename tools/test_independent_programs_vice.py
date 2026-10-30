@@ -109,9 +109,9 @@ if __name__ == "__main__":
                         help="Compatible locally provided C64 ROM directory")
     args = parser.parse_args()
     run("SEE64YOU.PRG", "R RECHECK    X EXIT", ord("X"), 6544, args.rom_dir)
-    run("S64PUB.PRG", "[0] EXIT TO BASIC", 3, 6545, args.rom_dir,
-        ((ord("P"), "Choose local .8TML first"),
-         (ord("L"), "C64U DOS unavailable"),
-         (ord("T"), "C64U network target unavailable")))
-    run("S64CFG.PRG", "SEE64YOU PUBLISHING SETTINGS", 3, 6546, args.rom_dir,
-        ((ord("S"), "SAVE FAILED - DOS UNAVAILABLE"),))
+    run("S64PUB.PRG", "[0] EXIT TO BASIC", ord("0"), 6545, args.rom_dir,
+        ((ord("3"), "Choose local .8TML first"),
+         (ord("1"), "C64U DOS unavailable"),
+         (ord("4"), "C64U network target unavailable")))
+    run("S64CFG.PRG", "SEE64YOU PUBLISHING SETTINGS", ord("0"), 6546, args.rom_dir,
+        ((ord("5"), "SAVE FAILED - DOS UNAVAILABLE"),))

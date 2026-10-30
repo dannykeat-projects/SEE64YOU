@@ -19,6 +19,7 @@ static uint8_t socket_handle, fields, headers_done, have_status, have_length;
 static uint8_t failed, body_sent;
 static uint16_t port, header_length, header_total, http_status;
 static uint32_t remaining;
+static S64StandardFileVisitor file_visitor;
 
 static int decimal(const char* text, uint32_t* value)
 {
@@ -156,6 +157,7 @@ static int reply_line(const char* key,const char* value,void* context)
    if(!decimal(signature,&size) || !s64_publish_name_valid(space+1)) return 0;
    if(!copy(signature,sizeof(signature),space+1)) return 0;
    lowercase(signature); if(!strcmp(signature,target)) output->exists=1u;
+   if(file_visitor) file_visitor(signature,size);
   }
  } else {
   if(!strcmp(key,"name")) return unique(1u) && s64_publish_name_valid(value) && !strcmp(value,target) && copy(output->name,sizeof(output->name),value);
@@ -272,6 +274,19 @@ S64StandardResult s64_standard_list(S64StandardClient* client,const char* name,S
  if(!s64_publish_name_valid(name) || !copy(target,sizeof(target),name)) return S64_STANDARD_INVALID;
  lowercase(target); result=exchange(S64_PUBLISH_REQUEST_CHALLENGE,0u,0,0);
  if(result==S64_STANDARD_OK) result=exchange(S64_PUBLISH_REQUEST_LIST,0u,0,0);
+ memset(challenge,0,sizeof(challenge)); return result;
+}
+S64StandardResult s64_standard_browse(S64StandardClient* client,S64StandardReply* reply,S64StandardFileVisitor visitor)
+{
+ S64StandardResult result=prepare(client,reply);
+ if(result!=S64_STANDARD_OK) return result;
+ target[0]=0;
+ result=exchange(S64_PUBLISH_REQUEST_CHALLENGE,0u,0,0);
+ if(result==S64_STANDARD_OK) {
+  file_visitor=visitor;
+  result=exchange(S64_PUBLISH_REQUEST_LIST,0u,0,0);
+  file_visitor=0;
+ }
  memset(challenge,0,sizeof(challenge)); return result;
 }
 S64StandardResult s64_standard_put(S64StandardClient* client,const char* name,uint32_t size,S64StandardWriter writer,void* context,S64StandardReply* reply)

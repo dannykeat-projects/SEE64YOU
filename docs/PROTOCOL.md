@@ -4,11 +4,11 @@ The independent Publisher targets the **8TML publishing API 1 test draft dated 2
 
 ## Credentials and transport
 
-Settings imports `8TMLKEY.TXT` from the selected application's folder. It contains ASCII `8tml-publish: 1`, `url:`, `id:` and a 64-hex-digit `key:`. Unknown fields are ignored; malformed, duplicate or missing required fields are rejected. Import replaces all three fields together and clears HTTP consent. The secret is never displayed. Save validates temporary and final configuration readback; failed final rename can leave the complete temporary record for recovery.
+Settings imports `8TML.KEY` from the selected application's folder. It contains ASCII `8tml-publish: 1`, `url:`, `id:` and a 64-hex-digit `key:`. Unknown fields are ignored; malformed, duplicate or missing required fields are rejected. Import replaces all three fields together and enables HTTP by default. The secret is never displayed. Save validates temporary and final configuration readback; failed final rename can leave the complete temporary record for recovery.
 
 A standard destination is explicitly tagged in the existing configuration record. Its otherwise unused relay field holds the key ID; legacy destinations are never silently treated as standard credentials. Existing local documents and legacy configuration are not rewritten by importing a key until the user saves.
 
-Direct transport uses UCI Network `$03`, HTTP/1.0 and HMAC-SHA256. Source is unencrypted and uploaded files are public. Explicit HTTP consent is required. HTTPS credentials can be retained but the native transport refuses HTTPS without downgrading it. Provision and revoke credentials through the independent server's HTTPS interface.
+Direct transport uses UCI Network `$03`, HTTP/1.0 and HMAC-SHA256. Source is unencrypted and uploaded files are public. HTTP is enabled on key import and may be blocked in Settings before saving. HTTPS credentials can be retained but the native transport refuses HTTPS without downgrading it. Provision and revoke credentials through the independent server's HTTPS interface.
 
 ## Requests
 

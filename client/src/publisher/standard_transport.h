@@ -22,6 +22,9 @@ typedef struct {
 typedef int (*S64StandardWriter)(S64UciDataSink sink, void* sink_context, void* context);
 S64StandardResult s64_standard_status(S64StandardClient*, S64StandardReply*);
 S64StandardResult s64_standard_list(S64StandardClient*, const char*, S64StandardReply*);
+/* Synchronous visitor receives validated names; do not start another request. */
+typedef void (*S64StandardFileVisitor)(const char* name, uint32_t size);
+S64StandardResult s64_standard_browse(S64StandardClient*, S64StandardReply*, S64StandardFileVisitor);
 S64StandardResult s64_standard_put(S64StandardClient*, const char*, uint32_t,
  S64StandardWriter, void*, S64StandardReply*);
 #endif

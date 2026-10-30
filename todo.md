@@ -50,7 +50,7 @@
 - [x] Implement a compact numbered keyboard home screen and numbered publish/replace confirmation without changing standard network/storage paths (PR #66). **SD/USB builds, fit/manifests, VICE and bounded REST-assisted C64U acceptance passed; physical input remains unverified.** Legacy letter shortcuts remain available.
 - [x] Build/test matching SD/USB Publisher packages, retain >=1,024-byte Publisher/launcher headroom, and verify REST-assisted numbered selection, confirmation/cancellation and BASIC/DOS restoration. Physical number keys remain an open acceptance gate above.
 - [x] **Initial local picker coded, protocol corrected:** bounded Ultimate-DOS OPEN_DIR plus a **single READ_DIR streaming multiple entry packets**, six numbered `.8tml` rows, paging and manual-name fallback. Multi-packet and split-packet host regressions, SD/USB compilation/fit/manifests, VICE and bounded REST-assisted SD source selection/filtering passed. Packet-aware UCI support is enabled only in independent Publisher builds. Physical input and large-directory cancellation remain unverified. Folder traversal remains deferred.
-- [ ] Add a bounded server-name selector using the **existing** standard authenticated list parser. Choosing an entry sets only the remote target; retain manual entry and fresh-list explicit replacement confirmation.
+- [x] Add a bounded server-name selector using the **existing** standard authenticated list parser. Choosing an entry sets only the remote target; retain manual entry and fresh-list explicit replacement confirmation.
 - [ ] Optional: reuse a *small* portion of Editor mouse/joystick code for clickable numbered rows **only if measured fit and hardware reliability allow**. Keyboard-only operation is sufficient for release.
 - [ ] Exercise focused host/VICE and exact real-C64U input, storage, server and restoration acceptance with the new file controls. No automatic retries of uncertain uploads.
 
@@ -70,3 +70,12 @@
 - [ ] Confirm draft evolution, independent-server support and validator redistribution licensing; do not invent private conditional-write extensions.
 
 - [ ] Ctrl+Delete previous-word deletion: focused undo/redo, cursor/saved-state, selection and boundary regressions pass; complete SD/USB package fit/manifests pass. Native shortcut/VICE and exact-package C64U acceptance remain unverified; excluded from installed alpha.5.
+
+## Publisher remote selection and Settings controls
+
+- [x] Implement numbered remote browse/select/manual target controls using the existing authenticated API; preserve fresh publish confirmation. Settings uses numbered controls, imports `8TML.KEY` and enables HTTP by default without downgrading HTTPS.
+- [x] Host transport/Settings regressions and broader host checks (HTTP script run from a temporary LF-normalized copy), SD/USB fit/manifests and SD packaged VICE numbered controls/startup/responsive BASIC return pass. Base `353272e`; package hashes and gates: `client/build/remote-picker-validation.json`.
+- [ ] Real-C64U remote paging, cancellation, selection, numbered Settings, key import and restoration; physical input and real USB-only behavior remain unverified.
+- [ ] Remote deletion is blocked: supported standard API 1 has no delete operation; requires a compatible server contract before implementation.
+
+- [x] Install the complete validated remote-picker SD package to `/sd/SEE64YOU/`; all ten installed hashes match `remote-picker-validation.json`, and non-package files including configuration, documents and recovery remain unchanged. Deployment receipt: `client/build/remote-picker-deployment-20261030/receipt.json`. Existing Settings program left running; relaunch and real-C64U UI acceptance remain required.
