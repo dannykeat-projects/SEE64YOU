@@ -17,6 +17,6 @@
 /* Verified runtime overlays and manifests live under a separate install-only folder. */
 #define S64_PACKAGE_ASSETS_DIRECTORY S64_PACKAGE_DIRECTORY "SYSTEM/"
 /* Editable 8TML sources live apart from executables, manifests and settings. */
-#define S64_PACKAGE_DOCUMENTS_DIRECTORY S64_PACKAGE_DIRECTORY "DOCS/"
+#define S64_PACKAGE_DOCUMENTS_DIRECTORY S64_PACKAGE_DIRECTORY "docs/"
 
 #endif
