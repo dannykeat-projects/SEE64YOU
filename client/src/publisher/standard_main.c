@@ -275,8 +275,8 @@ int main(void)
             else if (key == '1' || key == 'l' || key == 'L') {
                 if (!capabilities.dos_target) { message("C64U DOS unavailable"); continue; }
                 working("READING LOCAL FILES");
-                if (s64_dos_change_dir(&dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK) {
-                    message("Storage not ready"); continue;
+                if (s64_dos_change_dir(&dos, S64_PACKAGE_DOCUMENTS_DIRECTORY) != S64_DOS_OK) {
+                    message("docs/ missing; save in Editor first"); continue;
                 }
                 selection = s64_local_pick(&dos, prompt, sizeof(prompt));
                 if (!selection) continue;
