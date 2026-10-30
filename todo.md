@@ -4,6 +4,13 @@
 
 **Release package:** `v0.2.0-alpha.6` uses the validated ten-file SYSTEM layout. Exact SD bytes are installed on C64U with matching hashes; configuration, source and recovery files are preserved. SD/USB fit/manifests, VICE, host tests and bounded REST-assisted SD acceptance pass. Remaining physical/cold-power/USB-only and full exact-package Publisher upload/failure gates are listed below; no stable promotion.
 
+## Source document folder (draft PR #72)
+
+- [x] Editor selects `SEE64YOU/docs/` for ordinary 8TML Open/Save/Save As, creating `docs/` only when saving if missing. Publisher browses and loads from that directory without creating it.
+- [x] Keep `SEE64YOU.REC`, journals, settings and keys at the existing root. Do not auto-migrate or delete existing root-level .8tml, .tmp or .bak files; back up and manually copy resolved sources to docs.
+- [x] Focused [CI run #41025149749](https://github.com/dannykeat-projects/SEE64YOU/actions/runs/41025149749): 8TML local editor/publisher host regressions, loader/asset tests, SD and USB1 cc65 complete package and overlay fit. Publisher free space 1,092/1,088 bytes (minimum 1,024).
+- [ ] Before packaging/releasing, test a real backed-up C64U with missing and existing docs directories, Save As/open/overwrite, recovery at root, Publisher local picker/typed source, and DOS path restoration; preserve all existing user data. VICE exact-package startup and responsive BASIC return should also be re-run. Installed alpha.6 binaries still follow the old root-file convention.
+
 ## Active Editor priorities
 
 1. **P0 — Save integrity:** preserve existing `.tmp`/`.bak` recovery copies and retain the original through replacement. Host regressions cover collision, backup/install/rollback/cleanup failures. Complete matching SD/USB fit/manifests, VICE and bounded real-C64U disk acceptance before promotion.

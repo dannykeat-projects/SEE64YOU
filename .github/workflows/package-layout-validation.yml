@@ -32,6 +32,8 @@ jobs:
           python3 tools/tests/module_manifest_generator_test.py
           python3 tools/tests/code_asset_manifest_test.py
           python3 tools/tests/package_8tml_release_test.py
+          # Exercise document save/open, absent docs/ creation, recovery and source reads.
+          python3 tools/test_8tml.py
 
       - name: Test changed launcher, overlays and PRG-root preload (host)
         run: |

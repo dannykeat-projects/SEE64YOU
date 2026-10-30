@@ -4,6 +4,7 @@
 
 #include "document.h"
 #include "platform/dos.h"
+#include "platform/package_paths.h"
 #include "storage/local.h"
 
 #define FILE_CAPACITY 10000u
@@ -30,6 +31,8 @@ static unsigned char fail_write;
 static unsigned char fail_rename;
 static unsigned char stat_count;
 static unsigned char appear_on_second_stat;
+static unsigned char docs_exists, in_docs;
+static unsigned int docs_created, docs_selected, root_selected;
 
 static void require(int condition, const char* message)
 {
@@ -78,6 +81,30 @@ static S64UciResult mock_execute(
     S64UciResult result;
 
     require(parts[0].data[0] == S64_DOS_TARGET_PRIMARY, "DOS target");
+
+    if (opcode == 0x11u) {
+        require(part_count == 2u, "change dir parts");
+        if (part_equals(&parts[1], S64_PACKAGE_DOCUMENTS_DIRECTORY)) {
+            if (!docs_exists) { reply_status(reply, "88,FILE NOT FOUND"); return S64_UCI_OK; }
+            in_docs = 1u;
+            ++docs_selected;
+        } else {
+            require(part_equals(&parts[1], S64_PACKAGE_DIRECTORY), "recovery uses package root");
+            in_docs = 0u;
+            ++root_selected;
+        }
+        reply_status(reply, "00,OK");
+        return S64_UCI_OK;
+    }
+    if (opcode == 0x16u) {
+        require(part_count == 2u && !in_docs && part_equals(&parts[1], "docs"),
+                "create docs only beneath package root");
+        require(!docs_exists, "never create an existing docs directory");
+        docs_exists = 1u;
+        ++docs_created;
+        reply_status(reply, "00,OK");
+        return S64_UCI_OK;
+    }
 
     if (opcode == 0x08u) {
         require(part_count == 2u, "stat parts");
@@ -267,9 +294,15 @@ int main(void)
     prepare_empty_source(&body);
     s64_local_init(&local, &dos, &document);
     require_body(&body, empty, "new document contains editable 8TML header");
+    set_file("old.8tml", empty);
+    require(s64_local_open(&local, "old.8tml", 1u) == S64_LOCAL_IO_ERROR
+        && !docs_exists && !docs_created,
+        "source open does not silently fall back to old root or create docs");
     file_exists = 0u;
     require(s64_local_save_as(&local, "Empty", 0u) == S64_LOCAL_OK,
         "empty document saves");
+    require(docs_exists && docs_created == 1u && in_docs && docs_selected,
+        "first save creates docs and writes there");
     require(file_length == strlen(empty) && memcmp(file_data, empty, file_length) == 0,
         "empty save writes exact canonical source");
     require(strcmp(file_name, "Empty.8tml") == 0, "default extension is 8tml");
@@ -394,17 +427,20 @@ int main(void)
     require(s64_buffer_move_cursor(&body, s64_buffer_length(&body)), "move past new header");
     insert_text(&body, "Recovery <future>source</future>\n");
     require(s64_local_new(&local, 0u) == S64_LOCAL_DIRTY, "dirty new requires discard");
-    require(s64_local_save_recovery(&local) == S64_LOCAL_OK, "recovery saves");
+    require(s64_local_save_recovery(&local) == S64_LOCAL_OK && !in_docs,
+        "recovery snapshot stays at original package root");
     require(!s64_local_has_filename(&local), "recovery does not claim filename");
     recovery_exists = 0u;
-    require(s64_local_recovery_exists(&local, &recovery_exists) == S64_LOCAL_OK && recovery_exists,
-        "recovery discoverable");
+    require(s64_local_recovery_exists(&local, &recovery_exists) == S64_LOCAL_OK && recovery_exists && !in_docs,
+        "recovery lookup remains rooted at package");
     require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "clear before recovery");
-    require(s64_local_open_recovery(&local) == S64_LOCAL_OK, "recovery opens");
+    require(s64_local_open_recovery(&local) == S64_LOCAL_OK && !in_docs,
+        "recovery opens from original package root");
     require_body(&body, "---\n8tml: 1\ntitle: Untitled\n---\nRecovery <future>source</future>\n",
         "recovery preserves complete source");
     require(!s64_local_has_filename(&local), "recovered source requires Save As");
-    require(s64_local_delete_recovery(&local) == S64_LOCAL_OK, "recovery deletes");
+    require(s64_local_delete_recovery(&local) == S64_LOCAL_OK && !in_docs,
+        "recovery deletion stays at package root");
     require(s64_local_save_as(&local, S64_LOCAL_RECOVERY_FILENAME, 1u) == S64_LOCAL_INVALID_ARGUMENT,
         "reserved recovery filename refused");
 
