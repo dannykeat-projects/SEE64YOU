@@ -7,7 +7,7 @@
 #define S64_MODULE_FILENAME_CAPACITY 13u
 #define S64_MODULE_CACHE_CAPACITY 65536UL
 #define S64_MODULE_MANIFEST_FILENAME "S64MODULE.MNF"
-#define S64_MODULE_MANIFEST_MAX_SIZE 255u
+/* Three fixed module records cannot exceed 160 bytes with valid 5-digit\n * lengths. Keep a 192-byte input bound; the smaller launcher buffer also\n * preserves the reserved BASIC-return state area. */\n#define S64_MODULE_MANIFEST_MAX_SIZE 192u
 
 typedef enum {
     S64_MODULE_EDITOR = 1,
