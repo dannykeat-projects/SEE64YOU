@@ -8,7 +8,7 @@ This is an alpha test release. SD source replacement/recovery has bounded real-C
 
 In the Ultimate **Memory & ROMs** settings (called **C64 and Cartridge Settings** on some menus), enable **Command Interface**, **RAM Expansion Unit**, and **REU Size: 16 MB**. Recheck after a settings reset.
 
-Copy the **complete matching folder tree** to `/sd/SEE64YOU/` by default (or the selected USB mount): keep `SEE64YOU.PRG`, `S64EDIT.PRG`, `S64PUB.PRG` and `S64CFG.PRG` directly in `SEE64YOU/`, and keep the four `.BIN` files plus `S64OVL.MNF` and `S64MODULE.MNF` in `SEE64YOU/SYSTEM/`. Do not mix these files with an older flat-layout package. Existing `.8tml` documents, `SEE64YOU.CFG`, `8TML.KEY`, recovery snapshots and journals remain in `SEE64YOU/`; **do not delete or migrate them**. This folder layout is a new draft change and has not yet passed exact-package C64U acceptance.
+**The `SYSTEM/` layout is still an unreleased draft. Published alpha.5 uses the original flat package; follow that ZIP's own inventory instead of rearranging it.** For a package specifically built from PR #69, copy the **complete matching folder tree** to `/sd/SEE64YOU/` by default (or the selected USB mount): keep `SEE64YOU.PRG`, `S64EDIT.PRG`, `S64PUB.PRG` and `S64CFG.PRG` directly in `SEE64YOU/`, and keep the four `.BIN` files plus `S64OVL.MNF` and `S64MODULE.MNF` in `SEE64YOU/SYSTEM/`. Do not mix these files with an older flat-layout package. Existing `.8tml` documents, `SEE64YOU.CFG`, `8TML.KEY`, recovery snapshots and journals remain in `SEE64YOU/`; **do not delete or migrate them**. This folder layout is a new draft change and has not yet passed exact-package C64U acceptance.
 
 ## Programs
 
