@@ -246,32 +246,32 @@ build/independent/S64WEB.PRG: $(INDEPENDENT_BROWSER_SOURCES) src/browser/protoco
 .PHONY: independent-package
 independent-package: independent-editor-overlay-fit independent-publisher independent-settings build/managed-handoff-launcher.prg
 	python3 ../tools/check_memory_headroom.py build/managed-handoff-launcher.map --label independent-launcher --min-headroom 1024
-	@mkdir -p $(INDEPENDENT_PACKAGE_DIR)
+	@mkdir -p $(INDEPENDENT_PACKAGE_DIR)/SYSTEM
 	$(RM) $(INDEPENDENT_PACKAGE_DIR)/S64WEB.PRG
 	cp build/managed-handoff-launcher.prg $(INDEPENDENT_PACKAGE_DIR)/SEE64YOU.PRG
 	cp build/editor-overlay-fit/editor-overlay-fit.prg $(INDEPENDENT_PACKAGE_DIR)/S64EDIT.PRG
 	cp $(INDEPENDENT_PUBLISHER_TARGET) $(INDEPENDENT_PACKAGE_DIR)/S64PUB.PRG
 	cp $(INDEPENDENT_SETTINGS_TARGET) $(INDEPENDENT_PACKAGE_DIR)/S64CFG.PRG
-	cp build/editor-overlay-fit/S64MODEL.BIN build/editor-overlay-fit/S64FILE.BIN build/editor-overlay-fit/S64RUN.BIN build/editor-overlay-fit/S64PREP.BIN build/editor-overlay-fit/S64OVL.MNF $(INDEPENDENT_PACKAGE_DIR)/
-	python3 ../tools/generate_module_manifest.py $(INDEPENDENT_PACKAGE_DIR) --output $(INDEPENDENT_PACKAGE_DIR)/S64MODULE.MNF
-	python3 ../tools/generate_module_manifest.py $(INDEPENDENT_PACKAGE_DIR) --validate $(INDEPENDENT_PACKAGE_DIR)/S64MODULE.MNF
-	python3 ../tools/generate_code_asset_manifest.py $(INDEPENDENT_PACKAGE_DIR) --root $(INDEPENDENT_PACKAGE_DIR)/S64EDIT.PRG --validate $(INDEPENDENT_PACKAGE_DIR)/S64OVL.MNF
+	cp build/editor-overlay-fit/S64MODEL.BIN build/editor-overlay-fit/S64FILE.BIN build/editor-overlay-fit/S64RUN.BIN build/editor-overlay-fit/S64PREP.BIN build/editor-overlay-fit/S64OVL.MNF $(INDEPENDENT_PACKAGE_DIR)/SYSTEM/
+	python3 ../tools/generate_module_manifest.py $(INDEPENDENT_PACKAGE_DIR) --output $(INDEPENDENT_PACKAGE_DIR)/SYSTEM/S64MODULE.MNF
+	python3 ../tools/generate_module_manifest.py $(INDEPENDENT_PACKAGE_DIR) --validate $(INDEPENDENT_PACKAGE_DIR)/SYSTEM/S64MODULE.MNF
+	python3 ../tools/generate_code_asset_manifest.py $(INDEPENDENT_PACKAGE_DIR)/SYSTEM --root $(INDEPENDENT_PACKAGE_DIR)/S64EDIT.PRG --validate $(INDEPENDENT_PACKAGE_DIR)/SYSTEM/S64OVL.MNF
 
 # Reviewable preload package only. Its launcher stops before executable DMA.
 .PHONY: managed-package
 managed-package: editor-overlay-fit publisher-overlay-fit code-assets-fit publisher settings managed-settings
 	python3 ../tools/check_memory_headroom.py build/code-assets-fit.map --label managed-launcher --min-headroom 1024
-	@mkdir -p build/managed-package
+	@mkdir -p build/managed-package/SYSTEM
 	cp build/code-assets-fit.prg build/managed-package/SEE64YOU.PRG
 	cp build/editor-overlay-fit/editor-overlay-fit.prg build/managed-package/S64EDIT.PRG
 	cp build/publisher-overlay-fit/publisher-overlay-fit.prg build/managed-package/S64PUB.PRG
 	cp $(MANAGED_SETTINGS_TARGET) build/managed-package/S64CFG.PRG
-	cp build/editor-overlay-fit/S64MODEL.BIN build/editor-overlay-fit/S64FILE.BIN build/editor-overlay-fit/S64RUN.BIN build/editor-overlay-fit/S64PREP.BIN build/editor-overlay-fit/S64OVL.MNF build/managed-package/
-	cp build/publisher-overlay-fit/S64PCNT.BIN build/publisher-overlay-fit/S64PNET.BIN build/publisher-overlay-fit/S64PRUN.BIN build/publisher-overlay-fit/S64POVL.MNF build/managed-package/
-	python3 ../tools/generate_code_asset_manifest.py build/managed-package --root build/managed-package/S64EDIT.PRG --validate build/managed-package/S64OVL.MNF
-	python3 ../tools/generate_code_asset_manifest.py build/managed-package --module publisher --root build/managed-package/S64PUB.PRG --validate build/managed-package/S64POVL.MNF
-	python3 ../tools/generate_module_manifest.py build/managed-package --output build/managed-package/S64MODULE.MNF
-	python3 ../tools/generate_module_manifest.py build/managed-package --validate build/managed-package/S64MODULE.MNF
+	cp build/editor-overlay-fit/S64MODEL.BIN build/editor-overlay-fit/S64FILE.BIN build/editor-overlay-fit/S64RUN.BIN build/editor-overlay-fit/S64PREP.BIN build/editor-overlay-fit/S64OVL.MNF build/managed-package/SYSTEM/
+	cp build/publisher-overlay-fit/S64PCNT.BIN build/publisher-overlay-fit/S64PNET.BIN build/publisher-overlay-fit/S64PRUN.BIN build/publisher-overlay-fit/S64POVL.MNF build/managed-package/SYSTEM/
+	python3 ../tools/generate_code_asset_manifest.py build/managed-package/SYSTEM --root build/managed-package/S64EDIT.PRG --validate build/managed-package/SYSTEM/S64OVL.MNF
+	python3 ../tools/generate_code_asset_manifest.py build/managed-package/SYSTEM --module publisher --root build/managed-package/S64PUB.PRG --validate build/managed-package/SYSTEM/S64POVL.MNF
+	python3 ../tools/generate_module_manifest.py build/managed-package --output build/managed-package/SYSTEM/S64MODULE.MNF
+	python3 ../tools/generate_module_manifest.py build/managed-package --validate build/managed-package/SYSTEM/S64MODULE.MNF
 
 .PHONY: code-assets-fit
 # Asset-preload diagnostic; executable handoff remains disabled.
