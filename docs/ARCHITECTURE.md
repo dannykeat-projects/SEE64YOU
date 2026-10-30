@@ -8,6 +8,8 @@ SEE64YOU is C64 Ultimate-only and uses UCI, Ultimate-DOS and a required 16 MiB R
 
 The default build uses `/sd/SEE64YOU/`. A full rebuild with `STORAGE_ROOT` selects another mount, with no silent fallback. Editor local storage uses Ultimate-DOS `$02`; launcher/journal assets use `$01`. Existing files are protected against accidental collision, incomplete writes and failed renames as described in [runtime](C64U-RUNTIME.md).
 
+The independent Editor keeps typing, input, REU buffers/history and descriptor validation resident. Infrequent manifest/session preparation uses the existing PREP overlay and checked return bridges; shared state remains resident. Descriptor validation must remain callable while cache rebinding clears the overlay registry. The shipping build enforces at least 1,024 bytes of resident reserve below the overlay slot and excludes the unused outbound Publisher-transfer stub. No additional overlay or program handoff is introduced.
+
 ## Publication
 
 The independently launched Publisher loads literal source using the shared codec/storage path and sends the same ASCII/LF bytes through standard API 1 status/challenge/list/put operations over UCI Network `$03`. Streaming HMAC appends its signature after the source; local filenames and remote paths stay separate. Existing names require explicit confirmation, with no conditional-write guarantee in the test draft.
