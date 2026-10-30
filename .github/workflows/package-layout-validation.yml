@@ -1,0 +1,73 @@
+name: C64U package layout and fit
+
+on:
+  pull_request:
+    paths:
+      - 'client/**'
+      - 'tools/package_8tml_release.py'
+      - 'tools/tests/package_8tml_release_test.py'
+      - '.github/workflows/package-layout-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact PR source
+        uses: actions/checkout@v4
+
+      - name: Install C64 compiler
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cc65
+
+      - name: Run manifest and release-inventory regressions
+        run: |
+          set -eu
+          mkdir -p client/build
+          python3 tools/tests/module_manifest_generator_test.py
+          python3 tools/tests/code_asset_manifest_test.py
+          python3 tools/tests/package_8tml_release_test.py
+
+      - name: Build and check exact SD package and C64 memory guards
+        run: |
+          set -eu
+          make -B -C client STORAGE_ROOT=/sd/ independent-package
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('client/build/independent-package/SEE64YOU')
+          expected = {'SEE64YOU.PRG', 'S64EDIT.PRG', 'S64PUB.PRG', 'S64CFG.PRG',
+                      'SYSTEM/S64FILE.BIN', 'SYSTEM/S64MODEL.BIN',
+                      'SYSTEM/S64PREP.BIN', 'SYSTEM/S64RUN.BIN',
+                      'SYSTEM/S64MODULE.MNF', 'SYSTEM/S64OVL.MNF'}
+          actual = {p.relative_to(root).as_posix() for p in root.rglob('*') if p.is_file()}
+          assert actual == expected, (sorted(actual - expected), sorted(expected - actual))
+          assert {p.name for p in root.rglob('*') if p.is_dir()} == {'SYSTEM'}
+          assert not any(p.is_symlink() for p in root.rglob('*'))
+          print('SD package: 4 root PRGs and 6 SYSTEM assets')
+          PY
+
+      - name: Build and check exact USB1 package and C64 memory guards
+        run: |
+          set -eu
+          make -B -C client STORAGE_ROOT=/USB1/ independent-package
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('client/build/independent-package/SEE64YOU')
+          expected = {'SEE64YOU.PRG', 'S64EDIT.PRG', 'S64PUB.PRG', 'S64CFG.PRG',
+                      'SYSTEM/S64FILE.BIN', 'SYSTEM/S64MODEL.BIN',
+                      'SYSTEM/S64PREP.BIN', 'SYSTEM/S64RUN.BIN',
+                      'SYSTEM/S64MODULE.MNF', 'SYSTEM/S64OVL.MNF'}
+          actual = {p.relative_to(root).as_posix() for p in root.rglob('*') if p.is_file()}
+          assert actual == expected, (sorted(actual - expected), sorted(expected - actual))
+          assert {p.name for p in root.rglob('*') if p.is_dir()} == {'SYSTEM'}
+          assert not any(p.is_symlink() for p in root.rglob('*'))
+          print('USB1 package: 4 root PRGs and 6 SYSTEM assets')
+          PY
+
+# Hardware directory readback, physical input, cold power, recovery and VICE
+# still require separate acceptance. This job never deploys binaries.
