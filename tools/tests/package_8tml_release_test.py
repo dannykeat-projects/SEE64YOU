@@ -75,7 +75,9 @@ class PackageTest(unittest.TestCase):
             package = self.root / label
             package.mkdir()
             for name in PACK.FILES:
-                (package / name).write_bytes(name.encode())
+                file = package / name
+                file.parent.mkdir(parents=True, exist_ok=True)
+                file.write_bytes(name.encode())
         extra = self.root / "sd/EXTRA"
         extra.write_bytes(b"extra")
         with self.assertRaises(ValueError): PACK.package_bytes(self.root / "sd", self.hashes)
