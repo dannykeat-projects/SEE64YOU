@@ -98,7 +98,7 @@ uint8_t s64_code_assets_preload(S64Dos* dos, const S64ReuRuntimeControl* control
         || !s64_code_assets_clear(control)
         || !s64_code_assets_valid(assets, control, editor, 0)) return 0;
 #ifndef S64_CODE_ASSET_PRESELECTED_DIRECTORY
-    if (s64_dos_change_dir(dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK) return 0;
+    if (s64_dos_change_dir(dos, S64_PACKAGE_ASSETS_DIRECTORY) != S64_DOS_OK) return 0;
 #endif
     for (i = 0; i < S64_CODE_OVERLAY_COUNT; ++i) {
         S64CodeAsset* asset = &assets->assets[i];
