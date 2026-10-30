@@ -2,6 +2,8 @@
 
 **Target:** offline C64U `.8tml` Editor, standard Publisher with numbered character GUI and local/server file selectors, and separate Settings. [Product scope](docs/PRODUCT.md) pins the 26 October 2026 publishing API 1 test draft; [Publisher design](docs/PUBLISHER.md) defines the new GUI and conditional download-to-edit workflow. Implementation is on `feature/8tml-standard-core-20261027` / draft PR #66; migration and release acceptance remain incomplete.
 
+**Current release:** `v0.2.0-alpha.5` (`64836e9`) is published; downloaded SD/USB assets passed checksum/ZIP checks. Its ten-file SD package is installed on C64U with byte-exact readback; all 12 other files are unchanged. No merge or stable promotion.
+
 ## Active Editor priorities
 
 1. **P0 — Save integrity:** preserve existing `.tmp`/`.bak` recovery copies and retain the original through replacement. Host regressions cover collision, backup/install/rollback/cleanup failures. Complete matching SD/USB fit/manifests, VICE and bounded real-C64U disk acceptance before promotion.
@@ -23,7 +25,7 @@
 
 ## P0 — Remaining release acceptance
 
-**Previously validated (older build):** Standard API 1 signing, independent Publisher/Settings, local storage fault guards, SD/USB matching package/manifest checks, VICE startup/return and bounded real-C64U SD create/replace and rollback tests. The earlier `45d2069` package had Publisher headroom 2,047/2,041 bytes and launcher 1,070/1,056 bytes. Receipts and exact hashes are in Git history and `client/build/`; **none certify the later numbered-GUI/directory-picker commits or replace their new build/fit gates**.
+**Current alpha acceptance:** Matching SD/USB builds, fit/manifests, VICE and public CI pass. Exact-package REST-assisted C64U SD Editor create/save/recovery, selection/copy/paste, native save faults and Publisher numbered selection/filtering, confirmation, independent-server create/replace/cancel/readback and size/key refusals pass. Complete file and machine restoration passed. Receipts: `client/build/editor-alpha5-hardware-20261030/`, `publisher-picker-hardware-20261030-r2/` and `publisher-failures-hardware-20261030/`. These do not certify physical input, cold power, interruption or USB-only operation.
 
 - [ ] Finish physical keyboard/Link, cold-power exact reopen, uncontrolled interruption/recovery and external compatible-reader navigation with the exact package; real USB-only acceptance also remains unverified. REST-assisted Editor/Settings/Publisher SD results below do not certify these gates.
 - [ ] **Failed historical native matrix:** the next non-shipping managed Editor build exceeds BSS by612 bytes, MODEL_CODE by2489, FILE_RODATA by10 and PUBLICATION_CODE by747. Later historical targets remain unrun. The independent Editor/package is separately validated; do not weaken guards, add another runtime or claim the full matrix passed. Retire or reconcile this legacy target after replacement acceptance.
@@ -43,11 +45,11 @@
 
 ## P1 — Slim Publisher interface after existing acceptance
 
-**Scope:** no GUI framework, new browser, proprietary server or remote manager. [Publisher UI](docs/PUBLISHER.md) is the concise target. First finish the Editor and standard API hardware gates above, including the separate PR #67 REU-load optimisation.
+**Scope:** no GUI framework, new browser, proprietary server or remote manager. [Publisher UI](docs/PUBLISHER.md) is the concise target. The current alpha has bounded Editor and standard API acceptance above. PR #67 REU loading remains a separate draft and is excluded from alpha.5.
 
-- [x] Implement a compact numbered keyboard home screen and numbered publish/replace confirmation without changing standard network/storage paths (PR #66). **Code committed; build, fit, VICE and C64U tests are unverified.** Legacy letter shortcuts remain available.
-- [ ] Build/test the modified Publisher and its matching SD/USB packages, check >=1,024-byte Publisher/launcher headroom, and validate actual number keys, confirmation/cancellation and BASIC/DOS restoration before calling the UI accepted.
-- [x] **Initial local picker coded, protocol corrected:** bounded Ultimate-DOS OPEN_DIR plus a **single READ_DIR streaming multiple entry packets**, six numbered `.8tml` rows, paging and manual-name fallback. The earlier passing host fixtures modeled READ_DIR incorrectly and are superseded; new multi-packet and split-packet host regressions are committed but **not yet executed in this environment**. Packet-aware UCI support is enabled only in independent Publisher builds. **Host retest, C64 compilation, memory fit, VICE and hardware remain unverified**; no release gate is claimed. Folder traversal remains deferred.
+- [x] Implement a compact numbered keyboard home screen and numbered publish/replace confirmation without changing standard network/storage paths (PR #66). **SD/USB builds, fit/manifests, VICE and bounded REST-assisted C64U acceptance passed; physical input remains unverified.** Legacy letter shortcuts remain available.
+- [x] Build/test matching SD/USB Publisher packages, retain >=1,024-byte Publisher/launcher headroom, and verify REST-assisted numbered selection, confirmation/cancellation and BASIC/DOS restoration. Physical number keys remain an open acceptance gate above.
+- [x] **Initial local picker coded, protocol corrected:** bounded Ultimate-DOS OPEN_DIR plus a **single READ_DIR streaming multiple entry packets**, six numbered `.8tml` rows, paging and manual-name fallback. Multi-packet and split-packet host regressions, SD/USB compilation/fit/manifests, VICE and bounded REST-assisted SD source selection/filtering passed. Packet-aware UCI support is enabled only in independent Publisher builds. Physical input and large-directory cancellation remain unverified. Folder traversal remains deferred.
 - [ ] Add a bounded server-name selector using the **existing** standard authenticated list parser. Choosing an entry sets only the remote target; retain manual entry and fresh-list explicit replacement confirmation.
 - [ ] Optional: reuse a *small* portion of Editor mouse/joystick code for clickable numbered rows **only if measured fit and hardware reliability allow**. Keyboard-only operation is sufficient for release.
 - [ ] Exercise focused host/VICE and exact real-C64U input, storage, server and restoration acceptance with the new file controls. No automatic retries of uncertain uploads.
@@ -59,7 +61,7 @@
 
 - [x] Trace active/legacy compile, validation and release-package callers; trace retained shared dependencies before each deletion. Current alpha packaging contains only the standard client SD/USB packages; shared configuration layout, crypto helpers and recovery remain required.
 - [ ] Once replacements pass required hardware/interoperability gates, remove obsolete code/assets/tests and stale server instructions incrementally. CI package count and standard test dependencies are corrected; the historical native overlay failure remains explicit. Preserve user files, credentials/recovery data, shared safety code and existing release assets.
-- [ ] Complete exact release/package checksum and rollback audit. No merge, deployment or stable promotion while required gates remain failed, blocked or unverified. User-authorized alpha previews must disclose these limits.
+- [x] Alpha.5 exact release/package checksum audit and bounded save rollback acceptance passed; release limits disclosed. Stable promotion remains gated by the open physical/cold-power/interruption/USB acceptance checks.
 
 ## Existing unresolved limits
 
