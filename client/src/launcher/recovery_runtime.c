@@ -457,7 +457,7 @@ uint8_t s64_launcher_module_manifest_load(
         return 0u;
     }
 
-    if (s64_dos_change_dir(&runtime->dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK) {
+    if (s64_dos_change_dir(&runtime->dos, S64_PACKAGE_ASSETS_DIRECTORY) != S64_DOS_OK) {
         return 0u;
     }
     if (s64_dos_open_read(
