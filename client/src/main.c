@@ -173,7 +173,7 @@ static void launch_publisher(void)
      * corrupt S64Q authority before any later executable transfer. */
     if (managed_runtime.reu_control.allocation_count
             < S64_REU_RUNTIME_MAX_ALLOCATIONS) {
-        if (s64_dos_change_dir(&dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK
+        if (s64_dos_change_dir(&dos, S64_PACKAGE_ASSETS_DIRECTORY) != S64_DOS_OK
             || !s64_managed_editor_pub_assets_prepare(
                 &managed_runtime, S64_BASIC_RETURN_WORKSPACE)) {
             (void)s64_dos_change_dir(&dos, S64_SD_ROOT_DIRECTORY);
