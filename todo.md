@@ -1,8 +1,8 @@
 # SEE64YOU work queue
 
-**Target:** offline C64U `.8tml` Editor, standard Publisher with numbered character GUI and local/server file selectors, and separate Settings. [Product scope](docs/PRODUCT.md) pins the 26 October 2026 publishing API 1 test draft; [Publisher design](docs/PUBLISHER.md) defines the new GUI and conditional download-to-edit workflow. Standard integration is consolidated on `main` at `1985046`; the SYSTEM package layout is in PR #69. Remaining release acceptance is listed below.
+**Target:** offline C64U `.8tml` Editor, standard Publisher with numbered character GUI and local/server file selectors, and separate Settings. [Product scope](docs/PRODUCT.md) pins the 26 October 2026 publishing API 1 test draft; [Publisher design](docs/PUBLISHER.md) defines the new GUI and conditional download-to-edit workflow. Standard integration and the SYSTEM package layout are merged on `main` (PR #69, `451fdba`). Remaining release acceptance is listed below.
 
-**Current release:** `v0.2.0-alpha.5` (`64836e9`) is published; downloaded SD/USB assets passed checksum/ZIP checks. Its ten-file SD package is installed on C64U with byte-exact readback; all 12 other files are unchanged. No merge or stable promotion.
+**Release package:** `v0.2.0-alpha.6` uses the validated ten-file SYSTEM layout. Exact SD bytes are installed on C64U with matching hashes; configuration, source and recovery files are preserved. SD/USB fit/manifests, VICE, host tests and bounded REST-assisted SD acceptance pass. Remaining physical/cold-power/USB-only and full exact-package Publisher upload/failure gates are listed below; no stable promotion.
 
 ## Active Editor priorities
 
