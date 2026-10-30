@@ -77,7 +77,7 @@ jobs:
       - name: Package provisional client and PHP website ZIPs
         run: |
           mkdir -p dist
-          test "$(find client/build/independent-package/SEE64YOU -maxdepth 1 -type f | wc -l)" -eq 10
+          test "$(find client/build/independent-package/SEE64YOU -type f | wc -l)" -eq 10
           test ! -e dist/see64you-site/config.php
           test ! -d dist/see64you-site/tests
           (cd client/build/independent-package && python3 -m zipfile -c ../../../dist/see64you-c64u-candidate.zip SEE64YOU)
