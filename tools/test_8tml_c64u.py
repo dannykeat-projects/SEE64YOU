@@ -20,7 +20,8 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = {"SEE64YOU.PRG", "S64EDIT.PRG", "S64PUB.PRG", "S64CFG.PRG",
-         "S64FILE.BIN", "S64MODEL.BIN", "S64PREP.BIN", "S64RUN.BIN", "S64MODULE.MNF", "S64OVL.MNF"}
+         "SYSTEM/S64FILE.BIN", "SYSTEM/S64MODEL.BIN", "SYSTEM/S64PREP.BIN",
+         "SYSTEM/S64RUN.BIN", "SYSTEM/S64MODULE.MNF", "SYSTEM/S64OVL.MNF"}
 EMPTY = b"---\n8tml: 1\ntitle: Untitled\n---\n"
 LARGE_HEADER = b"---\n8tml: 1\ntitle: Maximum source\n---\n"
 LARGE = LARGE_HEADER + (b"0123456789012345678901234567890123456789\n" * 1536)[:61440 - len(LARGE_HEADER)]
@@ -91,13 +92,15 @@ def main():
     package = args.package_dir.resolve()
     volume = args.storage_root.rstrip("/")
     folder = args.storage_root + "SEE64YOU"
-    assert {p.name for p in package.iterdir() if p.is_file()} == FILES
-    for script, manifest in (("generate_module_manifest.py", "S64MODULE.MNF"),
-                             ("generate_code_asset_manifest.py", "S64OVL.MNF")):
-        extra = ["--root", str(package / "S64EDIT.PRG")] if "code_asset" in script else []
-        subprocess.run(["python3", str(ROOT / "tools" / script), str(package), *extra,
-                        "--validate", str(package / manifest)], check=True)
-    candidate = {p.name: p.read_bytes() for p in package.iterdir() if p.is_file()}
+    package_files = {p.relative_to(package).as_posix(): p for p in package.rglob("*") if p.is_file()}
+    assert set(package_files) == FILES and (package / "SYSTEM").is_dir()
+    assert not any(p.is_symlink() for p in package.rglob("*"))
+    subprocess.run(["python3", str(ROOT / "tools/generate_module_manifest.py"),
+                    str(package), "--validate", str(package / "SYSTEM/S64MODULE.MNF")], check=True)
+    subprocess.run(["python3", str(ROOT / "tools/generate_code_asset_manifest.py"),
+                    str(package / "SYSTEM"), "--root", str(package / "S64EDIT.PRG"),
+                    "--validate", str(package / "SYSTEM/S64OVL.MNF")], check=True)
+    candidate = {name: p.read_bytes() for name, p in package_files.items()}
     assert native(folder + "/") + b"\0" in candidate["SEE64YOU.PRG"], \
         "Launcher storage root differs from requested test volume"
     candidate["T8PROBE.PRG"] = build_probe(out, args.storage_root, args.large_source, args.source_benchmark)
@@ -256,6 +259,13 @@ def main():
     folder_existed = any(path.rstrip("/").rsplit("/", 1)[-1].upper() == "SEE64YOU" for path in root_names)
     originals = inventory(folder) if folder_existed else {}
     state["folder_existed"] = folder_existed
+    # The new SYSTEM directory may already contain user files. Never delete
+    # a pre-existing directory or an unrecognised file during test cleanup.
+    system_dir = folder + "/SYSTEM"
+    system_existed = folder_existed and any(
+        p.rstrip("/").rsplit("/", 1)[-1].upper() == "SYSTEM" for p in ftp.nlst(folder))
+    state["system_existed"] = bool(system_existed)
+    state["created_system"] = False
     protected_sd = None
     protected_sd_roots = None
     protected_sd_folder_existed = False
@@ -333,6 +343,10 @@ def main():
             assert sorted(ftp.nlst(volume)) == root_names, "Target volume changed before staging"
             ftp.mkd(folder)
             state["created_folder"] = True
+            save()
+        if not system_existed:
+            ftp.mkd(system_dir)
+            state["created_system"] = True
             save()
         for name, data in candidate.items():
             put(folder + "/" + name, data)
@@ -577,6 +591,10 @@ def main():
                 for path, data in originals.items():
                     put(path, data)
                 assert (inventory(folder) if folder_existed or state["created_folder"] else {}) == originals
+                if state["created_system"]:
+                    ftp.cwd(folder)
+                    ftp.rmd(system_dir)
+                    state["created_system_removed"] = True
                 if state["created_folder"]:
                     assert not state.get("dos_context_captured") or state.get("dos_context_restored"), \
                         "Restore captured DOS contexts before removing test folder"
