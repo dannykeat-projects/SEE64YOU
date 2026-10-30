@@ -68,7 +68,7 @@ uint8_t s64_reu_store(uint8_t bank, uint16_t offset, const void* source, uint16_
     return 1;
 }
 S64DosResult s64_dos_change_dir(S64Dos* target, const char* path)
-{ assert(target == &dos && !strcmp(path, S64_PACKAGE_DIRECTORY)); return S64_DOS_OK; }
+{ assert(target == &dos && !strcmp(path, S64_PACKAGE_ASSETS_DIRECTORY)); return S64_DOS_OK; }
 S64DosResult s64_dos_open_read(S64Dos* target, const char* name)
 {
     static const char* const names[] = { S64_CODE_ASSET_FILE_0, S64_CODE_ASSET_FILE_1, S64_CODE_ASSET_FILE_2

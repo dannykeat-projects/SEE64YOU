@@ -12,7 +12,8 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = {"SEE64YOU.PRG", "S64EDIT.PRG", "S64PUB.PRG", "S64CFG.PRG",
-         "S64FILE.BIN", "S64MODEL.BIN", "S64PREP.BIN", "S64RUN.BIN", "S64MODULE.MNF", "S64OVL.MNF"}
+         "SYSTEM/S64FILE.BIN", "SYSTEM/S64MODEL.BIN", "SYSTEM/S64PREP.BIN",
+         "SYSTEM/S64RUN.BIN", "SYSTEM/S64MODULE.MNF", "SYSTEM/S64OVL.MNF"}
 
 
 def capture(*command):
@@ -76,19 +77,21 @@ def verify_receipts(validation, receipt, commit):
 def package_bytes(package, expected):
     if not package.is_dir() or package.is_symlink():
         raise ValueError("Expected a package directory")
-    paths = list(package.iterdir())
-    if {path.name for path in paths} != FILES or any(not p.is_file() or p.is_symlink() for p in paths):
-        raise ValueError("Package must contain exactly the ten shipping files")
+    paths = list(package.rglob("*"))
+    names = {p.relative_to(package).as_posix() for p in paths if p.is_file()}
+    if names != FILES or {p.name for p in paths if p.is_dir()} != {"SYSTEM"} \
+            or any(p.is_symlink() or (not p.is_file() and not p.is_dir()) for p in paths):
+        raise ValueError("Package must contain exactly four root PRGs and six SYSTEM files")
     payload = {name: (package / name).read_bytes() for name in sorted(FILES)}
     hashes = {name: digest(data) for name, data in payload.items()}
     if hashes != expected:
         raise ValueError("Package differs from the validation receipt: " + str(package))
-    for script, manifest in (("generate_module_manifest.py", "S64MODULE.MNF"),
-                             ("generate_code_asset_manifest.py", "S64OVL.MNF")):
-        command = [sys.executable, str(ROOT / "tools" / script), str(package)]
-        if "code_asset" in script:
-            command += ["--root", str(package / "S64EDIT.PRG")]
-        subprocess.run(command + ["--validate", str(package / manifest)], cwd=ROOT, check=True)
+    subprocess.run([sys.executable, str(ROOT / "tools/generate_module_manifest.py"),
+                    str(package), "--validate", str(package / "SYSTEM/S64MODULE.MNF")],
+                   cwd=ROOT, check=True)
+    subprocess.run([sys.executable, str(ROOT / "tools/generate_code_asset_manifest.py"),
+                    str(package / "SYSTEM"), "--root", str(package / "S64EDIT.PRG"),
+                    "--validate", str(package / "SYSTEM/S64OVL.MNF")], cwd=ROOT, check=True)
     return payload, hashes
 
 
@@ -113,7 +116,9 @@ def main():
     receipt = json.loads(hardware_data)
     validation = json.loads(validation_data)
     verified_source = verify_receipts(validation, receipt, commit)
-    snapshots = {label: package_bytes(package.resolve(), validation["packages"][label]["sha256"])
+    # Do not resolve first: doing so hides a symlinked package root from
+    # package_bytes(), bypassing the fail-closed inventory safeguard.
+    snapshots = {label: package_bytes(package, validation["packages"][label]["sha256"])
                  for label, package in (("sd", args.sd_package), ("usb", args.usb_package))}
     hardware = {"tested_commit": receipt["commit"], "input": receipt["input"],
                 "physical_keyboard": receipt["physical_keyboard"],
@@ -156,7 +161,7 @@ def main():
                  "acceptance": "Alpha preview; remaining gates are not certified by this release",
                  "remaining_gates": ["physical keyboard/Link on this package", "cold-power exact-source reopen",
                     "uncontrolled interruption/recovery", "real USB-only operation",
-                    "external compatible-reader navigation", "Publisher/Settings hardware on this exact package",
+                    "external compatible-reader navigation", "full Publisher upload/replace/failure coverage on this exact package",
                     "historical non-shipping native matrix reconciliation"]}
         payload["BUILD.json"] = (json.dumps(build, indent=2, sort_keys=True) + "\n").encode()
         payload["README.md"] = guide

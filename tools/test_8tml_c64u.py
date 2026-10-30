@@ -20,7 +20,8 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = {"SEE64YOU.PRG", "S64EDIT.PRG", "S64PUB.PRG", "S64CFG.PRG",
-         "S64FILE.BIN", "S64MODEL.BIN", "S64PREP.BIN", "S64RUN.BIN", "S64MODULE.MNF", "S64OVL.MNF"}
+         "SYSTEM/S64FILE.BIN", "SYSTEM/S64MODEL.BIN", "SYSTEM/S64PREP.BIN",
+         "SYSTEM/S64RUN.BIN", "SYSTEM/S64MODULE.MNF", "SYSTEM/S64OVL.MNF"}
 EMPTY = b"---\n8tml: 1\ntitle: Untitled\n---\n"
 LARGE_HEADER = b"---\n8tml: 1\ntitle: Maximum source\n---\n"
 LARGE = LARGE_HEADER + (b"0123456789012345678901234567890123456789\n" * 1536)[:61440 - len(LARGE_HEADER)]
@@ -91,13 +92,15 @@ def main():
     package = args.package_dir.resolve()
     volume = args.storage_root.rstrip("/")
     folder = args.storage_root + "SEE64YOU"
-    assert {p.name for p in package.iterdir() if p.is_file()} == FILES
-    for script, manifest in (("generate_module_manifest.py", "S64MODULE.MNF"),
-                             ("generate_code_asset_manifest.py", "S64OVL.MNF")):
-        extra = ["--root", str(package / "S64EDIT.PRG")] if "code_asset" in script else []
-        subprocess.run(["python3", str(ROOT / "tools" / script), str(package), *extra,
-                        "--validate", str(package / manifest)], check=True)
-    candidate = {p.name: p.read_bytes() for p in package.iterdir() if p.is_file()}
+    package_files = {p.relative_to(package).as_posix(): p for p in package.rglob("*") if p.is_file()}
+    assert set(package_files) == FILES and (package / "SYSTEM").is_dir()
+    assert not any(p.is_symlink() for p in package.rglob("*"))
+    subprocess.run(["python3", str(ROOT / "tools/generate_module_manifest.py"),
+                    str(package), "--validate", str(package / "SYSTEM/S64MODULE.MNF")], check=True)
+    subprocess.run(["python3", str(ROOT / "tools/generate_code_asset_manifest.py"),
+                    str(package / "SYSTEM"), "--root", str(package / "S64EDIT.PRG"),
+                    "--validate", str(package / "SYSTEM/S64OVL.MNF")], check=True)
+    candidate = {name: p.read_bytes() for name, p in package_files.items()}
     assert native(folder + "/") + b"\0" in candidate["SEE64YOU.PRG"], \
         "Launcher storage root differs from requested test volume"
     candidate["T8PROBE.PRG"] = build_probe(out, args.storage_root, args.large_source, args.source_benchmark)
@@ -256,6 +259,13 @@ def main():
     folder_existed = any(path.rstrip("/").rsplit("/", 1)[-1].upper() == "SEE64YOU" for path in root_names)
     originals = inventory(folder) if folder_existed else {}
     state["folder_existed"] = folder_existed
+    # The new SYSTEM directory may already contain user files. Never delete
+    # a pre-existing directory or an unrecognised file during test cleanup.
+    system_dir = folder + "/SYSTEM"
+    system_existed = folder_existed and any(
+        p.rstrip("/").rsplit("/", 1)[-1].upper() == "SYSTEM" for p in ftp.nlst(folder))
+    state["system_existed"] = bool(system_existed)
+    state["created_system"] = False
     protected_sd = None
     protected_sd_roots = None
     protected_sd_folder_existed = False
@@ -334,6 +344,10 @@ def main():
             ftp.mkd(folder)
             state["created_folder"] = True
             save()
+        if not system_existed:
+            ftp.mkd(system_dir)
+            state["created_system"] = True
+            save()
         for name, data in candidate.items():
             put(folder + "/" + name, data)
         if not args.storage_only:
@@ -360,16 +374,18 @@ def main():
                 assert key_hex.decode().upper() not in text, "Secret was displayed"
             put(key_path, key_file)
             launch("S64CFG.PRG", "SEE64YOU PUBLISHING SETTINGS")
-            keys(b"I")
-            wait("Imported; review HTTP consent then save", "settings-imported")
+            keys(b"1")
+            wait("Imported; HTTP allowed; 5 to save", "settings-imported")
             wait("KEY ID: TEST-1", "settings-imported-id")
-            wait("UNENCRYPTED HTTP: BLOCKED", "settings-import-default-deny")
+            wait("UNENCRYPTED HTTP: ALLOWED", "settings-import-default-http")
             hidden_key("settings-secret-redacted")
-            keys(b"H")
+            keys(b"2")
+            wait("UNENCRYPTED HTTP: BLOCKED", "settings-http-blocked")
+            keys(b"2")
             wait("ALLOW UNENCRYPTED HTTP? Y/N", "settings-http-consent")
             keys(b"Y")
             wait("Plain HTTP allowed; S to save", "settings-http-allowed")
-            keys(b"S")
+            keys(b"5")
             exitcheck("settings-save-exit")
             stored = fetch(folder + "/SEE64YOU.CFG")
             assert native("test-1") in stored and native(endpoint.decode()) in stored
@@ -380,23 +396,23 @@ def main():
             wait("UNENCRYPTED HTTP: ALLOWED", "settings-persisted-consent")
             hidden_key("settings-reloaded-secret-redacted")
             put(key_path, b"8tml-publish: 1\nurl: http://invalid/\nid: test-2\nkey: invalid\n")
-            keys(b"I")
+            keys(b"1")
             wait("Standard key file invalid; unchanged", "settings-invalid-import")
             wait("KEY ID: TEST-1", "settings-invalid-retained-id")
-            keys(b"S")
+            keys(b"5")
             exitcheck("settings-invalid-save-exit")
             assert fetch(folder + "/SEE64YOU.CFG") == stored
             mark("standard-settings-relaunch-and-invalid-import-preserve-exact-record")
             launch("S64CFG.PRG", "SEE64YOU PUBLISHING SETTINGS")
             put(key_path, key_file.replace(b"id: test-1", b"id: test-2"))
-            keys(b"I")
+            keys(b"1")
             wait("KEY ID: TEST-2", "settings-replacement-import")
-            wait("UNENCRYPTED HTTP: BLOCKED", "settings-replacement-resets-consent")
+            wait("UNENCRYPTED HTTP: ALLOWED", "settings-replacement-default-http")
             hidden_key("settings-replacement-secret-redacted")
-            keys(b"\x03")
+            keys(b"0")
             exitcheck("settings-cancel-replacement-exit")
             assert fetch(folder + "/SEE64YOU.CFG") == stored
-            mark("standard-settings-key-replacement-resets-consent-and-cancel-preserves-disk")
+            mark("standard-settings-key-replacement-default-http-and-numbered-cancel-preserves-disk")
         elif not args.storage_only:
             launch("SEE64YOU.PRG", "FILE EDIT SEARCH FORMAT")
             assert "PUB" not in screen("editor-header")[:40], "Independent Editor still exposes PUB"
@@ -569,7 +585,9 @@ def main():
                 known_temporary.update((name + ".bak").upper() for name in reserved)
                 known_temporary.update(("SEE64YOU.REC", "SEE64YOU.REC.TMP", "S64JRN0.DAT", "S64JRN1.DAT"))
                 current = inventory(folder) if folder_existed or state["created_folder"] else {}
-                assert all(path in originals or path.rsplit("/", 1)[-1].upper() in known_temporary
+                assert all(path in originals
+                           or path.removeprefix(folder + "/") in FILES
+                           or path.rsplit("/", 1)[-1].upper() in known_temporary
                            for path in current), "Unexpected new file; preserve it for review"
                 for path in current:
                     if path not in originals:
@@ -577,6 +595,10 @@ def main():
                 for path, data in originals.items():
                     put(path, data)
                 assert (inventory(folder) if folder_existed or state["created_folder"] else {}) == originals
+                if state["created_system"]:
+                    ftp.cwd(folder)
+                    ftp.rmd(system_dir)
+                    state["created_system_removed"] = True
                 if state["created_folder"]:
                     assert not state.get("dos_context_captured") or state.get("dos_context_restored"), \
                         "Restore captured DOS contexts before removing test folder"

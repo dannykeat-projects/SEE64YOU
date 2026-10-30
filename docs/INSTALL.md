@@ -8,7 +8,7 @@ This is an alpha test release. SD source replacement/recovery has bounded real-C
 
 In the Ultimate **Memory & ROMs** settings (called **C64 and Cartridge Settings** on some menus), enable **Command Interface**, **RAM Expansion Unit**, and **REU Size: 16 MB**. Recheck after a settings reset.
 
-Copy all matching program, BIN and manifest files into `/sd/SEE64YOU/` by default, or the same folder under the selected mount. Do not remove existing documents, configuration or recovery files.
+**The `SYSTEM/` layout is still an unreleased draft. Published alpha.5 uses the original flat package; follow that ZIP's own inventory instead of rearranging it.** For a package specifically built from PR #69, copy the **complete matching folder tree** to `/sd/SEE64YOU/` by default (or the selected USB mount): keep `SEE64YOU.PRG`, `S64EDIT.PRG`, `S64PUB.PRG` and `S64CFG.PRG` directly in `SEE64YOU/`, and keep the four `.BIN` files plus `S64OVL.MNF` and `S64MODULE.MNF` in `SEE64YOU/SYSTEM/`. Do not mix these files with an older flat-layout package. Existing `.8tml` documents, `SEE64YOU.CFG`, `8TML.KEY`, recovery snapshots and journals remain in `SEE64YOU/`; **do not delete or migrate them**. This folder layout is a new draft change and has not yet passed exact-package C64U acceptance.
 
 ## Programs
 
@@ -36,9 +36,9 @@ Launch each program **independently** and return to BASIC when finished. `S64EDI
    My first page.
    ~~~
 
-3. Save with Ctrl+S or File → Save. A basename such as `HELLO` becomes `HELLO.8tml` in the application's folder. Use Save As to choose a different name. Existing files are protected from unintended overwrite.
-4. Reopen with Ctrl+O or File → Open. F8 opens Help. Ctrl+Z/ Ctrl+Shift+Z perform undo/redo where the keyboard mapping supports them.
-5. RUN/STOP or File → Exit asks for confirmation. Saved documents require Y to exit; unsaved documents offer Save, Discard or Cancel.
+3. Save with Ctrl+S or File â†’ Save. A basename such as `HELLO` becomes `HELLO.8tml` in the application's folder. Use Save As to choose a different name. Existing files are protected from unintended overwrite.
+4. Reopen with Ctrl+O or File â†’ Open. F8 opens Help. Ctrl+Z/ Ctrl+Shift+Z perform undo/redo where the keyboard mapping supports them.
+5. RUN/STOP or File â†’ Exit asks for confirmation. Saved documents require Y to exit; unsaved documents offer Save, Discard or Cancel.
 
 **Save manually.** There are no timed background saves. Existing `SEE64YOU.REC` snapshots may offer `Recover snapshot? Y/N`; failed reads preserve them, and recovered content must be saved again. Retain any completed `.tmp` file if a disk operation fails. Back up important `.8tml` files independently. Current source is ASCII/LF; CR/CRLF input normalizes to LF; complete source limit is 61,440 bytes.
 
@@ -61,4 +61,4 @@ Publisher does not provide remote editing, deletion, page/post categories or dra
 - **USB corruption/readback mismatch:** do not execute or trust the copied program. Verify package hashes and readback. USB hardware acceptance remains incomplete on the tested firmware.
 - **Unexpected exit or failed save:** preserve `.tmp`/recovery files, note the error and keep the original source backed up.
 
-Publisher **2 Browse remote** lists six authenticated remote names per page: **1�6** select a target, **7** types a name, **8/9** change pages and **0** returns. Selection never uploads. API 1 supplies no remote delete operation, so deletion is unavailable. These new controls require matching-package hardware acceptance.
+Publisher **2 Browse remote** lists six authenticated remote names per page: **1–6** select a target, **7** types a name, **8/9** change pages and **0** returns. Selection never uploads. API 1 supplies no remote delete operation, so deletion is unavailable. These new controls require matching-package hardware acceptance.

@@ -65,6 +65,53 @@ class PackageTest(unittest.TestCase):
             with self.subTest(kind=kind), self.assertRaises(ValueError):
                 PACK.verify_receipts(validation, receipt, "release")
 
+    def test_nested_package_inventory_fails_closed(self):
+        package = self.root / "layout"
+        package.mkdir()
+        for name in PACK.FILES:
+            item = package / name
+            item.parent.mkdir(parents=True, exist_ok=True)
+            item.write_bytes(name.encode())
+        payload, hashes = PACK.package_bytes(package, self.hashes)
+        self.assertEqual(set(payload), PACK.FILES)
+        self.assertEqual(hashes, self.hashes)
+
+        # Flat-layout support files must never accidentally be released.
+        flat = package / "S64OVL.MNF"
+        flat.write_bytes(b"obsolete")
+        with self.assertRaises(ValueError):
+            PACK.package_bytes(package, self.hashes)
+        flat.unlink()
+
+        nested = package / "SYSTEM" / "UNEXPECTED.BIN"
+        nested.write_bytes(b"not part of the package")
+        with self.assertRaises(ValueError):
+            PACK.package_bytes(package, self.hashes)
+        nested.unlink()
+
+        extra_directory = package / "ARCHIVE"
+        extra_directory.mkdir()
+        with self.assertRaises(ValueError):
+            PACK.package_bytes(package, self.hashes)
+        extra_directory.rmdir()
+
+        missing = package / "SYSTEM/S64MODULE.MNF"
+        saved = missing.read_bytes()
+        missing.unlink()
+        with self.assertRaises(ValueError):
+            PACK.package_bytes(package, self.hashes)
+        missing.write_bytes(saved)
+
+        # Reject a symlinked root rather than silently .resolve()ing it.
+        linked = self.root / "linked-package"
+        try:
+            linked.symlink_to(package, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            pass  # Symlink creation can be restricted on native Windows.
+        else:
+            with self.assertRaises(ValueError):
+                PACK.package_bytes(linked, self.hashes)
+
     def test_dirty_source_rejected(self):
         with patch.object(PACK.subprocess, "run", side_effect=subprocess.CalledProcessError(1, "git diff")):
             with self.assertRaises(subprocess.CalledProcessError):
@@ -75,7 +122,9 @@ class PackageTest(unittest.TestCase):
             package = self.root / label
             package.mkdir()
             for name in PACK.FILES:
-                (package / name).write_bytes(name.encode())
+                file = package / name
+                file.parent.mkdir(parents=True, exist_ok=True)
+                file.write_bytes(name.encode())
         extra = self.root / "sd/EXTRA"
         extra.write_bytes(b"extra")
         with self.assertRaises(ValueError): PACK.package_bytes(self.root / "sd", self.hashes)
@@ -98,6 +147,11 @@ class PackageTest(unittest.TestCase):
                 self.assertNotIn("php", path.name)
                 with zipfile.ZipFile(path) as archive:
                     self.assertEqual(len(archive.namelist()), 13)
+                    members = set(archive.namelist())
+                    self.assertIn("SEE64YOU/SYSTEM/S64OVL.MNF", members)
+                    self.assertIn("SEE64YOU/SYSTEM/S64MODULE.MNF", members)
+                    self.assertNotIn("SEE64YOU/S64OVL.MNF", members)
+                    self.assertNotIn("SEE64YOU/S64MODULE.MNF", members)
                     build = json.loads(archive.read("BUILD.json"))
                     self.assertEqual(build["tested_base_commit"], "base")
                     self.assertEqual(build["release_commit"], "release")

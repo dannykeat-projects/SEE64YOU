@@ -35,7 +35,7 @@ static void reset(void)
 }
 
 S64DosResult s64_dos_change_dir(S64Dos* dos, const char* path)
-{ assert(dos && !strcmp(path, S64_PACKAGE_DIRECTORY)); ++dirs; event('D'); return S64_DOS_OK; }
+{ assert(dos && !strcmp(path, S64_PACKAGE_ASSETS_DIRECTORY)); ++dirs; event('D'); return S64_DOS_OK; }
 S64DosResult s64_dos_open_read(S64Dos* dos, const char* name)
 {
     assert(dos && !open_file && !strcmp(name, S64_CODE_ASSET_MANIFEST_FILENAME));

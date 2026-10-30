@@ -21,7 +21,8 @@ static S64UciCapabilities capabilities;
 static S64SettingsExchange settings;
 static S64StandardClient client;
 static S64StandardReply reply;
-static char remote_name[65], prompt[65], status[81];
+/* Main screen shows at most 39 characters of status, plus the NUL. */
+static char remote_name[65], prompt[65], status[40];
 static uint8_t loaded, network_available, path_captured;
 static char original_path[440], verify_path[440];
 static unsigned char old_background, old_border, old_text;

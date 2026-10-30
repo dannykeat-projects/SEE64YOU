@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "launcher/recovery_runtime.h"
+#include "platform/package_paths.h"
 #include "platform/reu_layout.h"
 #include "platform/application_state_reserve.h"
 
@@ -14,6 +15,7 @@ typedef struct {
 
 static uint8_t fake_reu_control[S64_REU_RUNTIME_CONTROL_CAPACITY];
 static unsigned manifest_closes, dos_commands;
+static unsigned asset_directory_selections;
 static uint8_t fake_session[S64_MODULE_SESSION_WIRE_SIZE];
 static uint8_t fake_capsule[S64_TRANSFER_CAPSULE_WIRE_SIZE];
 static uint8_t fail_session_store, fail_clean;
@@ -132,6 +134,9 @@ static S64UciResult mock_execute(
 
     if (opcode == 0x11u) {
         static const char ok[] = "00,OK";
+        if (part_count == 2u && parts[1].length == strlen(S64_PACKAGE_ASSETS_DIRECTORY)
+            && !memcmp(parts[1].data, S64_PACKAGE_ASSETS_DIRECTORY,
+                       strlen(S64_PACKAGE_ASSETS_DIRECTORY))) ++asset_directory_selections;
         if (reply != 0 && reply->status != 0
             && reply->status_capacity > sizeof(ok)) {
             memcpy(reply->status, ok, sizeof(ok));
@@ -257,6 +262,8 @@ int main(void)
     require(s64_launcher_module_manifest_load(&runtime),
         "launcher reads and parses wire ASCII manifest through DOS");
     require(manifest_closes == 1u, "manifest handle closes after read");
+    require(asset_directory_selections > 0u,
+        "module manifest is fetched from SYSTEM rather than the PRG directory");
     require(s64_session_journal_prepare(&runtime.lifecycle.journal,
         runtime.reu_control.session_id, runtime.reu_control.app_version, 0x2345UL,
         &runtime.system_state.snapshot), "fixture retains the real captured restore state");
