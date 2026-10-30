@@ -247,7 +247,7 @@ build/independent/S64WEB.PRG: $(INDEPENDENT_BROWSER_SOURCES) src/browser/protoco
 independent-package: independent-editor-overlay-fit independent-publisher independent-settings build/managed-handoff-launcher.prg
 	python3 ../tools/check_memory_headroom.py build/managed-handoff-launcher.map --label independent-launcher --min-headroom 1024
 	@mkdir -p $(INDEPENDENT_PACKAGE_DIR)/SYSTEM
-	$(RM) $(INDEPENDENT_PACKAGE_DIR)/S64WEB.PRG
+	$(RM) $(INDEPENDENT_PACKAGE_DIR)/S64WEB.PRG $(addprefix $(INDEPENDENT_PACKAGE_DIR)/,S64MODEL.BIN S64FILE.BIN S64RUN.BIN S64PREP.BIN S64OVL.MNF S64MODULE.MNF)
 	cp build/managed-handoff-launcher.prg $(INDEPENDENT_PACKAGE_DIR)/SEE64YOU.PRG
 	cp build/editor-overlay-fit/editor-overlay-fit.prg $(INDEPENDENT_PACKAGE_DIR)/S64EDIT.PRG
 	cp $(INDEPENDENT_PUBLISHER_TARGET) $(INDEPENDENT_PACKAGE_DIR)/S64PUB.PRG
@@ -262,6 +262,7 @@ independent-package: independent-editor-overlay-fit independent-publisher indepe
 managed-package: editor-overlay-fit publisher-overlay-fit code-assets-fit publisher settings managed-settings
 	python3 ../tools/check_memory_headroom.py build/code-assets-fit.map --label managed-launcher --min-headroom 1024
 	@mkdir -p build/managed-package/SYSTEM
+	$(RM) $(addprefix build/managed-package/,S64MODEL.BIN S64FILE.BIN S64RUN.BIN S64PREP.BIN S64OVL.MNF S64MODULE.MNF S64PCNT.BIN S64PNET.BIN S64PRUN.BIN S64POVL.MNF)
 	cp build/code-assets-fit.prg build/managed-package/SEE64YOU.PRG
 	cp build/editor-overlay-fit/editor-overlay-fit.prg build/managed-package/S64EDIT.PRG
 	cp build/publisher-overlay-fit/publisher-overlay-fit.prg build/managed-package/S64PUB.PRG
