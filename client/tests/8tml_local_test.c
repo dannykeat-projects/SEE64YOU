@@ -433,7 +433,6 @@ int main(void)
     recovery_exists = 0u;
     require(s64_local_recovery_exists(&local, &recovery_exists) == S64_LOCAL_OK && recovery_exists && !in_docs,
         "recovery lookup remains rooted at package");
-        "recovery discoverable");
     require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "clear before recovery");
     require(s64_local_open_recovery(&local) == S64_LOCAL_OK && !in_docs,
         "recovery opens from original package root");
