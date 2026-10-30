@@ -68,3 +68,5 @@
 - [ ] Investigate slow large-document operations and startup verification; measured16385-byte Publisher source load91.87 seconds with Turbo Control Off. Do not combine speculative performance rewrites with protocol migration.
 - [ ] Resolve USB transfer/readback reliability and real USB-only acceptance on the actual firmware before recommending USB installation.
 - [ ] Confirm draft evolution, independent-server support and validator redistribution licensing; do not invent private conditional-write extensions.
+
+- [ ] Ctrl+Delete previous-word deletion: focused undo/redo, cursor/saved-state, selection and boundary regressions pass; complete SD/USB package fit/manifests pass. Native shortcut/VICE and exact-package C64U acceptance remain unverified; excluded from installed alpha.5.

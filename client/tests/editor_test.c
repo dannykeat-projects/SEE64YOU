@@ -523,6 +523,27 @@ int main(void)
     require(s64_editor_point(&editor, 1u, 20u, 0u), "pointer clamps after short line");
     require(s64_buffer_cursor(&editor.buffer) == 4u, "pointer clamps to logical line end");
 
+    s64_editor_init(&editor);
+    require(!s64_editor_delete_previous_word(&editor), "word delete at start is no-op");
+    insert_text(&editor, "one two,  ");
+    s64_editor_mark_saved(&editor);
+    require(s64_editor_delete_previous_word(&editor), "delete previous word and trailing separators");
+    require_text(&editor, "one ", "previous word boundary matches Ctrl+Left");
+    require(s64_editor_undo(&editor), "word delete is one undo");
+    require_text(&editor, "one two,  ", "undo restores entire word and separators");
+    require(s64_buffer_cursor(&editor.buffer) == 10u && !editor.dirty, "undo restores cursor and saved state");
+    require(s64_editor_redo(&editor), "redo word delete");
+    require_text(&editor, "one ", "redo removes same span");
+    s64_editor_select_all(&editor);
+    require(s64_editor_delete_previous_word(&editor), "word delete respects selection");
+    require_text(&editor, "", "selection removed");
+    insert_text(&editor, "abc\ndef");
+    s64_buffer_move_cursor(&editor.buffer, 5u);
+    require(s64_editor_delete_previous_word(&editor), "delete within word");
+    require_text(&editor, "abc\nef", "word suffix preserved");
+    require(s64_editor_delete_previous_word(&editor), "delete across line boundary");
+    require_text(&editor, "ef", "previous line word and newline removed");
+
     puts("editor tests passed");
     return 0;
 }

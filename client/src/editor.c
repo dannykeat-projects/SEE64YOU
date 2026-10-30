@@ -94,6 +94,8 @@ static unsigned int previous_wrapped_row_start(
     return wrapped_row_start(buffer, start - 1u);
 }
 
+static unsigned int previous_word_start(const S64Editor* editor, unsigned int position);
+
 static unsigned char is_word_char(unsigned char value)
 {
     return (value >= 'A' && value <= 'Z')
@@ -907,6 +909,26 @@ int s64_editor_backspace(S64Editor* editor)
     return 1;
 }
 
+int s64_editor_delete_previous_word(S64Editor* editor)
+{
+    unsigned int cursor = s64_buffer_cursor(&editor->buffer);
+    unsigned int start;
+    unsigned char captured;
+
+    if (s64_editor_has_selection(editor)) return s64_editor_backspace(editor);
+    if (!cursor) return 0;
+    start = previous_word_start(editor, cursor);
+    s64_history_break_coalesce(&editor->history);
+    captured = s64_editor_internal_history_begin(editor, start, cursor);
+    if (!s64_buffer_delete_range(&editor->buffer, start, cursor)) {
+        if (captured) s64_history_reset(&editor->history);
+        return 0;
+    }
+    finish_content_edit(editor);
+    s64_editor_internal_history_commit(editor, 0u, 0u, captured);
+    return 1;
+}
+
 int s64_editor_delete(S64Editor* editor)
 {
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
@@ -1137,6 +1159,18 @@ void s64_editor_page_down(S64Editor* editor)
     }
 }
 
+static unsigned int previous_word_start(const S64Editor* editor, unsigned int position)
+{
+    while (position > 0u && !is_word_char(s64_buffer_char_at(&editor->buffer, position - 1u))) {
+        --position;
+    }
+    while (position > 0u && is_word_char(s64_buffer_char_at(&editor->buffer, position - 1u))) {
+        --position;
+    }
+
+    return position;
+}
+
 void s64_editor_word_left(S64Editor* editor)
 {
     unsigned int cursor = s64_buffer_cursor(&editor->buffer);
@@ -1144,12 +1178,7 @@ void s64_editor_word_left(S64Editor* editor)
 
     s64_history_break_coalesce(&editor->history);
 
-    while (position > 0u && !is_word_char(s64_buffer_char_at(&editor->buffer, position - 1u))) {
-        --position;
-    }
-    while (position > 0u && is_word_char(s64_buffer_char_at(&editor->buffer, position - 1u))) {
-        --position;
-    }
+    position = previous_word_start(editor, position);
 
     s64_buffer_move_cursor(&editor->buffer, position);
     s64_editor_recalculate_position(editor);
