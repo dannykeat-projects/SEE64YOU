@@ -1,6 +1,7 @@
 #include "publisher/settings_exchange.h"
 
 #include <stddef.h>
+#include <string.h>
 
 #define S64_SETTINGS_MAGIC_0 'S'
 #define S64_SETTINGS_MAGIC_1 '6'
@@ -38,6 +39,63 @@ static uint8_t key_valid(const char* value)
     return value[64] == '\0';
 }
 
+const char* s64_settings_publish_id(const S64SettingsExchange* settings)
+{
+    return settings != 0 && settings->destination_type == S64_DESTINATION_STANDARD
+        ? settings->relay_key : "";
+}
+
+static uint8_t publish_id_valid(const char* id)
+{
+    uint8_t i = 0u;
+    char ch;
+    while ((ch = id[i]) != 0) {
+        if (i >= 32u || !((ch >= 'a' && ch <= 'z')
+            || (ch >= '0' && ch <= '9') || ch == '-')) return 0u;
+        ++i;
+    }
+    return i != 0u;
+}
+
+int s64_settings_publish_url_valid(const char* url)
+{
+    const char* cursor;
+    uint16_t length = 0u, host_length = 0u;
+    uint32_t port = 0u;
+    if (!url) return 0;
+    while (url[length]) {
+        if (++length >= S64_DESTINATION_BASE_URL_CAPACITY) return 0;
+    }
+    if (strncmp(url, "http://", 7u) == 0) cursor = url + 7;
+    else if (strncmp(url, "https://", 8u) == 0) cursor = url + 8;
+    else return 0;
+    while (*cursor && *cursor != '/' && *cursor != ':') {
+        char ch = *cursor++;
+        if (!((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')
+            || (ch >= '0' && ch <= '9') || ch == '.' || ch == '-')) return 0;
+        if (++host_length >= 96u) return 0;
+    }
+    if (!host_length) return 0;
+    if (*cursor == ':') {
+        ++cursor;
+        if (*cursor < '0' || *cursor > '9') return 0;
+        while (*cursor >= '0' && *cursor <= '9') {
+            port = port * 10u + (uint8_t)(*cursor++ - '0');
+            if (port > 65535u) return 0;
+        }
+        if (!port) return 0;
+    }
+    if (*cursor != '/') return 0;
+    while (*cursor) {
+        char ch = *cursor++;
+        /* Native literals work on both host ASCII and cc65 PETSCII. */
+        if (!((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')
+            || (ch >= '0' && ch <= '9')
+            || strchr("/-._~!$&'()*+,;=:%[]^`{|}", ch) != 0)) return 0;
+    }
+    return 1;
+}
+
 uint16_t s64_settings_exchange_checksum(const S64SettingsExchange* settings)
 {
     const uint8_t* bytes = (const uint8_t*)settings;
@@ -65,12 +123,18 @@ int s64_settings_exchange_values_valid(const S64SettingsExchange* settings)
             (uint16_t)sizeof(settings->relay_key))
         || !text_terminated(settings->direct_key,
             (uint16_t)sizeof(settings->direct_key))
-        || !key_valid(settings->relay_key)
+        || (settings->destination_type != S64_DESTINATION_STANDARD
+            && !key_valid(settings->relay_key))
         || !key_valid(settings->direct_key)) {
         return 0;
     }
 
     type = settings->destination_type;
+    if (type == S64_DESTINATION_STANDARD) {
+        return publish_id_valid(settings->relay_key)
+            && settings->direct_key[0] != 0
+            && s64_settings_publish_url_valid(settings->base_url);
+    }
     if (type == (uint8_t)S64_DESTINATION_NONE) {
         return settings->base_url[0] == '\0';
     }

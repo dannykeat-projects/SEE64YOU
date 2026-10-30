@@ -29,10 +29,14 @@ typedef struct {
     uint8_t destination_type;
     uint8_t allow_insecure_http;
     char base_url[S64_DESTINATION_BASE_URL_CAPACITY];
+    /* STANDARD uses this fixed-size slot for its key ID, never a relay key. */
     char relay_key[S64_RELAY_KEY_CAPACITY];
     char direct_key[65];
     uint16_t checksum;
 } S64SettingsExchange;
+
+const char* s64_settings_publish_id(const S64SettingsExchange* settings);
+int s64_settings_publish_url_valid(const char* url);
 
 void s64_settings_exchange_init(S64SettingsExchange* settings);
 /* Canonical checksum/validation shared by helper, PREP producer and managed

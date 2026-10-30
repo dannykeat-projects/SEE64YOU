@@ -1,1 +1,2 @@
 packages/c64u/SEE64YOU/* -text
+*.sh text eol=lf

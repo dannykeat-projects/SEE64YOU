@@ -12,6 +12,7 @@
 static unsigned char fake_reu[TEST_REU_BANKS][TEST_REU_BANK_SIZE];
 static unsigned char saw_history_metadata_store;
 static unsigned char wrote_clipboard_region;
+static unsigned char fail_payload_store;
 
 uint8_t s64_reu_probe(void)
 {
@@ -30,6 +31,10 @@ uint8_t s64_reu_store(
     uint16_t length
 )
 {
+    if (fail_payload_store && bank == 0u && address >= S64_BUFFER_CAPACITY) {
+        fail_payload_store = 0u;
+        return 0u;
+    }
     if (bank == 1u) {
         if (address >= S64_CLIPBOARD_CAPACITY) {
             saw_history_metadata_store = 1u;
@@ -195,6 +200,45 @@ int main(void)
         fake_reu[1][S64_CLIPBOARD_CAPACITY - 1u] == 0xa5u,
         "history preserves clipboard end"
     );
+
+    /* A swap can alter bytes before its payload store fails. */
+    s64_editor_init(&editor);
+    require(s64_editor_insert(&editor, 'a'), "failed undo fixture");
+    s64_editor_select_all(&editor);
+    require(s64_editor_insert(&editor, 'b'), "failed undo replacement");
+    s64_editor_mark_saved(&editor);
+    fail_payload_store = 1u;
+    require(!s64_editor_undo(&editor), "undo reports failed swap");
+    require_text(&editor, "a", "failed undo retains current bytes");
+    require(editor.dirty, "failed undo marks document dirty");
+    require(editor.history.count == 0u, "failed undo invalidates history");
+    require(!s64_editor_undo(&editor) && !s64_editor_redo(&editor), "failed undo cannot retry stale history");
+
+    s64_editor_init(&editor);
+    require(s64_editor_insert(&editor, 'a'), "failed redo fixture");
+    s64_editor_select_all(&editor);
+    require(s64_editor_insert(&editor, 'b'), "failed redo replacement");
+    require(s64_editor_undo(&editor), "prepare redo swap");
+    s64_editor_mark_saved(&editor);
+    fail_payload_store = 1u;
+    require(!s64_editor_redo(&editor), "redo reports failed swap");
+    require_text(&editor, "b", "failed redo retains current bytes");
+    require(editor.dirty, "failed redo marks document dirty");
+    require(editor.history.count == 0u, "failed redo invalidates history");
+    require(!s64_editor_undo(&editor) && !s64_editor_redo(&editor), "failed redo cannot retry stale history");
+
+    s64_editor_init(&editor);
+    require(s64_editor_insert(&editor, '\n'), "failed swap position fixture");
+    s64_editor_select_all(&editor);
+    require(s64_editor_insert(&editor, 'b'), "failed swap position replacement");
+    fail_payload_store = 1u;
+    require(!s64_editor_undo(&editor), "failed swap changes line structure");
+    require(editor.line == 2u && editor.column == 1u, "failed swap invalidates cached position");
+    require(!editor.selection_valid && !editor.mark_mode, "failed swap clears stale selection");
+
+    s64_editor_init(&editor);
+    require(!s64_editor_undo(&editor) && !s64_editor_redo(&editor), "empty history is unavailable");
+    require(!editor.dirty, "empty history remains clean");
 
     puts("REU multi-level history tests passed");
     return 0;

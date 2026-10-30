@@ -15,6 +15,7 @@ int main(void)
     assert(s64_menu_command(0u, 1u) == S64_INPUT_OPEN);
     assert(s64_menu_command(0u, 2u) == S64_INPUT_SAVE);
     assert(s64_menu_command(3u, 0u) == S64_INPUT_FORMAT_BOLD);
+    assert(s64_menu_command(3u, 3u) == S64_INPUT_FORMAT_LINK);
     assert(s64_menu_item_at(0u, 10u, 1u) == 0u);
     assert(s64_menu_command(S64_MENU_GROUPS, 0u) == S64_INPUT_NONE);
     assert(s64_menu_item_count(S64_MENU_GROUPS) == 0u);

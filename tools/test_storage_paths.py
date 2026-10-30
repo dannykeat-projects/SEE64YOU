@@ -26,7 +26,9 @@ def main():
             for extra_sources, extra_flags in (
                 (["client/tests/publisher_settings_store_test.c", "client/src/charset.c",
                   "client/src/publisher/settings_exchange.c", "client/src/publisher/settings_validate.c",
-                  "client/src/publisher/settings_store.c"], ["-DS64_REU_BUFFER=1"]),
+                  "client/src/publisher/settings_store.c", "client/src/publisher/standard_key_store.c",
+                  "client/src/publisher/standard_keyfile.c", "client/src/publisher/standard_publish_names.c",
+                  "client/src/publisher/direct_key.c"], ["-DS64_REU_BUFFER=1"]),
                 (["client/tests/journal_migration_test.c", "client/src/platform/journal_migration.c",
                   "client/src/platform/session_journal.c", "client/src/platform/session_journal_start.c",
                   "client/src/platform/dos.c", "client/src/platform/dos_file.c"], []),

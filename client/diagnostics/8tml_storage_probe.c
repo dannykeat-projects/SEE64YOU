@@ -1,6 +1,9 @@
 #include <conio.h>
 #include <stdint.h>
 #include <string.h>
+#ifdef S64_STORAGE_SOURCE_BENCHMARK
+#include <time.h>
+#endif
 #include "buffer.h"
 #include "document.h"
 #include "charset.h"
@@ -18,12 +21,18 @@ static S64Document document;
 static S64LocalDocument local;
 static uint8_t fault;
 static uint8_t fault_hits;
+static uint8_t fault_skip;
 
 static S64UciResult execute(const S64UciCommandPart* parts, uint8_t count, S64UciReply* reply)
 {
     if (count && parts[0].length >= 2u && parts[0].data[0] == S64_DOS_TARGET_SECONDARY
         && fault && parts[0].data[1] == fault) {
+        if (fault_skip) {
+            --fault_skip;
+            return s64_uci_execute(parts, count, reply);
+        }
         ++fault_hits;
+        fault = 0u;
         return S64_UCI_UNAVAILABLE;
     }
     return s64_uci_execute(parts, count, reply);
@@ -36,6 +45,57 @@ static S64UciResult execute(const S64UciCommandPart* parts, uint8_t count, S64Uc
 static char* path_destination;
 static uint16_t path_length;
 static char verify_path[440];
+
+#ifdef S64_STORAGE_SOURCE_BENCHMARK
+/* Separate from the captured DOS paths at $C000..$C3FF. The harness captures
+ * and restores these 50 scratch bytes; publish the marker only on completion. */
+#define BENCHMARK_RECORD ((uint8_t*)0xc500u)
+static const char* const benchmark_inputs[] = {
+    "T8LOAD1.8tml", "T8LOAD16.8tml", "T8LOAD60.8tml"
+};
+static const char* const benchmark_outputs[] = {
+    "T8SAVE1.8tml", "T8SAVE16.8tml", "T8SAVE60.8tml"
+};
+static const unsigned int benchmark_sizes[] = {1024u, 16384u, 61440u};
+
+static void benchmark_tick(uint8_t offset, clock_t ticks)
+{
+    uint8_t i;
+    for (i = 0u; i < 4u; ++i) {
+        BENCHMARK_RECORD[offset + i] = (uint8_t)ticks;
+        ticks >>= 8;
+    }
+}
+
+static uint8_t benchmark_sources(void)
+{
+    uint8_t i, offset;
+    clock_t started;
+    memset(BENCHMARK_RECORD, 0, 50u);
+    benchmark_tick(4u, (clock_t)CLOCKS_PER_SEC);
+    for (i = 0u; i < 3u; ++i) {
+        offset = (uint8_t)(8u + i * 14u);
+        BENCHMARK_RECORD[offset] = (uint8_t)benchmark_sizes[i];
+        BENCHMARK_RECORD[offset + 1u] = (uint8_t)(benchmark_sizes[i] >> 8);
+        started = clock();
+        CHECK(s64_local_open(&local, benchmark_inputs[i], 1u) == S64_LOCAL_OK, 44);
+        benchmark_tick(offset + 2u, clock() - started);
+        CHECK(s64_buffer_length(&body) == benchmark_sizes[i], 45);
+        started = clock();
+        CHECK(s64_local_save_as(&local, benchmark_outputs[i], 0u) == S64_LOCAL_OK, 46);
+        benchmark_tick(offset + 6u, clock() - started);
+        started = clock();
+        CHECK(s64_local_open(&local, benchmark_outputs[i], 1u) == S64_LOCAL_OK, 47);
+        benchmark_tick(offset + 10u, clock() - started);
+        CHECK(s64_buffer_length(&body) == benchmark_sizes[i], 48);
+    }
+    BENCHMARK_RECORD[0] = 0x53u;
+    BENCHMARK_RECORD[1] = 0x38u;
+    BENCHMARK_RECORD[2] = 0x54u;
+    BENCHMARK_RECORD[3] = 0x31u;
+    return 0u;
+}
+#endif
 
 static uint8_t path_sink(const uint8_t* data, uint16_t length, void* unused)
 {
@@ -129,9 +189,16 @@ int main(void)
     CHECK(s64_buffer_move_cursor(&body, s64_buffer_length(&body))
         && s64_buffer_insert(&body, '!'), 16);
     fault = 0x0au;
+    fault_skip = 1u; /* Allow original -> backup; fail temporary -> destination. */
     CHECK(s64_local_save(&local) == S64_LOCAL_IO_ERROR, 17);
     fault = 0u;
     CHECK(fault_hits == 2u, 18);
+    CHECK(s64_dos_file_exists(&dos, "T8COPY.8tml", &exists) == S64_DOS_OK && exists, 38);
+    CHECK(s64_dos_file_exists(&dos, "T8COPY.8tml.bak", &exists) == S64_DOS_OK && !exists, 39);
+    CHECK(s64_local_save(&local) == S64_LOCAL_RECOVERY_CONFLICT, 40);
+    CHECK(s64_dos_rename_file(&dos, "T8COPY.8tml.tmp", "T8COPY.8tml.bak") == S64_DOS_OK, 41);
+    CHECK(s64_local_save(&local) == S64_LOCAL_RECOVERY_CONFLICT, 42);
+    CHECK(s64_dos_rename_file(&dos, "T8COPY.8tml.bak", "T8COPY.8tml.tmp") == S64_DOS_OK, 43);
     CHECK(s64_local_open(&local, "T8COPY.8tml.tmp", 1u) == S64_LOCAL_OK, 19);
     CHECK(s64_local_save_as(&local, "T8RECOVER", 0u) == S64_LOCAL_OK, 20);
     CHECK(s64_local_save_as(&local, "T8WRONG.s64", 0u) == S64_LOCAL_INVALID_ARGUMENT, 21);
@@ -141,8 +208,18 @@ int main(void)
     memset(boundary, 'x', S64_LOCAL_FILENAME_CAPACITY - sizeof(".8tml"));
     boundary[S64_LOCAL_FILENAME_CAPACITY - sizeof(".8tml")] = '\0';
     CHECK(s64_local_save_as(&local, boundary, 0u) == S64_LOCAL_OK, 25);
-    CHECK(s64_local_open(&local, boundary, 1u) != S64_LOCAL_OK, 26);
+    CHECK(s64_local_open(&local, boundary, 1u) == S64_LOCAL_OK, 26);
     CHECK(s64_local_open(&local, local.filename, 1u) == S64_LOCAL_OK, 27);
+#ifdef S64_STORAGE_MAX_SOURCE_PROBE
+    CHECK(s64_local_open(&local, "T8LARGE.8tml", 1u) == S64_LOCAL_OK, 33);
+    CHECK(s64_buffer_length(&body) == S64_BUFFER_CAPACITY, 34);
+    CHECK(s64_local_save_as(&local, "T8MAXCOPY", 0u) == S64_LOCAL_OK, 35);
+    CHECK(s64_local_open(&local, "T8MAXCOPY.8tml", 1u) == S64_LOCAL_OK, 36);
+    CHECK(s64_buffer_length(&body) == S64_BUFFER_CAPACITY, 37);
+#endif
+#ifdef S64_STORAGE_SOURCE_BENCHMARK
+    if (benchmark_sources()) return 49;
+#endif
     cputs("8TML STORAGE TESTS PASSED\r\n");
     return 0;
 }

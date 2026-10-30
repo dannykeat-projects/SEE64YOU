@@ -350,6 +350,40 @@ int main(void)
     require(!s64_editor_format_heading(&editor, 3u), "unsupported heading level rejected");
     require_text(&editor, "Title", "unsupported heading leaves source unchanged");
 
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "Visit About");
+    s64_editor_home(&editor);
+    s64_editor_toggle_mark(&editor);
+    {
+        unsigned int i;
+        for (i = 0u; i < 5u; ++i) s64_editor_right(&editor);
+    }
+    s64_editor_toggle_mark(&editor);
+    require(s64_editor_format_link(&editor, "", "about.8tml"), "wrap selected link text");
+    require_text(&editor, "[Visit](about.8tml) About", "link source with selected label");
+    require(s64_editor_undo(&editor), "undo link insertion");
+    require_text(&editor, "Visit About", "undo restores original text");
+    require(s64_editor_redo(&editor), "redo link insertion");
+    require_text(&editor, "[Visit](about.8tml) About", "redo restores link");
+
+    s64_editor_home(&editor);
+    require(s64_editor_link_at_cursor(&editor), "detect link at cursor");
+    require(s64_editor_format_link(&editor, "", "https://t8wn.com/"), "edit link destination");
+    require_text(&editor, "[Visit](https://t8wn.com/) About", "edit preserves label");
+    require(s64_editor_undo(&editor), "undo link edit");
+    require_text(&editor, "[Visit](about.8tml) About", "undo restores destination");
+    require(!s64_editor_format_link(&editor, "", "javascript:alert"), "reject unsafe scheme");
+    require_text(&editor, "[Visit](about.8tml) About", "rejected URL changes nothing");
+
+    s64_editor_init(&editor);
+    require(s64_editor_format_link(&editor, "Home", "/home.8tml"), "insert unselected link");
+    require_text(&editor, "[Home](/home.8tml)", "portable inline link");
+    require(s64_editor_undo(&editor), "undo new link in one step");
+    require_text(&editor, "", "undo leaves empty document");
+    require(!s64_editor_format_link(&editor, "Bad]label", "about.8tml"), "reject invalid label");
+    require(!s64_editor_format_link(&editor, "label", "bad url"), "reject spaced URL");
+
     s64_editor_init(&editor);
     insert_text(&editor, "item");
     s64_editor_home(&editor);
@@ -488,6 +522,27 @@ int main(void)
     insert_text(&editor, "ab\nq");
     require(s64_editor_point(&editor, 1u, 20u, 0u), "pointer clamps after short line");
     require(s64_buffer_cursor(&editor.buffer) == 4u, "pointer clamps to logical line end");
+
+    s64_editor_init(&editor);
+    require(!s64_editor_delete_previous_word(&editor), "word delete at start is no-op");
+    insert_text(&editor, "one two,  ");
+    s64_editor_mark_saved(&editor);
+    require(s64_editor_delete_previous_word(&editor), "delete previous word and trailing separators");
+    require_text(&editor, "one ", "previous word boundary matches Ctrl+Left");
+    require(s64_editor_undo(&editor), "word delete is one undo");
+    require_text(&editor, "one two,  ", "undo restores entire word and separators");
+    require(s64_buffer_cursor(&editor.buffer) == 10u && !editor.dirty, "undo restores cursor and saved state");
+    require(s64_editor_redo(&editor), "redo word delete");
+    require_text(&editor, "one ", "redo removes same span");
+    s64_editor_select_all(&editor);
+    require(s64_editor_delete_previous_word(&editor), "word delete respects selection");
+    require_text(&editor, "", "selection removed");
+    insert_text(&editor, "abc\ndef");
+    s64_buffer_move_cursor(&editor.buffer, 5u);
+    require(s64_editor_delete_previous_word(&editor), "delete within word");
+    require_text(&editor, "abc\nef", "word suffix preserved");
+    require(s64_editor_delete_previous_word(&editor), "delete across line boundary");
+    require_text(&editor, "ef", "previous line word and newline removed");
 
     puts("editor tests passed");
     return 0;

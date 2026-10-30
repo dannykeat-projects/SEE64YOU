@@ -159,6 +159,30 @@ s64_message(
             encoding="utf-8",
         )
         assert FIT.bss_end(map_path) == 0x87FF
+        assert FIT.require_resident_headroom(map_path, 1024) == 1024
+        map_path.write_text("Segment list:\nBSS 008000 008800 000801 00001\n", encoding="utf-8")
+        try:
+            FIT.require_resident_headroom(map_path, 1024)
+        except FIT.FitError:
+            pass
+        else:
+            raise AssertionError("Resident reserve must reject a one-byte shortfall")
+
+    with tempfile.TemporaryDirectory() as directory:
+        map_path = Path(directory) / "resident.map"
+        map_path.write_text("_s64_module_descriptor_loadable 005000 RLA\n", encoding="utf-8")
+        FIT.require_resident_descriptor_validation(map_path)
+        for invalid in (
+            "_s64_module_descriptor_loadable 008C00 RLA\n",
+            "_s64_module_descriptor_loadable 005000 RLA\n_s64_overlay_publication_s64_module_descriptor_loadable 008C00 RLA\n",
+        ):
+            map_path.write_text(invalid, encoding="utf-8")
+            try:
+                FIT.require_resident_descriptor_validation(map_path)
+            except FIT.FitError:
+                pass
+            else:
+                raise AssertionError("Rebinding must not depend on an overlay descriptor validator")
 
     print("editor overlay fit helper tests passed")
     return 0

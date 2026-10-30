@@ -11,18 +11,26 @@
 #define SOURCE_EXTENSION ".s64"
 #endif
 
+enum { FILENAME_EXACT, FILENAME_SAVE_AS, FILENAME_OPEN };
+
 typedef struct {
     S64Dos* dos;
     S64DosResult result;
 } S64LocalWriteSink;
 
-static uint8_t filename_copy(char* destination, const char* filename, uint8_t add_extension)
+static uint8_t filename_copy(char* destination, const char* filename, uint8_t mode)
 {
-    uint8_t length = 0u;
+    /* Synchronous storage calls share this counter to keep cc65 stack/code fit. */
+    static uint8_t length;
     uint8_t basename = 0u;
     uint8_t has_extension = 0u;
     char value;
 
+#ifndef S64_DOCUMENT_8TML
+    /* Extensionless legacy files retain their exact filename. */
+    if (mode == FILENAME_OPEN) mode = FILENAME_EXACT;
+#endif
+    length = 0u;
     if (destination == 0 || filename == 0 || filename[0] == '\0') return 0u;
 
     while ((value = filename[length]) != '\0') {
@@ -40,7 +48,7 @@ static uint8_t filename_copy(char* destination, const char* filename, uint8_t ad
     }
 
     strcpy(destination, filename);
-    if (add_extension) {
+    if (mode != FILENAME_EXACT) {
         if (basename == length) return 0u;
         if (!has_extension) {
             if (length > S64_LOCAL_FILENAME_CAPACITY - sizeof(SOURCE_EXTENSION)) return 0u;
@@ -49,7 +57,7 @@ static uint8_t filename_copy(char* destination, const char* filename, uint8_t ad
     }
 #ifdef S64_DOCUMENT_8TML
     /* Enforce the new-source suffix while allowing Open of retained .tmp files. */
-    if (add_extension) {
+    if (mode == FILENAME_SAVE_AS) {
         const char* extension = SOURCE_EXTENSION;
         uint8_t position;
         uint8_t ascii;
@@ -72,6 +80,8 @@ static void clear_document(S64LocalDocument* local)
     s64_document_init(local->document, body);
 }
 
+/* Publisher only reads source; keep Editor write/recovery code out of its link. */
+#ifndef S64_STORAGE_READ_ONLY
 static uint8_t discard_sink(const uint8_t* data, uint16_t length, void* context)
 {
     (void)data;
@@ -154,7 +164,9 @@ static S64LocalResult write_document_file(
     S64DosResult result;
     S64DosResult close_result;
     uint8_t exists;
+    uint8_t collision;
     char temporary[S64_LOCAL_FILENAME_CAPACITY + 4u];
+    char backup[S64_LOCAL_FILENAME_CAPACITY + 4u];
 
     result = s64_dos_file_exists(local->dos, filename, &exists);
     if (result != S64_DOS_OK) {
@@ -163,13 +175,26 @@ static S64LocalResult write_document_file(
     }
     if (exists && !overwrite) return S64_LOCAL_EXISTS;
 
+    strcpy(temporary, filename);
+    strcat(temporary, ".tmp");
+    strcpy(backup, filename);
+    strcat(backup, ".bak");
+    result = s64_dos_file_exists(local->dos, temporary, &collision);
+    if (result == S64_DOS_OK && !collision) {
+        result = s64_dos_file_exists(local->dos, backup, &collision);
+    }
+    if (result != S64_DOS_OK) {
+        local->dos_result = result;
+        return S64_LOCAL_IO_ERROR;
+    }
+    /* Either file may be the only recoverable copy from an interrupted save. */
+    if (collision) return S64_LOCAL_RECOVERY_CONFLICT;
+
     document_result = s64_document_write_wire(document, discard_sink, 0);
     if (document_result != S64_DOCUMENT_OK) {
         return S64_LOCAL_INVALID_DOCUMENT;
     }
 
-    strcpy(temporary, filename);
-    strcat(temporary, ".tmp");
     result = s64_dos_open_write(local->dos, temporary);
     if (result != S64_DOS_OK) {
         local->dos_result = result;
@@ -191,10 +216,9 @@ static S64LocalResult write_document_file(
     }
 
     if (exists) {
-        result = s64_dos_delete_file(local->dos, filename);
+        result = s64_dos_rename_file(local->dos, filename, backup);
         if (result != S64_DOS_OK) {
             local->dos_result = result;
-            (void)s64_dos_delete_file(local->dos, temporary);
             return S64_LOCAL_IO_ERROR;
         }
     }
@@ -202,13 +226,24 @@ static S64LocalResult write_document_file(
     result = s64_dos_rename_file(local->dos, temporary, filename);
     if (result != S64_DOS_OK) {
         local->dos_result = result;
-        /* Replacement may already have removed the old destination. Keep the
-         * completed canonical source recoverable as <filename>.tmp. */
+        /* Keep the completed source even if restoring the original also fails.
+         * In that case the old source remains at <filename>.bak. */
+        if (exists) (void)s64_dos_rename_file(local->dos, backup, filename);
         return S64_LOCAL_IO_ERROR;
+    }
+
+    if (exists) {
+        result = s64_dos_delete_file(local->dos, backup);
+        if (result != S64_DOS_OK) {
+            local->dos_result = result;
+            return S64_LOCAL_IO_ERROR;
+        }
     }
 
     return S64_LOCAL_OK;
 }
+
+#endif
 
 void s64_local_init(S64LocalDocument* local, S64Dos* dos, S64Document* document)
 {
@@ -228,6 +263,7 @@ const char* s64_local_result_message(const S64LocalDocument* local, S64LocalResu
         case S64_LOCAL_DIRTY: return "Document has unsaved changes";
         case S64_LOCAL_NO_FILENAME: return "Use Save As first";
         case S64_LOCAL_EXISTS: return "File already exists";
+        case S64_LOCAL_RECOVERY_CONFLICT: return "Recover .tmp/.bak first";
         case S64_LOCAL_INVALID_DOCUMENT: return "Document metadata invalid";
         case S64_LOCAL_DOCUMENT_TOO_LARGE: return "Document too large";
         case S64_LOCAL_IO_ERROR:
@@ -275,7 +311,7 @@ S64LocalResult s64_local_open(
 
     if (local == 0 || local->dos == 0 || local->document == 0
         || local->document->body == 0
-        || !filename_copy(checked_filename, filename, 0u)) {
+        || !filename_copy(checked_filename, filename, FILENAME_OPEN)) {
         return S64_LOCAL_INVALID_ARGUMENT;
     }
     if (!discard_dirty) return S64_LOCAL_DIRTY;
@@ -325,6 +361,7 @@ S64LocalResult s64_local_open(
     return S64_LOCAL_OK;
 }
 
+#ifndef S64_STORAGE_READ_ONLY
 static S64LocalResult save_named(
     S64LocalDocument* local,
     const char* filename,
@@ -484,3 +521,5 @@ S64LocalResult s64_local_delete_recovery(S64LocalDocument* local)
     }
     return S64_LOCAL_OK;
 }
+
+#endif

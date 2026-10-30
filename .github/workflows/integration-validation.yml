@@ -47,23 +47,37 @@ jobs:
           trap 'rm -f "$tmp"' EXIT
           cc -std=c99 -Wall -Wextra -Iclient/src client/tests/local_documents_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/dos.c client/src/storage/local.c -o "$tmp"
           "$tmp"
-          cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src client/tests/publisher_settings_store_test.c client/src/charset.c client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c client/src/publisher/settings_store.c -o "$tmp"
+          cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src client/tests/publisher_settings_store_test.c client/src/publisher/standard_key_store.c client/src/publisher/standard_keyfile.c client/src/publisher/standard_publish_names.c client/src/publisher/direct_key.c client/src/charset.c client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c client/src/publisher/settings_store.c -o "$tmp"
           "$tmp"
-          cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_direct_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/network.c client/src/crypto/sha256.c client/src/publisher/direct_key.c client/src/publisher/direct_key_store.c client/src/publisher/direct_auth.c client/src/publisher/workspace.c client/src/publisher/standalone_direct.c -o "$tmp"
+          cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_direct_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/network.c client/src/crypto/sha256.c client/src/publisher/direct_key.c client/src/publisher/direct_key_store.c client/src/publisher/direct_auth.c client/src/publisher/workspace.c -o "$tmp"
           "$tmp"
+
+      - name: Check standard publishing transport and disposable fixture
+        run: |
+          set -eu
+          tmp=$(mktemp)
+          trap 'rm -f "$tmp"' EXIT
+          cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+            client/tests/standard_transport_test.c client/src/publisher/standard_transport.c \
+            client/src/publisher/standard_request.c client/src/publisher/standard_reply.c \
+            client/src/publisher/standard_publish.c client/src/publisher/standard_publish_names.c \
+            client/src/publisher/direct_auth.c client/src/publisher/direct_key.c \
+            client/src/crypto/sha256.c client/src/charset.c -o "$tmp"
+          "$tmp"
+          python3 tools/tests/standard_publish_fixture_test.py
 
       - name: Install C64 compiler
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq cc65
 
-      - name: Build complete eleven-file independent C64U package
+      - name: Build complete ten-file independent C64U package
         run: make -C client independent-package
 
       - name: Package provisional client and PHP website ZIPs
         run: |
           mkdir -p dist
-          test "$(find client/build/independent-package/SEE64YOU -maxdepth 1 -type f | wc -l)" -eq 11
+          test "$(find client/build/independent-package/SEE64YOU -maxdepth 1 -type f | wc -l)" -eq 10
           test ! -e dist/see64you-site/config.php
           test ! -d dist/see64you-site/tests
           (cd client/build/independent-package && python3 -m zipfile -c ../../../dist/see64you-c64u-candidate.zip SEE64YOU)
@@ -113,10 +127,24 @@ jobs:
           trap 'rm -f "$tmp"' EXIT
           cc -std=c99 -Wall -Wextra -Iclient/src client/tests/local_documents_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/dos.c client/src/storage/local.c -o "$tmp"
           "$tmp"
-          cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src client/tests/publisher_settings_store_test.c client/src/charset.c client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c client/src/publisher/settings_store.c -o "$tmp"
+          cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src client/tests/publisher_settings_store_test.c client/src/publisher/standard_key_store.c client/src/publisher/standard_keyfile.c client/src/publisher/standard_publish_names.c client/src/publisher/direct_key.c client/src/charset.c client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c client/src/publisher/settings_store.c -o "$tmp"
           "$tmp"
-          cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_direct_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/network.c client/src/crypto/sha256.c client/src/publisher/direct_key.c client/src/publisher/direct_key_store.c client/src/publisher/direct_auth.c client/src/publisher/workspace.c client/src/publisher/standalone_direct.c -o "$tmp"
+          cc -std=c99 -Wall -Wextra -Iclient/src client/tests/standalone_direct_test.c client/src/buffer.c client/src/document.c client/src/charset.c client/src/platform/network.c client/src/crypto/sha256.c client/src/publisher/direct_key.c client/src/publisher/direct_key_store.c client/src/publisher/direct_auth.c client/src/publisher/workspace.c -o "$tmp"
           "$tmp"
+
+      - name: Check standard publishing transport and disposable fixture
+        run: |
+          set -eu
+          tmp=$(mktemp)
+          trap 'rm -f "$tmp"' EXIT
+          cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+            client/tests/standard_transport_test.c client/src/publisher/standard_transport.c \
+            client/src/publisher/standard_request.c client/src/publisher/standard_reply.c \
+            client/src/publisher/standard_publish.c client/src/publisher/standard_publish_names.c \
+            client/src/publisher/direct_auth.c client/src/publisher/direct_key.c \
+            client/src/crypto/sha256.c client/src/charset.c -o "$tmp"
+          "$tmp"
+          python3 tools/tests/standard_publish_fixture_test.py
 
       - name: Publish independently built PRGs and measured maps (diagnostic only)
         uses: actions/upload-artifact@v4

@@ -34,6 +34,7 @@ int s64_editor_insert(S64Editor* editor, unsigned char value);
 int s64_editor_newline(S64Editor* editor);
 int s64_editor_backspace(S64Editor* editor);
 int s64_editor_delete(S64Editor* editor);
+int s64_editor_delete_previous_word(S64Editor* editor);
 void s64_editor_left(S64Editor* editor);
 void s64_editor_right(S64Editor* editor);
 void s64_editor_up(S64Editor* editor);
@@ -67,6 +68,8 @@ int s64_editor_format_bold(S64Editor* editor);
 int s64_editor_format_italic(S64Editor* editor);
 int s64_editor_format_heading(S64Editor* editor, unsigned char level);
 int s64_editor_format_list_item(S64Editor* editor);
+int s64_editor_link_at_cursor(const S64Editor* editor);
+int s64_editor_format_link(S64Editor* editor, const char* label, const char* url);
 
 void s64_editor_toggle_mark(S64Editor* editor);
 void s64_editor_select_all(S64Editor* editor);

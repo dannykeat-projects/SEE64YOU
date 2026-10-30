@@ -1,6 +1,17 @@
 #!/usr/bin/env sh
 set -eu
 
+S64_HOST_ONLY=0
+case "${1-}" in
+    "") ;;
+    --host-only) S64_HOST_ONLY=1 ;;
+    *) echo "Usage: sh tools/validate.sh [--host-only]" >&2; exit 2 ;;
+esac
+if [ "$#" -gt 1 ]; then
+    echo "Usage: sh tools/validate.sh [--host-only]" >&2
+    exit 2
+fi
+
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
 
@@ -59,6 +70,20 @@ echo "== Host charset tests =="
 TMP_BIN=$(mktemp)
 TMP_MODULE_DIR=""
 trap 'rm -f "$TMP_BIN"; if [ -n "$TMP_MODULE_DIR" ]; then rm -rf "$TMP_MODULE_DIR"; fi' EXIT
+
+echo "== Host bounded Ultimate-DOS directory tests =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/dos_dir_test.c client/src/platform/dos_dir.c \
+    client/src/platform/dos.c client/src/charset.c -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host numbered local file picker tests =="
+cc -std=c99 -Wall -Wextra -Werror -DS64_INDEPENDENT_PUBLISHER=1 -Iclient/tests/local_picker_stubs -Iclient/src \
+    client/tests/local_picker_test.c client/src/publisher/local_picker.c \
+    client/src/platform/dos_dir.c client/src/platform/dos.c \
+    client/src/charset.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host public browser protocol/HTTP tests =="
 cc -std=c89 -Wall -Wextra -Werror -Iclient/src \
     client/tests/browser_protocol_test.c client/src/browser/protocol.c -o "$TMP_BIN"
@@ -143,7 +168,7 @@ cc -std=c99 -Wall -Wextra -Werror -ffunction-sections -Wl,--gc-sections \
 "$TMP_BIN"
 
 echo "== Host editor tests =="
-cc -std=c99 -Wall -Wextra -Iclient/src client/tests/editor_test.c client/src/buffer.c client/src/history.c client/src/clipboard.c client/src/editor.c client/src/editor_format.c -o "$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Iclient/src client/tests/editor_test.c client/src/buffer.c client/src/history.c client/src/clipboard.c client/src/editor.c client/src/editor_format.c client/src/charset.c -o "$TMP_BIN"
 "$TMP_BIN"
 
 echo "== Host Editor menu tests (historical and independent) =="
@@ -173,6 +198,46 @@ cc -std=c99 -Wall -Wextra -Iclient/src client/tests/sha256_test.c client/src/cry
 echo "== Host direct C64U auth signing tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src client/tests/direct_auth_test.c client/src/publisher/direct_key.c client/src/publisher/direct_auth.c client/src/crypto/sha256.c client/src/charset.c -o "$TMP_BIN"
 "$TMP_BIN"
+
+echo "== Host standard 8TML publishing signature vectors =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/standard_publish_test.c client/src/publisher/standard_publish.c \
+    client/src/publisher/standard_publish_names.c \
+    client/src/publisher/direct_auth.c client/src/crypto/sha256.c \
+    client/src/charset.c -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host standard 8TML key-file validation ==" 
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/standard_keyfile_test.c client/src/publisher/standard_keyfile.c \
+    client/src/publisher/standard_publish_names.c client/src/publisher/direct_key.c \
+    client/src/charset.c -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host standard 8TML ASCII replies ==" 
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/standard_reply_test.c client/src/publisher/standard_reply.c \
+    client/src/charset.c -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Host standard 8TML request paths =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/standard_request_test.c client/src/publisher/standard_request.c \
+    client/src/publisher/standard_publish_names.c -o "$TMP_BIN"
+"$TMP_BIN"
+
+echo "== Standard transport and DOS path tests =="
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/standard_transport_test.c client/src/publisher/standard_transport.c \
+    client/src/publisher/standard_request.c client/src/publisher/standard_reply.c \
+    client/src/publisher/standard_publish.c client/src/publisher/standard_publish_names.c \
+    client/src/publisher/direct_auth.c client/src/publisher/direct_key.c \
+    client/src/crypto/sha256.c client/src/charset.c -o "$TMP_BIN"
+"$TMP_BIN"
+cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
+    client/tests/dos_path_test.c client/src/platform/dos_path.c client/src/charset.c -o "$TMP_BIN"
+"$TMP_BIN"
+python3 tools/tests/standard_publish_fixture_test.py
 
 echo "== Host C64U platform requirement tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
@@ -469,7 +534,7 @@ cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
 
 echo "== Host publisher settings persistence tests =="
 cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
-    client/tests/publisher_settings_store_test.c \
+    client/tests/publisher_settings_store_test.c client/src/publisher/standard_key_store.c client/src/publisher/standard_keyfile.c client/src/publisher/standard_publish_names.c client/src/publisher/direct_key.c \
     client/src/charset.c client/src/publisher/settings_exchange.c client/src/publisher/settings_validate.c client/src/publisher/settings_store.c \
     -o "$TMP_BIN"
 "$TMP_BIN"
@@ -514,6 +579,11 @@ cc -std=c99 -Wall -Wextra -Iclient/src client/tests/wordpress_documents_test.c c
 echo "== Host UCI compile check =="
 cc -std=c99 -Wall -Wextra -Iclient/src -c client/src/platform/uci.c -o "$TMP_BIN.o"
 rm -f "$TMP_BIN.o"
+
+if [ "$S64_HOST_ONLY" -eq 1 ]; then
+    echo "Host validation passed; native/VICE matrix not run (--host-only)"
+    exit 0
+fi
 
 if command -v cl65 >/dev/null 2>&1 \
     && command -v cc65 >/dev/null 2>&1 \

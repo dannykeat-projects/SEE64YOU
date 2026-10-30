@@ -1,18 +1,20 @@
 # Architecture
 
-SEE64YOU is C64 Ultimate-only and uses UCI, Ultimate-DOS and a required 16 MiB REU. There are three independently launched user programs: Editor (`SEE64YOU.PRG` via internal overlay assets), Publisher (`S64PUB.PRG`), and Settings (`S64CFG.PRG`). All return to BASIC. The application package currently also includes a separate browser executable, but it is not an 8TML browser and is outside the target product.
+SEE64YOU is C64 Ultimate-only and uses UCI, Ultimate-DOS and a required 16 MiB REU. There are three independently launched user programs: Editor (`SEE64YOU.PRG` via internal overlay assets), Publisher (`S64PUB.PRG`), and Settings (`S64CFG.PRG`). All return to BASIC. The active ten-file package contains no browser executable; reading uses an external compatible 8TML browser.
 
 ## Source and storage
 
-`.8tml` is the only supported editing format. The 8TML 1 draft header and body are one literal ASCII/LF document, retained in the current 61,440-byte REU document region. The Editor preserves unknown header entries and markup; input with CR/CRLF is normalized to LF. Generated HTML is not saved back into source. No automatic disk autosave occurs.
+`.8tml` is the only supported editing format. The 8TML 1 draft header and body are one literal ASCII/LF document, retained in the current 61,440-byte REU document region. The Editor preserves unknown header entries and markup; input with CR/CRLF is normalized to LF. Generated HTML is not saved back into source. No automatic disk autosave occurs. Source reads normalize and convert through the existing 64-byte codec workspace, appending validated chunks to an EOF gap. A failed append does not advance logical length; failed input is cleared when the reader finishes.
 
 The default build uses `/sd/SEE64YOU/`. A full rebuild with `STORAGE_ROOT` selects another mount, with no silent fallback. Editor local storage uses Ultimate-DOS `$02`; launcher/journal assets use `$01`. Existing files are protected against accidental collision, incomplete writes and failed renames as described in [runtime](C64U-RUNTIME.md).
 
+The independent Editor keeps typing, input, REU buffers/history and descriptor validation resident. Infrequent manifest/session preparation uses the existing PREP overlay and checked return bridges; shared state remains resident. Descriptor validation must remain callable while cache rebinding clears the overlay registry. The shipping build enforces at least 1,024 bytes of resident reserve below the overlay slot and excludes the unused outbound Publisher-transfer stub. No additional overlay or program handoff is introduced.
+
 ## Publication
 
-The separately launched Publisher loads source using the shared codec/storage path. Publishing metadata (page/post, slug, publication state and optional ordering) is separate from the 8TML source. Authenticated requests stream JSON to the standalone PHP service over UCI Network `$03`. The server stores exact source and metadata together in a guarded JSON/PHP file and derives display content; its present HTML renderer supports a limited escaped subset of 8TML, not full conformance.
+The independently launched Publisher loads literal source using the shared codec/storage path and sends the same ASCII/LF bytes through standard API 1 status/challenge/list/put operations over UCI Network `$03`. Streaming HMAC appends its signature after the source; local filenames and remote paths stay separate. Existing names require explicit confirmation, with no conditional-write guarantee in the test draft.
 
-Settings holds site configuration and a per-site direct key. HTTPS pairing happens in a modern browser; C64U direct HTTP uses challenge/HMAC, protecting request integrity/authentication but **not confidentiality**. Neither editing nor source ownership requires a publishing account or remote service.
+Settings owns a standard endpoint URL, key ID, dedicated secret and explicit raw-HTTP consent. A tagged standard destination uses the existing record size and readback checks. The Editor requires neither credentials nor network access. Publisher links only the standard publishing client, not a bundled website or browser.
 
 ## Boundaries and validation
 

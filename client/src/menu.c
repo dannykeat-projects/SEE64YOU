@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "menu.h"
+#include "ui.h"
 
 #define S64_MENU_WIDTH 20u
 
@@ -48,6 +49,7 @@ static const S64MenuItem format_items[] = {
     { "Bold Ctrl+B", S64_INPUT_FORMAT_BOLD },
     { "Italic Ctrl+I", S64_INPUT_FORMAT_ITALIC },
     { "List Ctrl+L", S64_INPUT_FORMAT_LIST },
+    { "Link Ctrl+K", S64_INPUT_FORMAT_LINK },
     { "Word Wrap Ctrl+W", S64_INPUT_TOGGLE_WRAP }
 };
 
@@ -125,6 +127,7 @@ void s64_menu_render(unsigned char group, unsigned char item)
 
     menu = &groups[group];
 
+    s64_ui_begin_overlay();
     revers(1);
     gotoxy(0u, 0u);
     cputs(S64_MENU_BAR);

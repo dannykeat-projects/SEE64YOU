@@ -56,6 +56,7 @@ static S64InputType s64_control_command(unsigned char key, unsigned char modifie
         case 0x07u: return S64_INPUT_GOTO_LINE;  /* Ctrl+G */
         case 0x08u: return S64_INPUT_REPLACE;    /* Ctrl+H */
         case 0x09u: return S64_INPUT_FORMAT_ITALIC;/* Ctrl+I */
+        case 0x0Bu: return S64_INPUT_FORMAT_LINK; /* Ctrl+K */
         case 0x0Cu: return S64_INPUT_FORMAT_LIST; /* Ctrl+L */
         case 0x0Du: return S64_INPUT_MENU;        /* Ctrl+M where distinct */
         case 0x0Eu: return S64_INPUT_NEW;        /* Ctrl+N */
@@ -82,6 +83,7 @@ static S64InputType s64_modifier_command(
 )
 {
     if ((modifiers & S64_MOD_CONTROL) != 0u) {
+        if (raw_key == S64_KEY_DELETE) return S64_INPUT_DELETE_PREVIOUS_WORD;
         if (raw_key == S64_KEY_CURSOR_HORIZONTAL) {
             return (modifiers & S64_MOD_SHIFT) != 0u
                 ? S64_INPUT_WORD_LEFT
@@ -320,21 +322,27 @@ unsigned char s64_input_read(S64InputEvent* event, unsigned char idle_jiffies)
     }
 
     if ((modifiers & S64_MOD_COMMODORE) != 0u) {
-        if (key == 'm' || key == 'M') {
+        /* The native KERNAL Commodore table emits graphics M ($A7) and
+         * shifted function codes. Keep plain codes for mapped keyboards. */
+        if (key == 0xA7u || key == 'm' || key == 'M') {
             event->type = S64_INPUT_MENU;
             return 1u;
         }
         switch (key) {
             case CH_F1:
+            case CH_F2:
                 event->type = S64_INPUT_NEW;
                 return 1u;
             case CH_F3:
+            case CH_F4:
                 event->type = S64_INPUT_OPEN;
                 return 1u;
             case CH_F5:
+            case CH_F6:
                 event->type = S64_INPUT_SAVE;
                 return 1u;
             case CH_F7:
+            case CH_F8:
                 event->type = S64_INPUT_SAVE_AS;
                 return 1u;
             default:

@@ -74,12 +74,12 @@ PUBLISHER_CORE_SOURCES := src/charset.c src/buffer_reu.c src/document.c src/plat
 PUBLISHER_DOCUMENT_SOURCES := src/publisher/standalone_documents.c
 PUBLISHER_COMPANION_FIT_SOURCES := diagnostics/publisher_companion_fit.c $(PUBLISHER_CORE_SOURCES) $(PUBLISHER_DOCUMENT_SOURCES)
 PUBLISHER_SOURCES := src/publisher/main.c src/platform/chain_editor.s $(filter-out src/platform/http.c src/publisher/relay.c src/publisher/standalone.c,$(PUBLISHER_CORE_SOURCES)) src/platform/network.c src/crypto/sha256.c src/publisher/direct_key.c src/publisher/direct_key_store.c src/publisher/direct_auth.c src/publisher/standalone_direct.c
-INDEPENDENT_PUBLISHER_SOURCES := $(filter-out src/platform/chain_editor.s src/publisher/handoff.c src/publisher/settings_bridge.c src/publisher/plaintext.c src/publisher/preview.c,$(PUBLISHER_SOURCES)) src/storage/local.c src/publisher/settings_exchange.c src/publisher/settings_validate.c src/publisher/settings_store.c
-INDEPENDENT_PUBLISHER_SOURCES += src/platform/basic_workspace_reset.s
-INDEPENDENT_PUBLISHER_SOURCES += src/publisher/source_json.c
+STANDARD_KEY_SOURCES := src/publisher/standard_keyfile.c src/publisher/standard_publish_names.c src/publisher/direct_key.c
+STANDARD_PROTOCOL_SOURCES := src/publisher/standard_transport.c src/publisher/standard_publish.c src/publisher/standard_reply.c src/publisher/standard_request.c src/publisher/direct_auth.c src/crypto/sha256.c
+INDEPENDENT_PUBLISHER_SOURCES := src/publisher/standard_main.c src/platform/dos_path.c src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/network.c src/storage/local.c src/publisher/settings_exchange.c src/publisher/settings_validate.c src/publisher/settings_store.c src/platform/basic_workspace_reset.s src/publisher/standard_publish_names.c src/publisher/direct_key.c $(STANDARD_PROTOCOL_SOURCES) src/platform/dos_dir.c src/publisher/local_picker.c
 INDEPENDENT_SETTINGS_MIGRATION_SOURCES := src/platform/journal_migration.c src/platform/session_journal.c src/platform/dos_file.c src/platform/system_state.c src/platform/system_state_start.c src/platform/turbo.c src/platform/turbo_capture.c
 INDEPENDENT_EDITOR_SOURCES := $(filter-out src/platform/chain.s src/publisher/editor_handoff.c src/publisher/editor_handoff_record.s,$(C64U_SOURCES))
-SETTINGS_SOURCES := src/publisher/settings_main.c src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/destination.c src/publisher/settings_exchange.c src/publisher/settings_validate.c src/publisher/settings_store.c
+SETTINGS_SOURCES := src/publisher/settings_main.c src/charset.c src/buffer_reu.c src/document.c src/platform/uci.c src/platform/dos.c src/platform/reu.c src/platform/reu_dma.s src/platform/chain.s src/publisher/destination.c src/publisher/settings_exchange.c src/publisher/settings_validate.c src/publisher/settings_store.c src/platform/dos_path.c src/publisher/standard_key_store.c $(STANDARD_KEY_SOURCES)
 LAUNCHER_SOURCES := src/platform/module_session.c src/platform/module_session_read.c src/platform/module_session_build.c src/platform/transfer_capsule.c src/platform/transfer_capsule_build.c src/platform/transfer_capsule_write.c src/platform/module_transfer.c src/platform/module_arrival.c src/platform/module_transfer_stub.s src/launcher/main.c src/platform/module_integrity.c src/platform/crc32.c src/platform/module_preload.c src/platform/dos_reu.c src/platform/dos_file.c src/launcher/recovery_runtime.c src/launcher/recovery_flow.c src/platform/preflight.c src/platform/requirements.c src/platform/module_manifest.c src/platform/module_manifest_build.c src/platform/module_manifest_parse.c src/platform/reu_runtime.c src/platform/reu_runtime_build.c src/platform/reu_runtime_allocate.c src/platform/reu_runtime_write.c src/platform/session_lifecycle.c src/platform/session_lifecycle_start.c src/platform/session_recovery.c src/platform/session_journal.c src/platform/session_journal_start.c src/platform/system_state.c src/platform/system_state_start.c src/platform/dos.c src/platform/turbo.c src/platform/turbo_capture.c src/platform/uci.c src/platform/reu.c src/platform/reu_dma.s src/charset.c
 
 CL65 ?= cl65
@@ -244,14 +244,14 @@ build/independent/S64WEB.PRG: $(INDEPENDENT_BROWSER_SOURCES) src/browser/protoco
 	python3 ../tools/check_memory_headroom.py build/independent/browser.map --label independent-browser --min-headroom 1024
 
 .PHONY: independent-package
-independent-package: independent-editor-overlay-fit independent-publisher independent-settings independent-browser build/managed-handoff-launcher.prg
+independent-package: independent-editor-overlay-fit independent-publisher independent-settings build/managed-handoff-launcher.prg
 	python3 ../tools/check_memory_headroom.py build/managed-handoff-launcher.map --label independent-launcher --min-headroom 1024
 	@mkdir -p $(INDEPENDENT_PACKAGE_DIR)
+	$(RM) $(INDEPENDENT_PACKAGE_DIR)/S64WEB.PRG
 	cp build/managed-handoff-launcher.prg $(INDEPENDENT_PACKAGE_DIR)/SEE64YOU.PRG
 	cp build/editor-overlay-fit/editor-overlay-fit.prg $(INDEPENDENT_PACKAGE_DIR)/S64EDIT.PRG
 	cp $(INDEPENDENT_PUBLISHER_TARGET) $(INDEPENDENT_PACKAGE_DIR)/S64PUB.PRG
 	cp $(INDEPENDENT_SETTINGS_TARGET) $(INDEPENDENT_PACKAGE_DIR)/S64CFG.PRG
-	cp build/independent/S64WEB.PRG $(INDEPENDENT_PACKAGE_DIR)/S64WEB.PRG
 	cp build/editor-overlay-fit/S64MODEL.BIN build/editor-overlay-fit/S64FILE.BIN build/editor-overlay-fit/S64RUN.BIN build/editor-overlay-fit/S64PREP.BIN build/editor-overlay-fit/S64OVL.MNF $(INDEPENDENT_PACKAGE_DIR)/
 	python3 ../tools/generate_module_manifest.py $(INDEPENDENT_PACKAGE_DIR) --output $(INDEPENDENT_PACKAGE_DIR)/S64MODULE.MNF
 	python3 ../tools/generate_module_manifest.py $(INDEPENDENT_PACKAGE_DIR) --validate $(INDEPENDENT_PACKAGE_DIR)/S64MODULE.MNF
@@ -416,7 +416,7 @@ independent-publisher: $(INDEPENDENT_PUBLISHER_TARGET)
 
 $(INDEPENDENT_PUBLISHER_TARGET): $(INDEPENDENT_PUBLISHER_SOURCES)
 	@mkdir -p build/independent
-	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_STANDALONE_ONLY=1 -DS64_DIRECT_PUBLISHER=1 -DS64_INDEPENDENT_PUBLISHER=1 -m build/independent/publisher.map -o $@ $(INDEPENDENT_PUBLISHER_SOURCES)
+	$(CL65) $(CFLAGS) -DS64_REU_BUFFER=1 -DS64_STANDALONE_ONLY=1 -DS64_DIRECT_PUBLISHER=1 -DS64_INDEPENDENT_PUBLISHER=1 -DS64_STORAGE_READ_ONLY=1 -m build/independent/publisher.map -o $@ $(INDEPENDENT_PUBLISHER_SOURCES)
 	python3 ../tools/check_memory_headroom.py build/independent/publisher.map --label independent-publisher --min-headroom 1024
 
 $(PUBLISHER_TARGET): $(PUBLISHER_SOURCES)

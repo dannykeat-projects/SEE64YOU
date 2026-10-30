@@ -25,6 +25,10 @@ void s64_module_manifest_init(S64ModuleManifest* manifest, uint16_t app_version)
     init_module(&manifest->modules[2], S64_MODULE_SETTINGS, "S64CFG.PRG", app_version);
 }
 
+/* Cache rebinding validates descriptors while the overlay registry is clear. */
+#if defined(__CC65__) && defined(S64_MANAGED_OVERLAY) && defined(S64_INDEPENDENT_EDITOR)
+#pragma code-name (push, "CODE")
+#endif
 uint8_t s64_module_descriptor_identity_valid(const S64ModuleDescriptor* module)
 {
     return module != 0
@@ -46,6 +50,10 @@ uint8_t s64_module_descriptor_loadable(const S64ModuleDescriptor* module)
         && module->integrity != 0UL
         && module->cache_address >= S64_REU_RUNTIME_HEAP_START;
 }
+
+#if defined(__CC65__) && defined(S64_MANAGED_OVERLAY) && defined(S64_INDEPENDENT_EDITOR)
+#pragma code-name (pop)
+#endif
 
 uint8_t s64_module_manifest_loadable(const S64ModuleManifest* manifest)
 {

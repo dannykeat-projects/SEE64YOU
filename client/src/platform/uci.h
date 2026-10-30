@@ -37,6 +37,23 @@ typedef S64UciResult (*S64UciExecuteFn)(
     S64UciReply* reply
 );
 
+/* Preserves boundaries of UCI response packets (e.g. directory entries).
+ * A packet may arrive in several chunks; final_chunk marks its last chunk.
+ * The callback is called once with length=0 for an empty packet. */
+typedef uint8_t (*S64UciPacketSink)(
+    const uint8_t* data, uint16_t length, uint8_t final_chunk, void* context);
+typedef S64UciResult (*S64UciPacketExecuteFn)(
+    const S64UciCommandPart* parts, uint8_t part_count, S64UciReply* reply,
+    S64UciPacketSink packet_sink, void* packet_context);
+
+#ifdef S64_INDEPENDENT_PUBLISHER
+/* Only the independent Publisher needs packet-aware directory responses.
+ * Other programs retain the exact original UCI call API. */
+S64UciResult s64_uci_execute_packets(
+    const S64UciCommandPart* parts, uint8_t part_count, S64UciReply* reply,
+    S64UciPacketSink packet_sink, void* packet_context);
+#endif
+
 typedef struct {
     uint8_t interface_present;
     uint8_t dos_target;

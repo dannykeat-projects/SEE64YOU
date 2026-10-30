@@ -16,6 +16,13 @@ static unsigned char temporary_data[FILE_CAPACITY];
 static unsigned int temporary_length;
 static char temporary_name[S64_LOCAL_FILENAME_CAPACITY + 4u];
 static unsigned char temporary_exists;
+static unsigned char backup_data[FILE_CAPACITY];
+static unsigned int backup_length;
+static char backup_name[S64_LOCAL_FILENAME_CAPACITY + 4u];
+static unsigned char backup_exists;
+static unsigned char fail_backup;
+static unsigned char fail_restore;
+static unsigned char fail_cleanup;
 static unsigned char open_mode;
 static unsigned int read_offset;
 static unsigned int close_count;
@@ -75,13 +82,11 @@ static S64UciResult mock_execute(
     if (opcode == 0x08u) {
         require(part_count == 2u, "stat parts");
         if (appear_on_second_stat && ++stat_count == 2u) file_exists = 1u;
-        reply_status(
-            reply,
-            file_exists && parts[1].length == strlen(file_name) + 1u
-                && memcmp(parts[1].data, file_name, parts[1].length) == 0
-                ? "00,OK"
-                : "88,FILE NOT FOUND"
-        );
+        reply_status(reply,
+            ((file_exists && !strcmp((const char*)parts[1].data, file_name))
+                || (temporary_exists && !strcmp((const char*)parts[1].data, temporary_name))
+                || (backup_exists && !strcmp((const char*)parts[1].data, backup_name)))
+            ? "00,OK" : "88,FILE NOT FOUND");
         return S64_UCI_OK;
     }
 
@@ -143,6 +148,10 @@ static S64UciResult mock_execute(
     }
 
     if (opcode == 0x09u) {
+        if (backup_exists && part_equals(&parts[1], backup_name)) {
+            if (fail_cleanup) { reply_status(reply, "87,ACCESS DENIED"); return S64_UCI_OK; }
+            backup_exists = 0u;
+        }
         if (file_exists && part_equals(&parts[1], file_name)) file_exists = 0u;
         if (temporary_exists && part_equals(&parts[1], temporary_name)) temporary_exists = 0u;
         reply_status(reply, "00,OK");
@@ -152,7 +161,28 @@ static S64UciResult mock_execute(
     if (opcode == 0x0au) {
         separator = parts[2].data;
         require(part_count == 4u && parts[2].length == 1u && separator[0] == 0u, "rename shape");
+        if (file_exists && part_equals(&parts[1], file_name)) {
+            if (fail_backup) { reply_status(reply, "87,ACCESS DENIED"); return S64_UCI_OK; }
+            require(!backup_exists, "backup never overwrites an existing file");
+            copy_part(backup_name, sizeof(backup_name), &parts[3]);
+            memcpy(backup_data, file_data, file_length);
+            backup_length = file_length;
+            backup_exists = 1u;
+            file_exists = 0u;
+            reply_status(reply, "00,OK"); return S64_UCI_OK;
+        }
+        if (backup_exists && part_equals(&parts[1], backup_name)) {
+            if (fail_restore) { reply_status(reply, "87,ACCESS DENIED"); return S64_UCI_OK; }
+            require(!file_exists, "restore never overwrites a destination");
+            copy_part(file_name, sizeof(file_name), &parts[3]);
+            memcpy(file_data, backup_data, backup_length);
+            file_length = backup_length;
+            file_exists = 1u;
+            backup_exists = 0u;
+            reply_status(reply, "00,OK"); return S64_UCI_OK;
+        }
         require(temporary_exists && part_equals(&parts[1], temporary_name), "rename temp source");
+        require(!file_exists || !part_equals(&parts[3], file_name), "install never overwrites a destination");
         if (fail_rename) {
             reply_status(reply, "87,ACCESS DENIED");
             return S64_UCI_OK;
@@ -305,6 +335,8 @@ int main(void)
     require(temporary_exists && open_mode == 0u,
         "rename failure retains completed source with its handle closed");
     /* Reopen the retained ordinary file, rather than checking only mock flags. */
+    require(file_exists && file_length == saved_length && file_checksum() == saved_checksum,
+        "failed replacement restores byte-exact original");
     fail_rename = 0u;
     strcpy(file_name, temporary_name);
     memcpy(file_data, temporary_data, temporary_length);
