@@ -346,7 +346,7 @@ S64LocalResult s64_local_open(
     }
     if (!discard_dirty) return S64_LOCAL_DIRTY;
     local->document_replaced = 0u;
-#ifdef S64_DOCUMENT_8TML
+#if defined(S64_DOCUMENT_8TML) && !defined(S64_STORAGE_READ_ONLY)
     dos_result = strcmp(checked_filename, S64_LOCAL_RECOVERY_FILENAME) == 0
         ? select_recovery_dir(local->dos)
         : select_source_dir(local->dos, 0u);
