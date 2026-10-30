@@ -27,7 +27,7 @@ static S64DosResult select_source_dir(S64Dos* dos, uint8_t create)
     if (result == S64_DOS_NOT_FOUND && create) {
         result = s64_dos_change_dir(dos, S64_PACKAGE_DIRECTORY);
         if (result != S64_DOS_OK) return result;
-        result = s64_dos_create_dir(dos, "DOCS");
+        result = s64_dos_create_dir(dos, "docs");
         if (result != S64_DOS_OK) return result;
         return s64_dos_change_dir(dos, S64_PACKAGE_DOCUMENTS_DIRECTORY);
     }
