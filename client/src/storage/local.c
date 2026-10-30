@@ -1,5 +1,8 @@
 #include "storage/local.h"
 #ifdef S64_DOCUMENT_8TML
+#include "platform/package_paths.h"
+#endif
+#ifdef S64_DOCUMENT_8TML
 #include "charset.h"
 #endif
 
@@ -12,6 +15,33 @@
 #endif
 
 enum { FILENAME_EXACT, FILENAME_SAVE_AS, FILENAME_OPEN };
+
+#ifdef S64_DOCUMENT_8TML
+/* DOS's working directory is shared per target. Select it immediately before
+ * each operation so Settings, Publisher and recovery can never redirect a
+ * subsequent document write. Do not automatically migrate older files. */
+static S64DosResult select_source_dir(S64Dos* dos, uint8_t create)
+{
+    S64DosResult result = s64_dos_change_dir(dos, S64_PACKAGE_DOCUMENTS_DIRECTORY);
+#ifndef S64_STORAGE_READ_ONLY
+    if (result == S64_DOS_NOT_FOUND && create) {
+        result = s64_dos_change_dir(dos, S64_PACKAGE_DIRECTORY);
+        if (result != S64_DOS_OK) return result;
+        result = s64_dos_create_dir(dos, "DOCS");
+        if (result != S64_DOS_OK) return result;
+        return s64_dos_change_dir(dos, S64_PACKAGE_DOCUMENTS_DIRECTORY);
+    }
+#else
+    (void)create;
+#endif
+    return result;
+}
+
+static S64DosResult select_recovery_dir(S64Dos* dos)
+{
+    return s64_dos_change_dir(dos, S64_PACKAGE_DIRECTORY);
+}
+#endif
 
 typedef struct {
     S64Dos* dos;
@@ -316,6 +346,15 @@ S64LocalResult s64_local_open(
     }
     if (!discard_dirty) return S64_LOCAL_DIRTY;
     local->document_replaced = 0u;
+#ifdef S64_DOCUMENT_8TML
+    dos_result = strcmp(checked_filename, S64_LOCAL_RECOVERY_FILENAME) == 0
+        ? select_recovery_dir(local->dos)
+        : select_source_dir(local->dos, 0u);
+    if (dos_result != S64_DOS_OK) {
+        local->dos_result = dos_result;
+        return S64_LOCAL_IO_ERROR;
+    }
+#endif
 
     dos_result = s64_dos_open_read(local->dos, checked_filename);
     if (dos_result != S64_DOS_OK) {
@@ -381,6 +420,13 @@ static S64LocalResult save_named(
         return S64_LOCAL_INVALID_ARGUMENT;
     }
 
+#ifdef S64_DOCUMENT_8TML
+    dos_result = select_source_dir(local->dos, 1u);
+    if (dos_result != S64_DOS_OK) {
+        local->dos_result = dos_result;
+        return S64_LOCAL_IO_ERROR;
+    }
+#endif
     dos_result = s64_dos_file_exists(local->dos, checked_filename, &exists);
     if (dos_result != S64_DOS_OK) {
         local->dos_result = dos_result;
@@ -435,6 +481,13 @@ S64LocalResult s64_local_recovery_exists(
         return S64_LOCAL_INVALID_ARGUMENT;
     }
 
+#ifdef S64_DOCUMENT_8TML
+    result = select_recovery_dir(local->dos);
+    if (result != S64_DOS_OK) {
+        local->dos_result = result;
+        return S64_LOCAL_IO_ERROR;
+    }
+#endif
     result = s64_dos_file_exists(
         local->dos,
         S64_LOCAL_RECOVERY_FILENAME,
@@ -464,6 +517,15 @@ S64LocalResult s64_local_save_recovery(S64LocalDocument* local)
         strcpy(recovery.title, "Recovered Draft");
     }
 
+#ifdef S64_DOCUMENT_8TML
+    {
+        S64DosResult result = select_recovery_dir(local->dos);
+        if (result != S64_DOS_OK) {
+            local->dos_result = result;
+            return S64_LOCAL_IO_ERROR;
+        }
+    }
+#endif
     return write_document_file(
         local,
         &recovery,
@@ -501,6 +563,13 @@ S64LocalResult s64_local_delete_recovery(S64LocalDocument* local)
         return S64_LOCAL_INVALID_ARGUMENT;
     }
 
+#ifdef S64_DOCUMENT_8TML
+    result = select_recovery_dir(local->dos);
+    if (result != S64_DOS_OK) {
+        local->dos_result = result;
+        return S64_LOCAL_IO_ERROR;
+    }
+#endif
     result = s64_dos_file_exists(
         local->dos,
         S64_LOCAL_RECOVERY_FILENAME,
