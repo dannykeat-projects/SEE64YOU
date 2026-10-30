@@ -25,7 +25,7 @@ uint8_t s64_launcher_code_assets_prepare(S64LauncherRecoveryRuntime* runtime)
         || runtime->lifecycle.clean_record_written
         || !runtime->system_state.captured || runtime->system_state.restored
         || runtime->system_state.mode != S64_SYSTEM_MODE_IO_SAFE
-        || s64_dos_change_dir(&runtime->dos, S64_PACKAGE_DIRECTORY) != S64_DOS_OK
+        || s64_dos_change_dir(&runtime->dos, S64_PACKAGE_ASSETS_DIRECTORY) != S64_DOS_OK
         || s64_dos_open_read(&runtime->dos,
             S64_CODE_ASSET_MANIFEST_FILENAME) != S64_DOS_OK) return 0u;
     received = 0u;
