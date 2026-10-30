@@ -29,6 +29,13 @@
 - [ ] The shared runner is restricted to private repositories; SEE64YOU currently reports PUBLIC, so its self-hosted job must remain excluded. Use local tools and public-runner CI unless that policy or repository visibility is explicitly changed.
 - [ ] Real-C64U packet framing passes bounded numbered source selection. The current picker scan limit does not bound total transport/drain time or allow RUN/STOP during enumeration; keep these limits visible before expanding the picker.
 
+## P1 — Installation subfolder layout (new draft)
+
+- [x] Consolidate current standard integration PR #66, remote picker PR #68 and REU-loading/memory-fit PR #67 into `main` (merge `1985046`). Historical drafts #64/#65 remain separate; do not merge their superseded legacy code blindly.
+- [x] Implement four PRGs directly under `SEE64YOU/`, with four `.BIN` files and two `.MNF` manifests under `SEE64YOU/SYSTEM/`. Update runtime loaders, independent/diagnostic build packaging, release inventory, native backup/restoration harnesses, test expectations and installation docs.
+- [ ] Validate complete SD/USB cc65 builds and fit, manifest integrity, all-three-program VICE startup/BASIC return and host regressions. USB launcher previously had **only six bytes above the minimum 1,024-byte headroom**. Never weaken the fit guard to permit this layout.
+- [ ] Verify exact-package C64U SYSTEM directory loading, safe DOS exit and restoration with backup/receipt. No automatic deletion of old root assets or existing source/configuration/recovery/journals.
+- [ ] Consider moving documents and settings into separate folders in a later independently tested change. This needs an explicit non-destructive migration and recoverability design.
 ## P0 — Remaining release acceptance
 
 **Current alpha acceptance:** Matching SD/USB builds, fit/manifests, VICE and public CI pass. Exact-package REST-assisted C64U SD Editor create/save/recovery, selection/copy/paste, native save faults and Publisher numbered selection/filtering, confirmation, independent-server create/replace/cancel/readback and size/key refusals pass. Complete file and machine restoration passed. Receipts: `client/build/editor-alpha5-hardware-20261030/`, `publisher-picker-hardware-20261030-r2/` and `publisher-failures-hardware-20261030/`. These do not certify physical input, cold power, interruption or USB-only operation.
