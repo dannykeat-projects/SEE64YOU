@@ -60,7 +60,7 @@ static void render(void)
     put_text(9u, s64_settings_publish_id(&settings)[0] ? settings.base_url : "Import key in S64CFG.PRG", 39u);
 
     draw_action(11u, "[1] BROWSE LOCAL FILES");
-    draw_action(13u, "[2] SET REMOTE NAME");
+    draw_action(13u, "[2] BROWSE REMOTE");
     draw_action(15u, "[3] PUBLISH / REPLACE");
     draw_action(17u, "[4] TEST CONNECTION");
     draw_action(19u, "[0] EXIT TO BASIC");
@@ -122,6 +122,64 @@ static void show_result(S64StandardResult result)
     else if (result == S64_STANDARD_TOO_LARGE) message("Source exceeds server limit");
     else if (reply.message[0]) message(reply.message);
     else message("Publishing failed; check endpoint/key");
+}
+
+static char remote_rows[6][65];
+static uint16_t remote_start, remote_seen;
+static uint8_t remote_count, remote_more;
+
+static void remote_file(const char* name, uint32_t size)
+{
+    (void)size;
+    if (remote_seen++ < remote_start) return;
+    if (remote_count < 6u) strcpy(remote_rows[remote_count++], name);
+    else remote_more = 1u;
+}
+
+/* Selection only changes the target. Publish performs its own fresh check. */
+static uint8_t browse_remote(void)
+{
+    S64StandardResult result;
+    unsigned char key;
+    uint8_t row, col;
+    if (!ready()) return input("REMOTE NAME (OFFLINE):", prompt, sizeof(prompt));
+    remote_start = 0u;
+    for (;;) {
+        remote_seen = 0u; remote_count = 0u; remote_more = 0u;
+        result = s64_standard_browse(&client, &reply, remote_file);
+        if (result != S64_STANDARD_OK) {
+            show_result(result);
+            clrscr(); cputs(status);
+            cputs("\r\n7 SET NAME  0 BACK");
+            for (;;) {
+                key = cgetc();
+                if (key == '0' || key == CH_STOP) return 0u;
+                if (key == '7') return input("REMOTE NAME:", prompt, sizeof(prompt));
+            }
+        }
+        clrscr(); cputs("BROWSE REMOTE\r\n");
+        for (row = 0u; row < remote_count; ++row) {
+            gotoxy(0u, 3u + row * 2u); cputc('1' + row); cputs(" ");
+            for (col = 0u; remote_rows[row][col]; ++col) {
+                if (col == 37u) gotoxy(2u, 4u + row * 2u);
+                cputc(remote_rows[row][col]);
+            }
+        }
+        if (!remote_count) put_text(3u, "(no remote files)", 39u);
+        put_text(17u, "7 SET NAME  8 PREVIOUS  9 NEXT", 39u);
+        put_text(19u, "0 BACK / STOP", 39u);
+        put_text(21u, "Select sets target; does not upload.", 39u);
+        for (;;) {
+            key = cgetc();
+            if (key == '0' || key == CH_STOP) return 0u;
+            if (key == '7') return input("REMOTE NAME:", prompt, sizeof(prompt));
+            if (key >= '1' && key < '1' + remote_count) {
+                strcpy(prompt, remote_rows[key - '1']); return 1u;
+            }
+            if (key == '8' && remote_start) { remote_start -= 6u; break; }
+            if (key == '9' && remote_more) { remote_start += 6u; break; }
+        }
+    }
 }
 
 static int write_source(S64UciDataSink sink, void* context, void* source)
@@ -222,7 +280,7 @@ int main(void)
                     message(s64_local_result_message(&local, result));
                 }
             } else if (key == '2' || key == 'n' || key == 'N') {
-                if (input("REMOTE NAME:", prompt, sizeof(prompt))) {
+                if (browse_remote()) {
                     if (s64_publish_name_valid(prompt)) {
                         strcpy(remote_name, prompt);
                         /* The standard server lowercases names. Confirm that same path. */

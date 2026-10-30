@@ -9,6 +9,13 @@ static unsigned request_length, response_offset, opens, closes, writes, put_coun
 static int scenario, challenge_count;
 static const char key[]="000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 static const uint8_t source[]="---\n8tml: 1\n---\n# Hello\n";
+static unsigned visited;
+static void visit_file(const char* name, uint32_t size)
+{
+ if(visited==0u) { assert(!strcmp(name,"other.8tml")); assert(size==12u); }
+ else { assert(!strcmp(name,"index.8tml")); assert(size==24u); }
+ ++visited;
+}
 static S64UciResult execute(const S64UciCommandPart* parts,uint8_t count,S64UciReply* reply)
 { (void)parts; (void)count; (void)reply; return S64_UCI_OK; }
 S64NetResult s64_net_open_tcp(S64NetTransport* t,const char* host,uint16_t port,uint8_t* handle)
@@ -109,6 +116,8 @@ int main(void)
  reset(1); assert(s64_standard_status(&client,&result)==S64_STANDARD_PROTOCOL); assert(opens==closes);
  reset(3); assert(s64_standard_status(&client,&result)==S64_STANDARD_PROTOCOL); assert(opens==closes);
  reset(0); assert(s64_standard_list(&client,"INDEX.8tml",&result)==S64_STANDARD_OK); assert(result.exists); assert(challenge_count==1); assert(opens==closes);
+ reset(0); visited=0u; assert(s64_standard_browse(&client,&result,visit_file)==S64_STANDARD_OK); assert(visited==2u && !put_count); assert(opens==closes);
+ reset(0); assert(s64_standard_list(&client,"index.8tml",&result)==S64_STANDARD_OK); assert(visited==2u && result.exists);
  reset(2); count=0u; assert(s64_standard_put(&client,"index.8tml",24u,writer,&count,&result)==S64_STANDARD_TOO_LARGE); assert(!count && !put_count); assert(opens==closes);
  reset(0); count=0u; assert(s64_standard_put(&client,"INDEX.8tml",24u,writer,&count,&result)==S64_STANDARD_OK); assert(count==1u && put_count==1u); assert(!strcmp(result.name,"index.8tml")); assert(!result.warning); assert(opens==closes);
  reset(0); count=0u; assert(s64_standard_list(&client,"index.8tml",&result)==S64_STANDARD_OK); assert(s64_standard_put(&client,"index.8tml",24u,writer,&count,&result)==S64_STANDARD_OK); assert(challenge_count==2 && count==1u && put_count==1u); assert(opens==closes);

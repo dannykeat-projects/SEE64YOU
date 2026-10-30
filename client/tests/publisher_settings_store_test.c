@@ -606,8 +606,8 @@ int main(void)
         && strcmp(s64_settings_publish_id(&settings), "editor-1") == 0
         && strcmp(settings.base_url, "http://example.com:8080/publish/") == 0
         && strcmp(settings.direct_key, "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f") == 0
-        && !settings.allow_insecure_http,
-        "standard fields exact and new HTTP consent required");
+        && settings.allow_insecure_http,
+        "standard fields exact and HTTP enabled by default");
     settings.allow_insecure_http = 1u;
     require(s64_settings_store_save(&dos, &settings) == S64_SETTINGS_STORE_OK,
         "standard settings save with existing readback gates");

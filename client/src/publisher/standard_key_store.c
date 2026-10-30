@@ -45,13 +45,13 @@ S64SettingsStoreResult s64_settings_import_publish_key(
         && s64_publish_keyfile_parse(read.bytes, read.length, &parsed)
         && s64_settings_publish_url_valid(parsed.url)) {
         /* Commit the complete identity only after validation.
-           A new destination requires a fresh unencrypted-HTTP decision. */
+           HTTP defaults on for direct transport; HTTPS is never downgraded. */
         memset(settings->relay_key, 0, sizeof(settings->relay_key));
         memcpy(settings->relay_key, parsed.id, sizeof(parsed.id));
         memcpy(settings->base_url, parsed.url, sizeof(parsed.url));
         memcpy(settings->direct_key, parsed.key, sizeof(parsed.key));
         settings->destination_type = S64_DESTINATION_STANDARD;
-        settings->allow_insecure_http = 0u;
+        settings->allow_insecure_http = 1u;
         outcome = S64_SETTINGS_STORE_OK;
     }
     memset(&read, 0, sizeof(read));

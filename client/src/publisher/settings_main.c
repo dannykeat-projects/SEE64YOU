@@ -268,12 +268,12 @@ static void render_basic(void)
     print_value(8u, "Secret: ", settings.destination_type == S64_DESTINATION_STANDARD
         ? "configured (hidden)" : "not configured");
     print_value(10u, "Unencrypted HTTP: ", settings.allow_insecure_http ? "allowed" : "blocked");
-    gotoxy(0u, 13u); cputs("I IMPORT 8TMLKEY.TXT");
-    gotoxy(0u, 14u); cputs("H CHANGE HTTP CONSENT");
-    gotoxy(0u, 15u); cputs("D DISABLE PUBLISHING");
-    gotoxy(0u, 17u); cputs("T CHECK CONFIGURATION");
-    gotoxy(0u, 18u); cputs("S SAVE + RETURN");
-    gotoxy(0u, 19u); cputs("RUN/STOP CANCEL + RETURN");
+    gotoxy(0u, 13u); cputs("[1] IMPORT 8TML.KEY");
+    gotoxy(0u, 14u); cputs("[2] CHANGE HTTP CONSENT");
+    gotoxy(0u, 15u); cputs("[3] DISABLE PUBLISHING");
+    gotoxy(0u, 17u); cputs("[4] CHECK CONFIGURATION");
+    gotoxy(0u, 18u); cputs("[5] SAVE + RETURN");
+    gotoxy(0u, 19u); cputs("[0] CANCEL + RETURN");
     gotoxy(0u, 21u); cputs("HTTP exposes document text.\r\nProvision/revoke keys over HTTPS.");
     print_value(STATUS_ROW, "", status_text);
 #else
@@ -1034,8 +1034,8 @@ static void import_direct_key(void)
         return;
     }
     result = s64_settings_import_publish_key(&dos, &settings);
-    if (result == S64_SETTINGS_STORE_OK) set_status("Imported; review HTTP consent then save");
-    else if (result == S64_SETTINGS_STORE_NOT_FOUND) set_status("8TMLKEY.TXT not found in app folder");
+    if (result == S64_SETTINGS_STORE_OK) set_status("Imported; HTTP allowed; 5 to save");
+    else if (result == S64_SETTINGS_STORE_NOT_FOUND) set_status("8TML.KEY not found in app folder");
     else if (result == S64_SETTINGS_STORE_INVALID) set_status("Standard key file invalid; unchanged");
     else set_status("Key import failed; settings unchanged");
     return;
@@ -1425,14 +1425,14 @@ int main(void)
         key = (unsigned char)cgetc();
 
 #ifdef S64_INDEPENDENT_SETTINGS
-        if (key == 'i' || key == 'I') import_direct_key();
-        else if (key == 'h' || key == 'H') toggle_plain_http();
-        else if (key == 't' || key == 'T') check_settings();
-        else if (key == 'd' || key == 'D') {
+        if (key == '1' || key == 'i' || key == 'I') import_direct_key();
+        else if (key == '2' || key == 'h' || key == 'H') toggle_plain_http();
+        else if (key == '4' || key == 't' || key == 'T') check_settings();
+        else if (key == '3' || key == 'd' || key == 'D') {
             s64_settings_exchange_init(&settings);
-            set_status("Publishing disabled; S to save");
-        } else if (key == 's' || key == 'S') save_and_return();
-        else if (key == CH_STOP) cancel_and_return();
+            set_status("Publishing disabled; 5 to save");
+        } else if (key == '5' || key == 's' || key == 'S') save_and_return();
+        else if (key == '0' || key == CH_STOP) cancel_and_return();
         continue;
 #else
         if (!advanced_view) {
