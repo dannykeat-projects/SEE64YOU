@@ -264,7 +264,7 @@ int main(void)
             if (key == CH_STOP || key == '0') {
                 if (path_captured) working("RESTORING DOS PATH");
                 if (path_captured && (s64_dos_change_dir(&dos, original_path) != S64_DOS_OK
-                    || s64_dos_get_path(&dos, scratch.verify_path, sizeof(verify_path)) != S64_DOS_OK
+                    || s64_dos_get_path(&dos, scratch.verify_path, sizeof(scratch.verify_path)) != S64_DOS_OK
                     || strcmp(original_path, scratch.verify_path))) {
                     message("DOS restore failed; STOP retries exit");
                     continue;
