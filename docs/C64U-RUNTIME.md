@@ -21,12 +21,14 @@ SYSTEM/
   S64RUN.BIN        Editor overlay
   S64PREP.BIN       Editor overlay
 SEE64YOU.CFG        saved publishing settings (unchanged)
-*.8tml              source documents (unchanged)
+docs/
+  *.8tml            editable source documents (new location)
+  *.8tml.tmp/.bak   recoverable save temporaries
 SEE64YOU.REC        possible recovery snapshot (unchanged)
 S64JRN*.DAT         state journals (unchanged)
 ~~~
 
-Launcher/journal operations own DOS `$01`; Editor document/recovery owns `$02`. Each subsystem sets its directory context and closes handles. Bare source names resolve in the selected app folder; explicit absolute paths must retain their origin. A failed lookup must never silently select another file/device.
+Launcher/journal operations own DOS `$01`; Editor document/recovery owns `$02`. Each subsystem sets its directory context and closes handles. Ordinary 8TML document operations explicitly select `SEE64YOU/docs/`, creating it on first save if absent. Publisher reads from that directory but never creates it. Recovery snapshots and configuration remain under `SEE64YOU/`; the Editor selects the package root for snapshot operations. Explicit absolute paths retain their origin. Older root-level `.8tml` files remain unchanged and are not silently found, overwritten or moved; back up and copy them manually if needed. A failed lookup must never silently select another file/device.
 
 ## File integrity and recovery
 
