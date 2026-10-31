@@ -1,62 +1,24 @@
 # SEE64YOU work queue
 
-**Target:** offline C64U `.8tml` Editor, standard Publisher with numbered character GUI and local/server file selectors, and separate Settings. [Product scope](docs/PRODUCT.md) pins the 26 October 2026 publishing API 1 test draft; [Publisher design](docs/PUBLISHER.md) defines the new GUI and conditional download-to-edit workflow. Standard integration and the SYSTEM package layout are merged on `main` (PR #69, `451fdba`). Remaining release acceptance is listed below.
+Scope: [Product](docs/PRODUCT.md). Procedures: [Testing](docs/LOCAL_TESTING.md). Completed investigations and receipts remain in Git history and private build artifacts.
 
-**Release package:** `v0.2.0-alpha.6` uses the validated ten-file SYSTEM layout. Exact SD bytes are installed on C64U with matching hashes; configuration, source and recovery files are preserved. SD/USB fit/manifests, VICE, host tests and bounded REST-assisted SD acceptance pass. Remaining physical/cold-power/USB-only and full exact-package Publisher upload/failure gates are listed below; no stable promotion.
+## Current baseline
 
-## Source document folder (draft PR #72)
+Released alpha.6 uses the ten-file SYSTEM layout. Current main includes merged PR #72: ordinary documents use SEE64YOU/docs/; settings, keys, recovery and journals remain at the root. The folder change passed host regressions and SD/USB fit/manifests; matching VICE and hardware acceptance remains open.
 
-- [x] Editor selects `SEE64YOU/docs/` for ordinary 8TML Open/Save/Save As, creating `docs/` only when saving if missing. Publisher browses and loads from that directory without creating it.
-- [x] Keep `SEE64YOU.REC`, journals, settings and keys at the existing root. Do not auto-migrate or delete existing root-level .8tml, .tmp or .bak files; back up and manually copy resolved sources to docs.
-- [x] Focused [CI run #41025149749](https://github.com/dannykeat-projects/SEE64YOU/actions/runs/41025149749): 8TML local editor/publisher host regressions, loader/asset tests, SD and USB1 cc65 complete package and overlay fit. Publisher free space 1,092/1,088 bytes (minimum 1,024).
-- [ ] Before packaging/releasing, test a real backed-up C64U with missing and existing docs directories, Save As/open/overwrite, recovery at root, Publisher local picker/typed source, and DOS path restoration; preserve all existing user data. VICE exact-package startup and responsive BASIC return should also be re-run. Installed alpha.6 binaries still follow the old root-file convention.
+Save replacement/rollback, batched loading, resident reserve recovery and numbered selectors are implemented. Earlier receipts do not certify newer combined bytes or establish comparable loading gains. Alpha.6 exact-package network checks covered Settings and read-only Publisher; full uploads/failures remain unverified.
 
-## Active Editor priorities
+## Release acceptance
 
-1. **P0 — Save integrity:** preserve existing `.tmp`/`.bak` recovery copies and retain the original through replacement. Host regressions cover collision, backup/install/rollback/cleanup failures. Complete matching SD/USB fit/manifests, VICE and bounded real-C64U disk acceptance before promotion.
-2. **P1 — Large-source loading (integrated PR #67):** measure and batch the per-byte REU writes in the existing source reader; retain byte-exact source, line-ending normalization and bounded memory.
-3. **P1 — Editing and saving cost:** benchmark long-distance gap movement and redundant save scans before making a bounded change.
-4. **P1 — REU error reporting:** distinguish failed reads from missing characters/search misses and preserve recoverable dirty text.
-5. **P2 — Rendering, paste and undo:** use repeatable measurements and fault injection to target redraws and bulk edits.
+- [ ] Verify missing/existing docs directories, Save As/open/overwrite, root recovery, Publisher picker/typed source and DOS restoration on backed-up C64U storage. Preserve root sources and recovery temporaries; no automatic migration. Re-run exact-package VICE startup and responsive BASIC return before release.
+- [ ] Complete exact-package Publisher status/list/create/replace/cancel, size/key/network failures and byte-exact independent-server readback. Verify source/target confirmation and full file/configuration/machine restoration; never retry uncertain writes automatically.
+- [ ] Verify physical keyboard/Link controls, numbered Settings/key import and remote paging/selection/cancellation. REST injection is separate evidence.
+- [ ] Test cold-power byte-exact reopen and permitted interruption/recovery on disposable data, preserving source, temporaries and machine state.
+- [ ] Resolve USB transfer/readback reliability and actual USB-only operation on the selected mount; SD acceptance and USB builds alone are insufficient.
+- [ ] Verify published source and relative-link navigation in an external compatible reader on an independent server; record versions and limitations.
 
-- [x] Save integrity implementation and focused host fault regressions.
-- [x] Save integrity SD and `/USB1/` shipping builds/fit/manifests, both packaged VICE startup/BASIC-return checks, and bounded real-C64U SD native-DOS replacement rollback and recovery-collision acceptance. Exact source/package hashes: `client/build/save-safety-validation.json`; hardware receipt: `client/build/save-safety-hardware-20261029-r2/`. All 44 original files, configuration, DOS contexts, IRQ/turbo/colours, scratch byte and responsive BASIC restored and verified. Physical input, cold power, uncontrolled interruption and real USB-only acceptance remain separate release gates.
+## Editor reliability and performance
 
-## PR #67 loading validation
-
-- [x] Earlier isolated prototype: host exact 1/16/60 KiB roundtrips, bounded 64-byte append, failure/capacity checks and 64x fewer LF REU stores passed. Prior native codec/DOS roundtrips passed; these are not shipping UI timing or a comparable-baseline speedup.
-- [x] Integrate alpha.5 and Ctrl+Delete source. Combined full host suite, focused source/fault and Editor tests, complete SD/USB fit/manifests and three-program VICE startup/BASIC return pass. Reuse existing free-capacity helper and validated cursor/gap equality to restore fit without weakening bounds. Editor resident space before overlay is only 7/5 bytes (SD/USB); Publisher headroom 2,385/2,381, launcher 1,044/1,030. Receipt: `client/build/combined-loading-validation.json`.
-- [ ] Complete exact combined-package C64U shipping UI/storage acceptance and comparable baseline timings before promotion or speed claims. Historical receipts do not certify these combined bytes. Keep installed alpha.5 and released assets unchanged.
-
-## Current validation blockers
-
-- [x] Exact `82dfda1` full host suite passed, including directory-stream and picker fixtures.
-- [x] Resolve Publisher cc65 overflow by excluding uncalled source-save/recovery and configuration-write/migration code from its read-only storage build. Editor and Settings retain their writers. Full host suite, forced SD/USB packages, fit/manifests and three-program VICE startup/unavailable-service/BASIC-return checks pass. Publisher headroom: 2,720/2,716 bytes; launcher: 1,044/1,030 bytes (SD/USB). Receipt: `client/build/publisher-read-only-validation.json`. REST-assisted exact-package SD numbered selection/filtering and three-identity confirmation, independent-server create/replace/cancel and byte-exact readback pass (`client/build/publisher-picker-hardware-20261030-r2/`); size-limit and invalid-key refusal plus full restoration pass separately (`client/build/publisher-failures-hardware-20261030/`). Initial monitor and 70-second load-harness failures remain recorded; physical keyboard, cold power/interruption and real USB-only gates remain open.
-- [x] Correct the CI standalone-direct host command to avoid linking the implementation twice; the test already includes it. Original failed run: `40962868301`; corrected-command run: `40963057669`.
-- [ ] The shared runner is restricted to private repositories; SEE64YOU currently reports PUBLIC, so its self-hosted job must remain excluded. Use local tools and public-runner CI unless that policy or repository visibility is explicitly changed.
-- [ ] Real-C64U packet framing passes bounded numbered source selection. The current picker scan limit does not bound total transport/drain time or allow RUN/STOP during enumeration; keep these limits visible before expanding the picker.
-
-## P1 — Installation subfolder layout (new draft)
-
-- [x] Consolidate current standard integration PR #66, remote picker PR #68 and REU-loading/memory-fit PR #67 into `main` (merge `1985046`). Historical drafts #64/#65 remain separate; do not merge their superseded legacy code blindly.
-- [x] Implement four PRGs directly under `SEE64YOU/`, with four `.BIN` files and two `.MNF` manifests under `SEE64YOU/SYSTEM/`. Update runtime loaders, independent/diagnostic build packaging, release inventory, native backup/restoration harnesses, test expectations and installation docs.
-- [x] Fresh public CI **passed on PR #69**: both SD and `/USB1/` cc65 packages, module/overlay manifests, nested ten-file inventories, release-package regressions and affected launcher/overlay/preload host tests. [Validation run #41012111317](https://github.com/dannykeat-projects/SEE64YOU/actions/runs/41012111317). Measured Editor resident reserve **1,122/1,120** bytes, Publisher free **1,046/1,042**, launcher free **1,086/1,072** (SD/USB); each required minimum is 1,024. A 192-byte bounded three-record module manifest and compact Publisher status buffer restored fit without relaxing guards.
-- [x] Exact `b8f7f04` SD and `/USB1/` packages pass VICE startup, numbered unavailable-service controls, responsive BASIC arithmetic/string output and exit for all three programs. Source/storage codec VICE, full host suite and release-packaging regressions pass. Receipt: `client/build/release69-validation.json`.
-- [x] Exact-package REST-assisted C64U SD SYSTEM loading, Editor editing/save/recovery/native disk faults, all-program numbered exit and missing-SYSTEM refusal pass; old root assets were present, proving no fallback. Both runs restored all 21 starting files, configuration, DOS, IRQ, turbo, colours and responsive BASIC. Receipts: `client/build/release69-hardware-sd/` and `client/build/release69-layout-hardware-sd/`. Physical input, cold power/interruption, full exact-package Publisher upload/replace/failure coverage and USB-only acceptance remain unverified. No user-data migration or old-asset deletion. The complete validated SD package is now installed: all ten installed SHA256 hashes match, all non-package files and Ultimate configuration are unchanged, and BASIC is idle. Config-only deployment backup/receipt: `client/build/release69-installed/`.
-- [ ] Consider moving documents and settings into separate folders in a later independently tested change. This needs an explicit non-destructive migration and recoverability design.
-## P0 — Remaining release acceptance
-
-**Current alpha acceptance:** Matching SD/USB builds, fit/manifests, VICE and public CI pass. Exact-package REST-assisted C64U SD Editor create/save/recovery, selection/copy/paste, native save faults and Publisher numbered selection/filtering, confirmation, independent-server create/replace/cancel/readback and size/key refusals pass. Complete file and machine restoration passed. Receipts: `client/build/editor-alpha5-hardware-20261030/`, `publisher-picker-hardware-20261030-r2/` and `publisher-failures-hardware-20261030/`. These do not certify physical input, cold power, interruption or USB-only operation.
-
-- [ ] Finish physical keyboard/Link, cold-power exact reopen, uncontrolled interruption/recovery and external compatible-reader navigation with the exact package; real USB-only acceptance also remains unverified. REST-assisted Editor/Settings/Publisher SD results below do not certify these gates.
-- [ ] **Failed historical native matrix:** the next non-shipping managed Editor build exceeds BSS by612 bytes, MODEL_CODE by2489, FILE_RODATA by10 and PUBLICATION_CODE by747. Later historical targets remain unrun. The independent Editor/package is separately validated; do not weaken guards, add another runtime or claim the full matrix passed. Retire or reconcile this legacy target after replacement acceptance.
-
-## Editor reliability and responsiveness audit targets (28 October 2026)
-
-**Investigation targets; not completion claims.** PR #67 batched REU source loading is merged into main, but any speedup must be measured against a comparable baseline and accepted on exact hardware. Keep autosave disabled; benchmark shipping paths before wider rewrites. Prioritize measured user impact and data safety over broad rewrites.
-
-- [ ] **P0 — Protect the previous saved document and existing recovery temporaries.** The shared writer now blocks existing `.tmp`/`.bak`, retains the original during replacement and attempts rollback after failed installation. Host faults and bounded native-DOS checks verify distinct old/new recoverable bytes and retry refusal. Cold-power/interruption guarantees remain unverified.
-- [ ] **P1 — Validate PR #67's batched REU source loading.** `document_wire_reader_write` converts each input byte and calls `s64_buffer_insert`, which issues a single-byte REU store. Benchmark C64U Editor/Publisher load of 1 KiB, 16 KiB and near-60 KiB before changing the shared path; prototype bounded, validated chunk append while preserving ASCII/LF conversion, gap invariants and failure handling. Real-C64U Publisher loaded 16,385 bytes in 91.87 seconds with Turbo Control Off; the relative cost of DOS and REU is not yet isolated.
 - [ ] **P1 — Profile first edit after a distant cursor move, large paste and undo.** The REU gap moves 64 bytes per load/store pair (`buffer_reu.c:move_gap`), paste inserts individual bytes (`editor.c:s64_editor_paste`), and history swap processes individual replacements. Use existing host REU counters and VICE jiffy diagnostics, then measure end-to-end shipping UI/hardware. Change buffer size, bulk operations or selective compute acceleration only if timings and RAM/overlay guards justify them.
 - [ ] **P1 — Reduce redundant full-source passes on Save.** `write_document_file` calls `s64_document_write_wire` for validation then again for the actual file; each 8TML writer invocation validates and walks the entire document. Measure the cost and consider a single validated streaming pass without compromising preflight, recovery or write-failure behavior; also check duplicated file-existence probes.
 - [ ] **P1 — Surface REU read failures distinctly from absent text.** `s64_buffer_char_at` returns zero on failed transfer and `s64_buffer_find_byte` returns document length; consumers can treat errors as ordinary characters/end-of-search. Trace shipping callers and add targeted fault-injection tests before changing APIs or error paths.
@@ -64,45 +26,18 @@
 - [ ] **P2 — Strengthen Editor recovery/error-path coverage.** Test invalid/oversized file Open, interruption, pre-existing `.tmp`, partial REU paste/undo, full-history boundary, mid-save power loss, and source/header preservation. Keep failures visible and preserve dirty state and recoverability; do not claim a partially failed edit is rolled back.
 - [ ] **P2 — Establish reproducible responsiveness gates.** Pin build/firmware/REU/turbo/root and exact package hashes, benchmark 1/16/60 KiB short-line and single-long-line fixtures, capture median/worst-case input-to-screen response, first edit after navigation, load/save times and REU transaction counts. Host counters and direct VICE jiffies omit shipping overlays/UI; confirm meaningful gains on C64U with physical keyboard, plus separate SD/USB acceptance. Preserve 1,024-byte Publisher/launcher headroom and all Editor fit guards.
 
-## P1 — Slim Publisher interface after existing acceptance
+- [ ] Benchmark shipping 1/16/60 KiB loading against a comparable baseline before claiming batched-loading gains; isolate codec/DOS/UI costs.
 
-**Scope:** no GUI framework, new browser, proprietary server or remote manager. [Publisher UI](docs/PUBLISHER.md) is the concise target. The current alpha has bounded Editor and standard API acceptance above. PR #67 REU loading remains a separate draft and is excluded from alpha.5.
+## Publisher and retained legacy paths
 
-- [x] Implement a compact numbered keyboard home screen and numbered publish/replace confirmation without changing standard network/storage paths (PR #66). **SD/USB builds, fit/manifests, VICE and bounded REST-assisted C64U acceptance passed; physical input remains unverified.** Legacy letter shortcuts remain available.
-- [x] Build/test matching SD/USB Publisher packages, retain >=1,024-byte Publisher/launcher headroom, and verify REST-assisted numbered selection, confirmation/cancellation and BASIC/DOS restoration. Physical number keys remain an open acceptance gate above.
-- [x] **Initial local picker coded, protocol corrected:** bounded Ultimate-DOS OPEN_DIR plus a **single READ_DIR streaming multiple entry packets**, six numbered `.8tml` rows, paging and manual-name fallback. Multi-packet and split-packet host regressions, SD/USB compilation/fit/manifests, VICE and bounded REST-assisted SD source selection/filtering passed. Packet-aware UCI support is enabled only in independent Publisher builds. Physical input and large-directory cancellation remain unverified. Folder traversal remains deferred.
-- [x] Add a bounded server-name selector using the **existing** standard authenticated list parser. Choosing an entry sets only the remote target; retain manual entry and fresh-list explicit replacement confirmation.
-- [ ] Optional: reuse a *small* portion of Editor mouse/joystick code for clickable numbered rows **only if measured fit and hardware reliability allow**. Keyboard-only operation is sufficient for release.
-- [ ] Exercise focused host/VICE and exact real-C64U input, storage, server and restoration acceptance with the new file controls. No automatic retries of uncertain uploads.
+- [ ] Bound local-directory transport/drain time and support cancellation during enumeration; scan limits alone do neither.
+- [ ] Retire proven-unused legacy code after caller tracing and replacement acceptance; preserve shared configuration, crypto and recovery.
+- [ ] Reconcile the failed historical managed Editor fit target (BSS +612, MODEL_CODE +2489, FILE_RODATA +10, PUBLICATION_CODE +747 bytes). Independent-package acceptance does not mean the full historical matrix passed; preserve guards.
+- [ ] Confirm publishing-draft evolution, independent-server support and validator redistribution licensing without private API extensions.
+- [ ] Optional download-to-edit requires independently documented raw-source access and supported transport. Check existing compatible tools first; API 1 has no source GET or delete.
 
-## P2 — Optional download-to-edit, not part of initial release
+## Validation constraints
 
-- [ ] Check whether T8WN or another compatible reader already saves raw source locally. If not, first verify independently documented raw 8TML URLs and C64U-compatible HTTP GET. Implement a single staged, collision-safe download only when needed and technically proven; never add a proprietary endpoint, HTTPS downgrade or bulk file manager. Test the Editor/republication round trip separately.
-## P1 — Retire obsolete product paths after acceptance
+The shared self-hosted runner is restricted to private repositories. SEE64YOU was last checked as public; verify visibility before enabling it. Preserve memory guards, manifests, exact hashes and restoration evidence. Mark gates passed / failed / blocked / unverified for their tested commit and inputs.
 
-- [x] Trace active/legacy compile, validation and release-package callers; trace retained shared dependencies before each deletion. Current alpha packaging contains only the standard client SD/USB packages; shared configuration layout, crypto helpers and recovery remain required.
-- [ ] Once replacements pass required hardware/interoperability gates, remove obsolete code/assets/tests and stale server instructions incrementally. CI package count and standard test dependencies are corrected; the historical native overlay failure remains explicit. Preserve user files, credentials/recovery data, shared safety code and existing release assets.
-- [x] Alpha.5 exact release/package checksum audit and bounded save rollback acceptance passed; release limits disclosed. Stable promotion remains gated by the open physical/cold-power/interruption/USB acceptance checks.
-
-## Existing unresolved limits
-
-- [ ] Investigate slow large-document operations and startup verification; measured16385-byte Publisher source load91.87 seconds with Turbo Control Off. Do not combine speculative performance rewrites with protocol migration.
-- [ ] Resolve USB transfer/readback reliability and real USB-only acceptance on the actual firmware before recommending USB installation.
-- [ ] Confirm draft evolution, independent-server support and validator redistribution licensing; do not invent private conditional-write extensions.
-
-- [ ] Ctrl+Delete previous-word deletion: focused undo/redo, cursor/saved-state, selection and boundary regressions pass; complete SD/USB package fit/manifests pass. Native shortcut/VICE and exact-package C64U acceptance remain unverified; excluded from installed alpha.5.
-
-## Publisher remote selection and Settings controls
-
-- [x] Implement numbered remote browse/select/manual target controls using the existing authenticated API; preserve fresh publish confirmation. Settings uses numbered controls, imports `8TML.KEY` and enables HTTP by default without downgrading HTTPS.
-- [x] Host transport/Settings regressions and broader host checks (HTTP script run from a temporary LF-normalized copy), SD/USB fit/manifests and SD packaged VICE numbered controls/startup/responsive BASIC return pass. Base `353272e`; package hashes and gates: `client/build/remote-picker-validation.json`.
-- [ ] Real-C64U remote paging, cancellation, selection, numbered Settings, key import and restoration; physical input and real USB-only behavior remain unverified.
-- [ ] Remote deletion is blocked: supported standard API 1 has no delete operation; requires a compatible server contract before implementation.
-
-- [x] Install the complete validated remote-picker SD package to `/sd/SEE64YOU/`; all ten installed hashes match `remote-picker-validation.json`, and non-package files including configuration, documents and recovery remain unchanged. Deployment receipt: `client/build/remote-picker-deployment-20261030/receipt.json`. Existing Settings program left running; relaunch and real-C64U UI acceptance remain required.
-
-- [x] Resident-memory recovery: move cold manifest/session helpers into existing PREP, retain descriptor validators resident during cache rebinding, and exclude unreachable outbound transfer stub. SD/USB resident reserve is 1,122/1,120 bytes with a new >=1,024-byte guard; overlay/manifest and bridge ABI checks pass. Exact-package REST-assisted C64U editing/save/recovery/fault checks and full 22-file/configuration/DOS/IRQ/turbo/colour restoration pass (`client/build/editor-memory-fixed-hardware-20261030/`). The first layout failed closed during cache rebinding; its necessary-reset recovery is retained separately. Receipt: `client/build/editor-memory-validation.json`. Physical/cold-power/USB-only gates remain separate; installed alpha.5 is unchanged.
-
-- [x] Alpha.6 final Settings REST-assisted acceptance: numbered key import, default HTTP, block/re-consent, secret redaction, durable save/reload, invalid-key refusal and cancelled replacement preserve exact saved configuration. Test harness expectations now match implemented controls/defaults. Receipt: `client/build/release69-settings-hardware/`; full files/DOS/IRQ/turbo/colours/configuration/BASIC restoration passed.
-
-- [x] Alpha.6 exact-package Publisher read-only network acceptance: live standard status, authenticated remote list, target selection/reopen/cancel and numbered exit passed without upload/delete; complete files/DOS/IRQ/turbo/colours/configuration/BASIC restored. Receipt: `client/build/release69-readonly-network-hardware/`.
+- [x] Consolidate duplicated documentation and distinguish retained legacy components.

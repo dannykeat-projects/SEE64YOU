@@ -18,12 +18,9 @@ Source is literal 8TML 1 draft ASCII/LF, including header and body; preserve sou
 
 The initial target is a **small 40×25 PETSCII character interface**, not a GUI framework. Numbered buttons work with native C64 keyboard input; a compatible mouse/joystick may provide the same actions if proven to fit and work on hardware. Typed filenames remain available.
 
-- Home: **1 Local files, 2 Server files, 3 Publish, 4 Target name, 5 Test server, 0 Exit** (target layout).
-- Local files: six numbered `.8tml` rows per page, **7 Type name, 8 Previous, 9 Next, 0 Back**. Do not expose settings, recovery or unrelated files as ordinary source. Keep all file paths exact; don't open truncated names.
-- Server files: use the **existing authenticated standard list** to choose a remote destination, without rewriting signing/transport code. List selection must not publish or delete.
-- Publishing requires a fresh existence check and a **separate explicit create/replace confirmation** showing the effective local source and remote destination. API 1 has no atomic replace protection. Report server warnings and unknown outcomes without automatically retrying uploads.
+The implemented numbered menu provides local files, remote targets, Publish, Test and Exit. Publication requires a fresh existence check and explicit create/replace confirmation. API 1 has no atomic replacement protection; report warnings and uncertain outcomes without automatic retries.
 
-**Implementation status:** The numbered keyboard menu, confirmation and local file picker pass matching SD/USB cc65 fit/manifests and VICE startup/exit checks. Bounded REST-assisted real-C64U SD tests cover numbered source selection, source filtering, confirmation identities, create/replace/cancel, byte-exact independent-server readback, server-size refusal and invalid-key refusal. Physical keyboard, cold-power/interruption and real USB-only acceptance remain unverified. The keyboard server selector is implemented; its new controls await exact-package hardware acceptance. Optional mouse support is not implemented. See [Publisher UI](PUBLISHER.md) for concrete controls and [todo](../todo.md) for the only active implementation queue.
+Controls and validation limits live in [Publisher controls](PUBLISHER.md); remaining work lives only in [todo](../todo.md).
 
 **Download-to-edit is not part of the first release.** Publishing API 1 offers no authenticated source GET and list entries do not supply raw-source URLs. Consider a single safe new-file download only after confirming source access on an independent compatible host via C64U-supported HTTP and checking whether existing 8TML tooling already provides it. Never fetch rendered HTML as source, invent a proprietary API, silently downgrade HTTPS, overwrite an existing local file or make download a prerequisite for publishing.
 

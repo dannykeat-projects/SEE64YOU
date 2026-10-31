@@ -1,5 +1,7 @@
 # Self-hosted SEE64YOU site
 
+**Legacy component:** retained for existing installations and regression tests, outside the current product. Current Settings/Publisher do not use this service or relay. Instructions below apply only to legacy clients.
+
 The optional site is a PHP 8.1+ flat-file publishing service and a simple modern HTML presentation. No database, central account or JavaScript is required for ordinary public pages. It can be installed under your own domain. It is **not** a complete 8TML renderer or a T8WN API server.
 
 ## Setup

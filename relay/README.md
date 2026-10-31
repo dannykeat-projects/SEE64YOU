@@ -1,5 +1,7 @@
 # See64You secure local relay
 
+**Legacy component:** retained for existing installations and regression tests, outside the current product. Current Settings/Publisher do not use this service or relay. Instructions below apply only to legacy clients.
+
 The relay is an optional compatibility path for C64 Ultimate destinations that require HTTPS, including deferred WordPress use.
 
 The firmware-1.1 Standalone baseline publishes directly through Network Target $03 and does not require a relay.
