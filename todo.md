@@ -41,3 +41,4 @@ Save replacement/rollback, batched loading, resident reserve recovery and number
 The shared self-hosted runner is restricted to private repositories. SEE64YOU was last checked as public; verify visibility before enabling it. Preserve memory guards, manifests, exact hashes and restoration evidence. Mark gates passed / failed / blocked / unverified for their tested commit and inputs.
 
 - [x] Consolidate duplicated documentation and distinguish retained legacy components.
+- [x] Audit and retire obsolete branches: existing REU, Editor/link and responsiveness work is already incorporated or superseded; merge the documentation cleanup and retain recoverable historical commits without merging obsolete diagnostics or product paths.
