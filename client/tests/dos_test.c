@@ -274,6 +274,11 @@ int main(void)
     require(mock.bytes[0][1] == 0x16u, "create directory opcode");
 
     mock_reset();
+    mock.status = "83,NO SUCH DIRECTORY";
+    require(s64_dos_change_dir(&dos, "missing") == S64_DOS_NOT_FOUND,
+        "missing-directory status permits explicit first-save directory creation");
+
+    mock_reset();
     mock.status = "88,FILE NOT FOUND";
     require(
         s64_dos_open_read(&dos, "missing.s64") == S64_DOS_NOT_FOUND,

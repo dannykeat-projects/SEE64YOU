@@ -628,7 +628,7 @@ def main():
                         keys(b"D")
                     elif "EXIT TO BASIC? Y/N" in exit_screen:
                         keys(b"Y")
-                    elif "REU ERROR Y=EXIT" in exit_screen:
+                    elif "REU ERR" in exit_screen and "Y=EXIT" in exit_screen:
                         keys(b"Y")
                     elif "[0] EXIT TO BASIC" in exit_screen:
                         keys(b"0")

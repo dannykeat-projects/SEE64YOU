@@ -100,7 +100,7 @@ static S64UciResult mock_execute(
     if (opcode == 0x11u) {
         require(part_count == 2u, "change dir parts");
         if (part_equals(&parts[1], S64_PACKAGE_DOCUMENTS_DIRECTORY)) {
-            if (!docs_exists) { reply_status(reply, "88,FILE NOT FOUND"); return S64_UCI_OK; }
+            if (!docs_exists) { reply_status(reply, "83,NO SUCH DIRECTORY"); return S64_UCI_OK; }
             in_docs = 1u;
             ++docs_selected;
         } else {

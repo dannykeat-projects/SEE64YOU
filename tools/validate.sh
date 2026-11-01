@@ -52,6 +52,9 @@ if command -v python3 >/dev/null 2>&1; then
     echo "== Memory map guard tests =="
     python3 tools/tests/memory_map_test.py
 
+    echo "== C64U acceptance harness safety tests =="
+    python3 tools/tests/c64u_acceptance_harness_test.py
+
     echo "== Module manifest generator tests =="
     python3 tools/tests/module_manifest_generator_test.py
 
