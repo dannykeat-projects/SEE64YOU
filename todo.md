@@ -4,13 +4,14 @@ Scope: [Product](docs/PRODUCT.md). Procedures: [Testing](docs/LOCAL_TESTING.md).
 
 ## Current baseline
 
-Released alpha.6 uses the ten-file SYSTEM layout. Current main includes merged PR #72: ordinary documents use SEE64YOU/docs/; settings, keys, recovery and journals remain at the root. The folder change passed host regressions and SD/USB fit/manifests; matching VICE and hardware acceptance remains open.
+Alpha.7 uses the ten-file SYSTEM layout and stores ordinary documents in SEE64YOU/docs/; settings, keys, recovery and journals remain at the root. First Save handles the Ultimate missing-directory status and creates docs. Host regressions, SD/USB fit/manifests, matching VICE and bounded SD hardware acceptance pass; remaining gates are below.
 
 Save replacement/rollback, batched loading, resident reserve recovery and numbered selectors are implemented. Earlier receipts do not certify newer combined bytes or establish comparable loading gains. Alpha.6 exact-package network checks covered Settings and read-only Publisher; full uploads/failures remain unverified.
 
 ## Release acceptance
 
-- [ ] Verify missing/existing docs directories, Save As/open/overwrite, root recovery, Publisher picker/typed source and DOS restoration on backed-up C64U storage. Preserve root sources and recovery temporaries; no automatic migration. Re-run exact-package VICE startup and responsive BASIC return before release.
+- [x] Verify missing-docs first Save and subsequent saves/recovery, native Open/overwrite/rollback/collision failures, Publisher numbered/typed source and cancellation on backed-up C64U SD storage. Exact files, DOS contexts, settings, IRQ/turbo/colours and responsive BASIC are restored; only the test-created empty docs directory is removed. Matching SD/USB package VICE checks pass.
+- [ ] Complete shipping Editor Open/overwrite-prompt and Publisher pending-message visibility acceptance. Native storage checks do not certify those UI paths.
 - [ ] Complete exact-package Publisher status/list/create/replace/cancel, size/key/network failures and byte-exact independent-server readback. Verify source/target confirmation and full file/configuration/machine restoration; never retry uncertain writes automatically.
 - [ ] Verify physical keyboard/Link controls, numbered Settings/key import and remote paging/selection/cancellation. REST injection is separate evidence.
 - [ ] Test cold-power byte-exact reopen and permitted interruption/recovery on disposable data, preserving source, temporaries and machine state.
