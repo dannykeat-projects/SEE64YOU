@@ -66,6 +66,8 @@ For focused native storage checks, add `--storage-only`; this retains package re
 
 Use a matching `--package-dir`/`--storage-root` where needed. It stages and verifies a complete package, tests Editor create/save/recovery and a native local source/storage/fault probe, then restores original files and machine state. Check the receipt rather than inferring restoration. Remote key injection is **not** physical keyboard evidence; private receipts and storage backups must not be committed.
 
+Ordinary source fixtures use `docs/`; recovery stays at the root. The full gate also checks Publisher refusal when `docs/` is absent, numbered/typed local selection and cancellation without changing app files. It removes only a test-created empty `docs/` after restoration, preserving existing directories. Read-only REST monitoring retries are bounded; writes are never replayed. Publisher network/pending-message and physical-input acceptance remain separate.
+
 Before release acceptance, perform these additional checks and mark each **passed, failed, blocked or unverified**:
 
 1. Physical C64 and intended USB keyboard: New/Open/Save/Save As, editing responsiveness, help/menu/exit confirmation, and cursor/selection.
