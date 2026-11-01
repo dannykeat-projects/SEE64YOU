@@ -9,6 +9,7 @@
 #ifdef S64_REU_BUFFER
 #include "platform/reu.h"
 static uint8_t fake_reu[S64_BUFFER_CAPACITY];
+static unsigned int load_calls, fail_load;
 uint8_t s64_reu_store(uint8_t bank, uint16_t address, const void* source, uint16_t length)
 {
     if (bank != S64_REU_DOCUMENT_BANK || (unsigned long)address + length > sizeof(fake_reu)) return 0u;
@@ -17,6 +18,7 @@ uint8_t s64_reu_store(uint8_t bank, uint16_t address, const void* source, uint16
 }
 uint8_t s64_reu_load(uint8_t bank, uint16_t address, void* destination, uint16_t length)
 {
+    if (++load_calls == fail_load) return 0u;
     if (bank != S64_REU_DOCUMENT_BANK || (unsigned long)address + length > sizeof(fake_reu)) return 0u;
     memcpy(destination, fake_reu + address, length);
     return 1u;
@@ -180,6 +182,34 @@ int main(void)
     sink_calls = 0u;
     require(s64_document_write_wire(&document, collect, 0) == S64_DOCUMENT_INVALID_METADATA, "invalid edit rejected");
     require(sink_calls == 0u, "invalid source never reaches sink");
+#ifdef S64_REU_BUFFER
+    /* Fail each transfer of a known-good source, including validation header
+     * rescans and the streaming pass after validation has already succeeded. */
+    length = fixture("---\n8tml: 1\n---\n");
+    s64_document_wire_reader_init(&reader, &document);
+    require(s64_document_wire_reader_write(input, length, &reader), "read fault header");
+    for (i = length; i < 512u; ++i) require(s64_buffer_insert(&body, 'x'), "read fault body");
+    s64_buffer_find_byte(&body, 0u, 0u); /* Invalidate the character window. */
+    load_calls = 0u;
+    save();
+    split = load_calls;
+    require(split > 8u, "fault sweep includes streaming and validation");
+    for (i = 1u; i <= split; ++i) {
+        /* Reinitializing a descriptor deliberately resets the failed document. */
+        s64_buffer_init(&body);
+        body.gap_start = body.cursor = 512u;
+        s64_buffer_find_byte(&body, 0u, 0u);
+        load_calls = 0u; fail_load = i;
+        output_length = sink_calls = 0u;
+        require(s64_document_write_wire(&document, collect, 0) != S64_DOCUMENT_OK,
+            "every injected REU read failure rejects serialization");
+        require(s64_buffer_read_error(&body), "serialization retains REU fault");
+        require(output_length < 512u, "failed source never completes output");
+        fail_load = 0u;
+        require(s64_document_write_wire(&document, collect, 0) != S64_DOCUMENT_OK,
+            "successful transport retry cannot authorize a faulted document");
+    }
+#endif
 #ifdef __CC65__
     cprintf("8TML native tests passed\r\nX EXIT");
     while (cgetc() != 'x') {}

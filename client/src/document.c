@@ -583,7 +583,7 @@ static uint8_t source_valid(const S64Buffer* body)
         }
         start = end + 1u;
     }
-    return version_seen && header_closed;
+    return version_seen && header_closed && !s64_buffer_read_error(body);
 }
 
 void s64_document_wire_reader_init(S64DocumentWireReader* reader, S64Document* document)
@@ -664,6 +664,7 @@ S64DocumentResult s64_document_write_wire(
             ? S64_DOCUMENT_WIRE_CHUNK : (uint16_t)(length - offset);
         for (i = 0u; i < chunk; ++i)
             wire_chunk[i] = source_byte(document->body, offset + i);
+        if (s64_buffer_read_error(document->body)) return S64_DOCUMENT_SINK_ERROR;
         if (!sink(wire_chunk, chunk, context)) return S64_DOCUMENT_SINK_ERROR;
         offset += chunk;
     }

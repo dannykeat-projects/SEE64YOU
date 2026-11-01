@@ -25,6 +25,10 @@ make -C client independent-package
 
 `test_source_loading.py` checks 1/16/60 KiB exact normalized source, REU transfer bounds and EOF/capacity/failure handling. Its host counters exclude DOS, overlays, UI and C64 latency. Measure real-C64U end-to-end load time separately before claiming a speed improvement.
 
+`test_8tml.py` also injects REU read failures through validation, streaming output and both Save codec invocations, checking original disk bytes, closed handles and recovery-deletion refusal. The REU buffer/Editor host tests in `validate.sh` distinguish faults from EOF/not-found and exercise word-delete/cut callers. These are reported-failure tests, not silent DMA-corruption detection.
+
+Run `python3 tools/test_editor_performance.py --output client/build/editor-audit/profile.json` for 1/16/60 KB host REU counters, including first midpoint edit with the gap at EOF, 64/256/1,024-byte paste, undo and Save's two codec calls. The Save counter excludes DOS and recovery; host CPU time is not C64 latency. `test_editor_latency_vice.py --rom-dir LOCAL_ROM_DIRECTORY` records direct Editor jiffies, excluding shipping overlays, redraw and physical input. Keep full UI/hardware responsiveness acceptance open.
+
 Optional `--reference-tools PATH` in the 8TML scripts invokes the externally supplied 8TML 1 draft validator; it is not bundled pending licensing. Optional `--rom-dir PATH` enables cc65/PETSCII and VICE checks where supported. The legacy Publisher host test uses isolated PHP and remains a regression check for retained code. Standard transport tests and native protocol VICE tests exercise the replacement separately; neither proves real C64U networking or publisher UI. Validate strict source bytes, preserved unknown markup, JSON escaping, size bounds, authentication/replay, failed write/rename, collision refusal, draft privacy, state and identity handling.
 
 For related regressions and packaging, when relevant:

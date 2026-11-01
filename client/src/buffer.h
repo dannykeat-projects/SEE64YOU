@@ -26,6 +26,15 @@ void s64_buffer_init(S64Buffer* buffer);
 unsigned int s64_buffer_length(const S64Buffer* buffer);
 unsigned int s64_buffer_cursor(const S64Buffer* buffer);
 unsigned int s64_buffer_free(const S64Buffer* buffer);
+/* Sticky document-read failure; initializing the REU document clears it.
+ * Character/search fallback values must not authorize edits or serialization. */
+#ifdef S64_REU_BUFFER
+/* All REU buffer descriptors address the same physical document region. */
+extern unsigned char s64_buffer_read_failed;
+#define s64_buffer_read_error(buffer) s64_buffer_read_failed
+#else
+#define s64_buffer_read_error(buffer) 0u
+#endif
 unsigned char s64_buffer_char_at(const S64Buffer* buffer, unsigned int index);
 unsigned int s64_buffer_read(const S64Buffer* buffer, unsigned int start, unsigned char* output, unsigned int capacity);
 unsigned int s64_buffer_find_byte(const S64Buffer* buffer, unsigned int start, unsigned char value);

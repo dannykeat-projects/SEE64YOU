@@ -562,6 +562,8 @@ S64LocalResult s64_local_delete_recovery(S64LocalDocument* local)
     if (local == 0 || local->dos == 0) {
         return S64_LOCAL_INVALID_ARGUMENT;
     }
+    /* An edit may discover the fault during its final position/redraw scan. */
+    if (s64_buffer_read_error(local->document->body)) return S64_LOCAL_INVALID_DOCUMENT;
 
 #ifdef S64_DOCUMENT_8TML
     result = select_recovery_dir(local->dos);

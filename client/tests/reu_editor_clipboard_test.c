@@ -14,6 +14,7 @@
 static unsigned char fake_reu[TEST_REU_BANKS][TEST_REU_BANK_SIZE];
 static unsigned int fail_clipboard_read;
 static unsigned int fail_document_store;
+static unsigned int fail_document_read;
 
 uint8_t s64_reu_probe(void)
 {
@@ -52,6 +53,8 @@ uint8_t s64_reu_load(
     uint16_t length
 )
 {
+    if (bank == 0u && address < S64_BUFFER_CAPACITY && fail_document_read
+        && --fail_document_read == 0u) return 0u;
     if (bank == 1u && address < S64_CLIPBOARD_CAPACITY && fail_clipboard_read
         && --fail_clipboard_read == 0u) {
         return 0u;
@@ -164,6 +167,21 @@ int main(void)
     require(s64_buffer_length(&editor.buffer) == 0u, "failed replacement preserves current bytes");
     require(!s64_editor_undo(&editor), "failed replacement discards unreliable history");
 
+    s64_editor_init(&editor);
+    require(s64_buffer_append(&editor.buffer, (const unsigned char*)"one two", 7u),
+        "word deletion read-fault fixture");
+    fail_document_read = 1u;
+    require(!s64_editor_delete_previous_word(&editor), "failed word scan refuses deletion");
+    require(s64_buffer_read_error(&editor.buffer)
+        && s64_buffer_length(&editor.buffer) == 7u
+        && !memcmp(fake_reu[0], "one two", 7u), "word scan failure preserves source");
+    s64_editor_init(&editor);
+    require(s64_buffer_append(&editor.buffer, (const unsigned char*)"one two", 7u), "cut fixture");
+    s64_editor_select_all(&editor);
+    fail_document_read = 1u;
+    require(!s64_editor_cut(&editor, &clipboard), "failed copy refuses cut");
+    require(clipboard.length == 0u && s64_buffer_length(&editor.buffer) == 7u,
+        "failed cut retains source and exposes no partial clipboard");
     puts("REU editor clipboard tests passed");
     return 0;
 }

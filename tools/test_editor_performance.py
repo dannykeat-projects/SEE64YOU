@@ -23,12 +23,29 @@ HARNESS = r'''
 #include <time.h>
 #include "editor.h"
 #include "clipboard.h"
+#include "document.h"
 #include "platform/reu.h"
 
 static unsigned char memory[2][65536];
 static unsigned long loads, stores, loaded, stored;
 static S64Editor editor;
 static S64Clipboard clipboard;
+static S64Document document;
+static unsigned int output_bytes;
+
+static uint8_t count_output(const uint8_t* data, uint16_t length, void* context)
+{
+    (void)context;
+    assert(memcmp(memory[0] + output_bytes, data, length) == 0);
+    output_bytes += length;
+    return 1;
+}
+
+static uint8_t discard_output(const uint8_t* data, uint16_t length, void* context)
+{
+    (void)data; (void)length; (void)context;
+    return 1;
+}
 
 uint8_t s64_reu_probe(void) { return 1; }
 uint16_t s64_reu_probe_banks(void) { return 2; }
@@ -71,11 +88,12 @@ int main(void)
     static const char* names[] = {
         "insert_midpoint", "backspace_midpoint", "move_right_midpoint",
         "end_of_line_midpoint", "goto_last_line", "copy_all",
-        "paste_64_midpoint", "undo_insert_midpoint"
+        "paste_64_midpoint", "undo_insert_midpoint", "paste_256_midpoint",
+        "undo_paste_256_midpoint", "paste_1024_midpoint", "save_codec_two_writes"
     };
     unsigned int n, lines, operation;
     for (n = 0; n < 3u; ++n) for (lines = 0; lines < 2u; ++lines)
-    for (operation = 0; operation < 8u; ++operation) {
+    for (operation = 0; operation < 12u; ++operation) {
         unsigned int size = sizes[n];
         unsigned int before;
         clock_t started;
@@ -83,9 +101,21 @@ int main(void)
         int ok = 1;
         fixture(size, lines);
         if (operation == 5u) s64_editor_select_all(&editor);
-        if (operation == 6u) {
-            memset(memory[1], 'p', 64u);
-            clipboard.length = 64u;
+        if (operation == 6u || operation == 8u || operation == 9u || operation == 10u) {
+            clipboard.length = operation == 6u ? 64u : operation == 10u ? 1024u : 256u;
+            memset(memory[1], 'p', clipboard.length);
+        }
+        if (operation == 9u) {
+            assert(s64_editor_paste(&editor, &clipboard));
+            s64_editor_mark_saved(&editor);
+        }
+        if (operation == 11u) {
+            static const char header[] = "---\n8tml: 1\n---\n";
+            memcpy(memory[0], header, sizeof(header) - 1u);
+            s64_buffer_init(&editor.buffer);
+            editor.buffer.gap_start = size;
+            s64_document_init(&document, &editor.buffer);
+            output_bytes = 0u;
         }
         if (operation == 7u) {
             assert(s64_editor_insert(&editor, 'x'));
@@ -103,6 +133,13 @@ int main(void)
             case 5: ok = s64_editor_copy(&editor, &clipboard); break;
             case 6: ok = s64_editor_paste(&editor, &clipboard); break;
             case 7: ok = s64_editor_undo(&editor); break;
+            case 8: case 10: ok = s64_editor_paste(&editor, &clipboard); break;
+            case 9: ok = s64_editor_undo(&editor); break;
+            case 11:
+                /* Match local.c preflight plus serialization, excluding DOS. */
+                ok = s64_document_write_wire(&document, discard_output, 0) == S64_DOCUMENT_OK
+                    && s64_document_write_wire(&document, count_output, 0) == S64_DOCUMENT_OK;
+                break;
         }
         seconds = (double)(clock() - started) / CLOCKS_PER_SEC;
         assert(ok);
@@ -112,9 +149,17 @@ int main(void)
             assert(s64_buffer_length(&editor.buffer) == before - 1u);
         if (operation == 5u) assert(clipboard.length == size);
         if (operation == 6u) assert(s64_buffer_length(&editor.buffer) == before + 64u);
+        if (operation == 8u) assert(s64_buffer_length(&editor.buffer) == before + 256u);
+        if (operation == 9u) assert(s64_buffer_length(&editor.buffer) == before - 256u);
+        if (operation == 10u) {
+            assert(s64_buffer_length(&editor.buffer) == before + 1024u);
+        }
+        if (operation == 11u) assert(output_bytes == size);
         printf("%u,%s,%s,%lu,%lu,%lu,%lu,%.9f\n", size,
             lines ? "lines_40_columns" : "single_long_line", names[operation],
             loads, stores, loaded, stored, seconds);
+        if (operation == 10u)
+            assert(!s64_editor_undo(&editor)); /* Existing history payload limit. */
     }
     return 0;
 }
@@ -131,7 +176,8 @@ def main():
     binary = BUILD / "editor-io-scaling"
     source.write_text(HARNESS)
     production_sources = ["client/src/buffer_reu.c", "client/src/clipboard.c",
-                          "client/src/history_reu.c", "client/src/editor.c"]
+                          "client/src/history_reu.c", "client/src/editor.c",
+                          "client/src/document.c", "client/src/charset.c"]
     source_hashes = {}
     private_sources = []
     for name in production_sources:
@@ -142,7 +188,7 @@ def main():
         private.write_bytes(content)
         private_sources.append(str(private))
     subprocess.run([args.cc, "-std=c99", "-Wall", "-Wextra", "-Werror",
-                    "-DS64_REU_BUFFER=1", "-Iclient/src", str(source),
+                    "-DS64_REU_BUFFER=1", "-DS64_INDEPENDENT_EDITOR=1", "-Iclient/src", str(source),
                     *private_sources, "-o", str(binary)],
                    cwd=ROOT, check=True)
     result = subprocess.run([str(binary)], cwd=ROOT, text=True, capture_output=True,
@@ -154,10 +200,12 @@ def main():
                          reu_load_calls=int(loads), reu_store_calls=int(stores),
                          reu_loaded_bytes=int(loaded), reu_stored_bytes=int(stored),
                          host_cpu_seconds=float(seconds)))
-    assert len(rows) == 48
+    assert len(rows) == 72
     report = {"measurement": "host REU I/O counters; not latency or C64 cycles",
               "scope": "production direct Editor functions; excludes shipping overlay/UI",
               "fixture": "midpoint cursor, gap at EOF, word wrap on; setup and position caches excluded",
+              "save_scope": "Production codec called twice as in local.c; excludes DOS probes, writes, rename, recovery and shipping UI",
+              "history_limit": "256-byte paste can be undone; 1024-byte paste clears history by existing contract",
               "host_abi": "metadata sizes follow the host ABI and differ from cc65",
               "timing": "host process CPU time for one operation; resolution CLOCKS_PER_SEC; not C64 latency",
               "production_source_sha256": source_hashes,
