@@ -32,6 +32,12 @@ def main():
         "-Iclient/src", "client/tests/8tml_local_test.c", *common,
         "client/src/platform/dos.c", "client/src/storage/local.c", "-o", str(binary))
     run(str(binary))
+    binary = BUILD / "reu-local-test"
+    run("cc", "-std=c99", "-Wall", "-Wextra", "-Werror", "-DS64_INDEPENDENT_EDITOR=1",
+        "-DS64_REU_BUFFER=1", "-Iclient/src", "client/tests/8tml_local_test.c",
+        "client/src/buffer_reu.c", *common[1:], "client/src/platform/dos.c",
+        "client/src/storage/local.c", "-o", str(binary))
+    run(str(binary))
     binary = BUILD / "reu-document-test"
     run("cc", "-std=c99", "-Wall", "-Wextra", "-Werror", "-DS64_INDEPENDENT_EDITOR=1",
         "-DS64_REU_BUFFER=1", "-Iclient/src", "client/tests/8tml_document_test.c",

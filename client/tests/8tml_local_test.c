@@ -6,6 +6,21 @@
 #include "platform/dos.h"
 #include "platform/package_paths.h"
 #include "storage/local.h"
+#ifdef S64_REU_BUFFER
+#include "platform/reu.h"
+static uint8_t reu[S64_BUFFER_CAPACITY];
+static unsigned int load_calls, fail_load;
+uint8_t s64_reu_store(uint8_t bank, uint16_t address, const void* data, uint16_t length)
+{
+    (void)bank; memcpy(reu + address, data, length); return 1u;
+}
+uint8_t s64_reu_load(uint8_t bank, uint16_t address, void* data, uint16_t length)
+{
+    (void)bank;
+    if (++load_calls == fail_load) return 0u;
+    memcpy(data, reu + address, length); return 1u;
+}
+#endif
 
 #define FILE_CAPACITY 10000u
 
@@ -85,7 +100,7 @@ static S64UciResult mock_execute(
     if (opcode == 0x11u) {
         require(part_count == 2u, "change dir parts");
         if (part_equals(&parts[1], S64_PACKAGE_DOCUMENTS_DIRECTORY)) {
-            if (!docs_exists) { reply_status(reply, "88,FILE NOT FOUND"); return S64_UCI_OK; }
+            if (!docs_exists) { reply_status(reply, "83,NO SUCH DIRECTORY"); return S64_UCI_OK; }
             in_docs = 1u;
             ++docs_selected;
         } else {
@@ -287,6 +302,9 @@ int main(void)
     unsigned char recovery_exists;
     char boundary[S64_LOCAL_FILENAME_CAPACITY];
     unsigned int stem_length = S64_LOCAL_FILENAME_CAPACITY - sizeof(".8tml");
+#ifdef S64_REU_BUFFER
+    unsigned int failure, save_loads, roots;
+#endif
 
     s64_dos_init(&dos, mock_execute, S64_DOS_TARGET_PRIMARY);
     s64_buffer_init(&body);
@@ -480,6 +498,28 @@ int main(void)
     set_file("/sd/SEE64YOU/path.8tml", source);
     require(s64_local_open(&local, "/sd/SEE64YOU/path", 1u) == S64_LOCAL_OK,
         "absolute basename opens on explicit volume");
+#ifdef S64_REU_BUFFER
+    s64_buffer_find_byte(&body, 0u, 0u);
+    load_calls = 0u;
+    require(s64_local_save(&local) == S64_LOCAL_OK, "fault sweep baseline saves");
+    save_loads = load_calls;
+    saved_checksum = file_checksum(); saved_length = file_length;
+    require(save_loads > 4u, "save sweep covers both writer invocations");
+    for (failure = 1u; failure <= save_loads; ++failure) {
+        require(s64_local_open(&local, "/sd/SEE64YOU/path.8tml", 1u) == S64_LOCAL_OK,
+            "restore disk source before fault");
+        s64_buffer_find_byte(&body, 0u, 0u);
+        load_calls = 0u; fail_load = failure;
+        require(s64_local_save(&local) != S64_LOCAL_OK, "reported REU fault prevents save");
+        require(s64_buffer_read_error(&body) && file_length == saved_length
+            && file_checksum() == saved_checksum && !backup_exists
+            && !temporary_exists && !open_mode, "read fault leaves original exact and handles closed");
+        roots = root_selected;
+        require(s64_local_delete_recovery(&local) == S64_LOCAL_INVALID_DOCUMENT
+            && roots == root_selected, "fault blocks recovery deletion before DOS access");
+        fail_load = 0u;
+    }
+#endif
     puts("8TML local document tests passed");
     return 0;
 }

@@ -783,6 +783,12 @@ int main(void)
 #endif
 
     while (running) {
+        if (s64_buffer_read_error(&editor.buffer)) {
+            /* Do not save, discard recovery, or act on positions derived from
+             * missing REU bytes. Leave the document and disk copies intact. */
+            if (s64_ui_prompt_yes_no("REU ERR Y=exit")) break;
+            continue;
+        }
         if (!s64_input_read(&input, 0u)) {
             continue;
         }

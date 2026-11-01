@@ -13,6 +13,16 @@ static unsigned char reu_insert_value;
 static const S64Buffer* reu_window_owner;
 static unsigned int reu_window_start;
 static unsigned char reu_window_length;
+/* The runtime has one REU document and one shared read window. */
+unsigned char s64_buffer_read_failed;
+
+/* Publisher loads with append; it has no callers of the editing primitives.
+ * Keep its existing read-only build's scarce resident space for serialization. */
+#ifdef S64_STORAGE_READ_ONLY
+#define edit_read_error(buffer) 0u
+#else
+#define edit_read_error(buffer) s64_buffer_read_error(buffer)
+#endif
 
 static void invalidate_window(const S64Buffer* buffer)
 {
@@ -124,6 +134,7 @@ static unsigned char load_window(
             reu_window,
             (uint16_t)count
         )) {
+        s64_buffer_read_failed = 1u;
         reu_window_owner = 0;
         reu_window_length = 0u;
         return 0u;
@@ -137,6 +148,7 @@ static unsigned char load_window(
 
 void s64_buffer_init(S64Buffer* buffer)
 {
+    s64_buffer_read_failed = 0u;
     buffer->gap_start = 0u;
     buffer->gap_end = S64_BUFFER_CAPACITY;
     buffer->cursor = 0u;
@@ -216,7 +228,7 @@ unsigned int s64_buffer_read(
                 output,
                 (uint16_t)first
             )) {
-            return 0u;
+            goto read_failed;
         }
 
         if (first < count
@@ -226,7 +238,7 @@ unsigned int s64_buffer_read(
                 output + first,
                 (uint16_t)(count - first)
             )) {
-            return 0u;
+            goto read_failed;
         }
     } else if (!s64_reu_load(
             S64_REU_DOCUMENT_BANK,
@@ -234,10 +246,14 @@ unsigned int s64_buffer_read(
             output,
             (uint16_t)count
         )) {
-        return 0u;
+        goto read_failed;
     }
 
     return count;
+
+read_failed:
+    s64_buffer_read_failed = 1u;
+    return 0u;
 }
 
 unsigned int s64_buffer_find_byte(
@@ -288,7 +304,7 @@ int s64_buffer_move_cursor(S64Buffer* buffer, unsigned int position)
 
 int s64_buffer_insert(S64Buffer* buffer, unsigned char value)
 {
-    if (buffer->gap_start == buffer->gap_end) {
+    if (edit_read_error(buffer) || buffer->gap_start == buffer->gap_end) {
         return 0;
     }
     if (buffer->gap_start != buffer->cursor
@@ -314,7 +330,7 @@ int s64_buffer_insert(S64Buffer* buffer, unsigned char value)
 
 int s64_buffer_append(S64Buffer* buffer, const unsigned char* data, unsigned int length)
 {
-    if (buffer == 0 || buffer->gap_end != S64_BUFFER_CAPACITY
+    if (s64_buffer_read_error(buffer) || buffer == 0 || buffer->gap_end != S64_BUFFER_CAPACITY
         || buffer->cursor != buffer->gap_start) return 0;
     if (length == 0u) return 1;
     if (data == 0 || length > s64_buffer_free(buffer)) return 0;
@@ -328,7 +344,7 @@ int s64_buffer_append(S64Buffer* buffer, const unsigned char* data, unsigned int
 
 int s64_buffer_backspace(S64Buffer* buffer)
 {
-    if (buffer->cursor == 0u) {
+    if (edit_read_error(buffer) || buffer->cursor == 0u) {
         return 0;
     }
     if (buffer->gap_start != buffer->cursor
@@ -344,7 +360,7 @@ int s64_buffer_backspace(S64Buffer* buffer)
 
 int s64_buffer_delete(S64Buffer* buffer)
 {
-    if (buffer->cursor >= s64_buffer_length(buffer)) {
+    if (edit_read_error(buffer) || buffer->cursor >= s64_buffer_length(buffer)) {
         return 0;
     }
     if (buffer->gap_start != buffer->cursor
@@ -365,7 +381,7 @@ int s64_buffer_delete_range(
 {
     unsigned int length = s64_buffer_length(buffer);
 
-    if (start > end || end > length) {
+    if (edit_read_error(buffer) || start > end || end > length) {
         return 0;
     }
 

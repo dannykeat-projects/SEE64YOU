@@ -9,6 +9,7 @@
 static unsigned char fake_reu[S64_BUFFER_CAPACITY];
 static unsigned long reu_loads;
 static unsigned long reu_stores;
+static unsigned long fail_load;
 
 uint8_t s64_reu_probe(void)
 {
@@ -45,6 +46,7 @@ uint8_t s64_reu_load(
 )
 {
     ++reu_loads;
+    if (reu_loads == fail_load) return 0u;
     if (bank != 0u || destination == 0
         || (unsigned long)address + length > S64_BUFFER_CAPACITY) {
         return 0u;
@@ -157,6 +159,38 @@ int main(void)
     require(s64_buffer_char_at(&buffer, 41u) == (unsigned char)((40u % 251u) + 1u), "left overlap keeps following byte");
     require(s64_buffer_char_at(&buffer, 261u) == 0xfeu, "left overlap preserves earlier inserted marker");
 
+    /* A transient read fault must remain distinguishable from EOF/not-found,
+     * and must not permit a subsequent edit using a bogus navigation result. */
+    s64_buffer_init(&buffer);
+    require(s64_buffer_append(&buffer, (const unsigned char*)"A\nB", 3u), "fault fixture");
+    require(s64_buffer_char_at(&buffer, 3u) == 0u
+        && !s64_buffer_read_error(&buffer), "ordinary EOF is not a read fault");
+    fail_load = reu_loads + 1u;
+    require(s64_buffer_char_at(&buffer, 1u) == 0u, "inject character read failure");
+    require(s64_buffer_read_error(&buffer), "character fallback carries sticky fault");
+    fail_load = 0u;
+    require(!s64_buffer_insert(&buffer, 'X')
+        && !s64_buffer_backspace(&buffer)
+        && !s64_buffer_delete(&buffer)
+        && !s64_buffer_delete_range(&buffer, 0u, 1u)
+        && !s64_buffer_append(&buffer, (const unsigned char*)"X", 1u),
+        "read failure blocks every content mutation");
+    require(s64_buffer_length(&buffer) == 3u, "blocked edits preserve length");
+    require(s64_buffer_read(&buffer, 0u, readback, 3u) == 3u
+        && s64_buffer_read_error(&buffer), "successful retry cannot clear sticky failure");
+    s64_buffer_init(&buffer);
+    require(!s64_buffer_read_error(&buffer), "explicit initialization clears fault");
+    require(s64_buffer_append(&buffer, (const unsigned char*)"A\nB", 3u), "search fault fixture");
+    fail_load = reu_loads + 1u;
+    require(s64_buffer_find_byte(&buffer, 0u, '\n') == 3u
+        && s64_buffer_read_error(&buffer), "search failure is distinct from not-found");
+    s64_buffer_init(&buffer);
+    fail_load = 0u;
+    require(s64_buffer_append(&buffer, (const unsigned char*)"ABC", 3u), "split fault fixture");
+    require(s64_buffer_move_cursor(&buffer, 1u) && s64_buffer_insert(&buffer, 'X'), "split gap");
+    fail_load = reu_loads + 2u;
+    require(s64_buffer_read(&buffer, 0u, readback, 4u) == 0u
+        && s64_buffer_read_error(&buffer), "second half of split read latches failure");
     puts("REU buffer tests passed");
     return 0;
 }

@@ -75,7 +75,9 @@ static S64DosResult map_status(const char* status, uint16_t length)
         if (length >= 2u) {
             if ((status[0] == '0' && status[1] == '1')
                 || (status[0] == '8'
-                    && (status[1] == '2' || status[1] == '8')))
+                    /* 82/83: missing file/directory; 88: file not found.
+                     * The shared 82/83 comparison preserves native fit. */
+                    && ((status[1] & 0xfeu) == '2' || status[1] == '8')))
                 return S64_DOS_NOT_FOUND;
             if (status[0] == '8' && status[1] == '5')
                 return S64_DOS_NO_FILE_OPEN;

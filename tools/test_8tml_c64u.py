@@ -126,8 +126,16 @@ def main():
         url = "http://" + args.host + "/v1/" + path
         if query:
             url += "?" + urllib.parse.urlencode(query)
-        with urllib.request.urlopen(urllib.request.Request(url, method=method), timeout=12) as reply:
-            return reply.read()
+        for attempt in range(3 if method == "GET" else 1):
+            try:
+                with urllib.request.urlopen(urllib.request.Request(url, method=method), timeout=12) as reply:
+                    return reply.read()
+            except (TimeoutError, urllib.error.URLError) as error:
+                if method != "GET" or attempt == 2 or isinstance(error, urllib.error.HTTPError):
+                    raise
+                state.setdefault("api_read_retries", []).append({"path": path, "error": repr(error)})
+                save()
+                time.sleep(.5)
 
     def mem(address, length):
         return api("machine:readmem", address=f"{address:04X}", length=length)
@@ -266,6 +274,11 @@ def main():
         p.rstrip("/").rsplit("/", 1)[-1].upper() == "SYSTEM" for p in ftp.nlst(folder))
     state["system_existed"] = bool(system_existed)
     state["created_system"] = False
+    docs_dir = folder + "/docs"
+    docs_existed = folder_existed and any(
+        p.rstrip("/").rsplit("/", 1)[-1].lower() == "docs" for p in ftp.nlst(folder))
+    state["docs_existed"] = bool(docs_existed)
+    state["created_docs"] = False
     protected_sd = None
     protected_sd_roots = None
     protected_sd_folder_existed = False
@@ -335,6 +348,16 @@ def main():
         wait("Save as:", basename + "-save-prompt")
         keys(native(basename) + b"\r")
         exitcheck(basename + "-exit")
+
+    def ensure_docs():
+        # Let the first shipping Editor save exercise missing-directory creation.
+        # Native-only fixtures need their input directory before FTP staging.
+        if not any(p.rstrip("/").rsplit("/", 1)[-1].lower() == "docs"
+                   for p in ftp.nlst(folder)):
+            ftp.mkd(docs_dir)
+        if not docs_existed:
+            state["created_docs"] = True
+            save()
 
     try:
         state["staged"] = True
@@ -414,6 +437,15 @@ def main():
             assert fetch(folder + "/SEE64YOU.CFG") == stored
             mark("standard-settings-key-replacement-default-http-and-numbered-cancel-preserves-disk")
         elif not args.storage_only:
+            if not docs_existed:
+                launch("S64PUB.PRG", "[0] EXIT TO BASIC")
+                keys(b"1")
+                wait("docs/ missing; save in Editor first", "publisher-missing-docs")
+                assert not any(p.rstrip("/").rsplit("/", 1)[-1].lower() == "docs"
+                               for p in ftp.nlst(folder)), "Publisher created docs"
+                keys(b"0")
+                exitcheck("publisher-missing-docs-exit")
+                mark("shipping-publisher-missing-docs-refusal-without-creation")
             launch("SEE64YOU.PRG", "FILE EDIT SEARCH FORMAT")
             assert "PUB" not in screen("editor-header")[:40], "Independent Editor still exposes PUB"
             keys(b"\x8c")  # Native F8.
@@ -473,7 +505,7 @@ def main():
                 time.sleep(1)
             mark("shipping-editor-no-background-autosave-after-35-seconds")
             save_exit("T8EDIT")
-            saved = fetch(folder + "/T8EDIT.8tml")
+            saved = fetch(docs_dir + "/T8EDIT.8tml")
             assert saved == EMPTY + b"Hardware 8TML.\n", repr(saved)
             (out / "editor-created.8tml").write_bytes(saved)
             mark("shipping-editor-create-body-save-basename-exact-source")
@@ -483,17 +515,18 @@ def main():
             wait("Recovered snapshot", "editor-recovered")
             keys(b"\x11" * 4 + native("Updated "))
             save_exit("T8EDIT2")
-            resaved = fetch(folder + "/T8EDIT2.8tml")
+            resaved = fetch(docs_dir + "/T8EDIT2.8tml")
             assert resaved == EMPTY + b"Updated Hardware 8TML.\n", repr(resaved)
             (out / "editor-recovered-edited.8tml").write_bytes(resaved)
             mark("shipping-editor-recovery-reopen-edit-save-exact-source")
         if not args.settings_only:
-            put(folder + "/T8IN.8tml", SOURCE)
+            ensure_docs()
+            put(docs_dir + "/T8IN.8tml", SOURCE)
             if args.large_source:
-                put(folder + "/T8LARGE.8tml", LARGE)
-            put(folder + "/T8BAD.8tml", EMPTY + b"bad\x80input")
+                put(docs_dir + "/T8LARGE.8tml", LARGE)
+            put(docs_dir + "/T8BAD.8tml", EMPTY + b"bad\x80input")
             for label, source in benchmark_sources.items():
-                put(folder + "/T8LOAD" + label + ".8tml", source)
+                put(docs_dir + "/T8LOAD" + label + ".8tml", source)
             launch("T8PROBE.PRG", "C CAPTURE T TEST R RESTORE")
             keys(b"T")
             wait("8TML STORAGE TESTS PASSED", "native-storage-tests",
@@ -510,8 +543,8 @@ def main():
                     assert int.from_bytes(raw[offset:offset + 2], "little") == len(source)
                     ticks = [int.from_bytes(raw[offset + 2 + op * 4:offset + 6 + op * 4], "little")
                              for op in range(3)]
-                    assert fetch(folder + "/T8LOAD" + label + ".8tml") == source
-                    assert fetch(folder + "/T8SAVE" + label + ".8tml") == source
+                    assert fetch(docs_dir + "/T8LOAD" + label + ".8tml") == source
+                    assert fetch(docs_dir + "/T8SAVE" + label + ".8tml") == source
                     rows.append({"bytes": len(source), "open_ticks": ticks[0],
                                  "save_as_new_ticks": ticks[1], "reopen_ticks": ticks[2],
                                  "source_sha256": hashlib.sha256(source).hexdigest()})
@@ -521,21 +554,53 @@ def main():
                 mark("native-DOS-source-1-16-60-KiB-exact-readback-and-clock-ticks")
             exitcheck("native-storage-probe-exit")
             expected = SOURCE.replace(b"\r\n", b"\n") + b"Hardware edit.\n!"
-            assert fetch(folder + "/T8COPY.8tml.tmp") == expected
-            assert fetch(folder + "/T8COPY.8tml") == expected[:-1]
+            assert fetch(docs_dir + "/T8COPY.8tml.tmp") == expected
+            assert fetch(docs_dir + "/T8COPY.8tml") == expected[:-1]
             assert not any(path.rsplit("/", 1)[-1].upper() == "T8COPY.8TML.BAK"
                            for path in inventory(folder))
             mark("native-save-original-restored-and-temp-backup-collisions-preserve-exact-bytes")
-            assert fetch(folder + "/T8RECOVER.8tml") == expected
-            assert fetch(folder + "/T8EMPTY.8tml") == EMPTY
-            assert fetch(folder + "/" + "x" * 28 + ".8tml") == EMPTY
-            assert fetch(folder + "/T8IN.8tml") == SOURCE
-            assert fetch(folder + "/T8BAD.8tml") == EMPTY + b"bad\x80input"
+            assert fetch(docs_dir + "/T8RECOVER.8tml") == expected
+            assert fetch(docs_dir + "/T8EMPTY.8tml") == EMPTY
+            assert fetch(docs_dir + "/" + "x" * 28 + ".8tml") == EMPTY
+            assert fetch(docs_dir + "/T8IN.8tml") == SOURCE
+            assert fetch(docs_dir + "/T8BAD.8tml") == EMPTY + b"bad\x80input"
             if args.large_source:
-                assert fetch(folder + "/T8MAXCOPY.8tml") == LARGE
+                assert fetch(docs_dir + "/T8MAXCOPY.8tml") == LARGE
                 mark("native-real-DOS-61440-byte-open-save-reopen-exact-source")
             (out / "native-storage-recovered.8tml").write_bytes(expected)
             mark("native-real-DOS-open-edit-save-metadata-CRLF-empty-filename-limit-injected-fault-recovery")
+            if not args.storage_only:
+                before_picker = inventory(folder)
+                launch("S64PUB.PRG", "[0] EXIT TO BASIC")
+                keys(b"1")
+                page = wait("[7] TYPE NAME", "publisher-docs-picker")
+                for number in range(4):
+                    row = re.search(r"\[([1-6])\] (T8(?:EDIT2?|EMPTY|COPY|RECOVER)\.8TML)", page)
+                    if row:
+                        break
+                    assert "NEXT PAGE AVAILABLE" in page, "Disposable source missing from docs picker"
+                    keys(b"9")
+                    page = wait("[7] TYPE NAME", f"publisher-docs-page-{number + 1}")
+                assert row, "Disposable source outside bounded picker pages"
+                keys(row.group(1).encode("ascii"))
+                loaded_screen = wait("Local .8TML loaded", "publisher-numbered-source", timeout=300)
+                assert row.group(2) in loaded_screen
+                keys(b"1")
+                wait("[7] TYPE NAME", "publisher-typed-picker")
+                keys(b"7")
+                wait("OPEN .8TML:", "publisher-typed-prompt")
+                keys(native("T8IN") + b"\r")
+                wait("Local .8TML loaded", "publisher-typed-source", timeout=300)
+                assert "T8IN.8TML" in screen("publisher-typed-source-identity")
+                keys(b"1")
+                wait("[7] TYPE NAME", "publisher-cancel-picker")
+                keys(b"0")
+                cancelled = wait("[0] EXIT TO BASIC", "publisher-cancel-keeps-source")
+                assert "T8IN.8TML" in cancelled
+                keys(b"0")
+                exitcheck("publisher-docs-local-exit")
+                assert inventory(folder) == before_picker, "Read-only Publisher changed app files"
+                mark("shipping-publisher-docs-numbered-typed-cancel-source-and-files-preserved")
             if args.reference_tools:
                 sources = [out / "native-storage-recovered.8tml"]
                 if not args.storage_only:
@@ -563,6 +628,10 @@ def main():
                         keys(b"D")
                     elif "EXIT TO BASIC? Y/N" in exit_screen:
                         keys(b"Y")
+                    elif "REU ERR" in exit_screen and "Y=EXIT" in exit_screen:
+                        keys(b"Y")
+                    elif "[0] EXIT TO BASIC" in exit_screen:
+                        keys(b"0")
                 basic("failure-basic")
             except Exception as error:
                 state["exit_error"] = repr(error)
@@ -595,6 +664,15 @@ def main():
                 for path, data in originals.items():
                     put(path, data)
                 assert (inventory(folder) if folder_existed or state["created_folder"] else {}) == originals
+                # A failed first Editor save can create docs before ensure_docs
+                # runs. Remove only a new empty directory after file restoration.
+                if not docs_existed and any(
+                        p.rstrip("/").rsplit("/", 1)[-1].lower() == "docs"
+                        for p in ftp.nlst(folder)):
+                    state["created_docs"] = True
+                    ftp.cwd(folder)
+                    ftp.rmd(docs_dir)
+                    state["created_docs_removed"] = True
                 if state["created_system"]:
                     ftp.cwd(folder)
                     ftp.rmd(system_dir)
