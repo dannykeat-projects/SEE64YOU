@@ -12,7 +12,7 @@ static const uint8_t source[]="---\n8tml: 1\n---\n# Hello\n";
 static unsigned visited;
 /* Fake clock: each empty READ takes one second, so the idle limit expires at once. */
 static clock_t fake_now;
-static unsigned idle_polls;
+static unsigned idle_polls, data_reads;
 clock_t clock(void) { return fake_now; }
 static void visit_file(const char* name, uint32_t size)
 {
@@ -68,7 +68,7 @@ S64NetResult s64_net_read(S64NetTransport* t,uint8_t handle,uint16_t maximum,S64
    else if(scenario==2) reply("status: ok\napi: 1\nauth: hmac https\nmax-size: 1\n",200u);
    else if(scenario==3) reply("status: ok\napi: 1\napi: 1\nauth: hmac\nmax-size: 61440\n",200u);
    else if(scenario==8 || scenario==10) snprintf(response,sizeof(response),"HTTP/1.0 200 OK\r\n\r\nstatus: ok\napi: 1\nauth: hmac\nmax-size: 61440%s",scenario==10?"":"\n");
-   else if(scenario==9) snprintf(response,sizeof(response),"HTTP/1.0 200 OK\r\nContent-Length: 100\r\n\r\nstatus: ok\napi: 1\nauth: hmac\nmax-size: 61440\n");
+   else if(scenario==9 || scenario==19) snprintf(response,sizeof(response),"HTTP/1.0 200 OK\r\nContent-Length: 100\r\n\r\nstatus: ok\napi: 1\nauth: hmac\nmax-size: 61440\n");
    else reply("status: ok\napi: 1\nauth: hmac https\nmax-size: 61440\n",200u);
   } else if(strstr(request,"?op=challenge&")) {
    assert(strstr(request,"Content-Length: 0\r\n"));
@@ -96,6 +96,8 @@ S64NetResult s64_net_read(S64NetTransport* t,uint8_t handle,uint16_t maximum,S64
    else reply("status: ok\nname: index.8tml\nsize: 24\nurl: http://example.test/index.8tml\n",200u);
   }
  }
+ if(scenario==19 && data_reads>=5u) { *received=0u; ++idle_polls; fake_now+=CLOCKS_PER_SEC; return S64_NET_NO_DATA; }
+ if(scenario==19) { ++data_reads; fake_now+=10u*CLOCKS_PER_SEC; }
  if(scenario==11) { *received=0u; ++idle_polls; fake_now+=CLOCKS_PER_SEC; return S64_NET_NO_DATA; }
  amount=(unsigned)strlen(response)-response_offset;
  if(amount>7u) amount=7u; /* Fragment headers and body across arbitrary bytes. */
@@ -133,6 +135,8 @@ int main(void)
  reset(9); assert(s64_standard_status(&client,&result)==S64_STANDARD_PROTOCOL); assert(opens==closes);
  reset(10); assert(s64_standard_status(&client,&result)==S64_STANDARD_PROTOCOL); assert(opens==closes);
  reset(11); idle_polls=0u; assert(s64_standard_status(&client,&result)==S64_STANDARD_PROTOCOL); assert(idle_polls==S64_NET_IDLE_SECONDS); assert(opens==closes);
+ /* Data for 50 s, then silence: the idle limit counts from the last data. */
+ reset(19); idle_polls=data_reads=0u; assert(s64_standard_status(&client,&result)==S64_STANDARD_PROTOCOL); assert(data_reads==5u && idle_polls==S64_NET_IDLE_SECONDS); assert(opens==closes);
  reset(12); assert(s64_standard_status(&client,&result)==S64_STANDARD_NETWORK); assert(opens==closes);
  reset(13); count=0u; assert(s64_standard_put(&client,"index.8tml",24u,writer,&count,&result)==S64_STANDARD_OK); assert(result.warning && !strcmp(result.message,"Published, socket close failed")); assert(opens==closes);
  reset(14); assert(s64_standard_list(&client,"index.8tml",&result)==S64_STANDARD_OK); assert(result.exists); assert(opens==closes);
