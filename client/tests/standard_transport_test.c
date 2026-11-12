@@ -10,6 +10,10 @@ static int scenario, challenge_count;
 static const char key[]="000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 static const uint8_t source[]="---\n8tml: 1\n---\n# Hello\n";
 static unsigned visited;
+/* Fake clock: each empty READ takes one second, so the idle limit expires at once. */
+static clock_t fake_now;
+static unsigned idle_polls;
+clock_t clock(void) { return fake_now; }
 static void visit_file(const char* name, uint32_t size)
 {
  if(visited==0u) { assert(!strcmp(name,"other.8tml")); assert(size==12u); }
@@ -92,7 +96,7 @@ S64NetResult s64_net_read(S64NetTransport* t,uint8_t handle,uint16_t maximum,S64
    else reply("status: ok\nname: index.8tml\nsize: 24\nurl: http://example.test/index.8tml\n",200u);
   }
  }
- if(scenario==11) { *received=0u; return S64_NET_NO_DATA; }
+ if(scenario==11) { *received=0u; ++idle_polls; fake_now+=CLOCKS_PER_SEC; return S64_NET_NO_DATA; }
  amount=(unsigned)strlen(response)-response_offset;
  if(amount>7u) amount=7u; /* Fragment headers and body across arbitrary bytes. */
  *received=(uint16_t)amount;
@@ -128,7 +132,7 @@ int main(void)
  reset(8); assert(s64_standard_status(&client,&result)==S64_STANDARD_OK); assert(opens==closes);
  reset(9); assert(s64_standard_status(&client,&result)==S64_STANDARD_PROTOCOL); assert(opens==closes);
  reset(10); assert(s64_standard_status(&client,&result)==S64_STANDARD_PROTOCOL); assert(opens==closes);
- reset(11); assert(s64_standard_status(&client,&result)==S64_STANDARD_PROTOCOL); assert(opens==closes);
+ reset(11); idle_polls=0u; assert(s64_standard_status(&client,&result)==S64_STANDARD_PROTOCOL); assert(idle_polls==S64_NET_IDLE_SECONDS); assert(opens==closes);
  reset(12); assert(s64_standard_status(&client,&result)==S64_STANDARD_NETWORK); assert(opens==closes);
  reset(13); count=0u; assert(s64_standard_put(&client,"index.8tml",24u,writer,&count,&result)==S64_STANDARD_OK); assert(result.warning && !strcmp(result.message,"Published, socket close failed")); assert(opens==closes);
  reset(14); assert(s64_standard_list(&client,"index.8tml",&result)==S64_STANDARD_OK); assert(result.exists); assert(opens==closes);

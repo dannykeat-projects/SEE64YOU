@@ -7,6 +7,10 @@ static const char* response;
 static unsigned offset, chunk, closes, opens, bytes, fail_send, fail_close, cancel;
 static unsigned fail_open, fail_read, idle_read, fail_sink;
 static char request[600];
+/* Fake clock: each empty READ takes one second, so the idle limit expires at once. */
+static clock_t fake_now;
+static unsigned idle_polls;
+clock_t clock(void) { return fake_now; }
 S64NetResult s64_net_open_tcp(S64NetTransport* n, const char* h, uint16_t p, uint8_t* handle)
 { (void)n; assert(!strcmp(h,"example.org")); assert(p == 8080); ++opens; *handle=1; return fail_open ? S64_NET_TARGET_ERROR : S64_NET_OK; }
 S64NetResult s64_net_close(S64NetTransport* n, uint8_t h)
@@ -18,7 +22,7 @@ S64NetResult s64_net_read(S64NetTransport* n, uint8_t h, uint16_t max, S64UciDat
     unsigned count=(unsigned)strlen(response)-offset;
     (void)n; (void)h; assert(max==512);
     if(fail_read) return S64_NET_TRANSPORT_ERROR;
-    if(idle_read) { *received=0; return S64_NET_NO_DATA; }
+    if(idle_read) { *received=0; ++idle_polls; fake_now+=CLOCKS_PER_SEC; return S64_NET_NO_DATA; }
     if(count>chunk) count=chunk;
     *received=(uint16_t)count;
     if(!count) return S64_NET_CLOSED;
@@ -57,7 +61,7 @@ int main(void)
     fail_close=1; assert(run(good,5)==S64_BROWSER_HTTP_CLOSE && closes==1); fail_close=0;
     fail_open=1; assert(run(good,5)==S64_BROWSER_HTTP_NETWORK && closes==0); fail_open=0;
     fail_read=1; assert(run(good,5)==S64_BROWSER_HTTP_NETWORK && closes==1); fail_read=0;
-    idle_read=1; assert(run(good,5)==S64_BROWSER_HTTP_PROTOCOL && closes==1); idle_read=0;
+    idle_read=1; idle_polls=0; assert(run(good,5)==S64_BROWSER_HTTP_PROTOCOL && closes==1); assert(idle_polls==S64_NET_IDLE_SECONDS); idle_read=0;
     fail_sink=1; assert(run(good,5)==S64_BROWSER_HTTP_PROTOCOL && closes==1); fail_sink=0;
     puts("browser HTTP tests passed"); return 0;
 }
