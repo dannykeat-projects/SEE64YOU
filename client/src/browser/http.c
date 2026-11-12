@@ -114,7 +114,9 @@ S64BrowserHttpResult s64_browser_http_get(S64NetTransport* network,
     /* cc65 stack offsets are limited; this service has one synchronous request. */
     static Reply reply;
     uint8_t handle;
-    uint16_t idle = 0, received;
+    uint16_t received;
+    clock_t idle_since;
+    uint8_t timed_out = 0;
     char port_text[7];
     uint8_t digit = 6;
     uint16_t port_value = port;
@@ -133,16 +135,18 @@ S64BrowserHttpResult s64_browser_http_get(S64NetTransport* network,
         if (!send(network, handle, port_text + digit)) goto cleanup;
     }
     if (!send(network, handle, "\r\nAccept: application/x-see64you-browser; version=2\r\nConnection: close\r\n\r\n")) goto cleanup;
-    while (idle < 512u) {
+    idle_since = clock();
+    while (1) {
+        if (S64_NET_EXPIRED(idle_since, S64_NET_IDLE_SECONDS)) { timed_out = 1; break; }
         if (wait && !wait(wait_context)) { outcome = S64_BROWSER_HTTP_CANCELLED; goto cleanup; }
         received = 0;
         result = s64_net_read(network, handle, S64_NET_READ_MAX, receive, &reply, &received);
         if (reply.failed) { outcome = S64_BROWSER_HTTP_PROTOCOL; goto cleanup; }
         if (result != S64_NET_OK && result != S64_NET_NO_DATA && result != S64_NET_CLOSED) goto cleanup;
-        if (received) idle = 0; else ++idle;
+        if (received) idle_since = clock();
         if ((reply.headers && reply.have_length && !reply.remaining) || result == S64_NET_CLOSED) break;
     }
-    if (!reply.headers || idle == 512u || (reply.have_length && reply.remaining))
+    if (!reply.headers || timed_out || (reply.have_length && reply.remaining))
         outcome = S64_BROWSER_HTTP_PROTOCOL;
     else outcome = reply.status == 200u ? S64_BROWSER_HTTP_OK : S64_BROWSER_HTTP_SERVER;
 cleanup:
