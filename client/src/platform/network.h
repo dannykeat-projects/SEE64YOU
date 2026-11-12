@@ -2,6 +2,12 @@
 #define SEE64YOU_PLATFORM_NETWORK_H
 
 #include <stdint.h>
+#include <time.h>
+/* An empty READ may return at once (some Ultimate firmware waits 40 ms), so
+ * waiting for a reply is bounded by time, not by a number of empty READs. */
+#define S64_NET_IDLE_SECONDS 45u
+#define S64_NET_EXPIRED(since, seconds) \
+    ((unsigned long)(clock() - (since)) >= (unsigned long)(seconds) * CLOCKS_PER_SEC)
 
 #include "uci.h"
 
