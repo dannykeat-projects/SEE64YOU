@@ -165,7 +165,7 @@ static uint8_t filename_copy(char* destination, const char* filename, uint8_t mo
     strcpy(destination, filename);
     if (basename == length || filename[basename] == '.') return 0u;
     if (mode == FILENAME_SAVE_AS
-#ifndef S64_DOCUMENT_8TML
+#if !defined(S64_DOCUMENT_8TML) || defined(S64_STORAGE_READ_ONLY)
         || mode == FILENAME_OPEN
 #endif
     ) {
