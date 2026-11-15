@@ -8,9 +8,9 @@ Alpha.7 uses the ten-file SYSTEM layout and stores ordinary documents in SEE64YO
 
 Save replacement/rollback, batched loading, resident reserve recovery and numbered selectors are implemented. Earlier receipts do not certify newer combined bytes or establish comparable loading gains. Alpha.6 exact-package network checks covered Settings and read-only Publisher; full uploads/failures remain unverified.
 
-## Approved Editor format expansion (planned; no implementation yet)
+## Approved Editor format expansion (implementation candidate; not released)
 
-The current shipped Editor accepts `.8tml` only. Product behaviour and boundaries are in [Product scope](docs/PRODUCT.md). Implement this as one bounded change series; do not duplicate the editor or alter release artefacts before validation.
+The shipped Editor still accepts `.8tml` only. Source changes are isolated in `feat/editor-multiformat-20261116` on top of the plan PR: one shared 8TML/8SS/plain-text codec, New format choice, exact Open, extension-aware Save As, document-kind status and handoff, separate recovery filenames, and focused regression cases. **Unverified:** host compiler/tests, C64 overlay/SD/USB fit, VICE, C64U hardware and Publisher interoperability. Keep the acceptance items open until evidence exists. Product boundaries remain in [Product scope](docs/PRODUCT.md).
 
 - [ ] **P1 — Pin 8SS source and publishing rules.** Obtain authoritative current 8SS syntax/examples, 8TML style-reference rules and independently supported publishing behaviour. Do not infer 8SS grammar from CSS, invent required headers, or claim 8SS upload support from filename acceptance alone. If verification remains blocked, implement literal local `.8ss` editing with character/size safety and defer any format-specific validator/template/Publisher support.
 - [ ] **P1 — Add document kind in existing editing/storage path.** Inspect `client/src/document.c`, `client/src/storage/local.c`, Editor File/New/Open/Save As menus and call sites before edits. Use one lightweight kind (8TML, 8SS, general text) across reader, writer, New, title/status and Save As. Preserve 8TML header rules, literal-source/unknown-construct retention, REU/editor buffers, no autosave and fail-safe Open/Save semantics. Make zero-byte text files valid.
