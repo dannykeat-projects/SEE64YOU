@@ -497,6 +497,10 @@ int main(void)
         "extensionless open is exact and never expands");
     require(s64_local_save_as(&local, "../unsafe", 0u) == S64_LOCAL_INVALID_ARGUMENT
         && !temporary_exists, "parent-directory traversal rejected");
+    require(s64_local_save_as(&local, "/sd/SEE64YOU/S64EDIT.PRG", 0u)
+        == S64_LOCAL_INVALID_ARGUMENT, "Save As refuses absolute package path");
+    require(s64_local_save_as(&local, "SYSTEM/S64MODEL.BIN", 0u)
+        == S64_LOCAL_INVALID_ARGUMENT, "Save As refuses binary overlay suffix");
     require(s64_local_save_as(&local, "archive.v1/New", 0u) == S64_LOCAL_OK
         && strcmp(file_name, "archive.v1/New.8tml") == 0,
         "directory dot does not suppress suffix");

@@ -536,6 +536,16 @@ static S64LocalResult save_named(
     }
 #ifdef S64_DOCUMENT_8TML
     if (recovery_name(checked_filename)) return S64_LOCAL_INVALID_ARGUMENT;
+    if (add_extension == FILENAME_SAVE_AS) {
+        uint8_t length = (uint8_t)strlen(checked_filename);
+        /* New names stay inside docs/; never target package assets/volumes. */
+        if (checked_filename[0] == '/' || strchr(checked_filename, ':')
+            || strchr(checked_filename, '\\')
+            || native_suffix(checked_filename, length, ".prg")
+            || native_suffix(checked_filename, length, ".bin")
+            || native_suffix(checked_filename, length, ".mnf"))
+            return S64_LOCAL_INVALID_ARGUMENT;
+    }
     if (add_extension == FILENAME_EXACT) {
         uint8_t length = (uint8_t)strlen(checked_filename);
         /* A recovered .tmp/.bak must be saved under a proper new name. */
