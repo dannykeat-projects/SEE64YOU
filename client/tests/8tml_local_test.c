@@ -328,10 +328,12 @@ int main(void)
     set_file("source.8tml", source);
     require(s64_local_open(&local, "source.8tml", 1u) == S64_LOCAL_OK, "source opens");
     require_body(&body, source, "open preserves metadata and unknown markup");
-    require(s64_local_open(&local, "source", 1u) == S64_LOCAL_OK,
-        "open adds default source extension");
+    require(s64_local_open(&local, "source", 1u) == S64_LOCAL_IO_ERROR,
+        "open does not guess an extension");
+    require(s64_local_open(&local, "source.8tml", 1u) == S64_LOCAL_OK,
+        "explicit source suffix reopens");
     require(strcmp(local.filename, "source.8tml") == 0,
-        "extensionless open retains complete save identity");
+        "explicit open retains complete save identity");
     require_body(&body, source, "extensionless open preserves source");
     require(close_count >= 2u, "disk handles closed");
     require(s64_local_open(&local, "missing.8tml", 1u) == S64_LOCAL_IO_ERROR,
@@ -468,17 +470,19 @@ int main(void)
     require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "new before filename tests");
     prepare_empty_source(&body);
     file_exists = 0u;
-    require(s64_local_save_as(&local, "wrong.txt", 0u) == S64_LOCAL_INVALID_ARGUMENT,
-        "unrelated explicit extension rejected");
-    require(!temporary_exists && !file_exists && !s64_local_has_filename(&local),
-        "invalid extension causes no writes or identity change");
+    require(s64_local_save_as(&local, "wrong.txt", 0u) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_TEXT,
+        "explicit text extension switches to literal text");
+    require(strcmp(file_name, "wrong.txt") == 0 && !temporary_exists,
+        "explicit text extension saved unchanged");
+    require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "return to 8TML");
     memset(boundary, 'x', stem_length);
     boundary[stem_length] = '\0';
     require(s64_local_save_as(&local, boundary, 0u) == S64_LOCAL_OK
         && strlen(file_name) == S64_LOCAL_FILENAME_CAPACITY - 1u,
         "longest extensionless basename fits exact capacity");
-    require(s64_local_open(&local, boundary, 1u) == S64_LOCAL_OK,
-        "longest extensionless open fits exact capacity");
+    require(s64_local_open(&local, file_name, 1u) == S64_LOCAL_OK,
+        "longest fully named source opens");
     require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "new before overflow");
     prepare_empty_source(&body);
     file_exists = 0u;
@@ -487,17 +491,17 @@ int main(void)
     result = s64_local_save_as(&local, boundary, 0u);
     require(result == S64_LOCAL_INVALID_ARGUMENT && !file_exists && !temporary_exists,
         "extension overflow rejected before disk writes");
-    require(s64_local_open(&local, boundary, 1u) == S64_LOCAL_INVALID_ARGUMENT,
-        "open extension overflow rejected");
+    require(s64_local_open(&local, boundary, 1u) == S64_LOCAL_IO_ERROR,
+        "extensionless open is exact and never expands");
     require(s64_local_save_as(&local, "archive.v1/New", 0u) == S64_LOCAL_OK
         && strcmp(file_name, "archive.v1/New.8tml") == 0,
         "directory dot does not suppress suffix");
-    require(s64_local_open(&local, "archive.v1/New", 1u) == S64_LOCAL_OK
+    require(s64_local_open(&local, "archive.v1/New.8tml", 1u) == S64_LOCAL_OK
         && strcmp(local.filename, "archive.v1/New.8tml") == 0,
-        "directory dot does not suppress open suffix");
+        "explicit nested source opens");
     set_file("/sd/SEE64YOU/path.8tml", source);
-    require(s64_local_open(&local, "/sd/SEE64YOU/path", 1u) == S64_LOCAL_OK,
-        "absolute basename opens on explicit volume");
+    require(s64_local_open(&local, "/sd/SEE64YOU/path.8tml", 1u) == S64_LOCAL_OK,
+        "absolute fully named source opens on explicit volume");
 #ifdef S64_REU_BUFFER
     s64_buffer_find_byte(&body, 0u, 0u);
     load_calls = 0u;
@@ -520,6 +524,67 @@ int main(void)
         fail_load = 0u;
     }
 #endif
+
+    /* Text filenames select one shared editor/codec without a fabricated header. */
+    require(s64_local_new_kind(&local, S64_DOCUMENT_KIND_TEXT, 1u) == S64_LOCAL_OK
+        && s64_buffer_length(&body) == 0u, "new plain text starts empty");
+    file_exists = 0u;
+    require(s64_local_save_as(&local, "notes", 0u) == S64_LOCAL_OK
+        && !strcmp(file_name, "notes.txt") && file_length == 0u,
+        "empty text saves with .txt default");
+    set_file("README.md", "# Heading\nplain text\n");
+    require(s64_local_open(&local, "README.md", 1u) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_TEXT, "markdown suffix is plain text");
+    require(s64_local_save(&local) == S64_LOCAL_OK
+        && !strcmp(file_name, "README.md"), "plain text retains explicit extension");
+    require(s64_local_save_as(&local, "bad.8tml", 0u) == S64_LOCAL_INVALID_DOCUMENT
+        && document.kind == S64_DOCUMENT_KIND_TEXT && !temporary_exists,
+        "invalid 8TML rename refuses writes and retains kind");
+    set_file("LICENSE", "No extension\n");
+    require(s64_local_open(&local, "LICENSE", 1u) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_TEXT
+        && !strcmp(local.filename, "LICENSE"), "extensionless text opens exactly");
+    set_file("style.8ss", "body { color: red; }\n");
+    require(s64_local_open(&local, "style.8ss", 1u) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_8SS, "stylesheet opens without 8TML header");
+    require(s64_local_save(&local) == S64_LOCAL_OK
+        && file_length == strlen("body { color: red; }\n"),
+        "stylesheet saves literal source");
+    set_file("style.8ss.tmp", "partial style\n");
+    require(s64_local_open(&local, "style.8ss.tmp", 1u) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_8SS, "8SS temp retains source kind");
+    set_file("style.8ss.bak", "prior style\n");
+    require(s64_local_open(&local, "style.8ss.bak", 1u) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_8SS, "8SS backup retains source kind");
+    set_file("binary.dat", "x");
+    file_data[0] = 0u;
+    require(s64_local_open(&local, "binary.dat", 1u) == S64_LOCAL_INVALID_DOCUMENT,
+        "binary control byte rejected for generic text");
+    require(s64_local_new_kind(&local, S64_DOCUMENT_KIND_8SS, 1u) == S64_LOCAL_OK,
+        "new 8SS creates empty stylesheet");
+    insert_text(&body, "style text\n");
+    file_exists = 0u;
+    require(s64_local_save_recovery(&local) == S64_LOCAL_OK
+        && !strcmp(file_name, S64_LOCAL_RECOVERY_8SS),
+        "8SS recovery uses distinct root filename");
+    require(s64_local_open_recovery(&local) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_8SS
+        && !s64_local_has_filename(&local), "8SS recovery retains kind, needs Save As");
+    require_body(&body, "style text\n", "8SS recovery preserves literal source");
+    require(s64_local_delete_recovery(&local) == S64_LOCAL_OK,
+        "8SS recovery can be cleared");
+    require(s64_local_new_kind(&local, S64_DOCUMENT_KIND_TEXT, 1u) == S64_LOCAL_OK,
+        "new text for recovery");
+    insert_text(&body, "plain recovery\n");
+    file_exists = 0u;
+    require(s64_local_save_recovery(&local) == S64_LOCAL_OK
+        && !strcmp(file_name, S64_LOCAL_RECOVERY_TEXT),
+        "text recovery uses distinct root filename");
+    require(s64_local_open_recovery(&local) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_TEXT, "text recovery retains kind");
+    require(s64_local_delete_recovery(&local) == S64_LOCAL_OK,
+        "text recovery can be cleared");
+
     puts("8TML local document tests passed");
     return 0;
 }

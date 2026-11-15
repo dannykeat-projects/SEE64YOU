@@ -380,7 +380,7 @@ const char* s64_local_result_message(const S64LocalDocument* local, S64LocalResu
         case S64_LOCAL_NO_FILENAME: return "Use Save As first";
         case S64_LOCAL_EXISTS: return "File already exists";
         case S64_LOCAL_RECOVERY_CONFLICT: return "Recover .tmp/.bak first";
-        case S64_LOCAL_INVALID_DOCUMENT: return "Document metadata invalid";
+        case S64_LOCAL_INVALID_DOCUMENT: return "Invalid text source";
         case S64_LOCAL_DOCUMENT_TOO_LARGE: return "Document too large";
         case S64_LOCAL_IO_ERROR:
         default:
@@ -511,7 +511,7 @@ static S64LocalResult save_named(
     uint8_t exists;
     char checked_filename[S64_LOCAL_FILENAME_CAPACITY];
 #ifdef S64_DOCUMENT_8TML
-    S64Document selected;
+    S64DocumentKind previous_kind;
 #endif
 
     if (local == 0 || local->dos == 0 || local->document == 0
@@ -522,8 +522,7 @@ static S64LocalResult save_named(
     }
 #ifdef S64_DOCUMENT_8TML
     if (recovery_name(checked_filename)) return S64_LOCAL_INVALID_ARGUMENT;
-    selected = *local->document;
-    selected.kind = filename_kind(checked_filename);
+    previous_kind = local->document->kind;
 #else
     if (strcmp(checked_filename, S64_LOCAL_RECOVERY_FILENAME) == 0)
         return S64_LOCAL_INVALID_ARGUMENT;
@@ -551,20 +550,15 @@ static S64LocalResult save_named(
     }
 #endif
 
-    result = write_document_file(
-        local,
 #ifdef S64_DOCUMENT_8TML
-        &selected,
-#else
-        local->document,
+    local->document->kind = filename_kind(checked_filename);
 #endif
-        checked_filename,
-        overwrite
-    );
+    result = write_document_file(local, local->document, checked_filename, overwrite);
     if (result == S64_LOCAL_OK) {
         strcpy(local->filename, checked_filename);
 #ifdef S64_DOCUMENT_8TML
-        local->document->kind = selected.kind;
+    } else {
+        local->document->kind = previous_kind;
 #endif
     }
     return result;
@@ -628,9 +622,9 @@ S64LocalResult s64_local_recovery_exists(
 S64LocalResult s64_local_save_recovery(S64LocalDocument* local)
 {
     S64Document recovery;
+    const char* name = S64_LOCAL_RECOVERY_FILENAME;
 #ifdef S64_DOCUMENT_8TML
     const char* existing;
-    const char* name;
     S64LocalResult found;
 #endif
 
@@ -660,16 +654,8 @@ S64LocalResult s64_local_save_recovery(S64LocalDocument* local)
     if (found != S64_LOCAL_OK) return found;
     if (existing != 0 && strcmp(existing, name) != 0)
         return S64_LOCAL_RECOVERY_CONFLICT;
-#else
-#define name S64_LOCAL_RECOVERY_FILENAME
 #endif
-    {
-        S64LocalResult result = write_document_file(local, &recovery, name, 1u);
-#ifndef S64_DOCUMENT_8TML
-#undef name
-#endif
-        return result;
-    }
+    return write_document_file(local, &recovery, name, 1u);
 }
 
 S64LocalResult s64_local_open_recovery(S64LocalDocument* local)

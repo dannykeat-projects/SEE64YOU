@@ -255,9 +255,11 @@ static void offer_recovery(void)
     }
 
     result = s64_local_recovery_exists(&local_document, &exists);
-    if (result != S64_LOCAL_OK || !exists) {
+    if (result != S64_LOCAL_OK) {
+        show_local_result(result);
         return;
     }
+    if (!exists) return;
 
     if (!s64_ui_prompt_yes_no("Recover snapshot? Y/N")) {
         (void)s64_local_delete_recovery(&local_document);
