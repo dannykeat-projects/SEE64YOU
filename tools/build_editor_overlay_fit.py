@@ -590,6 +590,7 @@ def compile_editor_overlay_fit(
             "s64_application_state_active",
         )
         bridges["PUBLICATION"] = (
+            "s64_application_state_decode_editor",
             "s64_editor_has_selection", "s64_editor_selection_start",
             "s64_editor_selection_end", "s64_editor_internal_line_start",
             "s64_editor_internal_history_begin", "s64_editor_internal_history_commit",
