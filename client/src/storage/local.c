@@ -67,6 +67,30 @@ static const char* recovery_filename(S64DocumentKind kind)
     if (kind == S64_DOCUMENT_KIND_TEXT) return S64_LOCAL_RECOVERY_TEXT;
     return S64_LOCAL_RECOVERY_FILENAME;
 }
+
+/* Never discard or arbitrarily choose among multiple recoverable snapshots. */
+static S64LocalResult find_recovery(S64LocalDocument* local, const char** filename)
+{
+    static const char* names[] = {
+        S64_LOCAL_RECOVERY_FILENAME, S64_LOCAL_RECOVERY_8SS,
+        S64_LOCAL_RECOVERY_TEXT
+    };
+    uint8_t i, exists;
+    S64DosResult dos_result;
+    *filename = 0;
+    for (i = 0u; i < sizeof(names) / sizeof(names[0]); ++i) {
+        dos_result = s64_dos_file_exists(local->dos, names[i], &exists);
+        if (dos_result != S64_DOS_OK) {
+            local->dos_result = dos_result;
+            return S64_LOCAL_IO_ERROR;
+        }
+        if (exists) {
+            if (*filename != 0) return S64_LOCAL_RECOVERY_CONFLICT;
+            *filename = names[i];
+        }
+    }
+    return S64_LOCAL_OK;
+}
 #endif
 #endif
 
@@ -580,6 +604,14 @@ S64LocalResult s64_local_recovery_exists(
         return S64_LOCAL_IO_ERROR;
     }
 #endif
+#ifdef S64_DOCUMENT_8TML
+    {
+        const char* name;
+        S64LocalResult found = find_recovery(local, &name);
+        if (found != S64_LOCAL_OK) return found;
+        *exists = name != 0;
+    }
+#else
     result = s64_dos_file_exists(
         local->dos,
         S64_LOCAL_RECOVERY_FILENAME,
@@ -589,12 +621,18 @@ S64LocalResult s64_local_recovery_exists(
         local->dos_result = result;
         return S64_LOCAL_IO_ERROR;
     }
+#endif
     return S64_LOCAL_OK;
 }
 
 S64LocalResult s64_local_save_recovery(S64LocalDocument* local)
 {
     S64Document recovery;
+#ifdef S64_DOCUMENT_8TML
+    const char* existing;
+    const char* name;
+    S64LocalResult found;
+#endif
 
     if (local == 0 || local->dos == 0 || local->document == 0
         || local->document->body == 0) {
@@ -617,24 +655,42 @@ S64LocalResult s64_local_save_recovery(S64LocalDocument* local)
             return S64_LOCAL_IO_ERROR;
         }
     }
+    name = recovery_filename(recovery.kind);
+    found = find_recovery(local, &existing);
+    if (found != S64_LOCAL_OK) return found;
+    if (existing != 0 && strcmp(existing, name) != 0)
+        return S64_LOCAL_RECOVERY_CONFLICT;
+#else
+#define name S64_LOCAL_RECOVERY_FILENAME
 #endif
-    return write_document_file(
-        local,
-        &recovery,
-        S64_LOCAL_RECOVERY_FILENAME,
-        1u
-    );
+    {
+        S64LocalResult result = write_document_file(local, &recovery, name, 1u);
+#ifndef S64_DOCUMENT_8TML
+#undef name
+#endif
+        return result;
+    }
 }
 
 S64LocalResult s64_local_open_recovery(S64LocalDocument* local)
 {
     S64LocalResult result;
-
-    result = s64_local_open(
-        local,
-        S64_LOCAL_RECOVERY_FILENAME,
-        1u
-    );
+#ifdef S64_DOCUMENT_8TML
+    const char* name;
+    S64DosResult dos_result;
+    if (local == 0 || local->dos == 0) return S64_LOCAL_INVALID_ARGUMENT;
+    dos_result = select_recovery_dir(local->dos);
+    if (dos_result != S64_DOS_OK) {
+        local->dos_result = dos_result;
+        return S64_LOCAL_IO_ERROR;
+    }
+    result = find_recovery(local, &name);
+    if (result != S64_LOCAL_OK) return result;
+    if (name == 0) return S64_LOCAL_NO_FILENAME;
+#else
+    const char* name = S64_LOCAL_RECOVERY_FILENAME;
+#endif
+    result = s64_local_open(local, name, 1u);
     if (result == S64_LOCAL_OK) {
         local->filename[0] = '\0';
         if (strcmp(local->document->slug, "recovered-draft") == 0
@@ -664,20 +720,23 @@ S64LocalResult s64_local_delete_recovery(S64LocalDocument* local)
         return S64_LOCAL_IO_ERROR;
     }
 #endif
-    result = s64_dos_file_exists(
-        local->dos,
-        S64_LOCAL_RECOVERY_FILENAME,
-        &exists
-    );
+#ifdef S64_DOCUMENT_8TML
+    {
+        const char* name;
+        S64LocalResult found = find_recovery(local, &name);
+        if (found != S64_LOCAL_OK) return found;
+        if (name == 0) return S64_LOCAL_OK;
+        result = s64_dos_delete_file(local->dos, name);
+    }
+#else
+    result = s64_dos_file_exists(local->dos, S64_LOCAL_RECOVERY_FILENAME, &exists);
     if (result != S64_DOS_OK) {
         local->dos_result = result;
         return S64_LOCAL_IO_ERROR;
     }
-    if (!exists) {
-        return S64_LOCAL_OK;
-    }
-
+    if (!exists) return S64_LOCAL_OK;
     result = s64_dos_delete_file(local->dos, S64_LOCAL_RECOVERY_FILENAME);
+#endif
     if (result != S64_DOS_OK) {
         local->dos_result = result;
         return S64_LOCAL_IO_ERROR;
