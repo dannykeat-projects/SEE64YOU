@@ -4,6 +4,7 @@
 static void metadata(S64ApplicationState* state, const S64Document* document)
 {
     state->document.type = document->type; state->document.status = document->status;
+    state->document.kind = document->kind;
     state->document.order = document->order;
     memcpy(state->document.slug, document->slug, sizeof(state->document.slug));
     memcpy(state->document.title, document->title, sizeof(state->document.title));

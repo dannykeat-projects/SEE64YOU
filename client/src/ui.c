@@ -2,6 +2,7 @@
 #include <string.h>
 #include "ui.h"
 #include "menu.h"
+#include "document.h"
 
 #define SCREEN_COLUMNS 40u
 #define EDITOR_FIRST_ROW 1u
@@ -14,6 +15,7 @@ void __fastcall__ s64_ui_status_column_fast(unsigned int value);
 void s64_ui_status_dirty_fast(void);
 
 static unsigned char http_ready;
+static S64DocumentKind current_kind;
 static unsigned char dos_ready;
 static unsigned char header_rendered;
 static unsigned char body_rows;
@@ -61,6 +63,9 @@ static void render_header(void)
     revers(1);
     gotoxy(0u, 0u);
     cputs(S64_MENU_BAR);
+    gotoxy(35u, 0u);
+    cputs(current_kind == S64_DOCUMENT_KIND_8SS ? "8SS "
+        : current_kind == S64_DOCUMENT_KIND_TEXT ? "TEXT" : "8TML");
     revers(0);
     header_rendered = 1u;
 }
@@ -413,6 +418,14 @@ void s64_ui_init(void)
     partial_char_edit = 0u;
     cursor_position_valid = 0u;
     cursor_visible = 0u;
+}
+
+void s64_ui_set_document_kind(S64DocumentKind kind)
+{
+    if (current_kind != kind) {
+        current_kind = kind;
+        header_rendered = 0u;
+    }
 }
 
 void s64_ui_set_http_ready(unsigned char ready)

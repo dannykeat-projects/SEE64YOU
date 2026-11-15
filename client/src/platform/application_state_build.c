@@ -34,7 +34,8 @@ uint8_t s64_application_state_encode(const S64ReuRuntimeControl* control,
     if (!s || !w) return 0;
     e = &s->editor;
     if (s->document.type < S64_DOCUMENT_PAGE || s->document.type > S64_DOCUMENT_POST
-        || s->document.status < S64_DOCUMENT_DRAFT || s->document.status > S64_DOCUMENT_PUBLISHED)
+        || s->document.status < S64_DOCUMENT_DRAFT || s->document.status > S64_DOCUMENT_PUBLISHED
+        || s->document.kind > S64_DOCUMENT_KIND_TEXT)
         return 0;
 #if UINT_MAX > 65535u
     /* Host model positions must not silently narrow into valid cc65 positions. */
@@ -67,6 +68,9 @@ uint8_t s64_application_state_encode(const S64ReuRuntimeControl* control,
     memcpy(w + 147, s->document.title, S64_DOCUMENT_TITLE_CAPACITY);
     memcpy(w + 228, s->document.date, S64_DOCUMENT_DATE_CAPACITY);
     memcpy(w + 269, s->filename, S64_LOCAL_FILENAME_CAPACITY);
+    /* 0 is legacy 8TML; use one previously reserved byte without changing ABI. */
+    w[337] = s->document.kind > S64_DOCUMENT_KIND_8TML
+        ? (uint8_t)(s->document.kind - 1u) : 0u;
     memcpy(w + 303, s->search, S64_APPLICATION_SEARCH_CAPACITY); w[336] = s->search_valid;
     if (!s64_application_state_payload_valid(w)) return 0;
     put32(w + 508, s64_crc32_update(0xffffffffUL, w, 508) ^ 0xffffffffUL);
