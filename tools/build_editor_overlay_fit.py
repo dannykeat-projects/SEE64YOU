@@ -29,7 +29,6 @@ GROUPS: dict[str, tuple[str, ...]] = {
         "src/storage/local.c",
         "src/ui.c",
         "src/menu.c",
-        "src/platform/application_state_payload.c",
     ),
     "RUNTIME": (
         "src/platform/module_runtime.c",
@@ -64,6 +63,7 @@ GROUPS: dict[str, tuple[str, ...]] = {
         "src/platform/module_integrity.c",
         "src/platform/application_state_editor.c",
         "src/platform/application_state_build.c",
+        "src/platform/application_state_payload.c",
     ),
 }
 GROUP_IDS = {"MODEL": 1, "FILE": 2, "RUNTIME": 3, "PUBLICATION": 4}
@@ -79,7 +79,7 @@ BRIDGES: dict[str, tuple[str, ...]] = {
         "s64_transfer_capsule_allocation",
         "s64_transfer_capsule_checksum",
         "s64_transfer_capsule_module_valid",
-        "s64_application_state_payload_valid",
+        "s64_application_state_decode_editor",
         "s64_managed_editor_state_revoke",
         "s64_reu_runtime_store_verified",
         "s64_session_journal_encode",
