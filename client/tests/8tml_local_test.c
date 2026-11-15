@@ -478,6 +478,7 @@ int main(void)
     require(strcmp(file_name, "wrong.txt") == 0 && !temporary_exists,
         "explicit text extension saved unchanged");
     require(s64_local_new(&local, 1u) == S64_LOCAL_OK, "return to 8TML");
+    prepare_empty_source(&body);
     memset(boundary, 'x', stem_length);
     boundary[stem_length] = '\0';
     require(s64_local_save_as(&local, boundary, 0u) == S64_LOCAL_OK
