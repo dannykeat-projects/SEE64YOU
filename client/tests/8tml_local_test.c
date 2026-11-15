@@ -435,6 +435,8 @@ int main(void)
     require(s64_local_open(&local, file_name, 1u) == S64_LOCAL_OK,
         "retained temporary source reopens");
     require(s64_buffer_length(&body) == saved_length + 8u, "retained temp preserves full source");
+    require(s64_local_save(&local) == S64_LOCAL_NO_FILENAME,
+        "opened recoverable temp requires Save As");
 
     set_file("invalid.8tml", "---\n8tml: 2\n---\nwrong version\n");
     require(s64_local_open(&local, "invalid.8tml", 1u) == S64_LOCAL_INVALID_DOCUMENT,

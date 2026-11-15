@@ -163,7 +163,10 @@ static uint8_t filename_copy(char* destination, const char* filename, uint8_t mo
     }
 
     strcpy(destination, filename);
-    if (basename == length || filename[basename] == '.') return 0u;
+    if (basename == length) return 0u;
+#ifdef S64_DOCUMENT_8TML
+    if (filename[basename] == '.') return 0u;
+#endif
     if (mode == FILENAME_SAVE_AS
 #if !defined(S64_DOCUMENT_8TML) || defined(S64_STORAGE_READ_ONLY)
         || mode == FILENAME_OPEN
@@ -440,6 +443,13 @@ S64LocalResult s64_local_open(
         return S64_LOCAL_INVALID_ARGUMENT;
     }
     if (!discard_dirty) return S64_LOCAL_DIRTY;
+#ifdef S64_STORAGE_READ_ONLY
+#ifdef S64_DOCUMENT_8TML
+    /* Publisher remains 8TML-only even though the Editor opens other text. */
+    if (filename_kind(checked_filename) != S64_DOCUMENT_KIND_8TML)
+        return S64_LOCAL_INVALID_ARGUMENT;
+#endif
+#endif
     local->document_replaced = 0u;
 #if defined(S64_DOCUMENT_8TML) && !defined(S64_STORAGE_READ_ONLY)
     dos_result = recovery_name(checked_filename)
@@ -522,6 +532,13 @@ static S64LocalResult save_named(
     }
 #ifdef S64_DOCUMENT_8TML
     if (recovery_name(checked_filename)) return S64_LOCAL_INVALID_ARGUMENT;
+    if (add_extension == FILENAME_EXACT) {
+        uint8_t length = (uint8_t)strlen(checked_filename);
+        /* A recovered .tmp/.bak must be saved under a proper new name. */
+        if (native_suffix(checked_filename, length, ".tmp")
+            || native_suffix(checked_filename, length, ".bak"))
+            return S64_LOCAL_NO_FILENAME;
+    }
     previous_kind = local->document->kind;
 #else
     if (strcmp(checked_filename, S64_LOCAL_RECOVERY_FILENAME) == 0)
@@ -691,7 +708,9 @@ S64LocalResult s64_local_open_recovery(S64LocalDocument* local)
 S64LocalResult s64_local_delete_recovery(S64LocalDocument* local)
 {
     S64DosResult result;
+#ifndef S64_DOCUMENT_8TML
     uint8_t exists;
+#endif
 
     if (local == 0 || local->dos == 0) {
         return S64_LOCAL_INVALID_ARGUMENT;
