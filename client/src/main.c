@@ -276,7 +276,6 @@ static void offer_recovery(void)
 
     s64_editor_document_loaded(&editor);
     editor.dirty = 1u;
-    s64_ui_set_document_kind(document.kind);
     s64_ui_render(&editor);
     s64_ui_message("Recovered snapshot");
 }
@@ -284,16 +283,11 @@ static void offer_recovery(void)
 static void new_document(void)
 {
     S64LocalResult result;
-    unsigned char choice;
-    S64DocumentKind kind;
-
-    s64_ui_message("New: 1 8TML  2 8SS  3 Text  0 Cancel");
-    choice = cgetc();
-    if (choice < '1' || choice > '3') {
+    S64DocumentKind kind = s64_ui_select_document_kind();
+    if (kind == 0) {
         s64_ui_render(&editor);
         return;
     }
-    kind = (S64DocumentKind)(choice - '0');
     if (!allow_discard()) {
         s64_ui_render(&editor);
         return;
@@ -307,7 +301,6 @@ static void new_document(void)
 
     s64_editor_document_loaded(&editor);
     clear_recovery_snapshot();
-    s64_ui_set_document_kind(document.kind);
     s64_ui_render(&editor);
     s64_ui_message("New document");
 }
@@ -332,8 +325,7 @@ static void open_document(void)
     if (result != S64_LOCAL_OK) {
         if (s64_local_document_replaced(&local_document)) {
             s64_editor_document_loaded(&editor);
-            s64_ui_set_document_kind(document.kind);
-            s64_ui_render(&editor);
+                    s64_ui_render(&editor);
         }
         show_local_result(result);
         return;
@@ -341,7 +333,6 @@ static void open_document(void)
 
     s64_editor_document_loaded(&editor);
     clear_recovery_snapshot();
-    s64_ui_set_document_kind(document.kind);
     s64_ui_render(&editor);
     s64_ui_message("File opened");
 }
@@ -375,7 +366,6 @@ static void save_as_document(void)
 
     s64_editor_mark_saved(&editor);
     clear_recovery_snapshot();
-    s64_ui_set_document_kind(document.kind);
     s64_ui_render(&editor);
     s64_ui_message("File saved");
 }
@@ -785,8 +775,7 @@ int main(void)
 #endif
 #endif
 #endif
-    s64_ui_init();
-    s64_ui_set_document_kind(document.kind);
+    s64_ui_init(&document);
     s64_input_init();
     s64_uci_probe_capabilities(&uci_capabilities);
     s64_ui_set_http_ready(uci_capabilities.http_target);
@@ -857,6 +846,13 @@ int main(void)
                     s64_ui_render(&editor);
                 }
             }
+            continue;
+        }
+
+        if (document.kind != S64_DOCUMENT_KIND_8TML
+            && input.type >= S64_INPUT_FORMAT_BOLD
+            && input.type <= S64_INPUT_FORMAT_LINK) {
+            s64_ui_message("8TML formatting only");
             continue;
         }
 
@@ -1091,40 +1087,24 @@ int main(void)
                 break;
 
             case S64_INPUT_FORMAT_BOLD:
-                if (document.kind != S64_DOCUMENT_KIND_8TML) {
-                    s64_ui_message("Format requires 8TML");
-                    continue;
-                }
                 if (!s64_editor_format_bold(&editor)) {
                     s64_ui_message("Cannot format bold");
                     continue;
                 }
                 break;
             case S64_INPUT_FORMAT_ITALIC:
-                if (document.kind != S64_DOCUMENT_KIND_8TML) {
-                    s64_ui_message("Format requires 8TML");
-                    continue;
-                }
                 if (!s64_editor_format_italic(&editor)) {
                     s64_ui_message("Cannot format italic");
                     continue;
                 }
                 break;
             case S64_INPUT_FORMAT_LIST:
-                if (document.kind != S64_DOCUMENT_KIND_8TML) {
-                    s64_ui_message("Format requires 8TML");
-                    continue;
-                }
                 if (!s64_editor_format_list_item(&editor)) {
                     s64_ui_message("Cannot format list");
                     continue;
                 }
                 break;
             case S64_INPUT_FORMAT_LINK:
-                if (document.kind != S64_DOCUMENT_KIND_8TML) {
-                    s64_ui_message("Format requires 8TML");
-                    continue;
-                }
                 prompt_link();
                 continue;
             case S64_INPUT_EXIT:

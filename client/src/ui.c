@@ -16,6 +16,7 @@ void s64_ui_status_dirty_fast(void);
 
 static unsigned char http_ready;
 static S64DocumentKind current_kind;
+static const S64Document* active_document;
 static unsigned char dos_ready;
 static unsigned char header_rendered;
 static unsigned char body_rows;
@@ -55,9 +56,10 @@ static void clear_row(unsigned char row)
 
 static void render_header(void)
 {
-    if (header_rendered) {
-        return;
-    }
+    S64DocumentKind kind = active_document != 0
+        ? active_document->kind : S64_DOCUMENT_KIND_8TML;
+    if (header_rendered && kind == current_kind) return;
+    current_kind = kind;
 
     clear_row(0u);
     revers(1);
@@ -404,8 +406,10 @@ static void render_body(
 
 }
 
-void s64_ui_init(void)
+void s64_ui_init(const S64Document* document)
 {
+    active_document = document;
+    current_kind = 0;
     bgcolor(COLOR_BLACK);
     bordercolor(COLOR_BLACK);
     textcolor(COLOR_WHITE);
@@ -420,12 +424,13 @@ void s64_ui_init(void)
     cursor_visible = 0u;
 }
 
-void s64_ui_set_document_kind(S64DocumentKind kind)
+S64DocumentKind s64_ui_select_document_kind(void)
 {
-    if (current_kind != kind) {
-        current_kind = kind;
-        header_rendered = 0u;
-    }
+    unsigned char key;
+    s64_ui_message("New:1 8TML 2 8SS 3 TXT 0 Cancel");
+    key = cgetc();
+    if (key < '1' || key > '3') return 0;
+    return (S64DocumentKind)(key - '0');
 }
 
 void s64_ui_set_http_ready(unsigned char ready)

@@ -6,8 +6,8 @@
 
 #define S64_UI_EDIT_CHARACTER 0x80u
 
-void s64_ui_init(void);
-void s64_ui_set_document_kind(S64DocumentKind kind);
+void s64_ui_init(const S64Document* document);
+S64DocumentKind s64_ui_select_document_kind(void);
 void s64_ui_set_http_ready(unsigned char ready);
 void s64_ui_set_dos_ready(unsigned char ready);
 void s64_ui_render(const S64Editor* editor);

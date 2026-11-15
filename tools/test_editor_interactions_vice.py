@@ -67,7 +67,7 @@ static void fixture(unsigned int size) {
     editor.buffer.gap_end=S64_BUFFER_CAPACITY;
     editor.buffer.cursor=0u;
     s64_editor_document_loaded(&editor);
-    s64_ui_init(); s64_ui_render(&editor);
+    s64_ui_init(0); s64_ui_render(&editor);
     exact(2);
 }
 static void blank_tail(unsigned char first) {
