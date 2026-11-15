@@ -73,7 +73,6 @@ BRIDGES: dict[str, tuple[str, ...]] = {
         "s64_editor_has_selection",
         "s64_editor_selection_start",
         "s64_editor_selection_end",
-        "s64_application_state_decode_editor",
     ),
     "PUBLICATION": (
         "s64_transfer_capsule_allocation",
