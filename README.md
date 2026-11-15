@@ -1,8 +1,12 @@
 # SEE64YOU
 
-**Write 8TML pages on a Commodore 64 Ultimate.** SEE64YOU is an offline-first source editor with a small companion for publishing to a compatible 8TML server.
+SEE64YOU is an 8tmnl editor with a small companion for publishing to a compatible 8TML server.
 
-Documents are portable `.8tml` text files. You can copy, back up, or host them independently. The Editor does not require an account or internet connection. Optional `.8ss` stylesheets are part of the wider 8TML ecosystem; stylesheet editing is not a dedicated SEE64YOU feature.
+Documents are portable `.8tml` text files. 
+
+The Editor does not require an account or internet connection, and you can also just use it as a standard text editor.
+
+It has many functions you would expect in a modern Markdown editor, with multiple undo/redo, copy/cut/paste with shortcuts, dropdown menus, formatting shortcuts and menus, text selection with mouse.
 
 ## What works
 
