@@ -17,6 +17,60 @@
 enum { FILENAME_EXACT, FILENAME_SAVE_AS, FILENAME_OPEN };
 
 #ifdef S64_DOCUMENT_8TML
+static const char* kind_extension(S64DocumentKind kind)
+{
+    if (kind == S64_DOCUMENT_KIND_8SS) return ".8ss";
+    if (kind == S64_DOCUMENT_KIND_TEXT) return ".txt";
+    return ".8tml";
+}
+
+static uint8_t native_suffix(const char* name, uint8_t length, const char* suffix)
+{
+    uint8_t offset, ascii;
+    uint8_t suffix_length = (uint8_t)strlen(suffix);
+    if (length < suffix_length) return 0u;
+    for (offset = 0u; offset < suffix_length; ++offset) {
+        if (!s64_charset_native_to_ascii(
+                (uint8_t)name[length - suffix_length + offset], &ascii)
+            || (ascii | 32u) != ((uint8_t)suffix[offset] | 32u)) return 0u;
+    }
+    return 1u;
+}
+
+static uint8_t recovery_name(const char* name)
+{
+    return strcmp(name, S64_LOCAL_RECOVERY_FILENAME) == 0
+        || strcmp(name, S64_LOCAL_RECOVERY_8SS) == 0
+        || strcmp(name, S64_LOCAL_RECOVERY_TEXT) == 0;
+}
+
+static S64DocumentKind filename_kind(const char* name)
+{
+    uint8_t length = (uint8_t)strlen(name);
+    if (strcmp(name, S64_LOCAL_RECOVERY_FILENAME) == 0)
+        return S64_DOCUMENT_KIND_8TML;
+    if (strcmp(name, S64_LOCAL_RECOVERY_8SS) == 0)
+        return S64_DOCUMENT_KIND_8SS;
+    if (strcmp(name, S64_LOCAL_RECOVERY_TEXT) == 0)
+        return S64_DOCUMENT_KIND_TEXT;
+    if (native_suffix(name, length, ".tmp")
+        || native_suffix(name, length, ".bak")) length -= 4u;
+    if (native_suffix(name, length, ".8tml")) return S64_DOCUMENT_KIND_8TML;
+    if (native_suffix(name, length, ".8ss")) return S64_DOCUMENT_KIND_8SS;
+    return S64_DOCUMENT_KIND_TEXT;
+}
+
+#ifndef S64_STORAGE_READ_ONLY
+static const char* recovery_filename(S64DocumentKind kind)
+{
+    if (kind == S64_DOCUMENT_KIND_8SS) return S64_LOCAL_RECOVERY_8SS;
+    if (kind == S64_DOCUMENT_KIND_TEXT) return S64_LOCAL_RECOVERY_TEXT;
+    return S64_LOCAL_RECOVERY_FILENAME;
+}
+#endif
+#endif
+
+#ifdef S64_DOCUMENT_8TML
 /* DOS's working directory is shared per target. Select it immediately before
  * each operation so Settings, Publisher and recovery can never redirect a
  * subsequent document write. Do not automatically migrate older files. */
@@ -48,13 +102,20 @@ typedef struct {
     S64DosResult result;
 } S64LocalWriteSink;
 
-static uint8_t filename_copy(char* destination, const char* filename, uint8_t mode)
+static uint8_t filename_copy(char* destination, const char* filename, uint8_t mode,
+    S64DocumentKind kind)
 {
     /* Synchronous storage calls share this counter to keep cc65 stack/code fit. */
     static uint8_t length;
     uint8_t basename = 0u;
     uint8_t has_extension = 0u;
     char value;
+#ifdef S64_DOCUMENT_8TML
+    const char* extension = kind_extension(kind);
+#else
+    const char* extension = SOURCE_EXTENSION;
+    (void)kind;
+#endif
 
 #ifndef S64_DOCUMENT_8TML
     /* Extensionless legacy files retain their exact filename. */
@@ -78,36 +139,37 @@ static uint8_t filename_copy(char* destination, const char* filename, uint8_t mo
     }
 
     strcpy(destination, filename);
-    if (mode != FILENAME_EXACT) {
-        if (basename == length) return 0u;
+    if (basename == length || filename[basename] == '.') return 0u;
+    if (mode == FILENAME_SAVE_AS
+#ifndef S64_DOCUMENT_8TML
+        || mode == FILENAME_OPEN
+#endif
+    ) {
         if (!has_extension) {
-            if (length > S64_LOCAL_FILENAME_CAPACITY - sizeof(SOURCE_EXTENSION)) return 0u;
-            strcpy(destination + length, SOURCE_EXTENSION);
+            uint8_t extension_length = (uint8_t)strlen(extension);
+            if (length + extension_length >= S64_LOCAL_FILENAME_CAPACITY) return 0u;
+            strcpy(destination + length, extension);
         }
     }
 #ifdef S64_DOCUMENT_8TML
-    /* Enforce the new-source suffix while allowing Open of retained .tmp files. */
-    if (mode == FILENAME_SAVE_AS) {
-        const char* extension = SOURCE_EXTENSION;
-        uint8_t position;
-        uint8_t ascii;
-        length = (uint8_t)strlen(destination);
-        if (length < basename + sizeof(SOURCE_EXTENSION)) return 0u;
-        for (position = 0u; position < sizeof(SOURCE_EXTENSION) - 1u; ++position) {
-            if (!s64_charset_native_to_ascii((uint8_t)destination[
-                    length - (sizeof(SOURCE_EXTENSION) - 1u) + position], &ascii)
-                || (ascii | 32u) != ((uint8_t)extension[position] | 32u)) return 0u;
-        }
-    }
+    length = (uint8_t)strlen(destination);
+    if (mode == FILENAME_SAVE_AS && (native_suffix(destination, length, ".tmp")
+        || native_suffix(destination, length, ".bak"))) return 0u;
+    if (mode == FILENAME_SAVE_AS && recovery_name(destination)) return 0u;
 #endif
     return 1u;
 }
 
-static void clear_document(S64LocalDocument* local)
+static void clear_document_kind(S64LocalDocument* local, S64DocumentKind kind)
 {
     S64Buffer* body = local->document->body;
     s64_buffer_init(body);
-    s64_document_init(local->document, body);
+    s64_document_init_kind(local->document, body, kind);
+}
+
+static void clear_document(S64LocalDocument* local)
+{
+    clear_document_kind(local, S64_DOCUMENT_KIND_8TML);
 }
 
 /* Publisher only reads source; keep Editor write/recovery code out of its link. */
@@ -313,17 +375,25 @@ uint8_t s64_local_document_replaced(const S64LocalDocument* local)
     return local != 0 && local->document_replaced;
 }
 
-S64LocalResult s64_local_new(S64LocalDocument* local, uint8_t discard_dirty)
+S64LocalResult s64_local_new_kind(
+    S64LocalDocument* local, S64DocumentKind kind, uint8_t discard_dirty)
 {
     if (local == 0 || local->document == 0 || local->document->body == 0) {
         return S64_LOCAL_INVALID_ARGUMENT;
     }
     if (!discard_dirty) return S64_LOCAL_DIRTY;
+    if (kind < S64_DOCUMENT_KIND_8TML || kind > S64_DOCUMENT_KIND_TEXT)
+        return S64_LOCAL_INVALID_ARGUMENT;
 
-    clear_document(local);
+    clear_document_kind(local, kind);
     local->filename[0] = '\0';
     local->document_replaced = 1u;
     return S64_LOCAL_OK;
+}
+
+S64LocalResult s64_local_new(S64LocalDocument* local, uint8_t discard_dirty)
+{
+    return s64_local_new_kind(local, S64_DOCUMENT_KIND_8TML, discard_dirty);
 }
 
 S64LocalResult s64_local_open(
@@ -341,13 +411,14 @@ S64LocalResult s64_local_open(
 
     if (local == 0 || local->dos == 0 || local->document == 0
         || local->document->body == 0
-        || !filename_copy(checked_filename, filename, FILENAME_OPEN)) {
+        || !filename_copy(checked_filename, filename, FILENAME_OPEN,
+            S64_DOCUMENT_KIND_8TML)) {
         return S64_LOCAL_INVALID_ARGUMENT;
     }
     if (!discard_dirty) return S64_LOCAL_DIRTY;
     local->document_replaced = 0u;
 #if defined(S64_DOCUMENT_8TML) && !defined(S64_STORAGE_READ_ONLY)
-    dos_result = strcmp(checked_filename, S64_LOCAL_RECOVERY_FILENAME) == 0
+    dos_result = recovery_name(checked_filename)
         ? select_recovery_dir(local->dos)
         : select_source_dir(local->dos, 0u);
     if (dos_result != S64_DOS_OK) {
@@ -362,6 +433,9 @@ S64LocalResult s64_local_open(
         return S64_LOCAL_IO_ERROR;
     }
 
+#ifdef S64_DOCUMENT_8TML
+    local->document->kind = filename_kind(checked_filename);
+#endif
     s64_document_wire_reader_init(&reader, local->document);
     local->document_replaced = 1u;
     do {
@@ -412,13 +486,24 @@ static S64LocalResult save_named(
     S64DosResult dos_result;
     uint8_t exists;
     char checked_filename[S64_LOCAL_FILENAME_CAPACITY];
+#ifdef S64_DOCUMENT_8TML
+    S64Document selected;
+#endif
 
     if (local == 0 || local->dos == 0 || local->document == 0
         || local->document->body == 0
-        || !filename_copy(checked_filename, filename, add_extension)
-        || strcmp(checked_filename, S64_LOCAL_RECOVERY_FILENAME) == 0) {
+        || !filename_copy(checked_filename, filename, add_extension,
+            local->document->kind)) {
         return S64_LOCAL_INVALID_ARGUMENT;
     }
+#ifdef S64_DOCUMENT_8TML
+    if (recovery_name(checked_filename)) return S64_LOCAL_INVALID_ARGUMENT;
+    selected = *local->document;
+    selected.kind = filename_kind(checked_filename);
+#else
+    if (strcmp(checked_filename, S64_LOCAL_RECOVERY_FILENAME) == 0)
+        return S64_LOCAL_INVALID_ARGUMENT;
+#endif
 
 #ifdef S64_DOCUMENT_8TML
     dos_result = select_source_dir(local->dos, 1u);
@@ -444,12 +529,19 @@ static S64LocalResult save_named(
 
     result = write_document_file(
         local,
+#ifdef S64_DOCUMENT_8TML
+        &selected,
+#else
         local->document,
+#endif
         checked_filename,
         overwrite
     );
     if (result == S64_LOCAL_OK) {
         strcpy(local->filename, checked_filename);
+#ifdef S64_DOCUMENT_8TML
+        local->document->kind = selected.kind;
+#endif
     }
     return result;
 }
