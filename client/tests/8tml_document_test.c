@@ -185,7 +185,7 @@ int main(void)
 
     /* One codec and text boundary for 8SS and ordinary text, no 8TML header. */
     {
-        static const char* kinds[] = { "", "a { color: red; }\n", "README\nbody\n" };
+        static const char* kinds[] = { "", "uninterpreted 8ss source\n", "README\nbody\n" };
         S64DocumentKind kind;
         for (kind = S64_DOCUMENT_KIND_8SS; kind <= S64_DOCUMENT_KIND_TEXT; ++kind) {
             s64_buffer_init(&body);

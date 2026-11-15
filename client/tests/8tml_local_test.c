@@ -495,6 +495,8 @@ int main(void)
         "extension overflow rejected before disk writes");
     require(s64_local_open(&local, boundary, 1u) == S64_LOCAL_IO_ERROR,
         "extensionless open is exact and never expands");
+    require(s64_local_save_as(&local, "../unsafe", 0u) == S64_LOCAL_INVALID_ARGUMENT
+        && !temporary_exists, "parent-directory traversal rejected");
     require(s64_local_save_as(&local, "archive.v1/New", 0u) == S64_LOCAL_OK
         && strcmp(file_name, "archive.v1/New.8tml") == 0,
         "directory dot does not suppress suffix");
@@ -542,16 +544,24 @@ int main(void)
     require(s64_local_save_as(&local, "bad.8tml", 0u) == S64_LOCAL_INVALID_DOCUMENT
         && document.kind == S64_DOCUMENT_KIND_TEXT && !temporary_exists,
         "invalid 8TML rename refuses writes and retains kind");
+    set_file("settings.ini", "options=1\n");
+    require(s64_local_open(&local, "settings.ini", 1u) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_TEXT,
+        "explicit ini extension remains generic text");
     set_file("LICENSE", "No extension\n");
     require(s64_local_open(&local, "LICENSE", 1u) == S64_LOCAL_OK
         && document.kind == S64_DOCUMENT_KIND_TEXT
         && !strcmp(local.filename, "LICENSE"), "extensionless text opens exactly");
-    set_file("style.8ss", "body { color: red; }\n");
+    set_file("style.8ss", "uninterpreted stylesheet data\n");
     require(s64_local_open(&local, "style.8ss", 1u) == S64_LOCAL_OK
         && document.kind == S64_DOCUMENT_KIND_8SS, "stylesheet opens without 8TML header");
     require(s64_local_save(&local) == S64_LOCAL_OK
-        && file_length == strlen("body { color: red; }\n"),
+        && file_length == strlen("uninterpreted stylesheet data\n"),
         "stylesheet saves literal source");
+    set_file("UPPER.8SS", "opaque style source\n");
+    require(s64_local_open(&local, "UPPER.8SS", 1u) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_8SS,
+        "uppercase stylesheet suffix selects 8SS");
     set_file("style.8ss.tmp", "partial style\n");
     require(s64_local_open(&local, "style.8ss.tmp", 1u) == S64_LOCAL_OK
         && document.kind == S64_DOCUMENT_KIND_8SS, "8SS temp retains source kind");

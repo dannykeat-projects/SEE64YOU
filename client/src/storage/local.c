@@ -154,6 +154,8 @@ static uint8_t filename_copy(char* destination, const char* filename, uint8_t mo
             return 0u;
         }
         if (value == '/' || value == '\\' || value == ':') {
+            if (length - basename == 2u && filename[basename] == '.'
+                && filename[basename + 1u] == '.') return 0u;
             basename = length + 1u;
             has_extension = 0u;
         } else if (value == '.') {
@@ -162,6 +164,8 @@ static uint8_t filename_copy(char* destination, const char* filename, uint8_t mo
         ++length;
     }
 
+    if (length - basename == 2u && filename[basename] == '.'
+        && filename[basename + 1u] == '.') return 0u;
     strcpy(destination, filename);
     if (basename == length) return 0u;
 #ifdef S64_DOCUMENT_8TML
