@@ -22,19 +22,23 @@ SYSTEM/
   S64PREP.BIN       Editor overlay
 SEE64YOU.CFG        saved publishing settings (unchanged)
 docs/
-  *.8tml            editable source documents (new location)
-  *.8tml.tmp/.bak   recoverable save temporaries
-SEE64YOU.REC        possible recovery snapshot (unchanged)
+  *.8tml            8TML source documents
+  *.8ss             literal stylesheet source
+  *.txt / *.md      plain-text source (explicit safe suffixes allowed)
+  <name>.tmp/.bak   recoverable save temporaries
+SEE64YOU.REC        8TML recovery snapshot
+SEE64YOU.8SS.REC    8SS recovery snapshot
+SEE64YOU.TXT.REC    plain-text recovery snapshot
 S64JRN*.DAT         state journals (unchanged)
 ~~~
 
-Launcher/journal operations own DOS `$01`; Editor document/recovery owns `$02`. Each subsystem sets its directory context and closes handles. Ordinary 8TML document operations explicitly select `SEE64YOU/docs/`, creating it on first save if absent. Publisher reads from that directory but never creates it. Recovery snapshots and configuration remain under `SEE64YOU/`; the Editor selects the package root for snapshot operations. Explicit absolute paths retain their origin. Older root-level `.8tml` files remain unchanged and are not silently found, overwritten or moved; back up and copy them manually if needed. A failed lookup must never silently select another file/device.
+Launcher/journal operations own DOS `$01`; Editor document/recovery owns `$02`. Each subsystem sets its directory context and closes handles. Ordinary Editor source operations explicitly select `SEE64YOU/docs/`, creating it on first save if absent. Publisher reads from that directory but never creates it. Recovery snapshots and configuration remain under `SEE64YOU/`; the Editor selects the package root for snapshot operations. Explicit absolute paths retain their origin. Older root-level `.8tml` files remain unchanged and are not silently found, overwritten or moved; back up and copy them manually if needed. A failed lookup must never silently select another file/device.
 
 ## File integrity and recovery
 
-- Source uses complete ASCII/LF 8TML 1 draft text, up to 61,440 bytes. Publisher loads a local source file and never writes source during publication. Failed rename can leave a recoverable complete `.tmp` file.
+- Source uses ASCII/LF text up to 61,440 bytes. The Editor validates 8TML headers, while 8SS/plain text remain literal. Publisher loads only 8TML source and never writes source during publication. Failed rename can leave a recoverable complete `.tmp` file.
 - Local saves refuse an existing `<filename>.tmp` or `<filename>.bak` before writing. Replacement writes and closes `.tmp`, renames the original to `.bak`, installs `.tmp`, then removes `.bak`. Failed installation attempts to restore the original; failed restoration leaves both recovery files. A backup-cleanup error leaves the installed source and old backup and reports failure. Inspect/recover retained files explicitly before retrying; no automatic deletion of pre-existing recovery copies. This sequence is recoverable, not an atomic or power-loss guarantee.
-- Editor has no periodic autosave. Existing `SEE64YOU.REC` may be offered; a failed read preserves the snapshot. Recovered content is dirty until manually saved.
+- Editor has no periodic autosave. Recovery filenames distinguish 8TML (`SEE64YOU.REC`), 8SS (`SEE64YOU.8SS.REC`) and text (`SEE64YOU.TXT.REC`). Multiple snapshots are treated as a conflict, not automatically selected or deleted. A failed read preserves the snapshot. Recovered content is dirty until manually saved.
 - Configuration writes validate the temporary record before replacement and validate final readback. Current delete-then-rename is **not** fully atomic if final rename fails; preserve temporary data and surface errors.
 - The fixed-size two-slot journal records version, sequence and ACTIVE/CLEAN machine-state ownership. Write/readback the alternate slot before superseding valid state. Corrupt/conflicting state must block unsafe changes.
 - Preserve existing root journals/configuration and any verified backups; Settings may require explicit recovery/migration actions when an old root journal blocks safe startup. No silent removal or replacement of user files.

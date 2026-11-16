@@ -22,7 +22,7 @@ Launch each program **independently** and return to BASIC when finished. `S64EDI
 
 ## Create your first page
 
-1. Launch `SEE64YOU.PRG` and choose New (Ctrl+N, or the File menu).
+1. Launch `SEE64YOU.PRG` and choose New (Ctrl+N, or the File menu), then press **1** for an 8TML document. Press **2** for an empty 8SS stylesheet, **3** for empty plain text, or **0** to cancel.
 2. New source begins with an editable 8TML header, including `8tml: 1` and a title. Keep the `---` header delimiters and version entry intact. Enter content below the header. For example:
 
    ~~~text
@@ -37,10 +37,12 @@ Launch each program **independently** and return to BASIC when finished. `S64EDI
    ~~~
 
 3. Save with Ctrl+S or File â†’ Save. A basename such as `HELLO` becomes `HELLO.8tml` in `SEE64YOU/docs/`. The Editor creates `docs/` on the first save if necessary. Use Save As to choose a different name. Existing files are protected from unintended overwrite.
-4. Reopen with Ctrl+O or File â†’ Open. F8 opens Help. Ctrl+Z/ Ctrl+Shift+Z perform undo/redo where the keyboard mapping supports them.
+4. Reopen by entering the **complete filename** with Ctrl+O or File → Open, such as `HELLO.8tml`. F8 opens Help. Ctrl+Z / Ctrl+Shift+Z perform undo/redo where the keyboard mapping supports them.
 5. RUN/STOP or File â†’ Exit asks for confirmation. Saved documents require Y to exit; unsaved documents offer Save, Discard or Cancel.
 
-**Save manually.** There are no timed background saves. Existing `SEE64YOU.REC` snapshots may offer `Recover snapshot? Y/N`; failed reads preserve them, and recovered content must be saved again. Retain any completed `.tmp` file if a disk operation fails. Back up important `.8tml` files independently. Current source is ASCII/LF; CR/CRLF input normalizes to LF; complete source limit is 61,440 bytes.
+**Other local formats:** an 8SS file starts empty and defaults to `.8ss`. Plain text starts empty and defaults to `.txt`; Save As also accepts explicit safe suffixes such as `.md` and `.ini`. These files use the same Editor and are **not published by the current Publisher**. Format shortcuts insert 8TML markup only when editing 8TML files.
+
+**Save manually.** There are no timed background saves. Recovery snapshots use `SEE64YOU.REC` for 8TML, `SEE64YOU.8SS.REC` for 8SS and `SEE64YOU.TXT.REC` for text; failed reads preserve them, and recovered content must be saved again. If multiple snapshots exist, resolve them externally before choosing a recovery. Retain completed `.tmp`/`.bak` files if a disk operation fails. Back up source files independently. All formats use ASCII/LF; CR/CRLF input normalizes to LF; the complete source limit is 61,440 bytes.
 
 ## Optional: publish to a standard endpoint
 

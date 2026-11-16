@@ -1,6 +1,6 @@
 # SEE64YOU product scope
 
-SEE64YOU is an **offline source editor for the Commodore 64 Ultimate**, accompanied by a small Publisher and Settings program. The shipped Editor creates portable `.8tml` source files; support for `.8ss` stylesheets and general text is approved but **not yet implemented**. A compatible external 8TML/T8WN browser handles reading pages. SEE64YOU is not a website engine, CMS or browser.
+SEE64YOU is an **offline source editor for the Commodore 64 Ultimate**, accompanied by a small Publisher and Settings program. The Editor supports portable `.8tml` documents, literal `.8ss` stylesheets and general text files. The released alpha may lag this implementation until its hardware acceptance and release gates pass. A compatible external 8TML/T8WN browser handles reading pages. SEE64YOU is not a website engine, CMS or browser.
 
 ## Programs and workflow
 
@@ -14,7 +14,7 @@ Each program launches independently and returns to BASIC. The Editor must work w
 
 Source is literal 8TML 1 draft ASCII/LF, including header and body; preserve source and unknown constructs rather than generating HTML. CR/CRLF input uses the documented LF normalization. The current local source limit is 61,440 bytes, independent of a server's advertised upload limit. No autosave, hidden remote identity, conversion of older formats or automatic Editor/Publisher handoff. Preserve existing recoverable temporary files, failed-write protection, REU-backed buffers/history and machine-state restoration.
 
-## Approved Editor format expansion (planned, not shipped)
+## Editor formats
 
 Use **one existing text-editing engine**, not three editors. File → New presents **1 8TML Document**, **2 8SS Stylesheet**, **3 Plain Text**, **0 Cancel**, in the existing 40×25 keyboard-first interface. The chosen New-file type determines the initial template and default Save As extension. Opening a named file determines its type from the effective suffix; displayed filename/type should be unambiguous.
 
