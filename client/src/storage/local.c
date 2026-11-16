@@ -130,12 +130,13 @@ typedef struct {
 /* Publisher deliberately retains the proven 8TML-only filename policy. */
 static uint8_t filename_copy(char* destination, const char* filename, uint8_t mode, S64DocumentKind kind)
 {
-    (void)kind;
     /* Synchronous storage calls share this counter to keep cc65 stack/code fit. */
     static uint8_t length;
     uint8_t basename = 0u;
     uint8_t has_extension = 0u;
     char value;
+
+    (void)kind;
 
 #ifndef S64_DOCUMENT_8TML
     /* Extensionless legacy files retain their exact filename. */
