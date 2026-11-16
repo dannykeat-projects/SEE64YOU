@@ -88,6 +88,9 @@ jobs:
             client/src/charset.c -o "$tmp"
           "$tmp"
 
+      - name: Run full host regression suite
+        run: sh tools/validate.sh --host-only
+
       - name: Build and check exact SD package and C64 memory guards
         run: |
           set -eu
