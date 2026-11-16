@@ -30,6 +30,6 @@ The supported client build is:
 make -C client independent-package
 ~~~
 
-The default storage root is `/sd/`. Install the whole package with the four PRGs in `SEE64YOU/` and verified `.BIN`/`.MNF` files in `SEE64YOU/SYSTEM/`. To build for an actual USB mount, rebuild the **whole** package with the corresponding `STORAGE_ROOT` (including trailing slash); there is no automatic fallback. Do not mix files between builds. Current main stores ordinary source in `SEE64YOU/docs/`; released alpha.6 uses the root. Settings and recovery stay at the root. See installation before upgrading.
+The default storage root is `/sd/`. Install the whole package with the four PRGs in `SEE64YOU/` and verified `.BIN`/`.MNF` files in `SEE64YOU/SYSTEM/`. To build for an actual USB mount, rebuild the **whole** package with the corresponding `STORAGE_ROOT` (including trailing slash). Do not mix files between builds. Current main stores ordinary source in `SEE64YOU/docs/`; released alpha.6 uses the root. Settings and recovery stay at the root.
 
-See [development and validation](docs/LOCAL_TESTING.md), [architecture](docs/ARCHITECTURE.md), [product scope](docs/PRODUCT.md), and the active [work queue](todo.md). Current program names and package layout are documented in the installation guide.
+See [development and validation](docs/LOCAL_TESTING.md), [architecture](docs/ARCHITECTURE.md), [product scope](docs/PRODUCT.md), and the active [work queue](todo.md).
