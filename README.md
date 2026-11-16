@@ -4,7 +4,7 @@ A simple text editor for the Commodore 64 Ultimate which supports 8TML, with a s
 
 It has many functions you would expect in a modern editor, with multiple undo/redo, copy/cut/paste with shortcuts, dropdown menus, formatting shortcuts and menus, and mouse support.
 
-## What is 8TMNL and why is there an editor/publisher?
+## What is 8TML and why is there an editor/publisher?
 
 8TML is a web standard for 8-bit machines which is forward-compatible. The dream is that you will be able to create, publish, and view content on the internet from any machine advanced enough to display text.
 
