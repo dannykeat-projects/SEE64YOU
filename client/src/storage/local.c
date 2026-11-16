@@ -16,7 +16,7 @@
 
 enum { FILENAME_EXACT, FILENAME_SAVE_AS, FILENAME_OPEN };
 
-#ifdef S64_DOCUMENT_8TML
+#if defined(S64_DOCUMENT_8TML) && !defined(S64_STORAGE_READ_ONLY)
 static const char* kind_extension(S64DocumentKind kind)
 {
     if (kind == S64_DOCUMENT_KIND_8SS) return ".8ss";
@@ -126,6 +126,65 @@ typedef struct {
     S64DosResult result;
 } S64LocalWriteSink;
 
+#if defined(S64_DOCUMENT_8TML) && defined(S64_STORAGE_READ_ONLY)
+/* Publisher deliberately retains the proven 8TML-only filename policy. */
+static uint8_t filename_copy(char* destination, const char* filename, uint8_t mode, S64DocumentKind kind)
+{
+    (void)kind;
+    /* Synchronous storage calls share this counter to keep cc65 stack/code fit. */
+    static uint8_t length;
+    uint8_t basename = 0u;
+    uint8_t has_extension = 0u;
+    char value;
+
+#ifndef S64_DOCUMENT_8TML
+    /* Extensionless legacy files retain their exact filename. */
+    if (mode == FILENAME_OPEN) mode = FILENAME_EXACT;
+#endif
+    length = 0u;
+    if (destination == 0 || filename == 0 || filename[0] == '\0') return 0u;
+
+    while ((value = filename[length]) != '\0') {
+        if (length >= S64_LOCAL_FILENAME_CAPACITY - 1u
+            || value == '\r' || value == '\n') {
+            return 0u;
+        }
+        if (value == '/' || value == '\\' || value == ':') {
+            basename = length + 1u;
+            has_extension = 0u;
+        } else if (value == '.') {
+            has_extension = 1u;
+        }
+        ++length;
+    }
+
+    strcpy(destination, filename);
+    if (mode != FILENAME_EXACT) {
+        if (basename == length) return 0u;
+        if (!has_extension) {
+            if (length > S64_LOCAL_FILENAME_CAPACITY - sizeof(SOURCE_EXTENSION)) return 0u;
+            strcpy(destination + length, SOURCE_EXTENSION);
+        }
+    }
+#ifdef S64_DOCUMENT_8TML
+    /* Enforce the new-source suffix while allowing Open of retained .tmp files. */
+    if (mode == FILENAME_SAVE_AS) {
+        const char* extension = SOURCE_EXTENSION;
+        uint8_t position;
+        uint8_t ascii;
+        length = (uint8_t)strlen(destination);
+        if (length < basename + sizeof(SOURCE_EXTENSION)) return 0u;
+        for (position = 0u; position < sizeof(SOURCE_EXTENSION) - 1u; ++position) {
+            if (!s64_charset_native_to_ascii((uint8_t)destination[
+                    length - (sizeof(SOURCE_EXTENSION) - 1u) + position], &ascii)
+                || (ascii | 32u) != ((uint8_t)extension[position] | 32u)) return 0u;
+        }
+    }
+#endif
+    return 1u;
+}
+
+#else
 static uint8_t filename_copy(char* destination, const char* filename, uint8_t mode,
     S64DocumentKind kind)
 {
@@ -191,6 +250,17 @@ static uint8_t filename_copy(char* destination, const char* filename, uint8_t mo
     return 1u;
 }
 
+#endif
+
+#ifdef S64_STORAGE_READ_ONLY
+static void clear_document(S64LocalDocument* local)
+{
+    S64Buffer* body = local->document->body;
+    s64_buffer_init(body);
+    s64_document_init(local->document, body);
+}
+
+#else
 static void clear_document_kind(S64LocalDocument* local, S64DocumentKind kind)
 {
     S64Buffer* body = local->document->body;
@@ -202,6 +272,8 @@ static void clear_document(S64LocalDocument* local)
 {
     clear_document_kind(local, S64_DOCUMENT_KIND_8TML);
 }
+
+#endif
 
 /* Publisher only reads source; keep Editor write/recovery code out of its link. */
 #ifndef S64_STORAGE_READ_ONLY
@@ -406,6 +478,21 @@ uint8_t s64_local_document_replaced(const S64LocalDocument* local)
     return local != 0 && local->document_replaced;
 }
 
+#ifdef S64_STORAGE_READ_ONLY
+S64LocalResult s64_local_new(S64LocalDocument* local, uint8_t discard_dirty)
+{
+    if (local == 0 || local->document == 0 || local->document->body == 0) {
+        return S64_LOCAL_INVALID_ARGUMENT;
+    }
+    if (!discard_dirty) return S64_LOCAL_DIRTY;
+
+    clear_document(local);
+    local->filename[0] = '\0';
+    local->document_replaced = 1u;
+    return S64_LOCAL_OK;
+}
+
+#else
 S64LocalResult s64_local_new_kind(
     S64LocalDocument* local, S64DocumentKind kind, uint8_t discard_dirty)
 {
@@ -427,6 +514,8 @@ S64LocalResult s64_local_new(S64LocalDocument* local, uint8_t discard_dirty)
     return s64_local_new_kind(local, S64_DOCUMENT_KIND_8TML, discard_dirty);
 }
 
+#endif
+
 S64LocalResult s64_local_open(
     S64LocalDocument* local,
     const char* filename,
@@ -447,13 +536,7 @@ S64LocalResult s64_local_open(
         return S64_LOCAL_INVALID_ARGUMENT;
     }
     if (!discard_dirty) return S64_LOCAL_DIRTY;
-#ifdef S64_STORAGE_READ_ONLY
-#ifdef S64_DOCUMENT_8TML
-    /* Publisher remains 8TML-only even though the Editor opens other text. */
-    if (filename_kind(checked_filename) != S64_DOCUMENT_KIND_8TML)
-        return S64_LOCAL_INVALID_ARGUMENT;
-#endif
-#endif
+
     local->document_replaced = 0u;
 #if defined(S64_DOCUMENT_8TML) && !defined(S64_STORAGE_READ_ONLY)
     dos_result = recovery_name(checked_filename)
@@ -471,7 +554,7 @@ S64LocalResult s64_local_open(
         return S64_LOCAL_IO_ERROR;
     }
 
-#ifdef S64_DOCUMENT_8TML
+#if defined(S64_DOCUMENT_8TML) && !defined(S64_STORAGE_READ_ONLY)
     local->document->kind = filename_kind(checked_filename);
 #endif
     s64_document_wire_reader_init(&reader, local->document);
