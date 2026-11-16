@@ -331,6 +331,7 @@ int main(void)
     assert(!strcmp(decoded->search, snapshot.search) && decoded->search_valid);
     assert(decoded->clipboard_length == snapshot.clipboard_length);
     assert(decoded->document.type == snapshot.document.type && decoded->document.status == snapshot.document.status);
+    assert(decoded->document.kind == snapshot.document.kind);
     assert(decoded->document.order == snapshot.document.order && !strcmp(decoded->document.slug, snapshot.document.slug));
     assert(!strcmp(decoded->document.title, snapshot.document.title) && !strcmp(decoded->document.date, snapshot.document.date));
     assert(decoded->generation == 9 && decoded->source_module == S64_MODULE_PUBLISHER);
@@ -341,7 +342,7 @@ int main(void)
         uint8_t prior[512];
         memcpy(prior, wire + 512, sizeof(prior));
         assert(s64_managed_editor_state_prepare(&runtime, wire) == 2);
-        wire[337] = 1;
+        wire[337] = 3; /* 0, 1 and 2 now represent the supported document kinds. */
         assert(!s64_managed_editor_state_decode(&runtime, wire));
         assert(!memcmp(prior, wire + 512, sizeof(prior)));
         no_payload_writes();
