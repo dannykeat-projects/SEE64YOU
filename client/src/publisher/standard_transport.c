@@ -211,7 +211,7 @@ static uint8_t send_source(const uint8_t* data,uint16_t length,void* context)
 static S64StandardResult exchange(S64PublishRequestKind kind,uint32_t size,S64StandardWriter writer,void* context)
 {
  S64NetResult net; S64StandardResult result=S64_STANDARD_NETWORK;
- uint16_t idle=0u,received,polls=0u; char* colon;
+ uint16_t received; clock_t idle_since; uint8_t timed_out=0u; char* colon;
  operation=kind;
  if(!s64_publish_request_path(uri,sizeof(uri),endpoint,kind,active->id,target,size,challenge)) return S64_STANDARD_INVALID;
  if(kind==S64_PUBLISH_REQUEST_LIST || kind==S64_PUBLISH_REQUEST_PUT) {
@@ -238,15 +238,17 @@ static S64StandardResult exchange(S64PublishRequestKind kind,uint32_t size,S64St
   /* A complete signature may reach the server even if acknowledgement fails. */
   body_sent=1u; if(!send_text(signature)) goto done;
  }
- while(idle<512u && polls++<4096u) {
+ idle_since=clock();
+ while(1) {
+  if(S64_NET_EXPIRED(idle_since,S64_NET_IDLE_SECONDS)) { timed_out=1u; break; }
   received=0u;
   net=s64_net_read(&active->network,socket_handle,S64_NET_READ_MAX,receive,0,&received);
   if(failed) { result=S64_STANDARD_PROTOCOL; goto done; }
   if(net!=S64_NET_OK && net!=S64_NET_NO_DATA && net!=S64_NET_CLOSED) goto done;
-  if(received) idle=0u; else ++idle;
+  if(received) idle_since=clock();
   if((headers_done && have_length && !remaining) || net==S64_NET_CLOSED) break;
  }
- if(idle>=512u || polls>=4096u || !headers_done || (have_length && remaining) || !s64_publish_reply_finish(&reader)) { result=S64_STANDARD_PROTOCOL; goto done; }
+ if(timed_out || !headers_done || (have_length && remaining) || !s64_publish_reply_finish(&reader)) { result=S64_STANDARD_PROTOCOL; goto done; }
  if(reader.is_error || http_status<200u || http_status>=300u) { result=S64_STANDARD_SERVER; goto done; }
  if((kind==S64_PUBLISH_REQUEST_STATUS && fields!=7u) || (kind==S64_PUBLISH_REQUEST_CHALLENGE && fields!=1u) || (kind==S64_PUBLISH_REQUEST_PUT && fields!=7u)) { result=S64_STANDARD_PROTOCOL; goto done; }
  result=S64_STANDARD_OK;
