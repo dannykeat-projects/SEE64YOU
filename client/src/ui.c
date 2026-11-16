@@ -72,6 +72,47 @@ static void render_header(void)
     header_rendered = 1u;
 }
 
+int s64_ui_parse_line_number(const char* text, unsigned int* line_number)
+{
+    unsigned int value = 0u;
+    unsigned char digit;
+
+    if (*text == '\0') {
+        return 0;
+    }
+
+    while (*text != '\0') {
+        if (*text < '0' || *text > '9') {
+            return 0;
+        }
+
+        digit = (unsigned char)(*text - '0');
+#ifdef S64_REU_BUFFER
+        if (value > 6553u || (value == 6553u && digit > 5u)) {
+            return 0;
+        }
+#else
+        if (value > 819u) {
+            return 0;
+        }
+#endif
+
+        value = (unsigned int)(value * 10u + digit);
+        if (value > S64_BUFFER_CAPACITY + 1u) {
+            return 0;
+        }
+        ++text;
+    }
+
+    if (value == 0u) {
+        return 0;
+    }
+
+    *line_number = value;
+    return 1;
+}
+
+
 static void prepare_row(void)
 {
     memset(row_chars, ' ', sizeof(row_chars));

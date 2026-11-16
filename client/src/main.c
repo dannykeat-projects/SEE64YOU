@@ -325,7 +325,7 @@ static void open_document(void)
     if (result != S64_LOCAL_OK) {
         if (s64_local_document_replaced(&local_document)) {
             s64_editor_document_loaded(&editor);
-                    s64_ui_render(&editor);
+            s64_ui_render(&editor);
         }
         show_local_result(result);
         return;
@@ -477,46 +477,6 @@ static void repeat_find(unsigned char previous)
     show_find_result(previous);
 }
 
-static int parse_line_number(const char* text, unsigned int* line_number)
-{
-    unsigned int value = 0u;
-    unsigned char digit;
-
-    if (*text == '\0') {
-        return 0;
-    }
-
-    while (*text != '\0') {
-        if (*text < '0' || *text > '9') {
-            return 0;
-        }
-
-        digit = (unsigned char)(*text - '0');
-#ifdef S64_REU_BUFFER
-        if (value > 6553u || (value == 6553u && digit > 5u)) {
-            return 0;
-        }
-#else
-        if (value > 819u) {
-            return 0;
-        }
-#endif
-
-        value = (unsigned int)(value * 10u + digit);
-        if (value > S64_BUFFER_CAPACITY + 1u) {
-            return 0;
-        }
-        ++text;
-    }
-
-    if (value == 0u) {
-        return 0;
-    }
-
-    *line_number = value;
-    return 1;
-}
-
 static void prompt_go_to_line(void)
 {
     char value[LINE_TEXT_CAPACITY];
@@ -527,7 +487,7 @@ static void prompt_go_to_line(void)
         return;
     }
 
-    if (!parse_line_number(value, &line_number)) {
+    if (!s64_ui_parse_line_number(value, &line_number)) {
         s64_ui_message("Invalid line number");
         return;
     }
