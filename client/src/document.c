@@ -580,8 +580,8 @@ static uint8_t source_valid(const S64Document* document)
         if (!s64_charset_native_to_ascii(s64_buffer_char_at(body, position), &byte)
             || (byte != 9u && byte != 10u && (byte < 32u || byte > 126u))) return 0u;
     }
-    if (s64_buffer_read_error(body)) return 0u;
 #ifndef S64_STORAGE_READ_ONLY
+    if (s64_buffer_read_error(body)) return 0u;
     if (document->kind == S64_DOCUMENT_KIND_8SS
         || document->kind == S64_DOCUMENT_KIND_TEXT) return 1u;
     if (document->kind != S64_DOCUMENT_KIND_8TML) return 0u;

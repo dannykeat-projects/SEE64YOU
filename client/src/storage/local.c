@@ -128,7 +128,7 @@ typedef struct {
 
 #if defined(S64_DOCUMENT_8TML) && defined(S64_STORAGE_READ_ONLY)
 /* Publisher deliberately retains the proven 8TML-only filename policy. */
-static uint8_t filename_copy(char* destination, const char* filename, uint8_t mode, S64DocumentKind kind)
+static uint8_t filename_copy(char* destination, const char* filename, uint8_t mode)
 {
     /* Synchronous storage calls share this counter to keep cc65 stack/code fit. */
     static uint8_t length;
@@ -136,7 +136,6 @@ static uint8_t filename_copy(char* destination, const char* filename, uint8_t mo
     uint8_t has_extension = 0u;
     char value;
 
-    (void)kind;
 
 #ifndef S64_DOCUMENT_8TML
     /* Extensionless legacy files retain their exact filename. */
@@ -532,8 +531,12 @@ S64LocalResult s64_local_open(
 
     if (local == 0 || local->dos == 0 || local->document == 0
         || local->document->body == 0
+#ifdef S64_STORAGE_READ_ONLY
+        || !filename_copy(checked_filename, filename, FILENAME_OPEN)) {
+#else
         || !filename_copy(checked_filename, filename, FILENAME_OPEN,
             S64_DOCUMENT_KIND_8TML)) {
+#endif
         return S64_LOCAL_INVALID_ARGUMENT;
     }
     if (!discard_dirty) return S64_LOCAL_DIRTY;
