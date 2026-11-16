@@ -6,6 +6,8 @@ on:
       - 'client/**'
       - 'tools/package_8tml_release.py'
       - 'tools/tests/package_8tml_release_test.py'
+      - 'tools/tests/editor_overlay_fit_test.py'
+      - 'tools/validate.sh'
       - '.github/workflows/package-layout-validation.yml'
   workflow_dispatch:
 
