@@ -455,11 +455,11 @@ const char* s64_local_result_message(const S64LocalDocument* local, S64LocalResu
     switch (result) {
         case S64_LOCAL_OK: return "OK";
         case S64_LOCAL_INVALID_ARGUMENT: return "Invalid file request";
-        case S64_LOCAL_DIRTY: return "Document has unsaved changes";
+        case S64_LOCAL_DIRTY: return "Unsaved changes";
         case S64_LOCAL_NO_FILENAME: return "Use Save As first";
         case S64_LOCAL_EXISTS: return "File already exists";
         case S64_LOCAL_RECOVERY_CONFLICT: return "Recover .tmp/.bak first";
-        case S64_LOCAL_INVALID_DOCUMENT: return "Invalid text source";
+        case S64_LOCAL_INVALID_DOCUMENT: return "Invalid source";
         case S64_LOCAL_DOCUMENT_TOO_LARGE: return "Document too large";
         case S64_LOCAL_IO_ERROR:
         default:
