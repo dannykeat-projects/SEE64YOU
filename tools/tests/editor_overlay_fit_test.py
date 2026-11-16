@@ -95,10 +95,10 @@ s64_message(
     assert FIT.OVERLAY_LIMIT == 0x3C00
     assert FIT.RESIDENT_BSS_LIMIT == 0x8C00
     assert "src/platform/application_state_wire.c" in FIT.GROUPS["RUNTIME"]
-    assert "src/platform/application_state_payload.c" in FIT.GROUPS["FILE"]
+    assert "src/platform/application_state_payload.c" in FIT.GROUPS["PUBLICATION"]
     assert "src/platform/managed_editor_restore.c" in FIT.GROUPS["MODEL"]
     assert FIT.BRIDGES["MODEL"] == ("s64_application_state_decode_payload",)
-    assert "s64_application_state_decode_editor" in FIT.BRIDGES["FILE"]
+    assert "s64_application_state_decode_editor" in FIT.BRIDGES["PUBLICATION"]
     assert FIT.GROUP_IDS["PUBLICATION"] == 4
     assert FIT.GROUPS["PUBLICATION"] == (
         "src/platform/managed_editor_prepare.c",
@@ -113,12 +113,13 @@ s64_message(
         "src/platform/module_integrity.c",
         "src/platform/application_state_editor.c",
         "src/platform/application_state_build.c",
+        "src/platform/application_state_payload.c",
     )
     assert FIT.BRIDGES["PUBLICATION"] == (
         "s64_transfer_capsule_allocation",
         "s64_transfer_capsule_checksum",
         "s64_transfer_capsule_module_valid",
-        "s64_application_state_payload_valid",
+        "s64_application_state_decode_editor",
         "s64_managed_editor_state_revoke",
         "s64_reu_runtime_store_verified",
         "s64_session_journal_encode",
