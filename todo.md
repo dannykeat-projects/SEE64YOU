@@ -4,7 +4,7 @@ Scope: [Product](docs/PRODUCT.md). Procedures: [Testing](docs/LOCAL_TESTING.md).
 
 ## Current baseline
 
-Alpha.7 uses the ten-file SYSTEM layout and stores ordinary documents in SEE64YOU/docs/; settings, keys, recovery and journals remain at the root. First Save handles the Ultimate missing-directory status and creates docs. Host regressions, SD/USB fit/manifests, matching VICE and bounded SD hardware acceptance pass; remaining gates are below.
+Alpha.8 uses the ten-file SYSTEM layout and stores ordinary documents in SEE64YOU/docs/; settings, keys, recovery and journals remain at the root. First Save handles the Ultimate missing-directory status and creates docs. Host regressions, SD/USB fit/manifests, matching VICE and bounded SD hardware acceptance pass; remaining gates are below.
 
 Save replacement/rollback, batched loading, resident reserve recovery and numbered selectors are implemented. Exact-package SD checks cover Editor recovery and Publisher uploads; native key/network failure injection remains open. These results do not establish comparable loading gains.
 
@@ -21,7 +21,7 @@ The shared Editor supports 8TML, literal 8SS and general ASCII text; Publisher a
 - [ ] **P1 — Finish physical and shipping-control acceptance.** Automated host, SD/USB build/fit/manifests, VICE and REST-assisted SD storage/recovery/BASIC gates pass. Editor reserve is SD 1,122 / USB1 1,120 bytes; Publisher 1,215 / 1,211; launcher 1,172 / 1,158. Modifier-driven shipping New/Open/overwrite, physical keyboard/Link, cold-power/interruption and actual USB-only operation remain open. Follow [testing](docs/LOCAL_TESTING.md); retain exact package and restoration receipts.
 - [x] **P2 — Publisher format support.** Verified the published 8SS reference and actual server type support; local 8SS/TXT loading, matching-package native create/replace/cancel and exact independent-server readback pass. Other Editor suffixes remain local; Save As `.txt` publishes literal text. External-reader styling and native key/network faults remain separate gates below.
 - [x] **Documentation.** README and canonical Editor/Install/Product/Architecture/Runtime/testing references describe the candidate's actual formats, literal 8SS boundaries, recovery names and acceptance limits; released alpha support remains distinguished.
-- [ ] **Delivery.** Matching-package validation, push and permanent C64U SD installation pass. Merge the implementation PR and publish the authorized alpha.8 release with disclosed physical-input, cold-power/interruption, USB-only, native key/network fault and external-reader limits.
+- [x] **Delivery.** Plan #76 and implementation #77 are merged. [Alpha.8](https://github.com/dannykeat-projects/SEE64YOU/releases/tag/v0.2.0-alpha.8) is published from `0f9c872` with verified SD/USB1 assets and checksums. The exact SD package remains installed on the C64U, preserving user files, keys/configuration and machine settings. Physical-input, cold-power/interruption, USB-only, native key/network fault and external-reader limits remain disclosed above.
 
 ## Release acceptance
 
