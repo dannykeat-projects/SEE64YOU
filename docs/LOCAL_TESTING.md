@@ -66,12 +66,20 @@ For focused native storage checks, add `--storage-only`; this retains package re
 
 Use a matching `--package-dir`/`--storage-root` where needed. It stages and verifies a complete package, tests Editor create/save/recovery and a native local source/storage/fault probe, then restores original files and machine state. Check the receipt rather than inferring restoration. Remote key injection is **not** physical keyboard evidence; private receipts and storage backups must not be committed.
 
+Add `--multiformat` for native real-DOS 8SS/text New/Open/Save As, empty files, exact suffixes, CRLF normalization, invalid bytes/header, 8SS rename rollback, `.tmp`/`.bak` collision/recovery and format-specific snapshots. Full mode also exercises the shipping Editor's 8SS/text/empty recovery, type label and exit/Save As, comparing exact file bytes. All three snapshot names are backed up and restored. These checks do not certify modifier-driven shipping New/Open or physical keyboard input: firmware 1.1.0 does not provide the newer `machine:input` endpoint. The separate VICE interaction diagnostic covers all three numbered New choices, Cancel and type labels through production UI functions, not the shipping launcher lifecycle.
+
+The clean-exit colour check records the observed palette before cleanup reapplies captured colours. VICE also verifies screen colour RAM. Keep the exact package hashes and complete restoration receipt with each hardware run.
+
+Diagnostic PRGs use content-derived 8.3 names: this avoids reusing a prior diagnostic pathname whose first sector was returned stale on tested firmware. Every uploaded file still requires byte-exact readback before execution; a mismatch aborts without replaying the write. Keep the failed receipt and compare the captured bytes before starting another test session.
+
+Use `--multiformat --recovery-only` to isolate shipping snapshot recovery/exit/Save As while retaining the same backup, context and restoration checks. This partial mode, native-only mode and any failed run are rejected as release acceptance evidence by the packager. The packager accepts a content-named diagnostic only when its name matches its recorded SHA-256 prefix; unexpected inventory remains an error.
+
 Ordinary source fixtures use `docs/`; recovery stays at the root. The full gate also checks Publisher refusal when `docs/` is absent, numbered/typed local selection and cancellation without changing app files. It removes only a test-created empty `docs/` after restoration, preserving existing directories. Read-only REST monitoring retries are bounded; writes are never replayed. Publisher network/pending-message and physical-input acceptance remain separate.
 
 Before release acceptance, perform these additional checks and mark each **passed, failed, blocked or unverified**:
 
-1. Physical C64 and intended USB keyboard: New/Open/Save/Save As, editing responsiveness, help/menu/exit confirmation, and cursor/selection.
-2. Power off and cold restart; reopen saved source byte-exact, validate header/body, and distinguish existing recovery from unsaved edits.
+1. Physical C64 and intended USB keyboard: use New for 8TML, 8SS and plain text; Cancel must preserve the current file. Exercise exact-name Open, Save, Save As (default suffix and explicit `.md`), overwrite No/Yes on disposable copies, undo/redo, help/menu/exit and cursor/selection. Verify 8TML formatting is blocked in 8SS/text. Modifier-driven shipping New/Open and overwrite prompts need their own observed evidence.
+2. Power off and cold restart; reopen saved 8TML, 8SS, empty text and `.md` byte-exact, validate 8TML header/body, and distinguish existing recovery from unsaved edits.
 3. Safely simulate permitted interruption/failed writes on disposable data; preserve existing files and recoverable temporaries.
 4. Import a standard key in Settings, save/relaunch, then test Publisher status/list/create/explicit-replace/error/cancel against a disposable standard endpoint. Compare the received source and signature; never retry an uncertain write. Independent-server acceptance is a separate gate.
 5. Verify complete cleanup, original configuration/files, DOS contexts, live machine settings and responsive BASIC numeric and string commands.

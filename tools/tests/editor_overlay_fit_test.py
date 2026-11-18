@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import tempfile
 import sys
 from pathlib import Path
@@ -26,6 +27,32 @@ s64_message(
 """
     names = FIT.public_s64_definitions(source)
     assert names == ["s64_plain", "s64_message"], names
+
+    client = SCRIPT.parents[1] / "client"
+    expected_storage = set(re.findall(r"\b(s64_local_\w+)\s*\(",
+        (client / "src/storage/local.h").read_text()))
+    storage_names = set(FIT.public_s64_definitions(
+        (client / "src/storage/local.c").read_text()))
+    assert not expected_storage - storage_names, expected_storage - storage_names
+    conditional = """
+int s64_conditional(int value) {
+#ifdef FIRST
+    if (value) {
+#else
+    if (!value) {
+#endif
+        return 1;
+    }
+    return 0;
+}
+int s64_after(void) { return 0; }
+"""
+    try:
+        FIT.public_s64_definitions(conditional, "conditional.c")
+    except FIT.FitError as error:
+        assert "conditional.c" in str(error)
+    else:
+        raise AssertionError("Conditional braces must not silently hide later entry points")
 
     generated = FIT.generated_translation_unit(
         "MODEL",

@@ -5,8 +5,9 @@
 
 ; Managed diagnostic exit; normal/public product transfer remains gated.
 ; Caller must first complete shutdown/restore/verify/CLEAN and validate a
-; session-bound original SYS context before staging these 285 bytes at $0400:
-; original $01, incoming SP, processor flags, $02-$1B, full $0100-$01FF.
+; session-bound original SYS context before staging these 288 bytes at $0400:
+; original $01, incoming SP, processor flags, $02-$1B, full $0100-$01FF,
+; border/background/text colours (already reapplied by the caller).
 ; Copy this image to the transient cassette buffer at $033C. Restoration
 ; does not use the restored stack until it is ready to call KERNAL CHROUT.
 CONTEXT = $0400

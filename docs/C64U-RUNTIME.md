@@ -49,6 +49,8 @@ For temporary settings: **capture → durable ACTIVE → apply → use → resto
 
 Close bounded UCI, REU, DOS and TCP operations on success, failure and cancellation. The BASIC-return path protects its original context/scratch reservations and must not execute cc65 code after stack/zero-page restoration. Never weaken guards to fit optional features.
 
+The Editor captures border, background and text colours before launcher startup in its checksummed, session-bound BASIC-return context. After successful shutdown and CLEAN persistence, it reapplies those colours before clearing the screen and returning to BASIC. Install the matching launcher and Editor together.
+
 ## Security and acceptance
 
 Direct C64U publishing uses raw HTTP on UCI `$03` with per-site challenge/HMAC authentication; source remains unencrypted. Obtain a standard key through the independent server over HTTPS and require explicit HTTP consent. No silent TLS downgrade.

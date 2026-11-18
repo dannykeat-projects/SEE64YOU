@@ -34,13 +34,22 @@ def committed_source():
 
 
 def verify_receipts(validation, receipt, commit):
-    if receipt.get("storage_only") is True or receipt.get("shipping_editor_UI_tested") is False:
-        raise ValueError("Native-storage-only evidence does not certify shipping Editor UI acceptance")
+    if receipt.get("storage_only") is True or receipt.get("recovery_only") is True \
+            or receipt.get("shipping_editor_UI_tested") is False:
+        raise ValueError("Partial Editor evidence does not certify full shipping UI acceptance")
+    if receipt.get("error") or receipt.get("exit_error") or receipt.get("restore_error"):
+        raise ValueError("Failed hardware evidence cannot certify release acceptance")
     if receipt.get("restored") is not True or receipt.get("active") is not False \
             or receipt.get("dos_context_restored") is not True or receipt.get("storage_root") != "/sd/":
         raise ValueError("Hardware receipt must confirm complete SD restoration")
-    if set(receipt.get("package_sha256", {})) not in (FILES, FILES | {"T8PROBE.PRG"}):
-        raise ValueError("Hardware inventory must be ten shipping files plus optional T8PROBE.PRG")
+    probe = receipt.get("probe_name", "T8PROBE.PRG")
+    inventory = receipt.get("package_sha256", {})
+    if probe != "T8PROBE.PRG" and (not re.fullmatch(r"P[0-9A-F]{7}\.PRG", probe)
+            or not re.fullmatch(r"[0-9a-f]{64}", inventory.get(probe, ""))
+            or probe != "P" + inventory[probe][:7].upper() + ".PRG"):
+        raise ValueError("Diagnostic name must match its recorded content hash")
+    if set(inventory) not in (FILES, FILES | {probe}):
+        raise ValueError("Hardware inventory must be ten shipping files plus its optional diagnostic")
     required_gates = {"focused_source_and_storage", "SD_USB_fit_manifests",
                       "SD_USB_packaged_VICE_startup_BASIC_return", "host_suite", "C64U_SD_disk_restoration"}
     if any(validation.get("gates", {}).get(name) != "passed" for name in required_gates):

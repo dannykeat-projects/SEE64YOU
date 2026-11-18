@@ -200,6 +200,26 @@ int main(void)
             require(document.kind == kind, "reader preserves selected format");
             save();
             require(output_length == length && !memcmp(output, input, length), "non-8TML exact roundtrip");
+            memset(input, 'x', sizeof(input));
+            s64_document_wire_reader_init(&reader, &document);
+            for (i = 0u; i < S64_BUFFER_CAPACITY / sizeof(input); ++i)
+                require(s64_document_wire_reader_write(input, sizeof(input), &reader),
+                    "non-8TML maximum-size read");
+            require(s64_document_wire_reader_finish(&reader) == S64_DOCUMENT_OK,
+                "non-8TML maximum-size valid");
+            save();
+            require(output_length == S64_BUFFER_CAPACITY, "non-8TML maximum-size saves");
+            require(!s64_document_wire_reader_write(input, 1u, &reader),
+                "non-8TML oversized read rejected");
+            require(s64_document_wire_reader_finish(&reader) == S64_DOCUMENT_SINK_ERROR,
+                "non-8TML oversized read reported");
+            for (i = 0u; i <= 255u; ++i) {
+                if (i == 9u || i == 10u || i == 13u || (i >= 32u && i <= 126u)) continue;
+                s64_document_wire_reader_init(&reader, &document);
+                input[0] = (uint8_t)i;
+                require(!s64_document_wire_reader_write(input, 1u, &reader),
+                    "non-8TML unsupported byte rejected");
+            }
         }
         length = fixture("a\r\nb\r");
         s64_document_wire_reader_init(&reader, &document);

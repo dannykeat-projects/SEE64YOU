@@ -529,14 +529,17 @@ S64LocalResult s64_local_open(
     uint16_t bytes_read;
     char checked_filename[S64_LOCAL_FILENAME_CAPACITY];
 
+    /* Keep the shared guard body outside preprocessor alternatives so raw-source
+     * overlay entry discovery does not lose subsequent public functions. */
     if (local == 0 || local->dos == 0 || local->document == 0
         || local->document->body == 0
 #ifdef S64_STORAGE_READ_ONLY
-        || !filename_copy(checked_filename, filename, FILENAME_OPEN)) {
+        || !filename_copy(checked_filename, filename, FILENAME_OPEN))
 #else
         || !filename_copy(checked_filename, filename, FILENAME_OPEN,
-            S64_DOCUMENT_KIND_8TML)) {
+            S64_DOCUMENT_KIND_8TML))
 #endif
+    {
         return S64_LOCAL_INVALID_ARGUMENT;
     }
     if (!discard_dirty) return S64_LOCAL_DIRTY;

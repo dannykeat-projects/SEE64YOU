@@ -1,8 +1,8 @@
 # SEE64YOU
 
-SEE64YOU is an 8tmnl editor with a small companion for publishing to a compatible 8TML server.
+SEE64YOU is an offline source editor for C64 Ultimate, with a small companion for publishing to a compatible 8TML server.
 
-Documents are portable `.8tml` text files. 
+The published alpha edits portable `.8tml` documents. This development candidate also edits literal `.8ss` stylesheets and general ASCII text, including `.txt` and `.md`, through the same Editor. Multi-format support is not yet released.
 
 The Editor does not require an account or internet connection, and you can also just use it as a standard text editor.
 
@@ -10,7 +10,7 @@ It has many functions you would expect in a modern Markdown editor, with multipl
 
 ## What works
 
-- **Editor:** create, open, edit and manually save 8TML 1 draft source on SD or a configured USB mount. Includes cursor/selection, search, formatting shortcuts, undo/redo and existing-snapshot recovery. The complete source and unknown markup are preserved; files use ASCII with LF endings, with a 61,440-byte source limit.
+- **Editor candidate:** New offers 8TML, 8SS and plain text. Open uses the exact filename; Save As defaults to `.8tml`, `.8ss` or `.txt` and preserves explicit safe suffixes. Includes cursor/selection, search, 8TML formatting shortcuts, undo/redo and format-specific snapshot recovery. Source and unknown constructs are preserved; files use ASCII with LF endings, with a 61,440-byte source limit. Empty text files are valid. 8SS and general text are local-only in this candidate.
 - **Publisher (experimental):** separately load local `.8tml`, choose a remote path and publish or explicitly replace through standard API 1. Settings imports the standard endpoint/ID/key. The 26 October 2026 API draft remains subject to interoperability and hardware acceptance.
 
 For reading 8TML on an 8-bit machine, use a compatible browser from the 8TML/T8WN ecosystem. SEE64YOU does not aim to maintain its own 8TML browser. The active package does not include a browser.

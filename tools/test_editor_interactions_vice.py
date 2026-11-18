@@ -33,6 +33,7 @@ HARNESS = r'''
 #define VISUAL (*(volatile unsigned char*)0xc043)
 static S64Editor editor;
 static S64Clipboard clipboard;
+static S64Document document;
 static unsigned char chunk[64];
 static unsigned char checked[64];
 static unsigned int length;
@@ -124,6 +125,17 @@ int main(void) {
     require(strlen(prompt)==50u,22);
     s64_ui_render(&editor); exact(23); blank_tail(3u);
     checkpoint(63u);
+    for (n=1u;n<=3u;++n) {
+        checkpoint(70u+n);
+        require(s64_ui_select_document_kind()==n,24);
+        document.kind=(S64DocumentKind)n;
+        s64_ui_init(&document); s64_ui_render(&editor); exact(25);
+        checkpoint(80u+n);
+    }
+    checkpoint(74u);
+    require(!s64_ui_select_document_kind(),26);
+    s64_ui_render(&editor); exact(27);
+    checkpoint(84u);
     STAGE=0xa5u;
     for(;;) {}
     return 0;
@@ -145,7 +157,7 @@ def main():
     source.write_text(HARNESS.replace("{64u,1024u,16384u,60000u,61440u}",
                                      "{"+",".join(f"{size}u" for size in args.sizes)+"}"))
     names = ("ui.c", "ui_status.s", "menu.c", "editor.c", "editor_format.c",
-             "buffer_reu.c", "history_reu.c", "clipboard.c", "platform/reu.c",
+             "buffer_reu.c", "history_reu.c", "clipboard.c", "charset.c", "platform/reu.c",
              "platform/reu_dma.s")
     source_hashes = {name: hashlib.sha256((ROOT / "client/src" / name).read_bytes()).hexdigest()
                      for name in names}
@@ -189,6 +201,9 @@ def main():
                     break
                 if stage and stage != ack:
                     text = screen(monitor)
+                    if stage in (81, 82, 83, 84):
+                        expected = {81: "8TML", 82: "8SS", 83: "TEXT", 84: "TEXT"}[stage]
+                        assert expected in text[:40], (stage, text[:40])
                     stages.append(dict(stage=stage, blank_tail_failure=bool(visual),
                                        screen_rows=[text[i:i+40] for i in range(0,1000,40)]))
                     save_report()
@@ -202,6 +217,9 @@ def main():
                         for value in values:
                             key(monitor, value)
                             time.sleep(0.025)
+                    elif stage in (71, 72, 73, 74):
+                        time.sleep(0.15)
+                        key(monitor, ord(str(stage - 70)) if stage != 74 else ord("0"))
                 else:
                     monitor.resume()
                 time.sleep(0.02)

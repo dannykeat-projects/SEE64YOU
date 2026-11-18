@@ -134,7 +134,7 @@ def source_lists(make_output: str) -> tuple[list[str], list[str]]:
     return c64u, runtime
 
 
-def public_s64_definitions(source: str) -> list[str]:
+def public_s64_definitions(source: str, source_name: str = "<source>") -> list[str]:
     """Find file-scope public s64_* definitions, including multiline signatures."""
     # Replace comments and quoted literals while preserving braces and line layout.
     cleaned = re.sub(
@@ -157,10 +157,16 @@ def public_s64_definitions(source: str) -> list[str]:
             depth += 1
         elif char == "}":
             depth -= 1
+            if depth < 0:
+                raise FitError(f"Unbalanced raw-source braces in {source_name}; "
+                               "keep shared braces outside preprocessor alternatives")
             if depth == 0:
                 declaration_start = index + 1
         elif char == ";" and depth == 0:
             declaration_start = index + 1
+    if depth:
+        raise FitError(f"Unbalanced raw-source braces in {source_name}; "
+                       "keep shared braces outside preprocessor alternatives")
     return list(dict.fromkeys(names))
 
 
@@ -383,7 +389,7 @@ def compile_overlay_layout(
             if not full.is_file():
                 raise FitError(f"Required overlay source is missing: {path}")
             grouped_names[group].extend(name for name in
-                public_s64_definitions(full.read_text(encoding="utf-8"))
+                public_s64_definitions(full.read_text(encoding="utf-8"), path)
                 if name not in resident_symbols)
     definitions = {
         name: group for group, names in grouped_names.items() for name in names

@@ -10,6 +10,8 @@ The default build uses `/sd/SEE64YOU/`. Four PRG files remain directly in that d
 
 The independent Editor keeps typing, input, REU buffers/history and descriptor validation resident. Infrequent manifest/session preparation uses the existing PREP overlay and checked return bridges; shared state remains resident. Descriptor validation must remain callable while cache rebinding clears the overlay registry. The shipping build enforces at least 1,024 bytes of resident reserve below the overlay slot and excludes the unused outbound Publisher-transfer stub. No additional overlay or program handoff is introduced.
 
+Public storage entry points use generated FILE overlay wrappers so callers can safely arrive from another overlay. Entry discovery scans raw source, which must keep shared braces outside preprocessor alternatives; an unbalanced scan fails the build. The overlay regression checks the storage header's complete public API against discovered definitions.
+
 ## Publication
 
 The independently launched **8TML-only** Publisher loads literal source using its compact read-only codec/storage path and sends the same ASCII/LF bytes through standard API 1 status/challenge/list/put operations over UCI Network `$03`. Streaming HMAC appends its signature after the source; local filenames and remote paths stay separate. Existing names require explicit confirmation, with no conditional-write guarantee in the test draft.

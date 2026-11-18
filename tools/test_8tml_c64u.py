@@ -28,6 +28,16 @@ LARGE = LARGE_HEADER + (b"0123456789012345678901234567890123456789\n" * 1536)[:6
 SOURCE = (b"---\r\n8tml: 1\r\ntitle: Hardware source\r\nX-Future:  Keep : CASE  \r\n"
           b"# preserve this comment\r\n---\r\n<unknown>Literal text</unknown>\r\n"
           b":::future data\r\nopaque\ttext\r\n:::\r\n")
+RECOVERY_NAMES = ("SEE64YOU.REC", "SEE64YOU.8SS.REC", "SEE64YOU.TXT.REC")
+STYLE = b"# Literal 8SS fixture\ntext: lightgrey\nbg: black\nc64.border: blue\nh1: white reverse\nfuture: Keep CASE\n"
+TEXT = b"# Notes\nPlain text, no 8TML header.\n"
+MULTIFORMAT_INPUTS = {"M8STYLE.8ss": STYLE, "M8NOTES.md": TEXT.replace(b"\n", b"\r\n"),
+                     "M8RAW": b"Extensionless text\n", "M8UPPER.8SS": STYLE,
+                     "M8PART.8ss.tmp": STYLE, "M8BIN.txt": b"bad\x80input",
+                     "M8BAD.8tml": b"Missing header\n"}
+MULTIFORMAT_OUTPUTS = {"M8NEWSS.8ss", "M8COPY.8ss", "M8COPY.8ss.tmp", "M8COPY.8ss.bak",
+                       "M8RECOVER.8ss", "M8NEWTXT.txt", "M8OUT.md", "M8RAWOUT.txt",
+                       "M8INVALID.8tml", "M8UISTYLE.8ss", "M8UITEXT.txt", "M8UIMD.md", "M8UIZERO.txt"}
 
 
 def native(text):
@@ -41,7 +51,7 @@ def storage_root(text):
     return text
 
 
-def build_probe(out, selected_root, large_source=False, source_benchmark=False):
+def build_probe(out, selected_root, large_source=False, source_benchmark=False, multiformat=False):
     sources = ["diagnostics/8tml_storage_probe.c", "src/buffer_reu.c", "src/document.c",
                "src/charset.c", "src/storage/local.c", "src/platform/dos.c", "src/platform/uci.c",
                "src/platform/reu.c", "src/platform/reu_dma.s", "src/platform/basic_workspace_reset.s"]
@@ -51,6 +61,8 @@ def build_probe(out, selected_root, large_source=False, source_benchmark=False):
         flags = ["-DS64_STORAGE_MAX_SOURCE_PROBE=1"] if large_source else []
         if source_benchmark:
             flags.append("-DS64_STORAGE_SOURCE_BENCHMARK=1")
+        if multiformat:
+            flags.append("-DS64_MULTIFORMAT_STORAGE_PROBE=1")
         subprocess.run(["cl65", "-t", "c64", "-Os", *flags, "-I", str(ROOT / "client/src"),
                         "-DS64_REU_BUFFER=1", "-DS64_NATIVE_PETSCII=1", "-DS64_INDEPENDENT_EDITOR=1",
                         '-DS64_STORAGE_ROOT_DIRECTORY="' + selected_root + '"',
@@ -80,9 +92,17 @@ def main():
                         help="Run native DOS/source checks without shipping Editor UI runs")
     parser.add_argument("--source-benchmark", action="store_true",
                         help="With --storage-only, time 1/16/60 KiB native DOS open/save/reopen")
+    parser.add_argument("--multiformat", action="store_true",
+                        help="Also test native 8SS/text storage and shipping recovery/Save As; not physical keys")
+    parser.add_argument("--recovery-only", action="store_true",
+                        help="With --multiformat, isolate shipping recovery/Save As with full restoration")
     args = parser.parse_args()
     if args.storage_only and args.settings_only:
         parser.error("--storage-only and --settings-only are mutually exclusive")
+    if args.multiformat and args.settings_only:
+        parser.error("--multiformat and --settings-only are mutually exclusive")
+    if args.recovery_only and (not args.multiformat or args.storage_only or args.settings_only):
+        parser.error("--recovery-only requires --multiformat without --storage-only/--settings-only")
     if args.source_benchmark and not args.storage_only:
         parser.error("--source-benchmark requires --storage-only")
     if not 15 <= args.startup_timeout <= 1800:
@@ -103,11 +123,19 @@ def main():
     candidate = {name: p.read_bytes() for name, p in package_files.items()}
     assert native(folder + "/") + b"\0" in candidate["SEE64YOU.PRG"], \
         "Launcher storage root differs from requested test volume"
-    candidate["T8PROBE.PRG"] = build_probe(out, args.storage_root, args.large_source, args.source_benchmark)
+    probe = build_probe(out, args.storage_root, args.large_source, args.source_benchmark, args.multiformat)
+    # A reused diagnostic pathname returned the prior probe's first sector on
+    # tested firmware. Give different bytes a different 8.3 name; still require
+    # exact readback and abort on any mismatch, without replaying the write.
+    probe_name = "P" + hashlib.sha256(probe).hexdigest()[:7].upper() + ".PRG"
+    candidate[probe_name] = probe
     state = {"commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
              "active": False, "restored": False, "tests": [], "input": "REST keyboard-buffer injection",
              "physical_keyboard": False, "cold_power_cycle": False,
              "storage_only": args.storage_only, "source_benchmark": args.source_benchmark,
+             "multiformat": args.multiformat,
+             "recovery_only": args.recovery_only,
+             "probe_name": probe_name,
              "shipping_editor_UI_tested": not args.storage_only and not args.settings_only,
              "storage_root": args.storage_root, "folder": folder, "created_folder": False,
              "test_source_sha256": {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
@@ -298,6 +326,9 @@ def main():
                 "T8BAD.8tml", "T8COPY.8tml", "T8COPY.8tml.tmp", "T8RECOVER.8tml",
                 "x" * 28 + ".8tml"}
     benchmark_sources = {}
+    if args.multiformat:
+        reserved.update(MULTIFORMAT_INPUTS)
+        reserved.update(MULTIFORMAT_OUTPUTS)
     if args.source_benchmark:
         for label, size in (("1", 1024), ("16", 16384), ("60", 61440)):
             source = LARGE_HEADER + (b"0123456789012345678901234567890123456789\n" * 1536)[:size - len(LARGE_HEADER)]
@@ -335,6 +366,11 @@ def main():
 
     def exitcheck(label):
         basic(label)
+        if label == "clean-confirmed-exit":
+            observed = [live(a) & 15 for a in (53280, 53281, 646)]
+            state["editor_exit_colours"] = observed
+            save()
+            assert observed == [value & 15 for value in colours], "Editor exit did not restore colours"
         assert live(53297) == prior and mem(0x314, 2) == irq and api("drives") == drives
         ticks = mem(0xa0, 3)
         time.sleep(.2)
@@ -373,12 +409,12 @@ def main():
             save()
         for name, data in candidate.items():
             put(folder + "/" + name, data)
-        if not args.storage_only:
+        if not args.storage_only or args.multiformat:
             for path in originals:
-                if path.rsplit("/", 1)[-1].upper() in ("SEE64YOU.REC", "SEE64YOU.REC.TMP"):
+                if path.rsplit("/", 1)[-1].upper() in RECOVERY_NAMES + tuple(n + ".TMP" for n in RECOVERY_NAMES):
                     ftp.delete(path)
         mark("candidate-package-readback")
-        launch("T8PROBE.PRG", "C CAPTURE T TEST R RESTORE")
+        launch(probe_name, "C CAPTURE T TEST R RESTORE")
         keys(b"C")
         wait("DOS CONTEXT CAPTURED", "dos-context-captured")
         exitcheck("context-capture-exit")
@@ -436,7 +472,7 @@ def main():
             exitcheck("settings-cancel-replacement-exit")
             assert fetch(folder + "/SEE64YOU.CFG") == stored
             mark("standard-settings-key-replacement-default-http-and-numbered-cancel-preserves-disk")
-        elif not args.storage_only:
+        elif not args.storage_only and not args.recovery_only:
             if not docs_existed:
                 launch("S64PUB.PRG", "[0] EXIT TO BASIC")
                 keys(b"1")
@@ -519,18 +555,50 @@ def main():
             assert resaved == EMPTY + b"Updated Hardware 8TML.\n", repr(resaved)
             (out / "editor-recovered-edited.8tml").write_bytes(resaved)
             mark("shipping-editor-recovery-reopen-edit-save-exact-source")
-        if not args.settings_only:
+        if args.multiformat and not args.storage_only:
+            # Use the shipped recovery and exit/Save As UI with ordinary
+            # buffered keys. Modifier-based New/Open are separate gates.
+            ensure_docs()
+            for snapshot, source, basename, kind in (
+                    (RECOVERY_NAMES[1], STYLE, "M8UISTYLE", "8SS"),
+                    (RECOVERY_NAMES[2], TEXT, "M8UITEXT", "TEXT"),
+                    (RECOVERY_NAMES[2], TEXT, "M8UIMD.md", "TEXT"),
+                    (RECOVERY_NAMES[2], b"", "M8UIZERO", "TEXT")):
+                put(folder + "/" + snapshot, source)
+                launch("SEE64YOU.PRG", "Recover snapshot? Y/N")
+                keys(b"Y")
+                recovered = wait("Recovered snapshot", basename + "-recovered")
+                assert kind in recovered.splitlines()[0], recovered
+                save_exit(basename)
+                suffix = ".8ss" if kind == "8SS" else ".txt"
+                filename = basename if "." in basename else basename + suffix
+                assert fetch(docs_dir + "/" + filename) == source
+                assert not any(p.rsplit("/", 1)[-1].upper() == snapshot for p in ftp.nlst(folder))
+                mark("shipping-" + basename + "-recovery-kind-save-as-exact-source")
+        if not args.settings_only and not args.recovery_only:
             ensure_docs()
             put(docs_dir + "/T8IN.8tml", SOURCE)
             if args.large_source:
                 put(docs_dir + "/T8LARGE.8tml", LARGE)
             put(docs_dir + "/T8BAD.8tml", EMPTY + b"bad\x80input")
+            if args.multiformat:
+                for name, data in MULTIFORMAT_INPUTS.items():
+                    put(docs_dir + "/" + name, data)
             for label, source in benchmark_sources.items():
                 put(docs_dir + "/T8LOAD" + label + ".8tml", source)
-            launch("T8PROBE.PRG", "C CAPTURE T TEST R RESTORE")
+            launch(probe_name, "C CAPTURE T TEST R RESTORE")
             keys(b"T")
             wait("8TML STORAGE TESTS PASSED", "native-storage-tests",
-                 timeout=2400 if args.large_source or args.storage_only else 70)
+                 timeout=2400 if args.large_source or args.storage_only else 300 if args.multiformat else 70)
+            if args.multiformat:
+                wait("MULTIFORMAT STORAGE TESTS PASSED", "multiformat-native-tests")
+                for name, expected in {"M8NEWSS.8ss": b"", "M8NEWTXT.txt": b"",
+                        "M8COPY.8ss": STYLE, "M8COPY.8ss.bak": STYLE + b"!",
+                        "M8RECOVER.8ss": STYLE + b"!", "M8OUT.md": TEXT,
+                        "M8RAWOUT.txt": MULTIFORMAT_INPUTS["M8RAW"]}.items():
+                    assert fetch(docs_dir + "/" + name) == expected, name
+                assert not any(p.rsplit("/", 1)[-1].upper() == "M8INVALID.8TML" for p in ftp.nlst(docs_dir))
+                mark("native-multiformat-exact-open-save-recovery-empty-CRLF-and-8SS-rollback-collisions")
             if args.source_benchmark:
                 raw = mem(0xc500, 50)
                 (out / "native-source-benchmark.bin").write_bytes(raw)
@@ -639,7 +707,7 @@ def main():
         if not state["active"]:
             try:
                 if state.get("dos_context_captured"):
-                    launch("T8PROBE.PRG", "C CAPTURE T TEST R RESTORE")
+                    launch(probe_name, "C CAPTURE T TEST R RESTORE")
                     for offset in range(0, len(context_before), 128):
                         api("machine:writemem", "PUT", address=f"{0xc000 + offset:04X}",
                             data=context_before[offset:offset + 128].hex())
@@ -652,7 +720,8 @@ def main():
                 known_temporary = {name.upper() for name in reserved}
                 known_temporary.update((name + ".tmp").upper() for name in reserved)
                 known_temporary.update((name + ".bak").upper() for name in reserved)
-                known_temporary.update(("SEE64YOU.REC", "SEE64YOU.REC.TMP", "S64JRN0.DAT", "S64JRN1.DAT"))
+                known_temporary.update(RECOVERY_NAMES + tuple(n + ".TMP" for n in RECOVERY_NAMES)
+                                       + ("S64JRN0.DAT", "S64JRN1.DAT"))
                 current = inventory(folder) if folder_existed or state["created_folder"] else {}
                 assert all(path in originals
                            or path.removeprefix(folder + "/") in FILES

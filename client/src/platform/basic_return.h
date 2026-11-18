@@ -4,8 +4,8 @@
 #include "platform/session_journal.h"
 
 #define S64_BASIC_RETURN_FLAG 4u
-#define S64_BASIC_RETURN_RAW_SIZE 285u
-#define S64_BASIC_RETURN_RECORD_SIZE 321u
+#define S64_BASIC_RETURN_RAW_SIZE 288u
+#define S64_BASIC_RETURN_RECORD_SIZE 324u
 #define S64_BASIC_RETURN_WORKSPACE_SIZE (2u * S64_BASIC_RETURN_RECORD_SIZE)
 #ifndef S64_BASIC_RETURN_WORKSPACE
 #define S64_BASIC_RETURN_WORKSPACE ((uint8_t*)0xc800u)
@@ -15,7 +15,7 @@
 #error BASIC return scratch exceeds the existing overlay/stack gap
 #endif
 
-/* Workspace and preserved snapshot use 963 bytes of the existing 1 KiB
+/* Workspace and preserved snapshot use 972 bytes of the existing 1 KiB
  * overlay/stack gap. Capsule/session teardown may reuse the workspace, but
  * must not touch the snapshot. Producer
  * must enter through basic_return_capture.s before stock cc65 startup. */
