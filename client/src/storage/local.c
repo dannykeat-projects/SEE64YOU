@@ -7,6 +7,9 @@
 #endif
 
 #include <string.h>
+#ifdef S64_STORAGE_READ_ONLY
+#include "publisher/standard_publish_names.h"
+#endif
 
 #ifdef S64_DOCUMENT_8TML
 #define SOURCE_EXTENSION ".8tml"
@@ -127,7 +130,7 @@ typedef struct {
 } S64LocalWriteSink;
 
 #if defined(S64_DOCUMENT_8TML) && defined(S64_STORAGE_READ_ONLY)
-/* Publisher deliberately retains the proven 8TML-only filename policy. */
+/* Read-only Publisher Open retains extensionless .8tml convenience. */
 static uint8_t filename_copy(char* destination, const char* filename, uint8_t mode)
 {
     /* Synchronous storage calls share this counter to keep cc65 stack/code fit. */
@@ -166,21 +169,7 @@ static uint8_t filename_copy(char* destination, const char* filename, uint8_t mo
             strcpy(destination + length, SOURCE_EXTENSION);
         }
     }
-#ifdef S64_DOCUMENT_8TML
-    /* Enforce the new-source suffix while allowing Open of retained .tmp files. */
-    if (mode == FILENAME_SAVE_AS) {
-        const char* extension = SOURCE_EXTENSION;
-        uint8_t position;
-        uint8_t ascii;
-        length = (uint8_t)strlen(destination);
-        if (length < basename + sizeof(SOURCE_EXTENSION)) return 0u;
-        for (position = 0u; position < sizeof(SOURCE_EXTENSION) - 1u; ++position) {
-            if (!s64_charset_native_to_ascii((uint8_t)destination[
-                    length - (sizeof(SOURCE_EXTENSION) - 1u) + position], &ascii)
-                || (ascii | 32u) != ((uint8_t)extension[position] | 32u)) return 0u;
-        }
-    }
-#endif
+    if (!s64_publish_source_kind(destination)) return 0u;
     return 1u;
 }
 
@@ -563,6 +552,9 @@ S64LocalResult s64_local_open(
 
 #if defined(S64_DOCUMENT_8TML) && !defined(S64_STORAGE_READ_ONLY)
     local->document->kind = filename_kind(checked_filename);
+#endif
+#ifdef S64_STORAGE_READ_ONLY
+    local->document->kind = (S64DocumentKind)s64_publish_source_kind(checked_filename);
 #endif
     s64_document_wire_reader_init(&reader, local->document);
     local->document_replaced = 1u;

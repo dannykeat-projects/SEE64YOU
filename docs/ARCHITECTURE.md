@@ -14,7 +14,7 @@ Public storage entry points use generated FILE overlay wrappers so callers can s
 
 ## Publication
 
-The independently launched **8TML-only** Publisher loads literal source using its compact read-only codec/storage path and sends the same ASCII/LF bytes through standard API 1 status/challenge/list/put operations over UCI Network `$03`. Streaming HMAC appends its signature after the source; local filenames and remote paths stay separate. Existing names require explicit confirmation, with no conditional-write guarantee in the test draft.
+The independently launched Publisher loads `.8tml`, `.8ss` and `.txt` source using its compact read-only codec/storage path and sends ASCII/LF bytes through standard API 1 status/challenge/list/put operations over UCI Network `$03`. The filename selects the shared codec's document kind: 8TML header validation remains required, while 8SS and text use literal headerless source. Streaming HMAC appends its signature after the source; local filenames and remote paths stay separate. Existing names require explicit confirmation, with no conditional-write guarantee in the test draft. Other Editor text suffixes remain local.
 
 Settings owns a standard endpoint URL, key ID, dedicated secret and explicit raw-HTTP consent. A tagged standard destination uses the existing record size and readback checks. The Editor requires neither credentials nor network access. Publisher links only the standard publishing client, not a bundled website or browser.
 

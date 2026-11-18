@@ -80,6 +80,17 @@ class PackageTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             PACK.verify_receipts(self.validation, receipt, "release")
 
+    def test_intentional_installation_preserves_user_files(self):
+        receipt = copy.deepcopy(self.receipt)
+        receipt["installed_package_sha256"] = dict(self.hashes)
+        with self.assertRaises(ValueError):
+            PACK.verify_receipts(self.validation, receipt, "release")
+        receipt["nonpackage_files_preserved"] = True
+        PACK.verify_receipts(self.validation, receipt, "release")
+        receipt["installed_package_sha256"]["S64PUB.PRG"] = "wrong"
+        with self.assertRaises(ValueError):
+            PACK.verify_receipts(self.validation, receipt, "release")
+
     def test_nested_package_inventory_fails_closed(self):
         package = self.root / "layout"
         package.mkdir()

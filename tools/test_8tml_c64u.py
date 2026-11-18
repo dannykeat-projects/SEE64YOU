@@ -96,6 +96,10 @@ def main():
                         help="Also test native 8SS/text storage and shipping recovery/Save As; not physical keys")
     parser.add_argument("--recovery-only", action="store_true",
                         help="With --multiformat, isolate shipping recovery/Save As with full restoration")
+    parser.add_argument("--publisher-acceptance", action="store_true",
+                        help="Publish disposable 8SS/TXT sources through the existing dedicated t8wn.com key")
+    parser.add_argument("--keep-package", action="store_true",
+                        help="Explicit installation: retain the verified candidate, preserving other files and machine state")
     args = parser.parse_args()
     if args.storage_only and args.settings_only:
         parser.error("--storage-only and --settings-only are mutually exclusive")
@@ -105,6 +109,8 @@ def main():
         parser.error("--recovery-only requires --multiformat without --storage-only/--settings-only")
     if args.source_benchmark and not args.storage_only:
         parser.error("--source-benchmark requires --storage-only")
+    if args.publisher_acceptance and (args.storage_only or args.settings_only or args.recovery_only):
+        parser.error("--publisher-acceptance requires full shipping acceptance")
     if not 15 <= args.startup_timeout <= 1800:
         parser.error("--startup-timeout must be between 15 and 1800 seconds")
     out = args.output.resolve()
@@ -139,7 +145,8 @@ def main():
              "shipping_editor_UI_tested": not args.storage_only and not args.settings_only,
              "storage_root": args.storage_root, "folder": folder, "created_folder": False,
              "test_source_sha256": {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
-                 for name in ("client/diagnostics/8tml_storage_probe.c", "tools/test_8tml_c64u.py")},
+                 for name in ("client/diagnostics/8tml_storage_probe.c", "tools/test_8tml_c64u.py",
+                              "tools/publisher_c64u_acceptance.py")},
              "package_sha256": {n: hashlib.sha256(b).hexdigest() for n, b in candidate.items()}}
 
     def save():
@@ -326,6 +333,9 @@ def main():
                 "T8BAD.8tml", "T8COPY.8tml", "T8COPY.8tml.tmp", "T8RECOVER.8tml",
                 "x" * 28 + ".8tml"}
     benchmark_sources = {}
+    if args.publisher_acceptance:
+        from publisher_c64u_acceptance import FIXTURE_NAMES
+        reserved.update(FIXTURE_NAMES)
     if args.multiformat:
         reserved.update(MULTIFORMAT_INPUTS)
         reserved.update(MULTIFORMAT_OUTPUTS)
@@ -638,6 +648,12 @@ def main():
             (out / "native-storage-recovered.8tml").write_bytes(expected)
             mark("native-real-DOS-open-edit-save-metadata-CRLF-empty-filename-limit-injected-fault-recovery")
             if not args.storage_only:
+                if args.publisher_acceptance:
+                    from publisher_c64u_acceptance import run as publisher_acceptance
+                    publisher_acceptance(folder=folder, docs_dir=docs_dir, fetch=fetch, put=put,
+                                         keys=keys, native=native, wait=wait, launch=launch,
+                                         exitcheck=exitcheck, mark=mark, screen=screen,
+                                         state=state, save=save)
                 before_picker = inventory(folder)
                 launch("S64PUB.PRG", "[0] EXIT TO BASIC")
                 keys(b"1")
@@ -651,14 +667,14 @@ def main():
                     page = wait("[7] TYPE NAME", f"publisher-docs-page-{number + 1}")
                 assert row, "Disposable source outside bounded picker pages"
                 keys(row.group(1).encode("ascii"))
-                loaded_screen = wait("Local .8TML loaded", "publisher-numbered-source", timeout=300)
+                loaded_screen = wait("Local source loaded", "publisher-numbered-source", timeout=300)
                 assert row.group(2) in loaded_screen
                 keys(b"1")
                 wait("[7] TYPE NAME", "publisher-typed-picker")
                 keys(b"7")
-                wait("OPEN .8TML:", "publisher-typed-prompt")
+                wait("OPEN SOURCE:", "publisher-typed-prompt")
                 keys(native("T8IN") + b"\r")
-                wait("Local .8TML loaded", "publisher-typed-source", timeout=300)
+                wait("Local source loaded", "publisher-typed-source", timeout=300)
                 assert "T8IN.8TML" in screen("publisher-typed-source-identity")
                 keys(b"1")
                 wait("[7] TYPE NAME", "publisher-cancel-picker")
@@ -727,12 +743,19 @@ def main():
                            or path.removeprefix(folder + "/") in FILES
                            or path.rsplit("/", 1)[-1].upper() in known_temporary
                            for path in current), "Unexpected new file; preserve it for review"
+                expected_files = dict(originals)
+                if args.keep_package:
+                    expected_files.update({folder + "/" + name: candidate[name] for name in FILES})
                 for path in current:
-                    if path not in originals:
+                    if path not in expected_files:
                         ftp.delete(path)
-                for path, data in originals.items():
-                    put(path, data)
-                assert (inventory(folder) if folder_existed or state["created_folder"] else {}) == originals
+                for path, data in expected_files.items():
+                    if current.get(path) != data:
+                        put(path, data)
+                assert (inventory(folder) if folder_existed or state["created_folder"] else {}) == expected_files
+                if args.keep_package:
+                    state["installed_package_sha256"] = {name: hashlib.sha256(candidate[name]).hexdigest() for name in FILES}
+                    state["nonpackage_files_preserved"] = True
                 # A failed first Editor save can create docs before ensure_docs
                 # runs. Remove only a new empty directory after file restoration.
                 if not docs_existed and any(
@@ -742,17 +765,18 @@ def main():
                     ftp.cwd(folder)
                     ftp.rmd(docs_dir)
                     state["created_docs_removed"] = True
-                if state["created_system"]:
+                if state["created_system"] and not args.keep_package:
                     ftp.cwd(folder)
                     ftp.rmd(system_dir)
                     state["created_system_removed"] = True
-                if state["created_folder"]:
+                if state["created_folder"] and not args.keep_package:
                     assert not state.get("dos_context_captured") or state.get("dos_context_restored"), \
                         "Restore captured DOS contexts before removing test folder"
                     ftp.cwd(volume)
                     ftp.rmd(folder)
                     state["created_folder_removed"] = True
-                assert sorted(ftp.nlst(volume)) == root_names
+                expected_roots = root_names if folder_existed or not args.keep_package else sorted(root_names + [folder])
+                assert sorted(ftp.nlst(volume)) == expected_roots
                 if protected_sd is not None:
                     assert sorted(ftp.nlst("/sd")) == protected_sd_roots, "Protected SD root changed"
                     current_sd = inventory("/sd/SEE64YOU") if protected_sd_folder_existed else {}
@@ -775,7 +799,8 @@ def main():
                 assert mem(int.from_bytes(mem(0x2b, 2), "little"), 2) == b"\0\0"
                 assert mem(827, 1) == scratch, "Scratch byte restoration differs"
                 state["restored"] = True
-                mark("original-files-config-machine-baseline-restored")
+                mark("user-files-config-machine-preserved-candidate-installed" if args.keep_package
+                     else "original-files-config-machine-baseline-restored")
             except Exception as error:
                 state["restore_error"] = repr(error)
                 save()

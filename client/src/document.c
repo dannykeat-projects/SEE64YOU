@@ -63,6 +63,8 @@ static uint8_t native_body_wire_valid(const S64Buffer* body)
 
 #endif
 
+#ifndef S64_STORAGE_READ_ONLY
+/* The source-only Publisher neither edits nor reconstructs metadata. */
 static uint8_t copy_text(char* destination, uint16_t capacity, const char* source)
 {
     uint16_t length = 0u;
@@ -81,6 +83,7 @@ static uint8_t copy_text(char* destination, uint16_t capacity, const char* sourc
     memcpy(destination, source, length + 1u);
     return 1u;
 }
+#endif
 
 #ifndef S64_DOCUMENT_8TML
 static uint8_t header_text_valid(const char* text, uint16_t capacity, uint8_t allow_empty)
@@ -159,7 +162,7 @@ static uint8_t emit(S64DocumentSink sink, void* context, const char* text)
 #endif
 
 #ifdef S64_STORAGE_READ_ONLY
-/* 8TML-only Publisher keeps the compact, previously tested source path. */
+/* Source-only Publisher keeps its compact read-only path. */
 void s64_document_init(S64Document* document, S64Buffer* body)
 {
     if (document == 0) {
@@ -214,6 +217,7 @@ void s64_document_init(S64Document* document, S64Buffer* body)
 
 #endif
 
+#ifndef S64_STORAGE_READ_ONLY
 int s64_document_set_slug(S64Document* document, const char* slug)
 {
     if (document == 0 || !s64_document_slug_valid(slug)) {
@@ -237,6 +241,7 @@ int s64_document_set_date(S64Document* document, const char* date)
     }
     return copy_text(document->date, S64_DOCUMENT_DATE_CAPACITY, date);
 }
+#endif
 
 const char* s64_document_type_name(S64DocumentType type)
 {
@@ -580,12 +585,10 @@ static uint8_t source_valid(const S64Document* document)
         if (!s64_charset_native_to_ascii(s64_buffer_char_at(body, position), &byte)
             || (byte != 9u && byte != 10u && (byte < 32u || byte > 126u))) return 0u;
     }
-#ifndef S64_STORAGE_READ_ONLY
     if (s64_buffer_read_error(body)) return 0u;
     if (document->kind == S64_DOCUMENT_KIND_8SS
         || document->kind == S64_DOCUMENT_KIND_TEXT) return 1u;
     if (document->kind != S64_DOCUMENT_KIND_8TML) return 0u;
-#endif
     if (length < 4u || source_byte(body, 0u) != 45u
         || source_byte(body, 1u) != 45u || source_byte(body, 2u) != 45u
         || source_byte(body, 3u) != 10u) return 0u;
@@ -635,8 +638,12 @@ void s64_document_wire_reader_init(S64DocumentWireReader* reader, S64Document* d
     reader->result = S64_DOCUMENT_INVALID_ARGUMENT;
     if (document == 0 || document->body == 0) return;
 #ifdef S64_STORAGE_READ_ONLY
-    s64_document_init(document, document->body);
-    s64_buffer_init(document->body);
+    {
+        S64DocumentKind kind = document->kind;
+        s64_document_init(document, document->body);
+        document->kind = kind;
+        s64_buffer_init(document->body);
+    }
 #else
     {
         S64DocumentKind kind = document->kind;

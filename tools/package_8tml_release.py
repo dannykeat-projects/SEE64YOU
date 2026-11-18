@@ -60,6 +60,9 @@ def verify_receipts(validation, receipt, commit):
             raise ValueError("Validation must hash ten files for /sd/ and exact /USB1/")
     if validation["packages"]["sd"]["sha256"] != {name: receipt["package_sha256"][name] for name in FILES}:
         raise ValueError("SD validation and hardware package hashes differ")
+    if "installed_package_sha256" in receipt and (receipt.get("nonpackage_files_preserved") is not True
+            or receipt["installed_package_sha256"] != validation["packages"]["sd"]["sha256"]):
+        raise ValueError("Intentional installation must preserve user files and match the tested package")
     base = validation["base_commit"]
     if receipt["commit"] != base:
         raise ValueError("Validation and hardware receipts have different tested base commits")
@@ -132,6 +135,9 @@ def main():
     hardware = {"tested_commit": receipt["commit"], "input": receipt["input"],
                 "physical_keyboard": receipt["physical_keyboard"],
                 "cold_power_cycle": receipt["cold_power_cycle"], "restored": True}
+    if "installed_package_sha256" in receipt:
+        hardware["candidate_installed"] = True
+        hardware["nonpackage_files_preserved"] = True
     timestamp = datetime.datetime.fromtimestamp(int(capture("git", "show", "-s", "--format=%ct", "HEAD")),
                                                  datetime.timezone.utc).timetuple()[:6]
     output.mkdir(parents=True, exist_ok=False)
@@ -162,6 +168,7 @@ def main():
                  "toolchain": validation.get("toolchain"),
                  "build_command": validation["packages"][key].get("build_command"),
                  "package_sha256": hashes, "sd_editor_hardware": hardware,
+                 "sd_publisher_hardware": receipt.get("publisher_acceptance"),
                  "guide_sha256": digest(guide), "validation_receipt_sha256": digest(validation_data),
                  "hardware_receipt_sha256": digest(hardware_data),
                  "validated_runtime_source_sha256": verified_source,
@@ -170,7 +177,7 @@ def main():
                  "acceptance": "Alpha preview; remaining gates are not certified by this release",
                  "remaining_gates": ["physical keyboard/Link on this package", "cold-power exact-source reopen",
                     "uncontrolled interruption/recovery", "real USB-only operation",
-                    "external compatible-reader navigation", "full Publisher upload/replace/failure coverage on this exact package",
+                    "external compatible-reader navigation", "Publisher native key/network failure injection",
                     "historical non-shipping native matrix reconciliation"]}
         payload["BUILD.json"] = (json.dumps(build, indent=2, sort_keys=True) + "\n").encode()
         payload["README.md"] = guide

@@ -2,7 +2,7 @@
 
 SEE64YOU is an offline source editor for C64 Ultimate, with a small companion for publishing to a compatible 8TML server.
 
-The published alpha edits portable `.8tml` documents. This development candidate also edits literal `.8ss` stylesheets and general ASCII text, including `.txt` and `.md`, through the same Editor. Multi-format support is not yet released.
+The Editor handles portable `.8tml` documents, literal `.8ss` stylesheets and general ASCII text, including `.txt` and `.md`, through the same editing engine.
 
 The Editor does not require an account or internet connection, and you can also just use it as a standard text editor.
 
@@ -10,8 +10,8 @@ It has many functions you would expect in a modern Markdown editor, with multipl
 
 ## What works
 
-- **Editor candidate:** New offers 8TML, 8SS and plain text. Open uses the exact filename; Save As defaults to `.8tml`, `.8ss` or `.txt` and preserves explicit safe suffixes. Includes cursor/selection, search, 8TML formatting shortcuts, undo/redo and format-specific snapshot recovery. Source and unknown constructs are preserved; files use ASCII with LF endings, with a 61,440-byte source limit. Empty text files are valid. 8SS and general text are local-only in this candidate.
-- **Publisher (experimental):** separately load local `.8tml`, choose a remote path and publish or explicitly replace through standard API 1. Settings imports the standard endpoint/ID/key. The 26 October 2026 API draft remains subject to interoperability and hardware acceptance.
+- **Editor:** New offers 8TML, 8SS and plain text. Open uses the exact filename; Save As defaults to `.8tml`, `.8ss` or `.txt` and preserves explicit safe suffixes. Includes cursor/selection, search, 8TML formatting shortcuts, undo/redo and format-specific snapshot recovery. Source and unknown constructs are preserved; files use ASCII with LF endings, with a 61,440-byte source limit. Empty text files are valid.
+- **Publisher (experimental):** separately load local `.8tml`, `.8ss` or `.txt`, choose a remote path and publish or explicitly replace through standard API 1. Settings imports the standard endpoint/ID/key. Markdown and other text suffixes remain local; use Save As `.txt` to publish their literal text. The 26 October 2026 API draft remains subject to interoperability and hardware acceptance.
 
 For reading 8TML on an 8-bit machine, use a compatible browser from the 8TML/T8WN ecosystem. SEE64YOU does not aim to maintain its own 8TML browser. The active package does not include a browser.
 

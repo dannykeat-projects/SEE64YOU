@@ -57,10 +57,10 @@ static void draw_action(uint8_t row, const char* text)
 static void render(void)
 {
     clrscr();
-    put_text(0u, "SEE64YOU 8TML PUBLISHER", 39u);
+    put_text(0u, "SEE64YOU SOURCE PUBLISHER", 39u);
     put_text(1u, "---------------------------------------", 39u);
     put_text(2u, "LOCAL SOURCE", 39u);
-    put_text(3u, loaded ? local.filename : "(choose .8tml file)", 39u);
+    put_text(3u, loaded ? local.filename : "(8tml / 8ss / txt)", 39u);
     put_text(5u, "REMOTE TARGET", 39u);
     put_text(6u, remote_name[0] ? remote_name : "(choose name)", 39u);
     put_text(8u, "SERVER", 39u);
@@ -207,7 +207,7 @@ static void publish(void)
 {
     S64StandardResult result;
     unsigned char key;
-    if (!loaded) { message("Choose local .8TML first"); return; }
+    if (!loaded) { message("Choose local source first"); return; }
     if (!remote_name[0]) { message("Choose remote name first"); return; }
     if (!ready()) return;
     working("CHECKING SERVER");
@@ -281,8 +281,8 @@ int main(void)
                 selection = s64_local_pick(&dos, prompt, sizeof(prompt));
                 if (!selection) continue;
                 if (selection == 2u || selection == 3u) {
-                    if (!input(selection == 3u ? "LIST ERROR. TYPE .8TML:"
-                                               : "OPEN .8TML:",
+                    if (!input(selection == 3u ? "LIST ERROR. TYPE SOURCE:"
+                                               : "OPEN SOURCE:",
                                prompt, S64_LOCAL_FILENAME_CAPACITY)) continue;
                 }
                 working("OPENING LOCAL FILE");
@@ -296,7 +296,7 @@ int main(void)
                             if (remote_name[key] >= 'A' && remote_name[key] <= 'Z')
                                 remote_name[key] += 'a' - 'A';
                     }
-                    message("Local .8TML loaded");
+                    message("Local source loaded");
                 } else {
                     s64_buffer_init(&body); s64_document_init(&document, &body);
                     message(s64_local_result_message(&local, result));

@@ -7,9 +7,9 @@
 
 static const char* files[] = {
     "folder", "HIDDEN.8TML", "FILE01.8TML", "FILE02.8TML",
-    "README.TXT", "FILE03.8TML", "FILE04.8TML",
+    "README.MD", "FILE03.8TML", "FILE04.8TML",
     "FILE05.8TML", "FILE06.8TML", "FILE07.8TML",
-    "FILE08.8TML", "FILE09.8TML"
+    "FILE08.8TML", "FILE09.8TML", "STYLE.8SS", "NOTES.TXT"
 };
 static unsigned char key_pos;
 static const char* keys;
@@ -90,6 +90,13 @@ int main(void)
     set_keys("91");
     assert(s64_local_pick(&dos, filename, sizeof(filename)) == 1u);
     assert(!strcmp(filename, "FILE07.8TML"));
+
+    set_keys("94");
+    assert(s64_local_pick(&dos, filename, sizeof(filename)) == 1u);
+    assert(!strcmp(filename, "STYLE.8SS"));
+    set_keys("95");
+    assert(s64_local_pick(&dos, filename, sizeof(filename)) == 1u);
+    assert(!strcmp(filename, "NOTES.TXT"));
     set_keys("92");
     assert(s64_local_pick(&dos, filename, sizeof(filename)) == 1u);
     assert(!strcmp(filename, "FILE08.8TML"));
