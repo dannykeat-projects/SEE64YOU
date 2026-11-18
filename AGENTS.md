@@ -2,7 +2,7 @@
 
 ## Product contract
 
-SEE64YOU is a C64 Ultimate-only, **8TML source editor first**. The canonical document is a portable `.8tml` text file, editable offline, independent of the PHP service and any external browser. Optional Publisher and Settings launch as separate programs. The 8TML/T8WN ecosystem supplies the compatible reader; do not develop another SEE64YOU 8TML browser. Do not add alternate document formats, importers or compatibility modes.
+SEE64YOU is a C64 Ultimate-only **offline source editor**, currently shipping `.8tml` editing. Approved next scope is **three New-file choices in the same editor**: `.8tml` documents, `.8ss` stylesheets, and general plain text (default `.txt`, with an explicitly entered safe extension such as `.md`). This expansion is **planned, not yet implemented**; keep the current `.8tml` contract intact until replacement paths are tested. Do not create a separate editor, binary importer, format converter or compatibility mode. Optional Publisher and Settings launch separately. The 8TML/T8WN ecosystem supplies the reader; do not develop another SEE64YOU browser.
 
 Read [product scope](docs/PRODUCT.md), [architecture](docs/ARCHITECTURE.md), [runtime](docs/C64U-RUNTIME.md) and [todo](todo.md) before substantial code work. `todo.md` is the only live work queue. Documentation should explain what exists and how to use/test it, **not narrate implementation history**.
 
@@ -12,6 +12,8 @@ Read [product scope](docs/PRODUCT.md), [architecture](docs/ARCHITECTURE.md), [ru
 - Verify failures before fixing; make the smallest maintainable, tested changes. Reuse current source codec, storage, validation and authentication boundaries. Don't introduce new runtime handoff systems or gratuitous abstractions.
 - Editor must remain useful offline with explicit Save/Save As and existing recovery; **no timed background autosave**.
 - Current source contract: 8TML 1 draft; ASCII/LF, complete editable header/body, unknown-source preservation, 61,440-byte current limit; no generated HTML as source. Pin external validator/spec versions when available and do not claim full conformance without fixtures.
+- Planned formats share the existing buffer, codec, safe-save and recovery paths. Keep strict 8TML header validation for `.8tml`, but do not require an 8TML header in `.8ss` or general text. Confirm the actual 8SS specification before adding syntax-specific rules or templates. A typed text filename suffix is not permission to read binary/unsupported encodings; plain text retains the current ASCII/LF boundaries unless explicitly changed and tested.
+- The approved multi-format workflow and outstanding validation live in [product scope](docs/PRODUCT.md) and [todo](todo.md). Do not describe planned support as shipped in user instructions or releases.
 - Source, publishing service metadata, HTTP transport, key provisioning, HTML rendering and external browsing are separate responsibilities.
 - Publisher simplification is a staged task. Do not remove commands or modules until live callers, update identity, manifests, package builds, affected tests and hardware behavior have been checked. Preserve safe remote confirmation and failure behavior.
 - Keep code straightforward and concise; preserve user data and avoid broad rewrites, dormant integrations and unnecessary dependencies.

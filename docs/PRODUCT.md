@@ -1,6 +1,6 @@
 # SEE64YOU product scope
 
-SEE64YOU is an **offline 8TML source editor for the Commodore 64 Ultimate**, accompanied by a small Publisher and Settings program. It creates portable `.8tml` files, not HTML or a proprietary page format. A compatible external 8TML/T8WN browser handles reading pages. SEE64YOU is not a website engine, CMS or browser.
+SEE64YOU is an **offline source editor for the Commodore 64 Ultimate**, accompanied by a small Publisher and Settings program. The shipped Editor creates portable `.8tml` source files; support for `.8ss` stylesheets and general text is approved but **not yet implemented**. A compatible external 8TML/T8WN browser handles reading pages. SEE64YOU is not a website engine, CMS or browser.
 
 ## Programs and workflow
 
@@ -13,6 +13,24 @@ SEE64YOU is an **offline 8TML source editor for the Commodore 64 Ultimate**, acc
 Each program launches independently and returns to BASIC. The Editor must work without networking, account credentials or any other program. The normal path is **Edit → Save → Publisher → Select source/target → Confirm upload → Read with a compatible external browser**.
 
 Source is literal 8TML 1 draft ASCII/LF, including header and body; preserve source and unknown constructs rather than generating HTML. CR/CRLF input uses the documented LF normalization. The current local source limit is 61,440 bytes, independent of a server's advertised upload limit. No autosave, hidden remote identity, conversion of older formats or automatic Editor/Publisher handoff. Preserve existing recoverable temporary files, failed-write protection, REU-backed buffers/history and machine-state restoration.
+
+## Approved Editor format expansion (planned, not shipped)
+
+Use **one existing text-editing engine**, not three editors. File → New presents **1 8TML Document**, **2 8SS Stylesheet**, **3 Plain Text**, **0 Cancel**, in the existing 40×25 keyboard-first interface. The chosen New-file type determines the initial template and default Save As extension. Opening a named file determines its type from the effective suffix; displayed filename/type should be unambiguous.
+
+| Type | New file | Open / save |
+| --- | --- | --- |
+| `.8tml` | Existing editable 8TML 1 header and body; default `.8tml` | Retain required 8TML header validation, unknown-source preservation and current source/format shortcuts |
+| `.8ss` | Start with an empty editable stylesheet unless a pinned 8SS specification establishes a required template; default `.8ss` | Edit literal stylesheet source without treating it as 8TML; preserve unknown constructs. Confirm actual 8SS syntax before adding special validation or commands |
+| General text | Start empty; default `.txt` | Allow explicitly named safe text extensions, e.g. `.md`, `.ini`, `.csv`, plus explicitly opened extensionless text; do not require an 8TML header or interpret/render Markdown |
+
+**Filename rule:** A new general-text file entered as `notes` saves as `notes.txt`; `README.md` stays `README.md`. An explicit `.8tml` or `.8ss` suffix selects that format's rules, even when entered in Save As. Do not silently convert, change source bytes or bypass required format checks on a rename. Reject invalid/mismatched formats clearly *before* overwriting anything. Open retains explicit `.tmp`/`.bak` recovery handling and must associate recovered copies with the underlying source type; no silent fallback to a different file or mode. Keep file/path length checks, reserved application files, directory boundaries and collision protection.
+
+**Text boundary:** Continue using the existing REU-backed editing/history, ASCII-to-C64 character mapping, LF storage (normalizing incoming CR/CRLF), 61,440-byte limit, manual saves, temporary/backup files and journal/recovery safeguards. Empty general text files are valid. Reject unsupported binary/control-byte/encoding input safely; arbitrary filename extensions do **not** imply arbitrary Unicode, PETSCII or binary import. Do not claim byte-for-byte preservation across line-ending conversion. All existing editing actions remain shared; 8TML-only Format commands should be hidden/disabled or clearly limited outside 8TML, without adding a second formatter.
+
+**Publisher boundary:** Keep existing `.8tml` publishing unchanged. Allow local `.8ss` selection/upload **only after** checking the pinned independent 8TML publishing protocol, real server acceptance and raw-source interoperability; do not invent an API extension. General text (`.txt`, `.md`, etc.) is editor-only by default. Do not add generic remote publishing, a viewer, live preview, syntax highlighting, new encodings or a visual stylesheet designer for this work.
+
+**Completion criteria:** Create/open/edit/save/reopen each type, including empty plain text, explicit `.md` and a recoverable `.8ss.tmp`/`.bak`. Verify format-specific rejection and unknown-source retention, current unsaved-document protections, safe Save As collisions and interrupted writes, no changes to existing 8TML fixtures, and exact SD/USB package, memory-fit, host/VICE and physical-C64U acceptance. Work items and evidence belong only in [todo](../todo.md).
 
 ## Publisher interface
 
@@ -34,7 +52,7 @@ The complete wire contract is in [PROTOCOL.md](PROTOCOL.md). Storage and machine
 
 ## Out of scope
 
-No bundled website, WordPress adapter, CMS concepts (posts/pages, themes, drafts, account management), bespoke relay, client browser, remote deletion, bulk remote file manager, stylesheet editor or new session-transfer system. A small disposable protocol test server may be used for validation only. Remove retained unused code only after identifying real callers and establishing safe package/rollback behavior; never delete user files or recovery copies as part of cleanup.
+No bundled website, WordPress adapter, CMS concepts (posts/pages, themes, drafts, account management), bespoke relay, client browser, remote deletion, bulk remote file manager, visual stylesheet designer, binary-file importer or new session-transfer system. A small disposable protocol test server may be used for validation only. Remove retained unused code only after identifying real callers and establishing safe package/rollback behavior; never delete user files or recovery copies as part of cleanup.
 
 ## Release acceptance
 
