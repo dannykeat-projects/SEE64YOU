@@ -33,6 +33,6 @@ Wait for the returned URL, errors and warnings. Inspect remote content before re
 
 ## Validation limits
 
-Host fixtures, SD/USB fit/manifests and VICE check software paths. Authenticated host tests against T8wn passed 8SS/text create, replacement and byte-exact public-source readback; `.md` was refused with HTTP 415 `bad-type`. These tests do not certify the shipping Publisher's native transport. Exact-package C64U network acceptance and external-reader stylesheet application remain tracked in [todo](../todo.md), separately from physical keys, cold power/interruption and USB-only operation.
+Host fixtures, SD/USB fit/manifests and VICE check software paths. Matching-package SD C64U checks against T8wn pass status, authenticated list, 8SS/text create and replacement, create/replace cancellation, exact public-source readback and rejection above the advertised 16,384-byte limit. Disposable remote fixtures are removed; user files, configuration and machine state are preserved with the candidate installed. Host tests found `.md` refused with HTTP 415 `bad-type`. Native key/network failure injection, external-reader stylesheet application, physical keys, cold power/interruption and USB-only operation remain tracked in [todo](../todo.md).
 
 Download-to-edit is deferred: API 1 supplies neither source GET nor guaranteed raw-source URLs. Future download requires independent source-access verification, supported transport and collision-safe new-file storage. See [Product scope](PRODUCT.md).

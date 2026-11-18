@@ -29,7 +29,7 @@ Returned public URLs may contain `@` in the path (for example `/@keato/index.8tm
 
 Remote paths have at most 64 characters and use letters, digits, hyphen, underscore, dot and slash-separated nonempty segments. Dot and dot-dot segments are refused. The Publisher lowercases the chosen path before checking collisions and showing confirmation, matching standard server normalization. Local paths remain separate.
 
-Local sources may be `.8tml`, `.8ss` or `.txt`, case-insensitively. They use the existing ASCII/LF codec; 8SS and text do not acquire an 8TML header. The server controls accepted remote types and its advertised size cap. Authenticated host tests against T8wn passed create/replace and exact public-source readback for `.8ss` and `.txt`; `.md` returned HTTP 415 with `bad-type`. Other Editor text suffixes remain local; Save As `.txt` publishes literal text without conversion. These results do not certify every compatible endpoint, native C64U transport or external-reader stylesheet application.
+Local sources may be `.8tml`, `.8ss` or `.txt`, case-insensitively. They use the existing ASCII/LF codec; 8SS and text do not acquire an 8TML header. The server controls accepted remote types and its advertised size cap. Authenticated host and matching-package SD C64U tests against T8wn passed create/replace and exact public-source readback for `.8ss` and `.txt`; native create/replace cancellation and the 16,384-byte size cap also pass. Host `.md` requests returned HTTP 415 with `bad-type`. Other Editor text suffixes remain local; Save As `.txt` publishes literal text without conversion. These results do not certify every compatible endpoint, native key/network failure injection or external-reader stylesheet application.
 
 ## Replacement and failure
 

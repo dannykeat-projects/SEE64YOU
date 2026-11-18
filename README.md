@@ -35,4 +35,4 @@ The default storage root is `/sd/`. Install the whole package with the four PRGs
 
 See [development and validation](docs/LOCAL_TESTING.md), [architecture](docs/ARCHITECTURE.md), [product scope](docs/PRODUCT.md), and the active [work queue](todo.md). Current program names and package layout are documented in the installation guide.
 
-This is experimental software. Cold-start, USB-only, rebuilt Publisher-on-hardware and independent standard-server acceptance remain required; do not use it as the sole copy of important work.
+This is experimental software. Matching-package SD C64U checks include 8SS/text publishing with exact independent-server readback. Physical input, cold-power/interruption, USB-only hardware, native key/network failure injection and external-reader acceptance remain open; keep separate copies of important work.
