@@ -33,7 +33,7 @@ static void capture(void)
     unsigned i;
     memset(workspace, 0, sizeof(workspace));
     workspace[0] = 0x53; workspace[1] = 0x36; workspace[2] = 0x34; workspace[3] = 0x42;
-    workspace[4] = 1; workspace[5] = 26; workspace[6] = 0x1d; workspace[7] = 1;
+    workspace[4] = 2; workspace[5] = 26; workspace[6] = 0x20; workspace[7] = 1;
     for (i = 0; i < S64_BASIC_RETURN_RAW_SIZE; ++i) workspace[32 + i] = (uint8_t)i;
     workspace[32] = 0x37; workspace[33] = 0xf0; workspace[34] = 0x24;
 }
@@ -55,6 +55,9 @@ int main(void)
     assert(!s64_basic_return_reserve(&control));
     assert(!memcmp(&control, &before, sizeof(control)));
     capture();
+    workspace[4] = 1; /* Old context has no captured colours: fail closed. */
+    assert(!s64_basic_return_publish(&control, &journal, workspace));
+    workspace[4] = 2;
     assert(s64_basic_return_publish(&control, &journal, workspace));
     memcpy(saved, workspace, sizeof(saved));
     memset(workspace, 0x77, sizeof(workspace));

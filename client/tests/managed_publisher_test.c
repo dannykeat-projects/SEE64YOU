@@ -60,6 +60,7 @@ uint8_t s64_application_state_load_wire(const S64ReuRuntimeControl* control,
     wire[73] = loaded_state.editor.word_wrap;
     wire[76] = (uint8_t)loaded_state.document.type;
     wire[77] = (uint8_t)loaded_state.document.status;
+    wire[337] = (uint8_t)(loaded_state.document.kind - S64_DOCUMENT_KIND_8TML);
     put32_test(wire + 78u, (uint32_t)loaded_state.document.order);
     memcpy(wire + 82u, loaded_state.document.slug, S64_DOCUMENT_SLUG_CAPACITY);
     memcpy(wire + 147u, loaded_state.document.title, S64_DOCUMENT_TITLE_CAPACITY);
@@ -256,6 +257,7 @@ int main(void)
     loaded_state.editor.buffer.gap_start = 42u;
     loaded_state.editor.dirty = 1u;
     loaded_state.document.type = S64_DOCUMENT_POST;
+    loaded_state.document.kind = S64_DOCUMENT_KIND_8TML;
     strcpy(loaded_state.document.title, "Owned document");
     loaded_state.document_replaced = 1u;
     reset();
@@ -263,6 +265,7 @@ int main(void)
     assert(s64_managed_publisher_document(&runtime, &body, &document, &dirty, &replaced));
     assert(body.gap_start == 42u && document.body == &body);
     assert(document.type == S64_DOCUMENT_POST && !strcmp(document.title, "Owned document"));
+    assert(document.kind == S64_DOCUMENT_KIND_8TML);
     assert(dirty == 1u && replaced == 1u);
     assert(!s64_managed_publisher_document(&runtime, &body, &document, &dirty, &replaced));
 
@@ -287,6 +290,7 @@ int main(void)
         s64_publisher_workspace.bytes) == 1u);
     assert(application_writes == 1u && control_writes == 2u && resume_calls == 1u);
     assert(stored_wire[32] == 11u && stored_wire[36] == S64_MODULE_PUBLISHER);
+    assert(stored_wire[337] == 0u);
     assert(stored_wire[47] == 3u && !strcmp((char*)stored_wire + 269u, "owned.s64"));
     assert(runtime.reu_control.state_flags & S64_REU_RUNTIME_STATE_APPLICATION_VALID);
 
@@ -346,6 +350,7 @@ int main(void)
             s64_publisher_workspace.bytes) == 1u);
         assert(stored_wire[32] == (uint8_t)(41u + cycle));
         assert(stored_wire[36] == S64_MODULE_PUBLISHER);
+        assert(stored_wire[337] == 0u);
         assert(stored_wire[47] == (uint8_t)(5u + cycle));
         assert(!strcmp((char*)stored_wire + 269u, "cycle.s64"));
         assert(runtime.reu_control.state_flags

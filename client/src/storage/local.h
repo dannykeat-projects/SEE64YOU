@@ -8,6 +8,8 @@
 
 #define S64_LOCAL_FILENAME_CAPACITY 34u
 #define S64_LOCAL_RECOVERY_FILENAME "SEE64YOU.REC"
+#define S64_LOCAL_RECOVERY_8SS "SEE64YOU.8SS.REC"
+#define S64_LOCAL_RECOVERY_TEXT "SEE64YOU.TXT.REC"
 
 typedef enum {
     S64_LOCAL_OK = 0,
@@ -40,6 +42,8 @@ uint8_t s64_local_has_filename(const S64LocalDocument* local);
 uint8_t s64_local_document_replaced(const S64LocalDocument* local);
 
 S64LocalResult s64_local_new(S64LocalDocument* local, uint8_t discard_dirty);
+S64LocalResult s64_local_new_kind(
+    S64LocalDocument* local, S64DocumentKind kind, uint8_t discard_dirty);
 S64LocalResult s64_local_open(
     S64LocalDocument* local,
     const char* filename,

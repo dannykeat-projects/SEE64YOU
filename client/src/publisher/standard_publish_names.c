@@ -3,6 +3,23 @@
 #include <stdint.h>
 #include <string.h>
 
+unsigned char s64_publish_source_kind(const char* filename)
+{
+    const char* suffix;
+    uint8_t length;
+#define FOLD(c) (((uint8_t)(c) | 0x20u) & 0x7fu)
+    if (!filename || !(suffix = strrchr(filename, '.'))) return 0u;
+    length = (uint8_t)strlen(suffix);
+    if (length == 5u && suffix[1] == '8' && FOLD(suffix[2]) == 0x74u
+        && FOLD(suffix[3]) == 0x6du && FOLD(suffix[4]) == 0x6cu) return 1u;
+    if (length == 4u) {
+        if (suffix[1] == '8' && FOLD(suffix[2]) == 0x73u && FOLD(suffix[3]) == 0x73u) return 2u;
+        if (FOLD(suffix[1]) == 0x74u && FOLD(suffix[2]) == 0x78u && FOLD(suffix[3]) == 0x74u) return 3u;
+    }
+    return 0u;
+#undef FOLD
+}
+
 int s64_publish_id_valid(const char* id)
 {
     uint8_t count = 0u;

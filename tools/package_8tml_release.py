@@ -34,13 +34,22 @@ def committed_source():
 
 
 def verify_receipts(validation, receipt, commit):
-    if receipt.get("storage_only") is True or receipt.get("shipping_editor_UI_tested") is False:
-        raise ValueError("Native-storage-only evidence does not certify shipping Editor UI acceptance")
+    if receipt.get("storage_only") is True or receipt.get("recovery_only") is True \
+            or receipt.get("shipping_editor_UI_tested") is False:
+        raise ValueError("Partial Editor evidence does not certify full shipping UI acceptance")
+    if receipt.get("error") or receipt.get("exit_error") or receipt.get("restore_error"):
+        raise ValueError("Failed hardware evidence cannot certify release acceptance")
     if receipt.get("restored") is not True or receipt.get("active") is not False \
             or receipt.get("dos_context_restored") is not True or receipt.get("storage_root") != "/sd/":
         raise ValueError("Hardware receipt must confirm complete SD restoration")
-    if set(receipt.get("package_sha256", {})) not in (FILES, FILES | {"T8PROBE.PRG"}):
-        raise ValueError("Hardware inventory must be ten shipping files plus optional T8PROBE.PRG")
+    probe = receipt.get("probe_name", "T8PROBE.PRG")
+    inventory = receipt.get("package_sha256", {})
+    if probe != "T8PROBE.PRG" and (not re.fullmatch(r"P[0-9A-F]{7}\.PRG", probe)
+            or not re.fullmatch(r"[0-9a-f]{64}", inventory.get(probe, ""))
+            or probe != "P" + inventory[probe][:7].upper() + ".PRG"):
+        raise ValueError("Diagnostic name must match its recorded content hash")
+    if set(inventory) not in (FILES, FILES | {probe}):
+        raise ValueError("Hardware inventory must be ten shipping files plus its optional diagnostic")
     required_gates = {"focused_source_and_storage", "SD_USB_fit_manifests",
                       "SD_USB_packaged_VICE_startup_BASIC_return", "host_suite", "C64U_SD_disk_restoration"}
     if any(validation.get("gates", {}).get(name) != "passed" for name in required_gates):
@@ -51,6 +60,9 @@ def verify_receipts(validation, receipt, commit):
             raise ValueError("Validation must hash ten files for /sd/ and exact /USB1/")
     if validation["packages"]["sd"]["sha256"] != {name: receipt["package_sha256"][name] for name in FILES}:
         raise ValueError("SD validation and hardware package hashes differ")
+    if "installed_package_sha256" in receipt and (receipt.get("nonpackage_files_preserved") is not True
+            or receipt["installed_package_sha256"] != validation["packages"]["sd"]["sha256"]):
+        raise ValueError("Intentional installation must preserve user files and match the tested package")
     base = validation["base_commit"]
     if receipt["commit"] != base:
         raise ValueError("Validation and hardware receipts have different tested base commits")
@@ -123,6 +135,9 @@ def main():
     hardware = {"tested_commit": receipt["commit"], "input": receipt["input"],
                 "physical_keyboard": receipt["physical_keyboard"],
                 "cold_power_cycle": receipt["cold_power_cycle"], "restored": True}
+    if "installed_package_sha256" in receipt:
+        hardware["candidate_installed"] = True
+        hardware["nonpackage_files_preserved"] = True
     timestamp = datetime.datetime.fromtimestamp(int(capture("git", "show", "-s", "--format=%ct", "HEAD")),
                                                  datetime.timezone.utc).timetuple()[:6]
     output.mkdir(parents=True, exist_ok=False)
@@ -153,6 +168,7 @@ def main():
                  "toolchain": validation.get("toolchain"),
                  "build_command": validation["packages"][key].get("build_command"),
                  "package_sha256": hashes, "sd_editor_hardware": hardware,
+                 "sd_publisher_hardware": receipt.get("publisher_acceptance"),
                  "guide_sha256": digest(guide), "validation_receipt_sha256": digest(validation_data),
                  "hardware_receipt_sha256": digest(hardware_data),
                  "validated_runtime_source_sha256": verified_source,
@@ -161,7 +177,7 @@ def main():
                  "acceptance": "Alpha preview; remaining gates are not certified by this release",
                  "remaining_gates": ["physical keyboard/Link on this package", "cold-power exact-source reopen",
                     "uncontrolled interruption/recovery", "real USB-only operation",
-                    "external compatible-reader navigation", "full Publisher upload/replace/failure coverage on this exact package",
+                    "external compatible-reader navigation", "Publisher native key/network failure injection",
                     "historical non-shipping native matrix reconciliation"]}
         payload["BUILD.json"] = (json.dumps(build, indent=2, sort_keys=True) + "\n").encode()
         payload["README.md"] = guide

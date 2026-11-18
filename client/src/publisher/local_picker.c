@@ -1,6 +1,7 @@
 #include <conio.h>
 #include <string.h>
 #include "publisher/local_picker.h"
+#include "publisher/standard_publish_names.h"
 #include "platform/dos_dir.h"
 #include "charset.h"
 
@@ -13,17 +14,7 @@ static uint8_t count, more, page;
 
 static uint8_t is_source(const char* name)
 {
-    uint8_t c, i;
-    uint8_t n = (uint8_t)strlen(name);
-    static const uint8_t suffix[] = {0x2Eu, 0x38u, 0x74u, 0x6Du, 0x6Cu};
-    if (n < 5u) return 0u;
-    for (i = 0u; i < 5u; ++i) {
-        if (!s64_charset_native_to_ascii(
-                (uint8_t)name[(uint8_t)(n - 5u + i)], &c)) return 0u;
-        if (c >= 0x41u && c <= 0x5Au) c = (uint8_t)(c + 32u);
-        if (c != (uint8_t)suffix[i]) return 0u;
-    }
-    return 1u;
+    return s64_publish_source_kind(name) != 0u;
 }
 
 typedef struct {
@@ -75,7 +66,7 @@ static void show_page(void)
 {
     uint8_t i, row;
     clrscr();
-    cputs("SEE64YOU - LOCAL .8TML FILES\r\n");
+    cputs("LOCAL 8TML / 8SS / TXT FILES\r\n");
     cputs("---------------------------------------\r\n");
     for (i = 0u; i < count; ++i) {
         row = (uint8_t)(3u + i * 2u);
@@ -89,7 +80,7 @@ static void show_page(void)
     }
     if (!count) {
         gotoxy(1u, 5u);
-        cputs("No .8tml files on this page");
+        cputs("No source files on this page");
     }
     gotoxy(0u, 17u);
     cputs("[7] TYPE NAME  [8] PREV  [9] NEXT\r\n");

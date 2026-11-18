@@ -51,7 +51,7 @@ class PackageTest(unittest.TestCase):
     def test_receipt_rejections(self):
         PACK.verify_receipts(self.validation, self.receipt, "release")
         for kind in ("extra", "restoration", "package", "root", "gate", "runtime", "missing-runtime",
-                     "native-only", "UI-not-tested"):
+                     "native-only", "UI-not-tested", "recovery-only", "failed-run", "probe-name"):
             validation, receipt = copy.deepcopy(self.validation), copy.deepcopy(self.receipt)
             if kind == "extra": receipt["package_sha256"]["UNEXPECTED.PRG"] = "x"
             if kind == "restoration": receipt["restored"] = False
@@ -62,8 +62,34 @@ class PackageTest(unittest.TestCase):
             if kind == "missing-runtime": validation["source_sha256"] = {}
             if kind == "native-only": receipt["storage_only"] = True
             if kind == "UI-not-tested": receipt["shipping_editor_UI_tested"] = False
+            if kind == "recovery-only": receipt["recovery_only"] = True
+            if kind == "failed-run": receipt["error"] = "readback mismatch, originals restored"
+            if kind == "probe-name": receipt["probe_name"] = "UNEXPECTED.PRG"
             with self.subTest(kind=kind), self.assertRaises(ValueError):
                 PACK.verify_receipts(validation, receipt, "release")
+
+    def test_content_named_diagnostic(self):
+        receipt = copy.deepcopy(self.receipt)
+        del receipt["package_sha256"]["T8PROBE.PRG"]
+        checksum = PACK.digest(b"diagnostic bytes")
+        name = "P" + checksum[:7].upper() + ".PRG"
+        receipt["probe_name"] = name
+        receipt["package_sha256"][name] = checksum
+        PACK.verify_receipts(self.validation, receipt, "release")
+        receipt["package_sha256"][name] = "0" * 64
+        with self.assertRaises(ValueError):
+            PACK.verify_receipts(self.validation, receipt, "release")
+
+    def test_intentional_installation_preserves_user_files(self):
+        receipt = copy.deepcopy(self.receipt)
+        receipt["installed_package_sha256"] = dict(self.hashes)
+        with self.assertRaises(ValueError):
+            PACK.verify_receipts(self.validation, receipt, "release")
+        receipt["nonpackage_files_preserved"] = True
+        PACK.verify_receipts(self.validation, receipt, "release")
+        receipt["installed_package_sha256"]["S64PUB.PRG"] = "wrong"
+        with self.assertRaises(ValueError):
+            PACK.verify_receipts(self.validation, receipt, "release")
 
     def test_nested_package_inventory_fails_closed(self):
         package = self.root / "layout"

@@ -2,6 +2,7 @@
 #include <string.h>
 #include "ui.h"
 #include "menu.h"
+#include "document.h"
 
 #define SCREEN_COLUMNS 40u
 #define EDITOR_FIRST_ROW 1u
@@ -14,6 +15,8 @@ void __fastcall__ s64_ui_status_column_fast(unsigned int value);
 void s64_ui_status_dirty_fast(void);
 
 static unsigned char http_ready;
+static S64DocumentKind current_kind;
+static const S64Document* active_document;
 static unsigned char dos_ready;
 static unsigned char header_rendered;
 static unsigned char body_rows;
@@ -53,17 +56,62 @@ static void clear_row(unsigned char row)
 
 static void render_header(void)
 {
-    if (header_rendered) {
-        return;
-    }
+    S64DocumentKind kind = active_document != 0
+        ? active_document->kind : S64_DOCUMENT_KIND_8TML;
+    if (header_rendered && kind == current_kind) return;
+    current_kind = kind;
 
     clear_row(0u);
     revers(1);
     gotoxy(0u, 0u);
     cputs(S64_MENU_BAR);
+    gotoxy(35u, 0u);
+    cputs(current_kind == S64_DOCUMENT_KIND_8SS ? "8SS "
+        : current_kind == S64_DOCUMENT_KIND_TEXT ? "TEXT" : "8TML");
     revers(0);
     header_rendered = 1u;
 }
+
+int s64_ui_parse_line_number(const char* text, unsigned int* line_number)
+{
+    unsigned int value = 0u;
+    unsigned char digit;
+
+    if (*text == '\0') {
+        return 0;
+    }
+
+    while (*text != '\0') {
+        if (*text < '0' || *text > '9') {
+            return 0;
+        }
+
+        digit = (unsigned char)(*text - '0');
+#ifdef S64_REU_BUFFER
+        if (value > 6553u || (value == 6553u && digit > 5u)) {
+            return 0;
+        }
+#else
+        if (value > 819u) {
+            return 0;
+        }
+#endif
+
+        value = (unsigned int)(value * 10u + digit);
+        if (value > S64_BUFFER_CAPACITY + 1u) {
+            return 0;
+        }
+        ++text;
+    }
+
+    if (value == 0u) {
+        return 0;
+    }
+
+    *line_number = value;
+    return 1;
+}
+
 
 static void prepare_row(void)
 {
@@ -399,8 +447,10 @@ static void render_body(
 
 }
 
-void s64_ui_init(void)
+void s64_ui_init(const S64Document* document)
 {
+    active_document = document;
+    current_kind = 0;
     bgcolor(COLOR_BLACK);
     bordercolor(COLOR_BLACK);
     textcolor(COLOR_WHITE);
@@ -413,6 +463,15 @@ void s64_ui_init(void)
     partial_char_edit = 0u;
     cursor_position_valid = 0u;
     cursor_visible = 0u;
+}
+
+S64DocumentKind s64_ui_select_document_kind(void)
+{
+    unsigned char key;
+    s64_ui_message("New:1 8TML 2 8SS 3 TXT 0 Cancel");
+    key = cgetc();
+    if (key < '1' || key > '3') return 0;
+    return (S64DocumentKind)(key - '0');
 }
 
 void s64_ui_set_http_ready(unsigned char ready)

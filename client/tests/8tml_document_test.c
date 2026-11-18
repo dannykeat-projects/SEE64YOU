@@ -182,6 +182,57 @@ int main(void)
     sink_calls = 0u;
     require(s64_document_write_wire(&document, collect, 0) == S64_DOCUMENT_INVALID_METADATA, "invalid edit rejected");
     require(sink_calls == 0u, "invalid source never reaches sink");
+
+    /* One codec and text boundary for 8SS and ordinary text, no 8TML header. */
+    {
+        static const char* kinds[] = { "", "uninterpreted 8ss source\n", "README\nbody\n" };
+        S64DocumentKind kind;
+        for (kind = S64_DOCUMENT_KIND_8SS; kind <= S64_DOCUMENT_KIND_TEXT; ++kind) {
+            s64_buffer_init(&body);
+            s64_document_init_kind(&document, &body, kind);
+            require(s64_buffer_length(&body) == 0u, "new non-8TML is empty");
+            save();
+            require(output_length == 0u && sink_calls == 0u, "zero-byte text saves");
+            length = fixture(kinds[kind - 1u]);
+            s64_document_wire_reader_init(&reader, &document);
+            require(s64_document_wire_reader_write(input, length, &reader), "non-8TML source reads");
+            require(s64_document_wire_reader_finish(&reader) == S64_DOCUMENT_OK, "non-8TML source valid");
+            require(document.kind == kind, "reader preserves selected format");
+            save();
+            require(output_length == length && !memcmp(output, input, length), "non-8TML exact roundtrip");
+            memset(input, 'x', sizeof(input));
+            s64_document_wire_reader_init(&reader, &document);
+            for (i = 0u; i < S64_BUFFER_CAPACITY / sizeof(input); ++i)
+                require(s64_document_wire_reader_write(input, sizeof(input), &reader),
+                    "non-8TML maximum-size read");
+            require(s64_document_wire_reader_finish(&reader) == S64_DOCUMENT_OK,
+                "non-8TML maximum-size valid");
+            save();
+            require(output_length == S64_BUFFER_CAPACITY, "non-8TML maximum-size saves");
+            require(!s64_document_wire_reader_write(input, 1u, &reader),
+                "non-8TML oversized read rejected");
+            require(s64_document_wire_reader_finish(&reader) == S64_DOCUMENT_SINK_ERROR,
+                "non-8TML oversized read reported");
+            for (i = 0u; i <= 255u; ++i) {
+                if (i == 9u || i == 10u || i == 13u || (i >= 32u && i <= 126u)) continue;
+                s64_document_wire_reader_init(&reader, &document);
+                input[0] = (uint8_t)i;
+                require(!s64_document_wire_reader_write(input, 1u, &reader),
+                    "non-8TML unsupported byte rejected");
+            }
+        }
+        length = fixture("a\r\nb\r");
+        s64_document_wire_reader_init(&reader, &document);
+        require(s64_document_wire_reader_write(input, length, &reader), "text CRLF reads");
+        require(s64_document_wire_reader_finish(&reader) == S64_DOCUMENT_OK, "text CRLF valid");
+        save();
+        length = fixture("a\nb\n");
+        require(output_length == length && !memcmp(output, input, length), "text LF normalized");
+        s64_document_init_kind(&document, &body, S64_DOCUMENT_KIND_8TML);
+        require(s64_document_write_wire(&document, collect, 0) == S64_DOCUMENT_INVALID_METADATA,
+            "non-header text still rejected as 8TML");
+    }
+
 #ifdef S64_REU_BUFFER
     /* Fail each transfer of a known-good source, including validation header
      * rescans and the streaming pass after validation has already succeeded. */

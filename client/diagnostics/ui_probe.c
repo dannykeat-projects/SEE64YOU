@@ -62,7 +62,7 @@ int main(void)
 
     s64_editor_init(&editor);
     DIAG_PROGRESS = 0x02u;
-    s64_ui_init();
+    s64_ui_init(0);
     DIAG_PROGRESS = 0x03u;
     s64_ui_render(&editor);
     DIAG_PROGRESS = 0x04u;

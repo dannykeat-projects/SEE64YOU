@@ -63,6 +63,8 @@ static uint8_t native_body_wire_valid(const S64Buffer* body)
 
 #endif
 
+#ifndef S64_STORAGE_READ_ONLY
+/* The source-only Publisher neither edits nor reconstructs metadata. */
 static uint8_t copy_text(char* destination, uint16_t capacity, const char* source)
 {
     uint16_t length = 0u;
@@ -81,6 +83,7 @@ static uint8_t copy_text(char* destination, uint16_t capacity, const char* sourc
     memcpy(destination, source, length + 1u);
     return 1u;
 }
+#endif
 
 #ifndef S64_DOCUMENT_8TML
 static uint8_t header_text_valid(const char* text, uint16_t capacity, uint8_t allow_empty)
@@ -158,6 +161,8 @@ static uint8_t emit(S64DocumentSink sink, void* context, const char* text)
 
 #endif
 
+#ifdef S64_STORAGE_READ_ONLY
+/* Source-only Publisher keeps its compact read-only path. */
 void s64_document_init(S64Document* document, S64Buffer* body)
 {
     if (document == 0) {
@@ -165,6 +170,7 @@ void s64_document_init(S64Document* document, S64Buffer* body)
     }
 
     document->type = S64_DOCUMENT_PAGE;
+    document->kind = S64_DOCUMENT_KIND_8TML;
     document->slug[0] = '\0';
     document->title[0] = '\0';
     document->status = S64_DOCUMENT_DRAFT;
@@ -180,6 +186,38 @@ void s64_document_init(S64Document* document, S64Buffer* body)
 #endif
 }
 
+#else
+void s64_document_init_kind(S64Document* document, S64Buffer* body, S64DocumentKind kind)
+{
+    if (document == 0) {
+        return;
+    }
+
+    document->type = S64_DOCUMENT_PAGE;
+    document->kind = kind;
+    document->slug[0] = '\0';
+    document->title[0] = '\0';
+    document->status = S64_DOCUMENT_DRAFT;
+    document->date[0] = '\0';
+    document->order = 0;
+    document->body = body;
+#ifdef S64_INDEPENDENT_EDITOR
+    if (kind == S64_DOCUMENT_KIND_8TML && body != 0 && s64_buffer_length(body) == 0u) {
+        const char* initial = "---\n8tml: 1\ntitle: Untitled\n---\n";
+        while (*initial != '\0') (void)s64_buffer_insert(body, (uint8_t)*initial++);
+        /* Start typing in the body; the header remains editable above it. */
+    }
+#endif
+}
+
+void s64_document_init(S64Document* document, S64Buffer* body)
+{
+    s64_document_init_kind(document, body, S64_DOCUMENT_KIND_8TML);
+}
+
+#endif
+
+#ifndef S64_STORAGE_READ_ONLY
 int s64_document_set_slug(S64Document* document, const char* slug)
 {
     if (document == 0 || !s64_document_slug_valid(slug)) {
@@ -203,6 +241,7 @@ int s64_document_set_date(S64Document* document, const char* date)
     }
     return copy_text(document->date, S64_DOCUMENT_DATE_CAPACITY, date);
 }
+#endif
 
 const char* s64_document_type_name(S64DocumentType type)
 {
@@ -530,8 +569,9 @@ static uint8_t source_byte(const S64Buffer* body, unsigned int position)
     return byte;
 }
 
-static uint8_t source_valid(const S64Buffer* body)
+static uint8_t source_valid(const S64Document* document)
 {
+    const S64Buffer* body = document->body;
     unsigned int length = s64_buffer_length(body);
     unsigned int start = 4u;
     unsigned int end;
@@ -545,6 +585,10 @@ static uint8_t source_valid(const S64Buffer* body)
         if (!s64_charset_native_to_ascii(s64_buffer_char_at(body, position), &byte)
             || (byte != 9u && byte != 10u && (byte < 32u || byte > 126u))) return 0u;
     }
+    if (s64_buffer_read_error(body)) return 0u;
+    if (document->kind == S64_DOCUMENT_KIND_8SS
+        || document->kind == S64_DOCUMENT_KIND_TEXT) return 1u;
+    if (document->kind != S64_DOCUMENT_KIND_8TML) return 0u;
     if (length < 4u || source_byte(body, 0u) != 45u
         || source_byte(body, 1u) != 45u || source_byte(body, 2u) != 45u
         || source_byte(body, 3u) != 10u) return 0u;
@@ -593,8 +637,20 @@ void s64_document_wire_reader_init(S64DocumentWireReader* reader, S64Document* d
     reader->seen = 0u; /* previous input byte was CR */
     reader->result = S64_DOCUMENT_INVALID_ARGUMENT;
     if (document == 0 || document->body == 0) return;
-    s64_document_init(document, document->body);
-    s64_buffer_init(document->body);
+#ifdef S64_STORAGE_READ_ONLY
+    {
+        S64DocumentKind kind = document->kind;
+        s64_document_init(document, document->body);
+        document->kind = kind;
+        s64_buffer_init(document->body);
+    }
+#else
+    {
+        S64DocumentKind kind = document->kind;
+        s64_document_init_kind(document, document->body, kind);
+        s64_buffer_init(document->body);
+    }
+#endif
     reader->result = S64_DOCUMENT_OK;
 }
 
@@ -641,7 +697,7 @@ S64DocumentResult s64_document_wire_reader_finish(S64DocumentWireReader* reader)
 {
     if (reader == 0 || reader->document == 0 || reader->document->body == 0)
         return S64_DOCUMENT_INVALID_ARGUMENT;
-    if (reader->result == S64_DOCUMENT_OK && !source_valid(reader->document->body))
+    if (reader->result == S64_DOCUMENT_OK && !source_valid(reader->document))
         reader->result = S64_DOCUMENT_INVALID_METADATA;
     if (reader->result != S64_DOCUMENT_OK) s64_buffer_init(reader->document->body);
     (void)s64_buffer_move_cursor(reader->document->body, 0u);
@@ -657,7 +713,7 @@ S64DocumentResult s64_document_write_wire(
     uint16_t i;
     if (document == 0 || document->body == 0 || sink == 0)
         return S64_DOCUMENT_INVALID_ARGUMENT;
-    if (!source_valid(document->body)) return S64_DOCUMENT_INVALID_METADATA;
+    if (!source_valid(document)) return S64_DOCUMENT_INVALID_METADATA;
     length = s64_buffer_length(document->body);
     while (offset < length) {
         chunk = length - offset > S64_DOCUMENT_WIRE_CHUNK

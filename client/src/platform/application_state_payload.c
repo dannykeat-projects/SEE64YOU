@@ -56,7 +56,8 @@ uint8_t s64_application_state_payload_valid(const uint8_t* w)
         || (w[50] && w[51] > w[47])
         || (w[336] && !w[303])) return 0;
     for (i = 68; i < 74; ++i) if (w[i] > 1) return 0;
-    for (i = 337; i < 508; ++i) if (w[i]) return 0;
+    if (w[337] > 2u) return 0;
+    for (i = 338; i < 508; ++i) if (w[i]) return 0;
     return 1;
 }
 
@@ -70,6 +71,7 @@ uint8_t s64_application_state_decode_payload(S64ApplicationState* s, const uint8
     s64_application_state_decode_editor(e, w);
     s->clipboard_length = get16(w + 74);
     s->document.type = (S64DocumentType)w[76]; s->document.status = (S64DocumentStatus)w[77];
+    s->document.kind = (S64DocumentKind)(w[337] + 1u);
     s->document.order = (int32_t)get32(w + 78);
     memcpy(s->document.slug, w + 82, S64_DOCUMENT_SLUG_CAPACITY);
     memcpy(s->document.title, w + 147, S64_DOCUMENT_TITLE_CAPACITY);

@@ -20,6 +20,12 @@ typedef enum {
 } S64DocumentType;
 
 typedef enum {
+    S64_DOCUMENT_KIND_8TML = 1,
+    S64_DOCUMENT_KIND_8SS = 2,
+    S64_DOCUMENT_KIND_TEXT = 3
+} S64DocumentKind;
+
+typedef enum {
     S64_DOCUMENT_DRAFT = 1,
     S64_DOCUMENT_PUBLISHED = 2
 } S64DocumentStatus;
@@ -35,6 +41,7 @@ typedef uint8_t (*S64DocumentSink)(const uint8_t* data, uint16_t length, void* c
 
 typedef struct {
     S64DocumentType type;
+    S64DocumentKind kind;
     char slug[S64_DOCUMENT_SLUG_CAPACITY];
     char title[S64_DOCUMENT_TITLE_CAPACITY];
     S64DocumentStatus status;
@@ -45,6 +52,7 @@ typedef struct {
 
 typedef struct {
     S64DocumentType type;
+    S64DocumentKind kind;
     char slug[S64_DOCUMENT_SLUG_CAPACITY];
     char title[S64_DOCUMENT_TITLE_CAPACITY];
     S64DocumentStatus status;
@@ -62,6 +70,7 @@ typedef struct {
 } S64DocumentWireReader;
 
 void s64_document_init(S64Document* document, S64Buffer* body);
+void s64_document_init_kind(S64Document* document, S64Buffer* body, S64DocumentKind kind);
 int s64_document_set_slug(S64Document* document, const char* slug);
 int s64_document_set_title(S64Document* document, const char* title);
 int s64_document_set_date(S64Document* document, const char* date);

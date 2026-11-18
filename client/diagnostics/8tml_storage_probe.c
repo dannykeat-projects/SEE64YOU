@@ -134,6 +134,69 @@ static uint8_t get_path(uint8_t target, char* destination)
         && status[0] == '0' && status[1] == '0' && destination[0] == '/';
 }
 
+#ifdef S64_MULTIFORMAT_STORAGE_PROBE
+static uint8_t multiformat_sources(void)
+{
+    uint16_t length;
+    uint8_t exists;
+    CHECK(s64_local_new(&local, 1u) == S64_LOCAL_OK, 84);
+    CHECK(s64_local_save_recovery(&local) == S64_LOCAL_OK, 85);
+    CHECK(s64_local_delete_recovery(&local) == S64_LOCAL_OK, 86);
+    CHECK(s64_local_recovery_exists(&local, &exists) == S64_LOCAL_OK && !exists, 87);
+    CHECK(s64_local_new_kind(&local, S64_DOCUMENT_KIND_8SS, 1u) == S64_LOCAL_OK
+        && !s64_buffer_length(&body), 50);
+    CHECK(s64_local_save_as(&local, "M8NEWSS", 0u) == S64_LOCAL_OK, 51);
+    CHECK(s64_local_open(&local, "M8STYLE.8ss", 1u) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_8SS, 52);
+    length = s64_buffer_length(&body);
+    CHECK(s64_local_save_as(&local, "M8COPY", 0u) == S64_LOCAL_OK, 53);
+    CHECK(s64_local_save_recovery(&local) == S64_LOCAL_OK, 54);
+    CHECK(s64_local_open_recovery(&local) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_8SS
+        && s64_buffer_length(&body) == length && !s64_local_has_filename(&local), 55);
+    CHECK(s64_local_delete_recovery(&local) == S64_LOCAL_OK, 56);
+    CHECK(s64_local_open(&local, "M8COPY.8ss", 1u) == S64_LOCAL_OK, 57);
+    CHECK(s64_buffer_move_cursor(&body, length) && s64_buffer_insert(&body, '!'), 58);
+    fault = 0x0au;
+    fault_skip = 1u;
+    CHECK(s64_local_save(&local) == S64_LOCAL_IO_ERROR && !fault, 59);
+    CHECK(s64_local_save(&local) == S64_LOCAL_RECOVERY_CONFLICT, 60);
+    CHECK(s64_dos_rename_file(&dos, "M8COPY.8ss.tmp", "M8COPY.8ss.bak") == S64_DOS_OK, 61);
+    CHECK(s64_local_save(&local) == S64_LOCAL_RECOVERY_CONFLICT, 62);
+    CHECK(s64_local_open(&local, "M8COPY.8ss.bak", 1u) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_8SS, 63);
+    CHECK(s64_local_save(&local) == S64_LOCAL_NO_FILENAME, 64);
+    CHECK(s64_local_save_as(&local, "M8RECOVER", 0u) == S64_LOCAL_OK, 65);
+    CHECK(s64_local_new_kind(&local, S64_DOCUMENT_KIND_TEXT, 1u) == S64_LOCAL_OK
+        && !s64_buffer_length(&body), 66);
+    CHECK(s64_local_save_as(&local, "M8NEWTXT", 0u) == S64_LOCAL_OK, 67);
+    CHECK(s64_local_open(&local, "M8NOTES.md", 1u) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_TEXT, 68);
+    CHECK(s64_local_save_as(&local, "M8OUT.md", 0u) == S64_LOCAL_OK, 69);
+    CHECK(s64_local_save_as(&local, "M8INVALID.8tml", 0u) == S64_LOCAL_INVALID_DOCUMENT
+        && document.kind == S64_DOCUMENT_KIND_TEXT, 70);
+    CHECK(s64_local_save_recovery(&local) == S64_LOCAL_OK, 71);
+    CHECK(s64_local_open_recovery(&local) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_TEXT, 72);
+    CHECK(s64_local_delete_recovery(&local) == S64_LOCAL_OK, 73);
+    CHECK(s64_local_open(&local, "M8RAW", 1u) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_TEXT, 74);
+    CHECK(s64_local_save_as(&local, "M8RAWOUT", 0u) == S64_LOCAL_OK, 75);
+    CHECK(s64_local_open(&local, "M8UPPER.8SS", 1u) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_8SS, 76);
+    CHECK(s64_local_open(&local, "M8PART.8ss.tmp", 1u) == S64_LOCAL_OK
+        && document.kind == S64_DOCUMENT_KIND_8SS, 77);
+    CHECK(s64_local_save(&local) == S64_LOCAL_NO_FILENAME, 78);
+    CHECK(s64_local_open(&local, "M8BIN.txt", 1u) == S64_LOCAL_INVALID_DOCUMENT, 79);
+    CHECK(s64_local_open(&local, "M8BAD.8tml", 1u) == S64_LOCAL_INVALID_DOCUMENT, 80);
+    CHECK(s64_local_new_kind(&local, S64_DOCUMENT_KIND_TEXT, 1u) == S64_LOCAL_OK, 81);
+    CHECK(s64_local_save_as(&local, "../M8ESCAPE.txt", 0u) == S64_LOCAL_INVALID_ARGUMENT, 82);
+    CHECK(s64_local_save_as(&local, "SEE64YOU.PRG", 0u) == S64_LOCAL_INVALID_ARGUMENT, 83);
+    cputs("MULTIFORMAT STORAGE TESTS PASSED\r\n");
+    return 0u;
+}
+#endif
+
 int main(void)
 {
     const char* text;
@@ -201,13 +264,14 @@ int main(void)
     CHECK(s64_dos_rename_file(&dos, "T8COPY.8tml.bak", "T8COPY.8tml.tmp") == S64_DOS_OK, 43);
     CHECK(s64_local_open(&local, "T8COPY.8tml.tmp", 1u) == S64_LOCAL_OK, 19);
     CHECK(s64_local_save_as(&local, "T8RECOVER", 0u) == S64_LOCAL_OK, 20);
-    CHECK(s64_local_save_as(&local, "T8WRONG.s64", 0u) == S64_LOCAL_INVALID_ARGUMENT, 21);
+    CHECK(s64_local_save_as(&local, "../T8WRONG.8tml", 0u) == S64_LOCAL_INVALID_ARGUMENT, 21);
     CHECK(s64_local_open(&local, "T8BAD.8tml", 1u) == S64_LOCAL_INVALID_DOCUMENT, 22);
     CHECK(!s64_local_has_filename(&local), 23);
     CHECK(s64_local_new(&local, 1u) == S64_LOCAL_OK, 24);
     memset(boundary, 'x', S64_LOCAL_FILENAME_CAPACITY - sizeof(".8tml"));
     boundary[S64_LOCAL_FILENAME_CAPACITY - sizeof(".8tml")] = '\0';
     CHECK(s64_local_save_as(&local, boundary, 0u) == S64_LOCAL_OK, 25);
+    strcat(boundary, ".8tml"); /* Editor Open now requires the exact suffix. */
     CHECK(s64_local_open(&local, boundary, 1u) == S64_LOCAL_OK, 26);
     CHECK(s64_local_open(&local, local.filename, 1u) == S64_LOCAL_OK, 27);
 #ifdef S64_STORAGE_MAX_SOURCE_PROBE
@@ -219,6 +283,9 @@ int main(void)
 #endif
 #ifdef S64_STORAGE_SOURCE_BENCHMARK
     if (benchmark_sources()) return 49;
+#endif
+#ifdef S64_MULTIFORMAT_STORAGE_PROBE
+    if (multiformat_sources()) return 84;
 #endif
     cputs("8TML STORAGE TESTS PASSED\r\n");
     return 0;

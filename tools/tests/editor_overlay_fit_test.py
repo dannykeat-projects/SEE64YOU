@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import tempfile
 import sys
 from pathlib import Path
@@ -26,6 +27,32 @@ s64_message(
 """
     names = FIT.public_s64_definitions(source)
     assert names == ["s64_plain", "s64_message"], names
+
+    client = SCRIPT.parents[1] / "client"
+    expected_storage = set(re.findall(r"\b(s64_local_\w+)\s*\(",
+        (client / "src/storage/local.h").read_text()))
+    storage_names = set(FIT.public_s64_definitions(
+        (client / "src/storage/local.c").read_text()))
+    assert not expected_storage - storage_names, expected_storage - storage_names
+    conditional = """
+int s64_conditional(int value) {
+#ifdef FIRST
+    if (value) {
+#else
+    if (!value) {
+#endif
+        return 1;
+    }
+    return 0;
+}
+int s64_after(void) { return 0; }
+"""
+    try:
+        FIT.public_s64_definitions(conditional, "conditional.c")
+    except FIT.FitError as error:
+        assert "conditional.c" in str(error)
+    else:
+        raise AssertionError("Conditional braces must not silently hide later entry points")
 
     generated = FIT.generated_translation_unit(
         "MODEL",
@@ -95,10 +122,10 @@ s64_message(
     assert FIT.OVERLAY_LIMIT == 0x3C00
     assert FIT.RESIDENT_BSS_LIMIT == 0x8C00
     assert "src/platform/application_state_wire.c" in FIT.GROUPS["RUNTIME"]
-    assert "src/platform/application_state_payload.c" in FIT.GROUPS["FILE"]
+    assert "src/platform/application_state_payload.c" in FIT.GROUPS["PUBLICATION"]
     assert "src/platform/managed_editor_restore.c" in FIT.GROUPS["MODEL"]
     assert FIT.BRIDGES["MODEL"] == ("s64_application_state_decode_payload",)
-    assert "s64_application_state_decode_editor" in FIT.BRIDGES["FILE"]
+    assert "s64_application_state_decode_editor" in FIT.BRIDGES["PUBLICATION"]
     assert FIT.GROUP_IDS["PUBLICATION"] == 4
     assert FIT.GROUPS["PUBLICATION"] == (
         "src/platform/managed_editor_prepare.c",
@@ -113,12 +140,13 @@ s64_message(
         "src/platform/module_integrity.c",
         "src/platform/application_state_editor.c",
         "src/platform/application_state_build.c",
+        "src/platform/application_state_payload.c",
     )
     assert FIT.BRIDGES["PUBLICATION"] == (
         "s64_transfer_capsule_allocation",
         "s64_transfer_capsule_checksum",
         "s64_transfer_capsule_module_valid",
-        "s64_application_state_payload_valid",
+        "s64_application_state_decode_editor",
         "s64_managed_editor_state_revoke",
         "s64_reu_runtime_store_verified",
         "s64_session_journal_encode",

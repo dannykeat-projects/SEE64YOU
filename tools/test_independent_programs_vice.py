@@ -110,7 +110,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     run("SEE64YOU.PRG", "R RECHECK    X EXIT", ord("X"), 6544, args.rom_dir)
     run("S64PUB.PRG", "[0] EXIT TO BASIC", ord("0"), 6545, args.rom_dir,
-        ((ord("3"), "Choose local .8TML first"),
+        ((ord("3"), "Choose local source first"),
          (ord("1"), "C64U DOS unavailable"),
          (ord("4"), "C64U network target unavailable")))
     run("S64CFG.PRG", "SEE64YOU PUBLISHING SETTINGS", ord("0"), 6546, args.rom_dir,

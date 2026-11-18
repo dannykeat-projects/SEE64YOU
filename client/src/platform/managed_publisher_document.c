@@ -86,6 +86,7 @@ static uint8_t prepare_return_wire(S64ModuleRuntime* runtime,
     wire[36] = S64_MODULE_PUBLISHER;
     wire[76] = (uint8_t)document->type;
     wire[77] = (uint8_t)document->status;
+    wire[337] = (uint8_t)(document->kind - S64_DOCUMENT_KIND_8TML);
     memcpy(wire + 78, &document->order, sizeof(document->order));
     memcpy(wire + 82, document->slug, S64_DOCUMENT_SLUG_CAPACITY);
     memcpy(wire + 147, document->title, S64_DOCUMENT_TITLE_CAPACITY);
@@ -110,6 +111,7 @@ uint8_t s64_managed_publisher_document(S64ModuleRuntime* runtime,
     *body = application.editor.buffer;
     document->body = body;
     document->type = application.document.type;
+    document->kind = application.document.kind;
     document->status = application.document.status;
     document->order = application.document.order;
     memcpy(document->slug, application.document.slug, sizeof(document->slug));

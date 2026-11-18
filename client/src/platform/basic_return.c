@@ -19,8 +19,8 @@ const S64ReuAllocation* s64_basic_return_allocation(const S64ReuRuntimeControl* 
 
 uint8_t s64_basic_return_header_valid(const uint8_t* wire)
 {
-    return wire != 0 && wire[0] == 0x53 && wire[1] == 0x36 && wire[2] == 0x34 && wire[3] == 0x42
-        && wire[4] == 1 && wire[5] == 26 && wire[6] == 0x1d && wire[7] == 1
+    static const uint8_t header[] = {0x53, 0x36, 0x34, 0x42, 2, 26, 0x20, 1};
+    return wire != 0 && !memcmp(wire, header, sizeof(header))
         && (wire[34] & 0x20); /* PHP always captures the fixed processor-status bit. */
 }
 

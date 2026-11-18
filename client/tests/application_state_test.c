@@ -113,13 +113,19 @@ int main(void)
     assert(s64_buffer_length(&output.editor.buffer) == 0);
     assert(s64_editor_redo(&output.editor));
     assert(s64_buffer_length(&output.editor.buffer) == 3);
+    state.document.kind = S64_DOCUMENT_KIND_8SS;
+    round_trip(); assert(wire[337] == 1u);
+    state.document.kind = S64_DOCUMENT_KIND_TEXT;
+    round_trip(); assert(wire[337] == 2u);
+    state.document.kind = S64_DOCUMENT_KIND_8TML;
+    round_trip(); assert(wire[337] == 0u);
     memcpy(saved_wire, wire, sizeof(wire));
 
     /* Every byte participates in validation, including reserved bytes and CRC. */
     for (i = 0; i < sizeof(wire); ++i) {
         memcpy(wire, saved_wire, sizeof(wire)); wire[i] ^= 1; reject_decode();
     }
-    memcpy(wire, saved_wire, sizeof(wire)); wire[337] = 1; checksum(); reject_decode();
+    memcpy(wire, saved_wire, sizeof(wire)); wire[337] = 3; checksum(); reject_decode();
     memcpy(wire, saved_wire, sizeof(wire)); wire[49] = 1; checksum(); reject_decode();
     memcpy(wire, saved_wire, sizeof(wire)); wire[47] = 17; checksum(); reject_decode();
     memcpy(wire, saved_wire, sizeof(wire)); wire[67] = 40; checksum(); reject_decode();

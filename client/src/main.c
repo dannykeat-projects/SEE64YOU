@@ -68,6 +68,7 @@ static unsigned char restore_managed_application(void)
     editor = application->editor;
     document.body = &editor.buffer;
     document.type = application->document.type;
+    document.kind = application->document.kind;
     document.status = application->document.status;
     document.order = application->document.order;
     memcpy(document.slug, application->document.slug, sizeof(document.slug));
@@ -254,9 +255,11 @@ static void offer_recovery(void)
     }
 
     result = s64_local_recovery_exists(&local_document, &exists);
-    if (result != S64_LOCAL_OK || !exists) {
+    if (result != S64_LOCAL_OK) {
+        show_local_result(result);
         return;
     }
+    if (!exists) return;
 
     if (!s64_ui_prompt_yes_no("Recover snapshot? Y/N")) {
         (void)s64_local_delete_recovery(&local_document);
@@ -280,13 +283,17 @@ static void offer_recovery(void)
 static void new_document(void)
 {
     S64LocalResult result;
-
+    S64DocumentKind kind = s64_ui_select_document_kind();
+    if (kind == 0) {
+        s64_ui_render(&editor);
+        return;
+    }
     if (!allow_discard()) {
         s64_ui_render(&editor);
         return;
     }
 
-    result = s64_local_new(&local_document, 1u);
+    result = s64_local_new_kind(&local_document, kind, 1u);
     if (result != S64_LOCAL_OK) {
         show_local_result(result);
         return;
@@ -470,46 +477,6 @@ static void repeat_find(unsigned char previous)
     show_find_result(previous);
 }
 
-static int parse_line_number(const char* text, unsigned int* line_number)
-{
-    unsigned int value = 0u;
-    unsigned char digit;
-
-    if (*text == '\0') {
-        return 0;
-    }
-
-    while (*text != '\0') {
-        if (*text < '0' || *text > '9') {
-            return 0;
-        }
-
-        digit = (unsigned char)(*text - '0');
-#ifdef S64_REU_BUFFER
-        if (value > 6553u || (value == 6553u && digit > 5u)) {
-            return 0;
-        }
-#else
-        if (value > 819u) {
-            return 0;
-        }
-#endif
-
-        value = (unsigned int)(value * 10u + digit);
-        if (value > S64_BUFFER_CAPACITY + 1u) {
-            return 0;
-        }
-        ++text;
-    }
-
-    if (value == 0u) {
-        return 0;
-    }
-
-    *line_number = value;
-    return 1;
-}
-
 static void prompt_go_to_line(void)
 {
     char value[LINE_TEXT_CAPACITY];
@@ -520,7 +487,7 @@ static void prompt_go_to_line(void)
         return;
     }
 
-    if (!parse_line_number(value, &line_number)) {
+    if (!s64_ui_parse_line_number(value, &line_number)) {
         s64_ui_message("Invalid line number");
         return;
     }
@@ -768,7 +735,7 @@ int main(void)
 #endif
 #endif
 #endif
-    s64_ui_init();
+    s64_ui_init(&document);
     s64_input_init();
     s64_uci_probe_capabilities(&uci_capabilities);
     s64_ui_set_http_ready(uci_capabilities.http_target);
@@ -839,6 +806,13 @@ int main(void)
                     s64_ui_render(&editor);
                 }
             }
+            continue;
+        }
+
+        if (document.kind != S64_DOCUMENT_KIND_8TML
+            && input.type >= S64_INPUT_FORMAT_BOLD
+            && input.type <= S64_INPUT_FORMAT_LINK) {
+            s64_ui_message("8TML formatting only");
             continue;
         }
 

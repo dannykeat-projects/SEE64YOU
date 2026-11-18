@@ -29,6 +29,11 @@ extern const uint8_t s64_basic_return_stub_image[], s64_basic_return_stub_end[];
 void s64_basic_return_stub_enter(void);
 void s64_basic_return_execute(const uint8_t* workspace)
 {
+    /* CHROUT clears screen/colour RAM in the final stub. Restore colours
+     * from the validated snapshot before its screen-RAM staging is erased. */
+    *(volatile uint8_t*)0xd020 = workspace[317];
+    *(volatile uint8_t*)0xd021 = workspace[318];
+    *(volatile uint8_t*)0x0286 = workspace[319];
     memcpy((void*)0x0400, workspace + 32, S64_BASIC_RETURN_RAW_SIZE);
     memcpy((void*)0x033c, s64_basic_return_stub_image,
         s64_basic_return_stub_end - s64_basic_return_stub_image);
