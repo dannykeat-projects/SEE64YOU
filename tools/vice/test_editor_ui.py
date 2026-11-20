@@ -12,14 +12,18 @@ SCREEN_COLUMNS = 40
 DIAG_PASS = 0xA5
 DIAG_FAIL = 0x5A
 
-STAGES = (0x10, 0x20, 0x30, 0x40, 0x45)
+STAGES = (0x10, 0x20, 0x30, 0x40, 0x45, 0x46, 0x47)
 
 
-def screen_row(text: str = "", cursor: int | None = None) -> bytes:
+def screen_row(
+    text: str = "", cursor: int | None = None, selected: range = range(0)
+) -> bytes:
     if len(text) > SCREEN_COLUMNS:
         raise ValueError("fixture row exceeds 40 columns")
     row = bytearray(b" " * SCREEN_COLUMNS)
     row[: len(text)] = text.encode("ascii")
+    for column in selected:
+        row[column] ^= 0x80
     if cursor is not None:
         row[cursor] ^= 0x80
     return bytes(row)
@@ -58,6 +62,19 @@ EXPECTED = {
 
 
 EXPECTED[0x45] = EXPECTED[0x40]
+EXPECTED[0x46] = (
+    *EXPECTED[0x40][:2],
+    screen_row("11111911111", selected=range(3, 11)),
+    screen_row("2222222222", cursor=2, selected=range(2)),
+    screen_row(),
+)
+EXPECTED[0x47] = (
+    screen_row("12345678901234567890123456789012345"),
+    screen_row("67890", cursor=5),
+    screen_row(),
+    screen_row(),
+    screen_row(),
+)
 
 
 def read_body(monitor: ViceMonitor) -> tuple[bytes, ...]:

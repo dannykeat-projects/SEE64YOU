@@ -39,7 +39,7 @@ static void append_char(unsigned char value, unsigned char detail)
         fail(detail);
     }
 
-    s64_ui_render_append(&editor, value);
+    if (!s64_ui_render_append(&editor, value)) s64_ui_render(&editor);
 }
 
 static void append_text(const char* text, unsigned char detail)
@@ -133,6 +133,18 @@ int main(void)
     }
 #endif
     checkpoint(0x45u);
+
+    if (!s64_editor_point(&editor, 2u, 3u, 0u)
+        || !s64_editor_point(&editor, 3u, 2u, 1u)) {
+        fail(8u);
+    }
+    s64_ui_render(&editor);
+    checkpoint(0x46u);
+
+    s64_editor_init(&editor);
+    append_text("12345678901234567890123456789012345 67890", 9u);
+    s64_ui_render(&editor);
+    checkpoint(0x47u);
 
     DIAG_PROGRESS = 0x50u;
     DIAG_RESULT = DIAG_PASS;
