@@ -187,6 +187,7 @@ static unsigned char s64_mouse_event(S64InputEvent* event)
 {
     struct mouse_info info;
     unsigned char pressed;
+    unsigned char type = S64_INPUT_NONE;
 
     if (!mouse_ready) {
         return 0u;
@@ -200,33 +201,25 @@ static unsigned char s64_mouse_event(S64InputEvent* event)
         mouse_visible = 1u;
     }
     if (pressed && !mouse_previous_buttons) {
-        event->type = S64_INPUT_POINTER_CLICK;
-        event->column = (unsigned char)(info.pos.x / 8);
-        event->row = (unsigned char)(info.pos.y / 8);
-        if (event->column > 39u) event->column = 39u;
-        if (event->row > 24u) event->row = 24u;
-        mouse_previous_buttons = pressed;
-        mouse_previous_x = info.pos.x;
-        mouse_previous_y = info.pos.y;
-        return 1u;
-    }
-
-    if (pressed && mouse_previous_buttons
-        && (info.pos.x != mouse_previous_x || info.pos.y != mouse_previous_y)) {
-        event->type = S64_INPUT_POINTER_DRAG;
-        event->column = (unsigned char)(info.pos.x / 8);
-        event->row = (unsigned char)(info.pos.y / 8);
-        if (event->column > 39u) event->column = 39u;
-        if (event->row > 24u) event->row = 24u;
-        mouse_previous_x = info.pos.x;
-        mouse_previous_y = info.pos.y;
-        return 1u;
+        type = S64_INPUT_POINTER_CLICK;
+    } else if (pressed
+        && ((info.pos.x >> 3) != (mouse_previous_x >> 3)
+            || (info.pos.y >> 3) != (mouse_previous_y >> 3))) {
+        /* Selection changes at character-cell boundaries. */
+        type = S64_INPUT_POINTER_DRAG;
     }
 
     mouse_previous_buttons = pressed;
     mouse_previous_x = info.pos.x;
     mouse_previous_y = info.pos.y;
-    return 0u;
+    if (type == S64_INPUT_NONE) return 0u;
+
+    event->type = type;
+    event->column = (unsigned char)(info.pos.x / 8);
+    event->row = (unsigned char)(info.pos.y / 8);
+    if (event->column > 39u) event->column = 39u;
+    if (event->row > 24u) event->row = 24u;
+    return 1u;
 }
 #endif
 

@@ -25,6 +25,8 @@ The shared Editor supports 8TML, literal 8SS and general ASCII text; Publisher a
 
 ## Release acceptance
 
+- [ ] Verify startup prerequisite guidance and prompt-free entry with the exact package on C64 Ultimate, including the menu labels on updated firmware.
+
 - [x] Verify missing-docs first Save and subsequent saves/recovery, native Open/overwrite/rollback/collision failures, Publisher numbered/typed source and cancellation on backed-up C64U SD storage. Exact files, DOS contexts, settings, IRQ/turbo/colours and responsive BASIC are restored; only the test-created empty docs directory is removed. Matching SD/USB package VICE checks pass.
 - [ ] Complete shipping Editor Open/overwrite-prompt and Publisher pending-message visibility acceptance. Native storage checks do not certify those UI paths.
 - [x] Verify Editor clean-exit colour restoration through the protected BASIC-return context. Matching multi-format SD hardware observes 14/6/14 before harness colour reapplication; original files and machine state are restored. SD/USB fit/manifests and VICE pass.
@@ -36,6 +38,12 @@ The shared Editor supports 8TML, literal 8SS and general ASCII text; Publisher a
 - [ ] Verify published source and relative-link navigation in an external compatible reader on an independent server; record versions and limitations.
 
 ## Editor reliability and performance
+
+- [x] Keep the fast append renderer resident so consecutive appends leave the MODEL overlay loaded. On firmware 1.2.1 over REST keyboard injection and screen polling, the last six keys of an eight-key append had a median of 78 ms on alpha.8 and 46 ms on the installed candidate (Editor SHA-256 `5f1d3c6c50e6ad5a76b950836a33ed451db4c257cce41e4f99fc4f85e5c23b5d`, built from `a50b5d8` with the startup and Editor changes). VICE screen and packaged startup/exit checks passed. Candidate Editor resident headroom was 1,039 bytes on SD and 1,037 on USB1. On C64U the scratch document was discarded, BASIC returned, the latest journal was CLEAN and settings, drives and IRQ matched before and after.
+- [ ] Profile the first-key pause and sustained mid-document typing on C64U. Later midpoint keys still had a median near 150 ms in the same REST-assisted fixture. A 400-byte host fixture reproduces additional REU transfers on the first midpoint insert. Physical typing latency, mouse drag latency and scrolling at the bottom of the viewport remain unverified.
+- [ ] Verify mouse selection responsiveness on physical C64U. Drag events now follow character-cell movement and nearby selection updates reuse the logical cursor position. The alpha.8-based host comparison for ten same-line drag steps reduced REU reads from 610 to 50 with identical selection bounds. SD and USB1 Editor fit and manifest checks passed.
+- [ ] Compare full-viewport scrolling and multi-line selection on C64U after the row rendering change. The Editor now finds the line break and computes one highlight span per row. VICE verified a selection spanning two rows, wrap, insertion and modal redraw. The alpha.8-based SD and USB1 Editor fit and manifest checks passed.
+- [ ] Verify whole-word wrapping and first-body-line Delete on the physical C64U. Host regression checks cover overflow, reflow on deletion, pointer mapping and correct cursor placement after loading a header. Recheck typing latency after reflowing edits.
 
 - [ ] **P1 — Finish shipping responsiveness acceptance after host/VICE profiling.** Host counters cover first midpoint edit with the gap at EOF, 64/256/1,024-byte paste, undo and Save's two codec calls; direct VICE jiffies cover the existing 48 Editor cases. The REU gap moves 64 bytes per load/store pair (`buffer_reu.c:move_gap`), paste inserts individual bytes (`editor.c:s64_editor_paste`), and history swap processes individual replacements. Measure end-to-end shipping UI/hardware before changing transfer sizes, bulk operations or acceleration; retain RAM/overlay guards.
 - [ ] **P1 — Reduce redundant full-source passes on Save.** `write_document_file` calls `s64_document_write_wire` for validation then again for the actual file; each 8TML writer invocation validates and walks the entire document. Measure the cost and consider a single validated streaming pass without compromising preflight, recovery or write-failure behavior; also check duplicated file-existence probes.

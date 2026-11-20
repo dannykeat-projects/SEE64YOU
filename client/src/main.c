@@ -663,7 +663,7 @@ int main(void)
     unsigned char previous_cursor_row;
     unsigned char cursor_only;
     unsigned char inserted_value;
-    unsigned char removed_value;
+    unsigned char previous_cursor_column;
     unsigned char mouse_selecting = 0u;
 #ifdef S64_REU_BUFFER
     unsigned char restored_handoff;
@@ -828,6 +828,7 @@ int main(void)
                 previous_selection = s64_editor_has_selection(&editor);
                 previous_mark_mode = editor.mark_mode;
                 previous_cursor_row = editor.view_cursor_row;
+                previous_cursor_column = editor.view_cursor_column;
                 if (!(input.type == S64_INPUT_NEWLINE
                     ? s64_editor_newline(&editor)
                     : s64_editor_insert(&editor, inserted_value))) {
@@ -838,26 +839,13 @@ int main(void)
                     && !previous_selection
                     && !previous_mark_mode
                     && editor.word_wrap
-                    && editor.view_start == previous_view_start) {
-                    s64_ui_render_append(&editor, inserted_value);
-                    continue;
-                }
-                if (!previous_selection
-                    && !previous_mark_mode
-                    && editor.word_wrap
-                    && editor.view_start == previous_view_start) {
-                    s64_ui_render_edit(
-                        &editor,
-                        (unsigned char)(
-                            (input.type == S64_INPUT_CHARACTER
-                                && previous_cursor_row == editor.view_cursor_row
-                                ? S64_UI_EDIT_CHARACTER
-                                : 0u)
-                            | (previous_cursor_row < editor.view_cursor_row
-                                ? previous_cursor_row
-                                : editor.view_cursor_row)
-                        )
-                    );
+                    && editor.view_start == previous_view_start
+                    && (input.type == S64_INPUT_NEWLINE
+                        || (previous_cursor_row == editor.view_cursor_row
+                            && previous_cursor_column + 1u == editor.view_cursor_column))) {
+                    if (!s64_ui_render_append(&editor, inserted_value)) {
+                        s64_ui_render(&editor);
+                    }
                     continue;
                 }
                 break;
@@ -914,46 +902,7 @@ int main(void)
                 break;
 
             case S64_INPUT_BACKSPACE:
-                previous_cursor = s64_buffer_cursor(&editor.buffer);
-                previous_length = s64_buffer_length(&editor.buffer);
-                previous_view_start = editor.view_start;
-                previous_selection = s64_editor_has_selection(&editor);
-                previous_mark_mode = editor.mark_mode;
-                previous_cursor_row = editor.view_cursor_row;
-                removed_value = previous_cursor > 0u
-                    ? s64_buffer_char_at(&editor.buffer, previous_cursor - 1u)
-                    : 0u;
-                if (!s64_editor_backspace(&editor)) {
-                    continue;
-                }
-                if (!previous_selection
-                    && !previous_mark_mode
-                    && editor.word_wrap
-                    && editor.view_start == previous_view_start) {
-                    if (previous_cursor == previous_length
-                        && removed_value != '\n') {
-                        gotoxy(
-                            editor.view_cursor_column,
-                            (unsigned char)(1u + editor.view_cursor_row)
-                        );
-                        cputc(' ');
-                        s64_ui_render_cursor(&editor);
-                    } else {
-                        s64_ui_render_edit(
-                            &editor,
-                            (unsigned char)(
-                                (removed_value != '\n'
-                                    && previous_cursor_row == editor.view_cursor_row
-                                    ? S64_UI_EDIT_CHARACTER
-                                    : 0u)
-                                | (previous_cursor_row < editor.view_cursor_row
-                                    ? previous_cursor_row
-                                    : editor.view_cursor_row)
-                            )
-                        );
-                    }
-                    continue;
-                }
+                if (!s64_editor_backspace(&editor)) continue;
                 break;
             case S64_INPUT_TOGGLE_INSERT:
                 s64_editor_toggle_insert(&editor);

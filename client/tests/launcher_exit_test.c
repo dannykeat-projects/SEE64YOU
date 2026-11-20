@@ -7,11 +7,17 @@
 
 static unsigned stage, ends, clean, cleanup_failure, resumes, clears, verifications;
 static unsigned capsules, plans, executions;
+static unsigned preflight_checks, key_reads, pass_lines;
+static S64PlatformRequirement requirement;
 void clrscr(void) {}
-void cputs(const char* text) { (void)text; }
-char cgetc(void) { return 'X'; }
+void cputs(const char* text) { if (strstr(text, ": PASS")) ++pass_lines; }
+char cgetc(void) { ++key_reads; return 'X'; }
 void s64_platform_preflight_run(S64PlatformPreflight* p)
-{ memset(p, 0, sizeof(*p)); p->requirement = S64_PLATFORM_READY; p->storage_ready = 1; }
+{
+    ++preflight_checks;
+    p->requirement = requirement;
+    p->storage_ready = 1;
+}
 void s64_launcher_recovery_runtime_init_hardware(S64LauncherRecoveryRuntime* r)
 { memset(r, 0, sizeof(*r)); }
 S64LauncherRecoveryResult s64_launcher_recovery_runtime_run(S64LauncherRecoveryRuntime* r)
@@ -96,6 +102,16 @@ uint8_t s64_module_transfer_execute(const S64ModuleTransferPlan* plan)
 #endif
 int main(void)
 {
+    requirement = S64_PLATFORM_MISSING_UCI;
+    assert(!run_preflight() && preflight_checks == 1 && key_reads == 1 && pass_lines == 0);
+
+    requirement = S64_PLATFORM_WRONG_REU_SIZE;
+    assert(!run_preflight() && preflight_checks == 2 && key_reads == 2 && pass_lines == 3);
+
+    requirement = S64_PLATFORM_READY;
+    pass_lines = key_reads = 0;
+    assert(run_preflight() && preflight_checks == 3 && key_reads == 0 && pass_lines == 5);
+
 #ifdef S64_EXECUTABLE_HANDOFF
     for (stage = 0; stage <= 16; ++stage) {
 #elif defined(S64_CODE_ASSET_LAUNCHER)

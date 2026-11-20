@@ -611,7 +611,8 @@ def compile_editor_overlay_fit(
         compiler=cl65 or os.environ.get("CL65") or values["CL65"] or "cl65",
         od65=od65, image_name="editor-overlay-fit",
         resident_symbols=("s64_module_descriptor_identity_valid",
-                          "s64_module_descriptor_loadable") if independent_editor else (),
+                          "s64_module_descriptor_loadable",
+                          "s64_ui_render_append") if independent_editor else (),
     )
     if independent_editor:
         require_resident_headroom(output_dir / "editor-overlay-fit.map", 1024)

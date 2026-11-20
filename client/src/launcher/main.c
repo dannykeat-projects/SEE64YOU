@@ -5,6 +5,7 @@
 #include "launcher/recovery_runtime.h"
 #include "platform/preflight.h"
 #include "platform/module_preload.h"
+#include "platform/package_paths.h"
 #include "platform/reu_runtime.h"
 #include "platform/session_lifecycle.h"
 #include "platform/package_version.h"
@@ -35,44 +36,45 @@ static void show_diagnostics_placeholder(void)
     (void)cgetc();
 }
 
+static void show_memory_settings_path(void)
+{
+    cputs("PRESS C= + RESTORE FOR ULTIMATE MENU\r\n");
+    cputs("F2 SETTINGS > MEMORY & ROMS\r\n");
+    cputs("(OR C64 AND CARTRIDGE SETTINGS)\r\n\r\n");
+}
+
 static void show_preflight_problem(const S64PlatformPreflight* preflight)
 {
-    show_title();
-
     switch (preflight->requirement) {
         case S64_PLATFORM_MISSING_UCI:
             cputs("COMMAND INTERFACE REQUIRED\r\n\r\n");
-            cputs("OPEN ULTIMATE MENU\r\n");
-            cputs("F2 SETTINGS\r\n");
-            cputs("C64 AND CARTRIDGE SETTINGS\r\n");
+            show_memory_settings_path();
             cputs("COMMAND INTERFACE: ENABLED\r\n");
             break;
 
         case S64_PLATFORM_MISSING_DOS:
             cputs("ULTIMATE-DOS REQUIRED\r\n\r\n");
-            cputs("COMMAND INTERFACE IS READY\r\n");
-            cputs("CHECK ULTIMATE FIRMWARE\r\n");
+            cputs("ULTIMATE-DOS DID NOT RESPOND\r\n\r\n");
+            cputs("CHECK C64 ULTIMATE FIRMWARE\r\n");
             break;
 
         case S64_PLATFORM_MISSING_REU:
             cputs("16 MB REU REQUIRED\r\n\r\n");
-            cputs("OPEN ULTIMATE MENU\r\n");
-            cputs("F2 SETTINGS\r\n");
-            cputs("C64 AND CARTRIDGE SETTINGS\r\n");
+            show_memory_settings_path();
             cputs("RAM EXPANSION UNIT: ENABLED\r\n");
             cputs("REU SIZE: 16 MB\r\n");
             break;
 
         case S64_PLATFORM_WRONG_REU_SIZE:
             cputs("REU SIZE MUST BE 16 MB\r\n\r\n");
-            cputs("OPEN ULTIMATE MENU\r\n");
-            cputs("F2 SETTINGS\r\n");
-            cputs("C64 AND CARTRIDGE SETTINGS\r\n");
+            show_memory_settings_path();
             cputs("REU SIZE: 16 MB\r\n");
             break;
 
         case S64_PLATFORM_READY:
-            cputs("STORAGE NOT READY\r\n\r\nCHECK DEVICE / FOLDER / FREE SPACE\r\n");
+            cputs("STORAGE NOT READY\r\n\r\n");
+            cputs(S64_PACKAGE_DIRECTORY "\r\n");
+            cputs("CHECK MOUNT, FREE SPACE AND WRITE ACCESS\r\n");
             break;
     }
 
@@ -86,14 +88,29 @@ static unsigned char run_preflight(void)
 
     for (;;) {
         show_title();
-        cputs("CHECKING PLATFORM...\r\n");
+        cputs("CHECKING COMMAND INTERFACE,\r\n");
+        cputs("ULTIMATE-DOS, 16 MB REU AND STORAGE\r\n\r\n");
         s64_platform_preflight_run(&preflight);
 
-        if (preflight.requirement == S64_PLATFORM_READY
-            && preflight.storage_ready) {
-            return 1u;
+        /* The requirement result identifies the first failed check. */
+        if (preflight.requirement != S64_PLATFORM_MISSING_UCI) {
+            cputs("COMMAND INTERFACE: PASS\r\n");
+            if (preflight.requirement != S64_PLATFORM_MISSING_DOS) {
+                cputs("ULTIMATE-DOS: PASS\r\n");
+                if (preflight.requirement != S64_PLATFORM_MISSING_REU) {
+                    cputs("REU ENABLED: PASS\r\n");
+                }
+                if (preflight.requirement == S64_PLATFORM_READY) {
+                    cputs("16 MB REU: PASS\r\n");
+                    if (preflight.storage_ready) {
+                        cputs("STORAGE: PASS\r\n\r\n");
+                        return 1u;
+                    }
+                }
+            }
         }
 
+        cputs("\r\n");
         show_preflight_problem(&preflight);
         for (;;) {
             key = (unsigned char)cgetc();
@@ -167,7 +184,6 @@ int main(void)
         return 1;
     }
 
-    show_title();
     cputs("CHECKING PREVIOUS SESSION...\r\n");
     s64_launcher_recovery_runtime_init_hardware(&recovery_runtime);
 
@@ -250,18 +266,10 @@ int main(void)
             != S64_SYSTEM_OK) goto cleanup;
 
     show_title();
-    cputs("PLATFORM READY\r\n");
     if (result == S64_LAUNCHER_RECOVERY_READY_RESTORED) {
         cputs(s64_launcher_recovery_message(result));
         cputs("\r\n");
     }
-    cputs("RECOVERY READY\r\n");
-    cputs("SESSION ACTIVE\r\n");
-    cputs("REU CONTROL READY\r\n");
-    cputs("MODULE CACHE RESERVED\r\n");
-    cputs("MODULE MANIFEST READY\r\n\r\n");
-    cputs("MODULE CACHE VERIFIED\r\n");
-    cputs("SHARED SESSION READY\r\n");
     cputs("OPENING EDITOR...\r\n");
 
     system_result = s64_launcher_session_prepare_transition(&recovery_runtime);
@@ -286,8 +294,6 @@ int main(void)
      * verified capsule and transfer plan now bind the ACTIVE session to the
      * exact editor payload, RAM destination and startup address.
      */
-    cputs("TRANSFER CAPSULE READY\r\n");
-    cputs("TRANSFER PLAN READY\r\n");
 #ifdef S64_EXECUTABLE_HANDOFF
     /* Successful execution replaces this image and never returns. */
     (void)s64_module_transfer_execute(&transfer_plan);
