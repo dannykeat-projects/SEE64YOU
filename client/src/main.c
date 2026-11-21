@@ -790,7 +790,7 @@ int main(void)
                 if (s64_editor_point(&editor, (unsigned char)(input.row - 1u),
                     input.column, 0u)) {
                     mouse_selecting = 1u;
-                    s64_ui_render(&editor);
+                    s64_ui_render_pointer(&editor, 0u, 0u);
                 }
                 continue;
             } else {
@@ -801,9 +801,10 @@ int main(void)
                 unsigned char row = input.row;
                 if (row < 1u) row = 1u;
                 if (row > 23u) row = 23u;
+                previous_cursor = s64_buffer_cursor(&editor.buffer);
                 if (s64_editor_point(&editor, (unsigned char)(row - 1u),
                     input.column, 1u)) {
-                    s64_ui_render(&editor);
+                    s64_ui_render_pointer(&editor, previous_cursor, 1u);
                 }
             }
             continue;
@@ -835,18 +836,26 @@ int main(void)
                     s64_ui_message("Document buffer full");
                     continue;
                 }
-                if (previous_cursor == previous_length
-                    && !previous_selection
+                if (!previous_selection
                     && !previous_mark_mode
                     && editor.word_wrap
                     && editor.view_start == previous_view_start
                     && (input.type == S64_INPUT_NEWLINE
                         || (previous_cursor_row == editor.view_cursor_row
                             && previous_cursor_column + 1u == editor.view_cursor_column))) {
-                    if (!s64_ui_render_append(&editor, inserted_value)) {
-                        s64_ui_render(&editor);
+                    if (previous_cursor == previous_length) {
+                        if (!s64_ui_render_append(&editor, inserted_value)) {
+                            s64_ui_render(&editor);
+                        }
+                        continue;
                     }
-                    continue;
+                    /* A continuation row can reflow the preceding row. */
+                    if (input.type == S64_INPUT_CHARACTER && editor.insert_mode
+                        && editor.column - 1u == editor.view_cursor_column) {
+                        s64_ui_render_edit(&editor,
+                            (unsigned char)(S64_UI_EDIT_CHARACTER | previous_cursor_row));
+                        continue;
+                    }
                 }
                 break;
 

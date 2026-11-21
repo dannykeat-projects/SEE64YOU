@@ -12,7 +12,7 @@ SCREEN_COLUMNS = 40
 DIAG_PASS = 0xA5
 DIAG_FAIL = 0x5A
 
-STAGES = (0x10, 0x20, 0x30, 0x40, 0x45, 0x46, 0x47)
+STAGES = (0x10, 0x20, 0x30, 0x40, 0x45, 0x46, 0x47, 0x48, 0x49)
 
 
 def screen_row(
@@ -75,6 +75,10 @@ EXPECTED[0x47] = (
     screen_row(),
     screen_row(),
 )
+EXPECTED[0x48] = (screen_row("12345", cursor=4, selected=range(1, 4)),) + (screen_row(),) * 4
+EXPECTED[0x49] = (screen_row("12345", cursor=5),) + (screen_row(),) * 4
+
+SELECTION_STATUS = {0x20: "WRP", 0x45: "WRP", 0x46: "WRP SEL", 0x48: "HOR SEL", 0x49: "HOR"}
 
 
 def read_body(monitor: ViceMonitor) -> tuple[bytes, ...]:
@@ -111,6 +115,12 @@ def require_stage(monitor: ViceMonitor, stage: int) -> None:
         raise AssertionError(
             f"UI stage 0x{stage:02x} screen mismatch: " + "; ".join(details)
         )
+    if stage in SELECTION_STATUS:
+        expected_status = bytes(value | 0x80
+                                for value in SELECTION_STATUS[stage].ljust(7).encode("ascii"))
+        start = SCREEN_BASE + 24 * SCREEN_COLUMNS + 30
+        status = monitor.read_memory(start, start + len(expected_status) - 1)
+        assert status == expected_status, (hex(stage), status, expected_status)
 
 
 def run(port: int, timeout: float) -> None:

@@ -6,7 +6,7 @@ The Editor is a keyboard-first, offline source editor for C64 Ultimate. One edit
 
 The 40×25 screen provides File, Edit, Search and Format menus. File → New prompts **1 8TML**, **2 8SS**, **3 Text**, or **0 Cancel**. The current file type appears on the top bar. Commodore+M opens the menu bar; arrow keys navigate, Return selects. F8 opens Help and closes back to the document. The standalone Publisher runs separately; the Editor has no publishing menu.
 
-Click in the text to place the cursor. Hold the left mouse button and drag across character cells to select text.
+Click in the text to place the cursor. Hold the left mouse button and drag across character cells to select text. Moving the cursor with an arrow key clears a mouse selection. With MARK active, the arrow keys extend or shrink the selection.
 
 With word wrap enabled, a word that would cross the right margin moves to the next screen row. An unbroken word wider than the screen splits at the margin. These visual breaks leave the saved text unchanged.
 

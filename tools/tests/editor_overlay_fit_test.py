@@ -73,8 +73,13 @@ int s64_after(void) { return 0; }
         Path("/work/client/build/editor-overlay-fit/generated"),
         Path("/work/client"),
     )
-    for name in FIT.BRIDGES["FILE"]:
-        assert f"#define {name} {FIT.bridge_symbol('FILE', name)}" in file_generated
+    assert FIT.BRIDGES["FILE"] == ()
+    ui_source = (client / "src/ui.c").read_text()
+    for name in ("s64_editor_has_selection", "s64_editor_selection_start",
+                 "s64_editor_selection_end"):
+        # UI cannot call these MODEL functions without expensive overlay round trips.
+        assert name not in ui_source, name
+        assert name not in file_generated, name
 
     wrappers = FIT.assembler_wrappers(
         {
@@ -94,11 +99,9 @@ int s64_after(void) { return 0; }
         "    ldy #$01\n    jsr s64_overlay_gate",
         "    pla\n    sta sreg+1\n    pla\n    sta sreg\n    pla\n    tax\n    pla",
         "    jmp _s64_overlay_model_s64_value",
-        "_s64_overlay_bridge_file_s64_editor_has_selection:\n"
-        "    jsr _s64_editor_has_selection\n"
-        "    ldy #$02\n    jsr s64_overlay_gate\n    rts",
     ):
         assert expected in wrappers, expected
+    assert "_s64_overlay_bridge_file_s64_editor_has_selection:" not in wrappers
     assert ".import _s64_editor_has_selection\n" not in wrappers
 
     definitions = {
@@ -109,7 +112,7 @@ int s64_after(void) { return 0; }
         "FILE",
         ["_s64_overlay_bridge_file_s64_editor_has_selection"],
         definitions,
-    ) == []
+    )
     assert FIT.cross_group_import_errors(
         "FILE", ["_s64_editor_insert"], definitions
     )
@@ -177,7 +180,7 @@ int s64_after(void) { return 0; }
         "MODEL": ["s64_editor_has_selection", "s64_unused"],
         "RUNTIME": ["s64_from_resident", "s64_internal"],
     }, {"_s64_from_resident", "_s64_overlay_runtime_s64_internal"}) == {
-        "MODEL": ["s64_editor_has_selection"], "RUNTIME": ["s64_from_resident"],
+        "MODEL": [], "RUNTIME": ["s64_from_resident"],
     }
 
     with tempfile.TemporaryDirectory() as directory:
