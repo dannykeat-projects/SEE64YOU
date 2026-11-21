@@ -150,7 +150,7 @@ int main(void)
      * without leaving reverse-video artefacts after clearing selection. */
     s64_editor_init(&editor);
     s64_ui_render(&editor);
-    append_text("ABCDE", 10u);
+    append_text("12345", 10u);
     if (!s64_editor_point(&editor, 0u, 1u, 0u)
         || !s64_editor_point(&editor, 0u, 4u, 1u)) fail(11u);
     s64_ui_render(&editor);
@@ -176,6 +176,11 @@ int main(void)
     if ((*(volatile uint8_t*)(0x0400u + screen_position + 2u) & 0x80u) != 0u) {
         fail(15u);
     }
+    s64_editor_toggle_word_wrap(&editor);
+    if (!s64_editor_point(&editor, 0u, 1u, 0u)
+        || !s64_editor_point(&editor, 0u, 4u, 1u)) fail(16u);
+    s64_ui_render(&editor);
+    checkpoint(0x48u);
 
     DIAG_PROGRESS = 0x50u;
     DIAG_RESULT = DIAG_PASS;

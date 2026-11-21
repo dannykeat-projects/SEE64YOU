@@ -20,10 +20,8 @@ MODEL = """
 #pragma code-name ("MODEL_CODE")
 #pragma rodata-name ("MODEL_RODATA")
 static const uint32_t mask = 0x12345678UL;
-uint32_t __fastcall__ s64_overlay_model_s64_editor_selection_start(uint16_t first, uint32_t last)
+uint32_t __fastcall__ s64_overlay_model_s64_probe_model(uint16_t first, uint32_t last)
 { return (last ^ mask) + first; }
-uint16_t s64_overlay_model_s64_editor_selection_end(void) { return 0; }
-uint8_t s64_overlay_model_s64_editor_has_selection(void) { return 0; }
 extern uint32_t __fastcall__ s64_overlay_bridge_model_s64_application_state_decode_payload(uint16_t, uint32_t);
 uint32_t __fastcall__ s64_overlay_model_s64_application_state_decode_editor(uint16_t first, uint32_t last)
 { return (last ^ 0x33557799UL) + first; }
@@ -34,11 +32,11 @@ FILE = """
 #include <stdint.h>
 #pragma code-name ("FILE_CODE")
 #pragma rodata-name ("FILE_RODATA")
-extern uint32_t __fastcall__ s64_overlay_bridge_file_s64_editor_selection_start(uint16_t, uint32_t);
+extern uint32_t __fastcall__ s64_overlay_bridge_file_s64_probe_model(uint16_t, uint32_t);
 static const uint32_t mask = 0x87654321UL;
 static uint16_t calls;
 uint32_t __fastcall__ s64_overlay_file_s64_probe_file(uint16_t first, uint32_t last)
-{ ++calls; return s64_overlay_bridge_file_s64_editor_selection_start(first, last) ^ mask ^ calls; }
+{ ++calls; return s64_overlay_bridge_file_s64_probe_model(first, last) ^ mask ^ calls; }
 extern uint32_t __fastcall__ s64_overlay_bridge_file_s64_application_state_decode_editor(uint16_t, uint32_t);
 uint32_t __fastcall__ s64_overlay_file_s64_application_state_decode_payload(uint16_t first, uint32_t last)
 { return s64_overlay_bridge_file_s64_application_state_decode_editor(first, last) ^ 0x11225588UL; }
@@ -100,7 +98,7 @@ extern const uint8_t model_image[], model_image_end[];
 extern const uint8_t file_image[], file_image_end[];
 extern const uint8_t runtime_image[], runtime_image_end[];
 extern const uint8_t publication_image[], publication_image_end[];
-extern uint32_t __fastcall__ s64_editor_selection_start(uint16_t, uint32_t);
+extern uint32_t __fastcall__ s64_probe_model(uint16_t, uint32_t);
 extern uint32_t __fastcall__ s64_probe_file(uint16_t, uint32_t);
 extern uint32_t __fastcall__ s64_probe_runtime(uint32_t);
 extern uint32_t __fastcall__ s64_probe_resume(uint16_t, uint32_t);
@@ -163,9 +161,9 @@ int main(void)
     for (i = 1; i <= 30; ++i) {
         input = 0xabcdef12UL + i;
         expected = (input ^ 0x12345678UL) + (0x3456u + i);
-        require(s64_editor_selection_start(0x3456u + i, input) == expected, 2);
+        require(s64_probe_model(0x3456u + i, input) == expected, 2);
         before = reads;
-        require(s64_editor_selection_start(0x3456u + i, input) == expected && reads == before, 3);
+        require(s64_probe_model(0x3456u + i, input) == expected && reads == before, 3);
         require(s64_probe_file(0x3456u + i, input) == (expected ^ 0x87654321UL ^ i), 4);
         require(reads == before + 3u, 5);
         require(s64_probe_runtime(input) == (input ^ 0x11223344UL), 6);
@@ -195,10 +193,15 @@ def build() -> Path:
         "build/editor-overlay-fit/", "build/code-overlay-probe/"))
     wrappers = OUT / "wrappers.s"
     wrappers.write_text(fit.assembler_wrappers({
-        "MODEL": [*fit.BRIDGES["FILE"], "s64_probe_resume"],
+        "MODEL": ["s64_probe_model", "s64_probe_resume", "s64_application_state_decode_editor"],
         "FILE": ["s64_probe_file", *fit.BRIDGES["MODEL"], "s64_application_state_payload_valid"],
         "RUNTIME": ["s64_probe_runtime", "s64_transfer_capsule_allocation", "s64_transfer_capsule_checksum", "s64_transfer_capsule_module_valid", "s64_managed_editor_state_revoke", "s64_reu_runtime_store_verified", "s64_session_journal_encode", "s64_system_state_set_mode"],
         "PUBLICATION": ["s64_probe_publication"],
+    }, bridges={
+        **fit.BRIDGES,
+        # Keep the synthetic FILE caller even without a shipping FILE bridge.
+        "FILE": ("s64_probe_model", "s64_application_state_decode_editor"),
+        "PUBLICATION": (*fit.BRIDGES["PUBLICATION"], "s64_application_state_payload_valid"),
     }))
     sources = []
     for name, content in (("model", MODEL), ("file", FILE), ("runtime", RUNTIME), ("publication", PUBLICATION), ("main", MAIN)):

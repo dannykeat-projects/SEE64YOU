@@ -63,8 +63,13 @@ static unsigned char render_selection_bounds(
     unsigned int anchor = editor->selection_anchor;
 
     if (!editor->selection_valid || anchor == cursor) return 0u;
-    if (start != 0) *start = anchor < cursor ? anchor : cursor;
-    if (end != 0) *end = anchor > cursor ? anchor : cursor;
+    if (anchor > cursor) {
+        unsigned int swap = anchor;
+        anchor = cursor;
+        cursor = swap;
+    }
+    if (start != 0) *start = anchor;
+    if (end != 0) *end = cursor;
     return 1u;
 }
 
@@ -267,7 +272,7 @@ static void render_body_wrapped(
     unsigned int selection_start = 0u;
     unsigned int selection_end = 0u;
     unsigned int read_count;
-    unsigned char has_selection = render_selection_bounds(editor, &selection_start, &selection_end);
+    unsigned char has_selection;
     unsigned char found = 0u;
     unsigned char row;
     unsigned char col;
@@ -275,6 +280,7 @@ static void render_body_wrapped(
     unsigned char previous_rows = body_rows;
     unsigned char rendered_rows = 0u;
 
+    has_selection = render_selection_bounds(editor, &selection_start, &selection_end);
     row = EDITOR_FIRST_ROW;
     if (partial_char_edit) {
         position = cursor - editor->view_cursor_column;
@@ -357,12 +363,13 @@ static void render_body_horizontal(
     unsigned int display;
     unsigned int cursor_offset;
     unsigned int read_count;
-    unsigned char has_selection = render_selection_bounds(editor, &selection_start, &selection_end);
+    unsigned char has_selection;
     unsigned char found = 0u;
     unsigned char row;
     unsigned char previous_rows = body_rows;
     unsigned char rendered_rows = 0u;
 
+    has_selection = render_selection_bounds(editor, &selection_start, &selection_end);
     for (row = EDITOR_FIRST_ROW; row < STATUS_ROW; ++row) {
         prepare_row();
 
