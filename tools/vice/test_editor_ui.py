@@ -78,7 +78,7 @@ EXPECTED[0x47] = (
 EXPECTED[0x48] = (screen_row("12345", cursor=4, selected=range(1, 4)),) + (screen_row(),) * 4
 EXPECTED[0x49] = (screen_row("12345", cursor=5),) + (screen_row(),) * 4
 
-SELECTION_STATUS = {0x45: "WRP", 0x46: "WRP SEL", 0x48: "HOR SEL", 0x49: "HOR"}
+SELECTION_STATUS = {0x20: "WRP", 0x45: "WRP", 0x46: "WRP SEL", 0x48: "HOR SEL", 0x49: "HOR"}
 
 
 def read_body(monitor: ViceMonitor) -> tuple[bytes, ...]:

@@ -504,15 +504,7 @@ void s64_ui_render(const S64Editor* editor)
     hide_editor_cursor();
     render_header();
     render_body(editor, &next_cursor_col, &next_cursor_row);
-    if (partial_first_row != 0u) {
-        s64_ui_status_line_fast(editor->line);
-        s64_ui_status_column_fast(editor->column);
-        if (editor->dirty) {
-            s64_ui_status_dirty_fast();
-        }
-    } else {
-        render_status(editor);
-    }
+    render_status(editor);
     cursor_position_valid = 1u;
     rendered_view_start = editor->view_start;
     rendered_view_column = editor->view_column;
@@ -527,7 +519,8 @@ void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row)
     partial_char_edit = (unsigned char)(first_body_row & 0x80u);
     first_body_row &= 0x7fu;
 
-    if (!editor->word_wrap
+    if (!cursor_position_valid
+        || !editor->word_wrap
         || editor->mark_mode
         || rendered_selection
         || render_selection_bounds(editor, 0, 0)

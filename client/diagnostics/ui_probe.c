@@ -93,6 +93,7 @@ int main(void)
     if (!s64_editor_insert(&editor, '9')) {
         fail(3u);
     }
+    s64_ui_message("Typing after message");
     s64_ui_render_edit(
         &editor,
         (unsigned char)(S64_UI_EDIT_CHARACTER | previous_row)
