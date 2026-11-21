@@ -30,6 +30,7 @@ static unsigned char cursor_visible;
 static unsigned int rendered_view_start;
 static unsigned int rendered_view_column;
 static unsigned char rendered_word_wrap;
+static unsigned char rendered_selection;
 static unsigned char row_chars[SCREEN_COLUMNS + 1u];
 static unsigned char row_selection_start;
 static unsigned char row_selection_end;
@@ -240,9 +241,11 @@ static void render_status(const S64Editor* editor)
     if (!editor->word_wrap) {
         memcpy(&row_chars[30], "HOR", 3u);
     }
+    rendered_selection = (unsigned char)(editor->mark_mode
+        || render_selection_bounds(editor, 0, 0));
     if (editor->mark_mode) {
         memcpy(&row_chars[33], " MARK", 5u);
-    } else if (render_selection_bounds(editor, 0, 0)) {
+    } else if (rendered_selection) {
         memcpy(&row_chars[33], " SEL ", 5u);
     }
 
@@ -454,6 +457,7 @@ void s64_ui_init(const S64Document* document)
     partial_char_edit = 0u;
     cursor_position_valid = 0u;
     cursor_visible = 0u;
+    rendered_selection = 0u;
 }
 
 S64DocumentKind s64_ui_select_document_kind(void)
@@ -512,6 +516,7 @@ void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row)
 
     if (!editor->word_wrap
         || editor->mark_mode
+        || rendered_selection
         || render_selection_bounds(editor, 0, 0)
         || rendered_view_start != editor->view_start
         || rendered_view_column != editor->view_column
@@ -564,7 +569,9 @@ void s64_ui_render_cursor(const S64Editor* editor)
     unsigned char col = editor->view_cursor_column;
     unsigned char row = (unsigned char)(EDITOR_FIRST_ROW + editor->view_cursor_row);
 
+    /* Moving out of a selection also has to clear its old screen cells. */
     if (!cursor_position_valid
+        || rendered_selection
         || rendered_view_start != editor->view_start
         || rendered_view_column != editor->view_column
         || rendered_word_wrap != editor->word_wrap

@@ -182,6 +182,11 @@ int main(void)
     s64_ui_render(&editor);
     checkpoint(0x48u);
 
+    s64_editor_right(&editor);
+    if (s64_editor_has_selection(&editor)) fail(17u);
+    s64_ui_render_cursor(&editor);
+    checkpoint(0x49u);
+
     DIAG_PROGRESS = 0x50u;
     DIAG_RESULT = DIAG_PASS;
     for (;;) {

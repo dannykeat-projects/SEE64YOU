@@ -12,7 +12,7 @@ SCREEN_COLUMNS = 40
 DIAG_PASS = 0xA5
 DIAG_FAIL = 0x5A
 
-STAGES = (0x10, 0x20, 0x30, 0x40, 0x45, 0x46, 0x47, 0x48)
+STAGES = (0x10, 0x20, 0x30, 0x40, 0x45, 0x46, 0x47, 0x48, 0x49)
 
 
 def screen_row(
@@ -76,8 +76,9 @@ EXPECTED[0x47] = (
     screen_row(),
 )
 EXPECTED[0x48] = (screen_row("12345", cursor=4, selected=range(1, 4)),) + (screen_row(),) * 4
+EXPECTED[0x49] = (screen_row("12345", cursor=5),) + (screen_row(),) * 4
 
-SELECTION_STATUS = {0x45: "WRP   ", 0x46: "WRP SEL", 0x48: "HOR SEL"}
+SELECTION_STATUS = {0x45: "WRP", 0x46: "WRP SEL", 0x48: "HOR SEL", 0x49: "HOR"}
 
 
 def read_body(monitor: ViceMonitor) -> tuple[bytes, ...]:
