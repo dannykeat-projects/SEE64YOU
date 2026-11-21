@@ -69,11 +69,8 @@ GROUPS: dict[str, tuple[str, ...]] = {
 GROUP_IDS = {"MODEL": 1, "FILE": 2, "RUNTIME": 3, "PUBLICATION": 4}
 BRIDGES: dict[str, tuple[str, ...]] = {
     "MODEL": ("s64_application_state_decode_payload",),
-    "FILE": (
-        "s64_editor_has_selection",
-        "s64_editor_selection_start",
-        "s64_editor_selection_end",
-    ),
+    # UI reads selection fields without entering MODEL on each redraw.
+    "FILE": (),
     "PUBLICATION": (
         "s64_transfer_capsule_allocation",
         "s64_transfer_capsule_checksum",
