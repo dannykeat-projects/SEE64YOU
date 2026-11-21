@@ -53,6 +53,7 @@ int main(void)
 {
     unsigned char i;
     unsigned char previous_row;
+    unsigned int previous_cursor;
     unsigned int screen_position;
 
     DIAG_PROGRESS = 0x01u;
@@ -134,11 +135,11 @@ int main(void)
 #endif
     checkpoint(0x45u);
 
-    if (!s64_editor_point(&editor, 2u, 3u, 0u)
-        || !s64_editor_point(&editor, 3u, 2u, 1u)) {
-        fail(8u);
-    }
-    s64_ui_render(&editor);
+    if (!s64_editor_point(&editor, 2u, 3u, 0u)) fail(8u);
+    s64_ui_render_pointer(&editor, 0u, 0u);
+    previous_cursor = s64_buffer_cursor(&editor.buffer);
+    if (!s64_editor_point(&editor, 3u, 2u, 1u)) fail(8u);
+    s64_ui_render_pointer(&editor, previous_cursor, 1u);
     checkpoint(0x46u);
 
     s64_editor_init(&editor);
@@ -151,9 +152,11 @@ int main(void)
     s64_editor_init(&editor);
     s64_ui_render(&editor);
     append_text("12345", 10u);
-    if (!s64_editor_point(&editor, 0u, 1u, 0u)
-        || !s64_editor_point(&editor, 0u, 4u, 1u)) fail(11u);
-    s64_ui_render(&editor);
+    if (!s64_editor_point(&editor, 0u, 1u, 0u)) fail(11u);
+    s64_ui_render_pointer(&editor, 0u, 0u);
+    previous_cursor = s64_buffer_cursor(&editor.buffer);
+    if (!s64_editor_point(&editor, 0u, 4u, 1u)) fail(11u);
+    s64_ui_render_pointer(&editor, previous_cursor, 1u);
     screen_position = 40u;
     if ((*(volatile uint8_t*)(0x0400u + screen_position) & 0x80u) != 0u
         || (*(volatile uint8_t*)(0x0400u + screen_position + 1u) & 0x80u) == 0u
@@ -162,9 +165,11 @@ int main(void)
         fail(12u);
     }
 
-    if (!s64_editor_point(&editor, 0u, 4u, 0u)
-        || !s64_editor_point(&editor, 0u, 1u, 1u)) fail(13u);
-    s64_ui_render(&editor);
+    if (!s64_editor_point(&editor, 0u, 4u, 0u)) fail(13u);
+    s64_ui_render_pointer(&editor, 0u, 0u);
+    previous_cursor = s64_buffer_cursor(&editor.buffer);
+    if (!s64_editor_point(&editor, 0u, 1u, 1u)) fail(13u);
+    s64_ui_render_pointer(&editor, previous_cursor, 1u);
     /* The cursor inverts cell 1, so inspect the other selected cells. */
     if ((*(volatile uint8_t*)(0x0400u + screen_position + 2u) & 0x80u) == 0u
         || (*(volatile uint8_t*)(0x0400u + screen_position + 3u) & 0x80u) == 0u
@@ -177,9 +182,12 @@ int main(void)
         fail(15u);
     }
     s64_editor_toggle_word_wrap(&editor);
-    if (!s64_editor_point(&editor, 0u, 1u, 0u)
-        || !s64_editor_point(&editor, 0u, 4u, 1u)) fail(16u);
     s64_ui_render(&editor);
+    if (!s64_editor_point(&editor, 0u, 1u, 0u)) fail(16u);
+    s64_ui_render_pointer(&editor, 0u, 0u);
+    previous_cursor = s64_buffer_cursor(&editor.buffer);
+    if (!s64_editor_point(&editor, 0u, 4u, 1u)) fail(16u);
+    s64_ui_render_pointer(&editor, previous_cursor, 1u);
     checkpoint(0x48u);
 
     s64_editor_right(&editor);

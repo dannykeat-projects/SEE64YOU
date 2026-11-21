@@ -15,6 +15,9 @@ void s64_ui_render(const S64Editor* editor);
 unsigned char s64_ui_render_append(const S64Editor* editor, unsigned char value);
 void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row);
 void s64_ui_render_cursor(const S64Editor* editor);
+void s64_ui_render_pointer(
+    const S64Editor* editor, unsigned int previous_cursor, unsigned char drag
+);
 void s64_ui_message(const char* message);
 void s64_ui_begin_overlay(void);
 void s64_ui_show_help(void);

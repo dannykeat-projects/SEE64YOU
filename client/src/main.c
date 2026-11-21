@@ -790,7 +790,7 @@ int main(void)
                 if (s64_editor_point(&editor, (unsigned char)(input.row - 1u),
                     input.column, 0u)) {
                     mouse_selecting = 1u;
-                    s64_ui_render(&editor);
+                    s64_ui_render_pointer(&editor, 0u, 0u);
                 }
                 continue;
             } else {
@@ -801,9 +801,10 @@ int main(void)
                 unsigned char row = input.row;
                 if (row < 1u) row = 1u;
                 if (row > 23u) row = 23u;
+                previous_cursor = s64_buffer_cursor(&editor.buffer);
                 if (s64_editor_point(&editor, (unsigned char)(row - 1u),
                     input.column, 1u)) {
-                    s64_ui_render(&editor);
+                    s64_ui_render_pointer(&editor, previous_cursor, 1u);
                 }
             }
             continue;

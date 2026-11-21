@@ -51,9 +51,26 @@ static void hide_editor_cursor(void)
     }
 }
 
+static void show_editor_cursor(unsigned char col, unsigned char row)
+{
+    gotoxy(col, row);
+    cursor_col = col;
+    cursor_row = row;
+    toggle_editor_cursor();
+    cursor_visible = 1u;
+}
+
+static unsigned char rendered_view_matches(const S64Editor* editor)
+{
+    return rendered_view_start == editor->view_start
+        && rendered_view_column == editor->view_column
+        && rendered_word_wrap == editor->word_wrap;
+}
+
 #if defined(S64_MANAGED_OVERLAY) && defined(S64_INDEPENDENT_EDITOR)
 #pragma code-name (pop)
 #endif
+
 /* UI runs in FILE, while the public selection getters run in MODEL. Read the
  * existing state here to avoid reloading both overlays for every redraw. */
 static unsigned char render_selection_bounds(
@@ -496,17 +513,13 @@ void s64_ui_render(const S64Editor* editor)
     } else {
         render_status(editor);
     }
-    gotoxy(next_cursor_col, next_cursor_row);
-    cursor_col = next_cursor_col;
-    cursor_row = next_cursor_row;
     cursor_position_valid = 1u;
     rendered_view_start = editor->view_start;
     rendered_view_column = editor->view_column;
     rendered_word_wrap = editor->word_wrap;
     partial_first_row = 0u;
     partial_char_edit = 0u;
-    toggle_editor_cursor();
-    cursor_visible = 1u;
+    show_editor_cursor(next_cursor_col, next_cursor_row);
 }
 
 void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row)
@@ -518,9 +531,7 @@ void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row)
         || editor->mark_mode
         || rendered_selection
         || render_selection_bounds(editor, 0, 0)
-        || rendered_view_start != editor->view_start
-        || rendered_view_column != editor->view_column
-        || rendered_word_wrap != editor->word_wrap
+        || !rendered_view_matches(editor)
         || first_body_row >= EDITOR_ROWS) {
         partial_char_edit = 0u;
         s64_ui_render(editor);
@@ -572,9 +583,7 @@ void s64_ui_render_cursor(const S64Editor* editor)
     /* Moving out of a selection also has to clear its old screen cells. */
     if (!cursor_position_valid
         || rendered_selection
-        || rendered_view_start != editor->view_start
-        || rendered_view_column != editor->view_column
-        || rendered_word_wrap != editor->word_wrap
+        || !rendered_view_matches(editor)
         || col >= SCREEN_COLUMNS
         || row >= STATUS_ROW) {
         s64_ui_render(editor);
@@ -584,11 +593,40 @@ void s64_ui_render_cursor(const S64Editor* editor)
     hide_editor_cursor();
     s64_ui_status_line_fast(editor->line);
     s64_ui_status_column_fast(editor->column);
-    gotoxy(col, row);
-    cursor_col = col;
-    cursor_row = row;
-    toggle_editor_cursor();
-    cursor_visible = 1u;
+    show_editor_cursor(col, row);
+}
+
+void s64_ui_render_pointer(
+    const S64Editor* editor, unsigned int previous_cursor, unsigned char drag
+)
+{
+    unsigned char col = editor->view_cursor_column;
+    unsigned char row = (unsigned char)(EDITOR_FIRST_ROW + editor->view_cursor_row);
+    unsigned char first;
+    unsigned char last;
+    volatile unsigned char* screen;
+
+    if (!cursor_position_valid || !rendered_view_matches(editor)
+        || col >= SCREEN_COLUMNS || row >= STATUS_ROW
+        || (!drag && rendered_selection)
+        || (drag && (row != cursor_row
+            || s64_buffer_cursor(&editor->buffer) - col != previous_cursor - cursor_col
+            || (!rendered_selection && editor->selection_anchor != previous_cursor)))) {
+        s64_ui_render(editor);
+        return;
+    }
+
+    hide_editor_cursor();
+    if (drag) {
+        /* The anchor stays fixed during a drag. On the same rendered row,
+         * exactly the cells between the old and new endpoints change. */
+        screen = SCREEN_RAM + (unsigned int)row * SCREEN_COLUMNS;
+        first = col < cursor_col ? col : cursor_col;
+        last = col < cursor_col ? cursor_col : col;
+        while (first < last) screen[first++] ^= 0x80u;
+    }
+    render_status(editor);
+    show_editor_cursor(col, row);
 }
 
 void s64_ui_message(const char* message)
