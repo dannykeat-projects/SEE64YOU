@@ -146,6 +146,37 @@ int main(void)
     s64_ui_render(&editor);
     checkpoint(0x47u);
 
+    /* Selection must highlight the same cells in either drag direction,
+     * without leaving reverse-video artefacts after clearing selection. */
+    s64_editor_init(&editor);
+    s64_ui_render(&editor);
+    append_text("ABCDE", 10u);
+    if (!s64_editor_point(&editor, 0u, 1u, 0u)
+        || !s64_editor_point(&editor, 0u, 4u, 1u)) fail(11u);
+    s64_ui_render(&editor);
+    screen_position = 40u;
+    if ((*(volatile uint8_t*)(0x0400u + screen_position) & 0x80u) != 0u
+        || (*(volatile uint8_t*)(0x0400u + screen_position + 1u) & 0x80u) == 0u
+        || (*(volatile uint8_t*)(0x0400u + screen_position + 2u) & 0x80u) == 0u
+        || (*(volatile uint8_t*)(0x0400u + screen_position + 3u) & 0x80u) == 0u) {
+        fail(12u);
+    }
+
+    if (!s64_editor_point(&editor, 0u, 4u, 0u)
+        || !s64_editor_point(&editor, 0u, 1u, 1u)) fail(13u);
+    s64_ui_render(&editor);
+    /* The cursor inverts cell 1, so inspect the other selected cells. */
+    if ((*(volatile uint8_t*)(0x0400u + screen_position + 2u) & 0x80u) == 0u
+        || (*(volatile uint8_t*)(0x0400u + screen_position + 3u) & 0x80u) == 0u
+        || (*(volatile uint8_t*)(0x0400u + screen_position + 4u) & 0x80u) != 0u) {
+        fail(14u);
+    }
+    s64_editor_clear_selection(&editor);
+    s64_ui_render(&editor);
+    if ((*(volatile uint8_t*)(0x0400u + screen_position + 2u) & 0x80u) != 0u) {
+        fail(15u);
+    }
+
     DIAG_PROGRESS = 0x50u;
     DIAG_RESULT = DIAG_PASS;
     for (;;) {
