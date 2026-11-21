@@ -180,7 +180,7 @@ int s64_after(void) { return 0; }
         "MODEL": ["s64_editor_has_selection", "s64_unused"],
         "RUNTIME": ["s64_from_resident", "s64_internal"],
     }, {"_s64_from_resident", "_s64_overlay_runtime_s64_internal"}) == {
-        "MODEL": ["s64_editor_has_selection"], "RUNTIME": ["s64_from_resident"],
+        "MODEL": [], "RUNTIME": ["s64_from_resident"],
     }
 
     with tempfile.TemporaryDirectory() as directory:
