@@ -53,6 +53,21 @@ static void hide_editor_cursor(void)
 #if defined(S64_MANAGED_OVERLAY) && defined(S64_INDEPENDENT_EDITOR)
 #pragma code-name (pop)
 #endif
+/* UI runs in FILE, while the public selection getters run in MODEL. Read the
+ * existing state here to avoid reloading both overlays for every redraw. */
+static unsigned char render_selection_bounds(
+    const S64Editor* editor, unsigned int* start, unsigned int* end
+)
+{
+    unsigned int cursor = s64_buffer_cursor(&editor->buffer);
+    unsigned int anchor = editor->selection_anchor;
+
+    if (!editor->selection_valid || anchor == cursor) return 0u;
+    if (start != 0) *start = anchor < cursor ? anchor : cursor;
+    if (end != 0) *end = anchor > cursor ? anchor : cursor;
+    return 1u;
+}
+
 static void clear_row(unsigned char row)
 {
     unsigned char i;
@@ -222,7 +237,7 @@ static void render_status(const S64Editor* editor)
     }
     if (editor->mark_mode) {
         memcpy(&row_chars[33], " MARK", 5u);
-    } else if (s64_editor_has_selection(editor)) {
+    } else if (render_selection_bounds(editor, 0, 0)) {
         memcpy(&row_chars[33], " SEL ", 5u);
     }
 
@@ -252,7 +267,7 @@ static void render_body_wrapped(
     unsigned int selection_start = 0u;
     unsigned int selection_end = 0u;
     unsigned int read_count;
-    unsigned char has_selection = s64_editor_has_selection(editor);
+    unsigned char has_selection = render_selection_bounds(editor, &selection_start, &selection_end);
     unsigned char found = 0u;
     unsigned char row;
     unsigned char col;
@@ -265,11 +280,6 @@ static void render_body_wrapped(
         position = cursor - editor->view_cursor_column;
         rendered_rows = (unsigned char)(partial_first_row - EDITOR_FIRST_ROW);
         row = partial_first_row;
-    }
-
-    if (has_selection) {
-        selection_start = s64_editor_selection_start(editor);
-        selection_end = s64_editor_selection_end(editor);
     }
 
     for (; row < STATUS_ROW; ++row) {
@@ -347,16 +357,11 @@ static void render_body_horizontal(
     unsigned int display;
     unsigned int cursor_offset;
     unsigned int read_count;
-    unsigned char has_selection = s64_editor_has_selection(editor);
+    unsigned char has_selection = render_selection_bounds(editor, &selection_start, &selection_end);
     unsigned char found = 0u;
     unsigned char row;
     unsigned char previous_rows = body_rows;
     unsigned char rendered_rows = 0u;
-
-    if (has_selection) {
-        selection_start = s64_editor_selection_start(editor);
-        selection_end = s64_editor_selection_end(editor);
-    }
 
     for (row = EDITOR_FIRST_ROW; row < STATUS_ROW; ++row) {
         prepare_row();
@@ -500,7 +505,7 @@ void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row)
 
     if (!editor->word_wrap
         || editor->mark_mode
-        || s64_editor_has_selection(editor)
+        || render_selection_bounds(editor, 0, 0)
         || rendered_view_start != editor->view_start
         || rendered_view_column != editor->view_column
         || rendered_word_wrap != editor->word_wrap
