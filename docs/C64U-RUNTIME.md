@@ -1,6 +1,6 @@
 # C64 Ultimate runtime and storage
 
-**Platform:** C64 Ultimate only, Command Interface enabled, 16 MiB REU, Ultimate-DOS `$01`/`$02`. Firmware 1.1 evidence supports UCI `$DF1C..$DF1F` and Network Target `$03`; HTTP Target `$06` was unavailable. Probe capabilities instead of inferring them from firmware strings.
+**Platform:** C64 Ultimate only, Command Interface enabled, 16 MiB REU, Ultimate-DOS `$01`/`$02`. On firmware 1.1.0, UCI `$DF1C..$DF1F` and Network `$03` were verified and HTTP `$06` was unavailable; 1.2.1 introduces `$06` and has separate REST-assisted Editor test evidence. The standard Publisher still uses `$03` and has no general TLS. Probe capabilities and actual operations rather than inferring support from firmware strings; see [UCI compatibility](UCI.md).
 
 ## Program and package boundaries
 
