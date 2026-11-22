@@ -2,7 +2,7 @@
 
 ## Requirements
 
-A **Commodore 64 Ultimate** with Command Interface enabled, a **16 MiB REU**, Ultimate-DOS, and an SD card or supported USB storage mount. Tested hardware baseline is C64 Ultimate firmware 1.1.0. The Editor needs no network connection. Optional publishing requires a compatible independent 8TML publishing API 1 endpoint and its standard publishing key.
+A **Commodore 64 Ultimate** with Command Interface enabled, a **16 MiB REU**, Ultimate-DOS, and an SD card or supported USB storage mount. Original hardware compatibility was checked on firmware 1.1.0; firmware 1.2.1 also has bounded REST-assisted Editor/performance evidence, but final physical-input acceptance remains open. The Editor needs no network connection. Optional publishing requires a compatible independent 8TML publishing API 1 endpoint and its standard publishing key.
 
 This is an alpha test release. SD source replacement/recovery has bounded real-C64U evidence; physical input on this exact package, cold-power/interruption recovery, USB-only operation and complete external-reader navigation remain unverified. Back up your files and machine configuration first. Choose the complete matching package for your actual storage mount; verify its checksums when supplied. For USB mounts other than the package's exact root, rebuild with `make -B -C client STORAGE_ROOT=/YOURMOUNT/ independent-package`. A folder rename does not change the executable's embedded root.
 
