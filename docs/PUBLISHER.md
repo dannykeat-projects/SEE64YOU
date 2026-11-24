@@ -29,10 +29,10 @@ Remote selection uses the authenticated standard list and changes only the targe
 
 Press **3** to check limits and existing names. Review local source, endpoint and remote target, then **1** confirms create/replacement or **0** cancels. API 1 cannot prevent competing writes between checking existence and replacement. HTTP uploads are public and unencrypted.
 
-Wait for the returned URL, errors and warnings. Inspect remote content before retrying an uncertain upload; writes are never automatically retried. Publisher has no page/post categories, draft visibility, deletion or remote editing.
+A confirmed upload displays `PUBLISHED` and the URL returned by the server. A return to the home screen with an error is not confirmation. The current home status is limited to 39 characters; use **2 Browse remote** to inspect the destination after a failure and preserve the local file. Inspect remote content before retrying an uncertain upload; writes are never automatically retried. Publisher has no page/post categories, draft visibility, deletion or remote editing.
 
 ## Validation limits
 
-Host fixtures, SD/USB fit/manifests and VICE check software paths. Matching-package SD C64U checks against T8wn pass status, authenticated list, 8SS/text create and replacement, create/replace cancellation, exact public-source readback and rejection above the advertised 16,384-byte limit. Disposable remote fixtures are removed; user files, configuration and machine state are preserved with the candidate installed. Host tests found `.md` refused with HTTP 415 `bad-type`. Native key/network failure injection, external-reader stylesheet application, physical keys, cold power/interruption and USB-only operation remain tracked in [todo](../todo.md).
+The client accepts `.8tml`, `.8ss` and `.txt` for upload, subject to server validation. Recent independent-server hardware coverage includes 8SS and TXT; equivalent 8TML coverage and the reported upload failure remain open. See [todo](../todo.md) for current acceptance evidence and remaining gates.
 
 Download-to-edit is deferred: API 1 supplies neither source GET nor guaranteed raw-source URLs. Future download requires independent source-access verification, supported transport and collision-safe new-file storage. See [Product scope](PRODUCT.md).
