@@ -21,8 +21,10 @@ static S64UciCapabilities capabilities;
 static S64SettingsExchange settings;
 static S64StandardClient client;
 static S64StandardReply reply;
-/* Main screen shows at most 39 characters of status, plus the NUL. */
+/* Server replies can reach 80 characters: the home screen keeps the first
+ * 39 characters on the status row and shows the continuation on the next row. */
 static char remote_name[65], prompt[65], status[40];
+static char status_more[41];
 static uint8_t loaded, network_available, path_captured;
 static char original_path[440];
 /* Browsed server rows are no longer used when the exit-only DOS readback
@@ -35,8 +37,13 @@ static unsigned char old_background, old_border, old_text;
 
 static void message(const char* text)
 {
+    const char* tail;
     strncpy(status, text, sizeof(status) - 1u);
     status[sizeof(status) - 1u] = 0;
+    tail = text + (sizeof(status) - 1u);
+    if (*tail == ' ') ++tail; /* Start the continuation row on a word. */
+    strncpy(status_more, tail, sizeof(status_more) - 1u);
+    status_more[sizeof(status_more) - 1u] = 0;
 }
 
 static void put_text(uint8_t row, const char* text, uint8_t maximum)
@@ -74,6 +81,7 @@ static void render(void)
 
     put_text(21u, "HTTP source is not encrypted.", 39u);
     put_text(23u, status, 39u);
+    put_text(24u, status_more, 39u);
 }
 
 /* conio writes screen memory synchronously: show feedback before a blocking
@@ -165,7 +173,7 @@ static uint8_t browse_remote(void)
         result = s64_standard_browse(&client, &reply, remote_file);
         if (result != S64_STANDARD_OK) {
             show_result(result);
-            clrscr(); cputs(status);
+            clrscr(); cputs(status); cputs("\r\n"); cputs(status_more);
             cputs("\r\n7 SET NAME  0 BACK");
             for (;;) {
                 key = cgetc();

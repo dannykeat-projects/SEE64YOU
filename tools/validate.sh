@@ -242,6 +242,17 @@ cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
 "$TMP_BIN"
 python3 tools/tests/standard_publish_fixture_test.py
 
+echo "== Standard Publisher end-to-end put round-trip fixtures =="
+cc -std=c99 -Wall -Wextra -DS64_INDEPENDENT_PUBLISHER=1 -DS64_STORAGE_READ_ONLY=1 -Iclient/src \
+    client/tests/standard_publisher_roundtrip_test.c client/src/buffer.c \
+    client/src/document.c client/src/charset.c client/src/platform/dos.c \
+    client/src/storage/local.c client/src/publisher/standard_publish_names.c \
+    client/src/publisher/standard_transport.c client/src/publisher/standard_request.c \
+    client/src/publisher/standard_reply.c client/src/publisher/standard_publish.c \
+    client/src/publisher/direct_auth.c client/src/publisher/direct_key.c \
+    client/src/crypto/sha256.c -o "$TMP_BIN"
+"$TMP_BIN"
+
 echo "== Host C64U platform requirement tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
     client/tests/platform_requirements_test.c client/src/platform/requirements.c \
