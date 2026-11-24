@@ -1,6 +1,6 @@
 # SEE64YOU
 
-A simple text editor for the Commodore 64 Ultimate which supports 8TML, with a small companion for publishing to a compatible 8TML server.
+A simple text editor for the Commodore 64 Ultimate which supports 8TML, 8SS stylesheets and general text, with a small companion for publishing to a compatible 8TML server.
 
 It has many functions you would expect in a modern editor, with multiple undo/redo, copy/cut/paste with shortcuts, dropdown menus, formatting shortcuts and menus, and mouse support.
 
@@ -30,6 +30,6 @@ The supported client build is:
 make -C client independent-package
 ~~~
 
-The default storage root is `/sd/`. Install the whole package with the four PRGs in `SEE64YOU/` and verified `.BIN`/`.MNF` files in `SEE64YOU/SYSTEM/`. To build for an actual USB mount, rebuild the **whole** package with the corresponding `STORAGE_ROOT` (including trailing slash). Do not mix files between builds. Current main stores ordinary source in `SEE64YOU/docs/`; released alpha.6 uses the root. Settings and recovery stay at the root.
+The default storage root is `/sd/`. Install the whole package with the four PRGs in `SEE64YOU/` and verified `.BIN`/`.MNF` files in `SEE64YOU/SYSTEM/`. To build for an actual USB mount, rebuild the **whole** package with the corresponding `STORAGE_ROOT` (including trailing slash). Do not mix files between builds. Ordinary source files are stored in `SEE64YOU/docs/`. Settings and recovery stay at the root.
 
 See [development and validation](docs/LOCAL_TESTING.md), [architecture](docs/ARCHITECTURE.md), [product scope](docs/PRODUCT.md), and the active [work queue](todo.md).

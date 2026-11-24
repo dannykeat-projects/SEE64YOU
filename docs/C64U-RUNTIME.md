@@ -36,7 +36,7 @@ Launcher/journal operations own DOS `$01`; Editor document/recovery owns `$02`. 
 
 ## File integrity and recovery
 
-- Source uses ASCII/LF text up to 61,440 bytes. The Editor validates 8TML headers, while 8SS/plain text remain literal. Publisher loads only 8TML source and never writes source during publication. Failed rename can leave a recoverable complete `.tmp` file.
+- Source uses ASCII/LF text up to 61,440 bytes. The Editor validates 8TML headers, while 8SS/plain text remain literal. Publisher loads `.8tml`, `.8ss` and `.txt` source and never writes local source during publication. Failed rename can leave a recoverable complete `.tmp` file.
 - Local saves refuse an existing `<filename>.tmp` or `<filename>.bak` before writing. Replacement writes and closes `.tmp`, renames the original to `.bak`, installs `.tmp`, then removes `.bak`. Failed installation attempts to restore the original; failed restoration leaves both recovery files. A backup-cleanup error leaves the installed source and old backup and reports failure. Inspect/recover retained files explicitly before retrying; no automatic deletion of pre-existing recovery copies. This sequence is recoverable, not an atomic or power-loss guarantee.
 - Editor has no periodic autosave. Recovery filenames distinguish 8TML (`SEE64YOU.REC`), 8SS (`SEE64YOU.8SS.REC`) and text (`SEE64YOU.TXT.REC`). Multiple snapshots are treated as a conflict, not automatically selected or deleted. A failed read preserves the snapshot. Recovered content is dirty until manually saved.
 - Configuration writes validate the temporary record before replacement and validate final readback. Current delete-then-rename is **not** fully atomic if final rename fails; preserve temporary data and surface errors.
