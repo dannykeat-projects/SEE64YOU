@@ -10,6 +10,7 @@
 #include "platform/package_paths.h"
 #include "publisher/settings_store.h"
 #include "publisher/standard_transport.h"
+#include "publisher/standard_display.h"
 #include "publisher/local_picker.h"
 #include "publisher/standard_publish_names.h"
 
@@ -21,10 +22,10 @@ static S64UciCapabilities capabilities;
 static S64SettingsExchange settings;
 static S64StandardClient client;
 static S64StandardReply reply;
-/* Server replies can reach 80 characters: the home screen keeps the first
- * 39 characters on the status row and shows the continuation on the next row. */
-static char remote_name[65], prompt[65], status[40];
-static char status_more[41];
+/* Server replies store up to 80 characters: publisher/standard_display.c
+ * keeps that text and draws it across three 39-column rows, so every stored
+ * character reaches the 40x25 grid and stale text is cleared each time. */
+static char remote_name[65], prompt[65];
 static uint8_t loaded, network_available, path_captured;
 static char original_path[440];
 /* Browsed server rows are no longer used when the exit-only DOS readback
@@ -34,23 +35,6 @@ static union {
     char verify_path[440];
 } scratch;
 static unsigned char old_background, old_border, old_text;
-
-static void message(const char* text)
-{
-    const char* tail;
-    strncpy(status, text, sizeof(status) - 1u);
-    status[sizeof(status) - 1u] = 0;
-    tail = text + (sizeof(status) - 1u);
-    if (*tail == ' ') ++tail; /* Start the continuation row on a word. */
-    strncpy(status_more, tail, sizeof(status_more) - 1u);
-    status_more[sizeof(status_more) - 1u] = 0;
-}
-
-static void put_text(uint8_t row, const char* text, uint8_t maximum)
-{
-    gotoxy(0u, row);
-    while (*text && maximum--) cputc(*text++);
-}
 
 /* Every action fits on one 40-column row; digits work without a mouse. */
 static void draw_action(uint8_t row, const char* text)
@@ -64,14 +48,14 @@ static void draw_action(uint8_t row, const char* text)
 static void render(void)
 {
     clrscr();
-    put_text(0u, "SEE64YOU SOURCE PUBLISHER", 39u);
-    put_text(1u, "---------------------------------------", 39u);
-    put_text(2u, "LOCAL SOURCE", 39u);
-    put_text(3u, loaded ? local.filename : "(8tml / 8ss / txt)", 39u);
-    put_text(5u, "REMOTE TARGET", 39u);
-    put_text(6u, remote_name[0] ? remote_name : "(choose name)", 39u);
-    put_text(8u, "SERVER", 39u);
-    put_text(9u, s64_settings_publish_id(&settings)[0] ? settings.base_url : "Import key in S64CFG.PRG", 39u);
+    s64_publish_put(0u, "SEE64YOU SOURCE PUBLISHER", 39u);
+    s64_publish_put(1u, "---------------------------------------", 39u);
+    s64_publish_put(2u, "LOCAL SOURCE", 39u);
+    s64_publish_put(3u, loaded ? local.filename : "(8tml / 8ss / txt)", 39u);
+    s64_publish_put(5u, "REMOTE TARGET", 39u);
+    s64_publish_put(6u, remote_name[0] ? remote_name : "(choose name)", 39u);
+    s64_publish_put(8u, "SERVER", 39u);
+    s64_publish_put(9u, s64_settings_publish_id(&settings)[0] ? settings.base_url : "Import key in S64CFG.PRG", 39u);
 
     draw_action(11u, "[1] BROWSE LOCAL FILES");
     draw_action(13u, "[2] BROWSE REMOTE");
@@ -79,9 +63,8 @@ static void render(void)
     draw_action(17u, "[4] TEST CONNECTION");
     draw_action(19u, "[0] EXIT TO BASIC");
 
-    put_text(21u, "HTTP source is not encrypted.", 39u);
-    put_text(23u, status, 39u);
-    put_text(24u, status_more, 39u);
+    s64_publish_put(21u, "HTTP source is not encrypted.", 39u);
+    s64_publish_draw(22u);
 }
 
 /* conio writes screen memory synchronously: show feedback before a blocking
@@ -116,12 +99,12 @@ static uint8_t input(const char* label, char* output, uint8_t capacity)
 static void load_settings(void)
 {
     memset(&settings, 0, sizeof(settings));
-    if (!capabilities.dos_target) { message("Settings storage unavailable"); return; }
+    if (!capabilities.dos_target) { s64_publish_message("Settings storage unavailable"); return; }
     if (s64_settings_publish_store_load(&dos, &settings) != S64_SETTINGS_STORE_OK
         || !s64_settings_publish_id(&settings)[0]) {
         memset(&settings, 0, sizeof(settings));
-        message("Import standard key in S64CFG.PRG");
-    } else message("Standard destination loaded");
+        s64_publish_message("Import standard key in S64CFG.PRG");
+    } else s64_publish_message("Standard destination loaded");
     client.url = settings.base_url;
     client.id = s64_settings_publish_id(&settings);
     client.key = settings.direct_key;
@@ -130,22 +113,22 @@ static void load_settings(void)
 
 static uint8_t ready(void)
 {
-    if (!network_available) { message("C64U network target unavailable"); return 0u; }
+    if (!network_available) { s64_publish_message("C64U network target unavailable"); return 0u; }
     if (!s64_settings_publish_id(&settings)[0]) {
-        message("Import standard key in S64CFG.PRG"); return 0u;
+        s64_publish_message("Import standard key in S64CFG.PRG"); return 0u;
     }
     return 1u;
 }
 
 static void show_result(S64StandardResult result)
 {
-    if (result == S64_STANDARD_OK) message("Endpoint ready");
-    else if (result == S64_STANDARD_UNCERTAIN) message("Outcome unknown. Inspect remote first.");
-    else if (result == S64_STANDARD_TLS) message("HTTPS unavailable; no downgrade");
-    else if (result == S64_STANDARD_CONSENT) message("Allow HTTP explicitly in Settings");
-    else if (result == S64_STANDARD_TOO_LARGE) message("Source exceeds server limit");
-    else if (reply.message[0]) message(reply.message);
-    else message("Publishing failed; check endpoint/key");
+    if (result == S64_STANDARD_OK) s64_publish_message("Endpoint ready");
+    else if (result == S64_STANDARD_UNCERTAIN) s64_publish_message("Outcome unknown. Inspect remote first.");
+    else if (result == S64_STANDARD_TLS) s64_publish_message("HTTPS unavailable; no downgrade");
+    else if (result == S64_STANDARD_CONSENT) s64_publish_message("Allow HTTP explicitly in Settings");
+    else if (result == S64_STANDARD_TOO_LARGE) s64_publish_message("Source exceeds server limit");
+    else if (reply.message[0]) s64_publish_message(reply.message);
+    else s64_publish_message("Publishing failed; check endpoint/key");
 }
 
 static uint16_t remote_start, remote_seen;
@@ -173,8 +156,9 @@ static uint8_t browse_remote(void)
         result = s64_standard_browse(&client, &reply, remote_file);
         if (result != S64_STANDARD_OK) {
             show_result(result);
-            clrscr(); cputs(status); cputs("\r\n"); cputs(status_more);
-            cputs("\r\n7 SET NAME  0 BACK");
+            clrscr();
+            s64_publish_draw(20u);
+            s64_publish_put(23u, "7 SET NAME  0 BACK", 39u);
             for (;;) {
                 key = cgetc();
                 if (key == '0' || key == CH_STOP) return 0u;
@@ -189,10 +173,10 @@ static uint8_t browse_remote(void)
                 cputc(scratch.remote_rows[row][col]);
             }
         }
-        if (!remote_count) put_text(3u, "(no remote files)", 39u);
-        put_text(17u, "7 SET NAME  8 PREVIOUS  9 NEXT", 39u);
-        put_text(19u, "0 BACK / STOP", 39u);
-        put_text(21u, "Select sets target; does not upload.", 39u);
+        if (!remote_count) s64_publish_put(3u, "(no remote files)", 39u);
+        s64_publish_put(17u, "7 SET NAME  8 PREVIOUS  9 NEXT", 39u);
+        s64_publish_put(19u, "0 BACK / STOP", 39u);
+        s64_publish_put(21u, "Select sets target; does not upload.", 39u);
         for (;;) {
             key = cgetc();
             if (key == '0' || key == CH_STOP) return 0u;
@@ -215,14 +199,14 @@ static void publish(void)
 {
     S64StandardResult result;
     unsigned char key;
-    if (!loaded) { message("Choose local source first"); return; }
-    if (!remote_name[0]) { message("Choose remote name first"); return; }
+    if (!loaded) { s64_publish_message("Choose local source first"); return; }
+    if (!remote_name[0]) { s64_publish_message("Choose remote name first"); return; }
     if (!ready()) return;
     working("CHECKING SERVER");
     result = s64_standard_status(&client, &reply);
     if (result != S64_STANDARD_OK) { show_result(result); return; }
     if ((uint32_t)s64_buffer_length(&body) > reply.max_size) {
-        message("Source exceeds server limit"); return;
+        s64_publish_message("Source exceeds server limit"); return;
     }
     working("CHECKING REMOTE FILE");
     result = s64_standard_list(&client, remote_name, &reply);
@@ -234,14 +218,14 @@ static void publish(void)
     cputs(reply.exists ? "\r\nREPLACE EXISTING FILE?\r\n" : "\r\nPUBLISH PUBLIC FILE?\r\n");
     cputs("List cannot prevent concurrent changes.\r\nUploaded source is public.\r\n[1] CONFIRM  [0] CANCEL");
     key = cgetc();
-    if (key != '1' && key != 'y' && key != 'Y') { message("Publish cancelled"); return; }
+    if (key != '1' && key != 'y' && key != 'Y') { s64_publish_message("Publish cancelled"); return; }
     working("UPLOADING FILE");
     result = s64_standard_put(&client, remote_name, s64_buffer_length(&body), write_source, &document, &reply);
     if (result != S64_STANDARD_OK) { show_result(result); return; }
     clrscr(); cputs("PUBLISHED\r\n"); cputs(reply.url);
     if (reply.warning) { cputs("\r\nWARNING: "); cputs(reply.message); }
     cputs("\r\nPRESS KEY"); cgetc();
-    message(reply.warning ? "Published with server warning" : "Published; URL shown");
+    s64_publish_message(reply.warning ? "Published with server warning" : "Published; URL shown");
 }
 
 int main(void)
@@ -274,17 +258,17 @@ int main(void)
                 if (path_captured && (s64_dos_change_dir(&dos, original_path) != S64_DOS_OK
                     || s64_dos_get_path(&dos, scratch.verify_path, sizeof(scratch.verify_path)) != S64_DOS_OK
                     || strcmp(original_path, scratch.verify_path))) {
-                    message("DOS restore failed; STOP retries exit");
+                    s64_publish_message("DOS restore failed; STOP retries exit");
                     continue;
                 }
                 break;
             }
             if (key == 'r' || key == 'R') { working("LOADING SETTINGS"); load_settings(); }
             else if (key == '1' || key == 'l' || key == 'L') {
-                if (!capabilities.dos_target) { message("C64U DOS unavailable"); continue; }
+                if (!capabilities.dos_target) { s64_publish_message("C64U DOS unavailable"); continue; }
                 working("READING LOCAL FILES");
                 if (s64_dos_change_dir(&dos, S64_PACKAGE_DOCUMENTS_DIRECTORY) != S64_DOS_OK) {
-                    message("docs/ missing; save in Editor first"); continue;
+                    s64_publish_message("docs/ missing; save in Editor first"); continue;
                 }
                 selection = s64_local_pick(&dos, prompt, sizeof(prompt));
                 if (!selection) continue;
@@ -304,10 +288,10 @@ int main(void)
                             if (remote_name[key] >= 'A' && remote_name[key] <= 'Z')
                                 remote_name[key] += 'a' - 'A';
                     }
-                    message("Local source loaded");
+                    s64_publish_message("Local source loaded");
                 } else {
                     s64_buffer_init(&body); s64_document_init(&document, &body);
-                    message(s64_local_result_message(&local, result));
+                    s64_publish_message(s64_local_result_message(&local, result));
                 }
             } else if (key == '2' || key == 'n' || key == 'N') {
                 if (browse_remote()) {
@@ -317,8 +301,8 @@ int main(void)
                         for (key = 0u; remote_name[key]; ++key)
                             if (remote_name[key] >= 'A' && remote_name[key] <= 'Z')
                                 remote_name[key] += 'a' - 'A';
-                        message("Remote name selected");
-                    } else message("Invalid remote name");
+                        s64_publish_message("Remote name selected");
+                    } else s64_publish_message("Invalid remote name");
                 }
             } else if (key == '4' || key == 't' || key == 'T') {
                 if (ready()) { working("TESTING CONNECTION"); show_result(s64_standard_status(&client, &reply)); }
