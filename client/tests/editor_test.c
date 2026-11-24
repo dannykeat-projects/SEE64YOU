@@ -256,6 +256,28 @@ int main(void)
     require(editor.line == 1u && editor.column == 46u, "wrapped down preserves logical line position");
 
     s64_editor_init(&editor);
+    insert_text(&editor, "12345678901234567890123456789012345 apple");
+    require(editor.view_cursor_row == 1u && editor.view_cursor_column == 5u,
+        "an overflowing word moves intact to the next row");
+    require(s64_editor_point(&editor, 1u, 0u, 0u), "point at the wrapped word");
+    require(s64_buffer_cursor(&editor.buffer) == 36u, "wrapped word keeps its source offset");
+    s64_editor_end(&editor);
+    require(s64_editor_backspace(&editor) && s64_editor_backspace(&editor),
+        "delete characters until the word fits again");
+    require(editor.view_cursor_row == 0u && editor.view_cursor_column == 39u,
+        "delete reflows the word and keeps the cursor after the remaining text");
+    require_text(&editor, "12345678901234567890123456789012345 app",
+        "wrap never inserts a newline into the source");
+
+    s64_editor_init(&editor);
+    insert_text(&editor, "---\n8tml: 1\n---\n");
+    s64_editor_document_loaded(&editor);
+    insert_text(&editor, "firstx");
+    require(s64_editor_backspace(&editor), "delete on the first body line");
+    require(editor.view_cursor_row == 3u && editor.view_cursor_column == 5u,
+        "delete after loading keeps the cursor on the first body line");
+
+    s64_editor_init(&editor);
     {
         unsigned int i;
         for (i = 0u; i < 960u; ++i) {

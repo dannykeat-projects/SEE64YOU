@@ -335,6 +335,11 @@ def main():
 
     def exitcheck(label):
         basic(label)
+        if label == "clean-confirmed-exit":
+            observed = [live(a) & 15 for a in (53280, 53281, 646)]
+            state["editor_exit_colours"] = observed
+            save()
+            assert observed == [value & 15 for value in colours], "Editor exit did not restore colours"
         assert live(53297) == prior and mem(0x314, 2) == irq and api("drives") == drives
         ticks = mem(0xa0, 3)
         time.sleep(.2)

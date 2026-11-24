@@ -2,6 +2,7 @@
 """Verify the transient SYS return capsule with a synthetic original context.
 
 This proves restoration mechanics, not real launcher capture/session binding.
+The unused record reader is stubbed; the production final-execute path is linked.
 """
 from pathlib import Path
 import argparse
@@ -28,25 +29,39 @@ def main(rom_dir: Path, valid_workspace: bool = False) -> None:
     landing += [0x4c, parked & 255, parked >> 8]
     source = OUT / "main.c"
     source.write_text('''#include <string.h>
-extern const unsigned char s64_basic_return_stub_image[], s64_basic_return_stub_end[];
-void s64_basic_return_stub_enter(void);
+#include "platform/basic_return_internal.h"
+#include "platform/reu.h"
+#include "platform/crc32.h"
+const S64ReuAllocation* s64_basic_return_allocation(const S64ReuRuntimeControl* c)
+{ (void)c; return 0; }
+uint8_t s64_basic_return_active(const S64ReuRuntimeControl* c,
+    const S64SessionJournal* j, uint8_t* w)
+{ (void)c; (void)j; (void)w; return 0; }
+uint8_t s64_basic_return_header_valid(const uint8_t* w)
+{ (void)w; return 0; }
+uint8_t s64_reu_load(uint8_t b, uint16_t a, void* d, uint16_t n)
+{ (void)b; (void)a; (void)d; (void)n; return 0; }
+uint32_t s64_crc32_update(uint32_t c, const uint8_t* b, uint16_t n)
+{ (void)b; (void)n; return c; }
 static const unsigned char landing[] = {''' + ','.join(map(str, landing)) + '''};
 int main(void) {
     unsigned int i;
-    unsigned char* context = (unsigned char*)0x0400;
+    unsigned char* context = (unsigned char*)0xc820;
     context[0] = 0x37; context[1] = 0xf0; context[2] = 0x24;
     for (i=0; i<26; ++i) context[3+i] = (unsigned char)(0x40+i);
     for (i=0; i<256; ++i) context[29+i] = (unsigned char)i;
     context[29+0xf1] = 0xff; context[29+0xf2] = 0xbf;
+    context[285] = 14; context[286] = 6; context[287] = 14;
+    *(volatile unsigned char*)0xd020 = 0;
+    *(volatile unsigned char*)0xd021 = 0;
+    *(volatile unsigned char*)0x0286 = 1;
     memcpy((void*)0xc000, landing, sizeof(landing));
     *(volatile unsigned char*)0xc060 = 0;
     /* Reproduce large-PRG BASIC end beyond the string-memory ceiling. */
     *(unsigned int*)0x2b = 0x0801;
     *(unsigned int*)0x31 = 0xbfbf;
     *(unsigned int*)0x37 = 0xa000;
-    memcpy((void*)0x033c, s64_basic_return_stub_image,
-           s64_basic_return_stub_end-s64_basic_return_stub_image);
-    s64_basic_return_stub_enter();
+    s64_basic_return_execute((const unsigned char*)0xc800);
     return 1;
 }
 ''')
@@ -56,7 +71,9 @@ int main(void) {
             '*(unsigned int*)0x2d = 0xa000; *(unsigned int*)0x2f = 0xa000; '
             '*(unsigned int*)0x31 = 0xa000; *(unsigned int*)0x33 = 0xa000;'))
     prg = OUT / "probe.prg"
-    subprocess.run(["cl65", "-t", "c64", "-Os", "-o", str(prg), str(source),
+    subprocess.run(["cl65", "-t", "c64", "-Os", "-DS64_MANAGED_OVERLAY=1",
+                    "-I", str(ROOT / "client/src"), "-o", str(prg), str(source),
+                    str(ROOT / "client/src/platform/basic_return_read.c"),
                     str(ROOT / "client/src/platform/basic_return_stub.s"),
                     str(ROOT / "client/src/platform/basic_workspace_reset.s")], check=True)
     command = ["xvfb-run", "-a", "x64sc", "+sound", "-autostartprgmode", "1",
@@ -84,10 +101,13 @@ int main(void) {
                     assert monitor.read_memory(0x01f3, 0x01ff) == bytes(range(0xf3, 0x100))
                     assert monitor.read_memory(2, 0x1b) == bytes(range(0x40, 0x5a))
                     assert monitor.read_memory(0x0400, 0x07e7) == b'\x20' * 1000
+                    assert [monitor.read_memory(a, a)[0] & 15 for a in
+                            (0xd020, 0xd021, 0x0286)] == [14, 6, 14]
+                    assert all(v & 15 == 14 for v in monitor.read_memory(0xd800, 0xdbe7))
                     expected_workspace = ([0, 0xa0, 0, 0xa0, 0, 0xa0, 0, 0xa0]
                                           if valid_workspace else [3, 8, 3, 8, 3, 8, 0, 0xa0])
                     assert monitor.read_memory(0x2d, 0x34) == bytes(expected_workspace)
-                    print("VICE BASIC return passed: original frame, SP, ZP, map, interrupt mask and cleared screen")
+                    print("VICE BASIC return passed: original frame, SP, ZP, map, interrupt mask, colours and cleared screen")
                     return
                 monitor.resume()
                 time.sleep(0.03)

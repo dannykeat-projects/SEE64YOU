@@ -99,6 +99,37 @@ class ApiTests(unittest.TestCase):
         self.assertNotIn("api_read_retries", state)
 
 
+class ExitColourTests(unittest.TestCase):
+    def make_check(self, observed):
+        state, save, mark = {}, Mock(), Mock()
+        values = dict(zip((53280, 53281, 646), observed))
+        values[53297] = 0
+        ticks = iter((b"\0\0\0", b"\0\0\1"))
+        def memory(address, length):
+            return b"irq" if address == 0x314 else next(ticks)
+        check = extract("exitcheck", dict(
+            basic=Mock(), live=values.__getitem__, state=state, save=save,
+            colours=[254, 246, 14], prior=0, mem=memory, irq=b"irq",
+            api=Mock(return_value=b"drives"), drives=b"drives",
+            time=SimpleNamespace(sleep=Mock()), mark=mark))
+        return check, state, save, mark
+
+    def test_original_colours_pass_ignoring_unused_vic_bits(self):
+        check, state, save, mark = self.make_check([14, 6, 14])
+        check("clean-confirmed-exit")
+        self.assertEqual(state["editor_exit_colours"], [14, 6, 14])
+        save.assert_called_once_with()
+        mark.assert_called_once()
+
+    def test_editor_palette_fails_before_cleanup_can_hide_it(self):
+        check, state, save, mark = self.make_check([0, 0, 1])
+        with self.assertRaisesRegex(AssertionError, "did not restore colours"):
+            check("clean-confirmed-exit")
+        self.assertEqual(state["editor_exit_colours"], [0, 0, 1])
+        save.assert_called_once_with()
+        mark.assert_not_called()
+
+
 class DocsOwnershipTests(unittest.TestCase):
     def make_ensure(self, existed, names):
         folder = "/sd/SEE64YOU"

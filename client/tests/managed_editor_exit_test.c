@@ -7,7 +7,7 @@
 #include <string.h>
 
 static unsigned stage, modes, reads, revokes, ends, executes, applications, flagged;
-static uint8_t snapshot[321];
+static uint8_t snapshot[S64_BASIC_RETURN_RECORD_SIZE];
 uint8_t s64_test_basic_return_workspace[1024];
 static jmp_buf arrival;
 S64SystemResult s64_system_state_set_mode(S64SystemState* state, S64SystemMode mode)

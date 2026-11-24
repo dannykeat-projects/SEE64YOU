@@ -8,6 +8,10 @@ This is an alpha test release. SD source replacement/recovery has bounded real-C
 
 In the Ultimate **Memory & ROMs** settings (called **C64 and Cartridge Settings** on some menus), enable **Command Interface**, **RAM Expansion Unit**, and **REU Size: 16 MB**. Recheck after a settings reset.
 
+On launch, SEE64YOU reports a pass for each verified prerequisite: Command Interface, Ultimate-DOS, 16 MB REU and writable storage. When all checks pass, it continues into the Editor without a setup prompt. If a check fails, the launcher displays the setting or storage path to check. Press **C= + RESTORE** to open the Ultimate menu, then **F2** for Settings. After applying a setting and returning to SEE64YOU, press **R** to recheck. If the firmware restarts the C64, launch `SEE64YOU.PRG` again. Use **X** to exit to BASIC.
+
+Set Command Interface and REU options in the Ultimate menu. SEE64YOU uses temporary runtime changes for operations such as module verification and restores the original machine state on exit.
+
 **Alpha.6 and later use `SYSTEM/`; alpha.5 and earlier retain their original flat inventories. Do not rearrange an older ZIP.** Copy the **complete matching folder tree** to `/sd/SEE64YOU/` by default (or the selected USB mount): keep `SEE64YOU.PRG`, `S64EDIT.PRG`, `S64PUB.PRG` and `S64CFG.PRG` directly in `SEE64YOU/`, and keep the four `.BIN` files plus `S64OVL.MNF` and `S64MODULE.MNF` in `SEE64YOU/SYSTEM/`. Do not mix these files with an older flat-layout package. Alpha.7 stores ordinary `.8tml` files in `SEE64YOU/docs/`; alpha.6 stores them at the root. `SEE64YOU.CFG`, `8TML.KEY`, recovery snapshots and journals remain in `SEE64YOU/`. Existing sources are not moved or deleted automatically: back up and copy them into `docs/` manually when upgrading, retaining all `.tmp`/`.bak` and recovery files until resolved. Physical input, cold power and USB-only acceptance remain unverified.
 
 ## Programs

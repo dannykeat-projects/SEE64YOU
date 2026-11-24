@@ -2,6 +2,7 @@
 #include <string.h>
 #include "ui.h"
 #include "menu.h"
+#include "wrap.h"
 
 #define SCREEN_COLUMNS 40u
 #define EDITOR_FIRST_ROW 1u
@@ -27,8 +28,12 @@ static unsigned int rendered_view_start;
 static unsigned int rendered_view_column;
 static unsigned char rendered_word_wrap;
 static unsigned char row_chars[SCREEN_COLUMNS + 1u];
-static unsigned char row_reverse[SCREEN_COLUMNS];
+static unsigned char row_selection_start;
+static unsigned char row_selection_end;
 
+#if defined(S64_MANAGED_OVERLAY) && defined(S64_INDEPENDENT_EDITOR)
+#pragma code-name (push, "CODE")
+#endif
 static void toggle_editor_cursor(void)
 {
     SCREEN_RAM[(unsigned int)cursor_row * SCREEN_COLUMNS + cursor_col] ^= 0x80u;
@@ -42,6 +47,9 @@ static void hide_editor_cursor(void)
     }
 }
 
+#if defined(S64_MANAGED_OVERLAY) && defined(S64_INDEPENDENT_EDITOR)
+#pragma code-name (pop)
+#endif
 static void clear_row(unsigned char row)
 {
     unsigned char i;
@@ -67,26 +75,28 @@ static void render_header(void)
 
 static void prepare_row(void)
 {
-    memset(row_chars, ' ', sizeof(row_chars));
-    memset(row_reverse, 0, sizeof(row_reverse));
+    memset(row_chars, ' ', SCREEN_COLUMNS);
+    row_chars[SCREEN_COLUMNS] = '\0';
+    row_selection_end = 0u;
 }
 
-static unsigned char position_selected(
-    unsigned int position,
-    unsigned char has_selection,
-    unsigned int selection_start,
-    unsigned int selection_end
+static void select_row_span(
+    unsigned int position, unsigned char count,
+    unsigned int selection_start, unsigned int selection_end
 )
 {
-    return has_selection
-        && position >= selection_start
-        && position < selection_end;
+    unsigned int end = position + count;
+
+    if (selection_start >= end || selection_end <= position) return;
+    row_selection_start = selection_start > position
+        ? (unsigned char)(selection_start - position) : 0u;
+    row_selection_end = selection_end < end
+        ? (unsigned char)(selection_end - position) : count;
 }
 
 static void flush_body_row(unsigned char row)
 {
-    unsigned char col = 0u;
-    unsigned char reverse = 0u;
+    unsigned char col;
 
     if (partial_first_row != 0u && row < partial_first_row) {
         return;
@@ -94,16 +104,16 @@ static void flush_body_row(unsigned char row)
 
     gotoxy(0u, row);
     revers(0);
-    while (col < SCREEN_COLUMNS) {
-        if (row_reverse[col] != reverse) {
-            reverse = row_reverse[col];
-            revers(reverse);
-        }
-        cputc(row_chars[col]);
-        ++col;
+    if (row_selection_end == 0u) {
+        cputs((const char*)row_chars);
+        return;
     }
 
+    for (col = 0u; col < row_selection_start; ++col) cputc(row_chars[col]);
+    revers(1);
+    for (; col < row_selection_end; ++col) cputc(row_chars[col]);
     revers(0);
+    cputs((const char*)&row_chars[col]);
 }
 
 static void finish_body_rows(
@@ -194,7 +204,6 @@ static void render_body_wrapped(
     unsigned int selection_start = 0u;
     unsigned int selection_end = 0u;
     unsigned int read_count;
-    unsigned int logical;
     unsigned char has_selection = s64_editor_has_selection(editor);
     unsigned char found = 0u;
     unsigned char row;
@@ -217,72 +226,50 @@ static void render_body_wrapped(
 
     for (; row < STATUS_ROW; ++row) {
         prepare_row();
-        col = 0u;
-        line_break = 0u;
-
-        if (!found && position == cursor) {
-            *cursor_row = row;
-            *cursor_col = 0u;
-            found = 1u;
-        }
-
         read_count = s64_buffer_read(
             &editor->buffer,
             position,
             row_chars,
-            SCREEN_COLUMNS
+            sizeof(row_chars)
         );
 
-        while ((unsigned int)col < read_count) {
-            logical = position + col;
+        col = s64_wrap_width(row_chars, (unsigned char)read_count);
+        line_break = col < SCREEN_COLUMNS && col < read_count
+            && row_chars[col] == '\n';
+        memset(&row_chars[col], ' ', SCREEN_COLUMNS - col);
+        row_chars[SCREEN_COLUMNS] = '\0';
 
-            if (!found && logical == cursor) {
-                *cursor_row = row;
-                *cursor_col = col;
-                found = 1u;
-            }
-
-            if (row_chars[col] == '\n') {
-                memset(&row_chars[col], ' ', SCREEN_COLUMNS - col);
-                position = logical + 1u;
-                line_break = 1u;
-                break;
-            }
-
-            if (has_selection) {
-                row_reverse[col] = position_selected(
-                    logical,
-                    has_selection,
-                    selection_start,
-                    selection_end
-                );
-            }
-            ++col;
-        }
-
-        if (!line_break) {
-            position += read_count;
-        }
-
-        if (!found
-            && !line_break
-            && col < SCREEN_COLUMNS
-            && position == cursor) {
+        if (!found && cursor >= position && cursor - position <= col
+            && (cursor - position < col || line_break || col == read_count)
+            && cursor - position < SCREEN_COLUMNS) {
             *cursor_row = row;
-            *cursor_col = col;
+            *cursor_col = (unsigned char)(cursor - position);
             found = 1u;
         }
-
-        flush_body_row(row);
-        ++rendered_rows;
+        if (has_selection) {
+            select_row_span(position, col, selection_start, selection_end);
+        }
+        position += col + line_break;
 
         if (partial_char_edit
             && row >= partial_first_row
             && line_break
             && col < SCREEN_COLUMNS - 1u) {
+            /* A single-cell edit within a short row leaves later rows intact.
+             * Include one trailing blank to erase a deleted final character. */
+            unsigned char changed = editor->view_cursor_column;
+            if (changed != 0u) --changed;
+            gotoxy(changed, row);
+            revers(0);
+            while (changed <= col) {
+                cputc(row_chars[changed++]);
+            }
             rendered_rows = previous_rows;
             break;
         }
+
+        flush_body_row(row);
+        ++rendered_rows;
 
         if (position >= length && found) {
             break;
@@ -315,7 +302,6 @@ static void render_body_horizontal(
     unsigned char has_selection = s64_editor_has_selection(editor);
     unsigned char found = 0u;
     unsigned char row;
-    unsigned char col;
     unsigned char previous_rows = body_rows;
     unsigned char rendered_rows = 0u;
 
@@ -357,14 +343,7 @@ static void render_body_horizontal(
         (void)s64_buffer_read(&editor->buffer, display, row_chars, read_count);
 
         if (has_selection) {
-            for (col = 0u; (unsigned int)col < read_count; ++col) {
-                row_reverse[col] = position_selected(
-                    display + col,
-                    has_selection,
-                    selection_start,
-                    selection_end
-                );
-            }
+            select_row_span(display, (unsigned char)read_count, selection_start, selection_end);
         }
 
         flush_body_row(row);
@@ -476,58 +455,38 @@ void s64_ui_render_edit(const S64Editor* editor, unsigned char first_body_row)
     s64_ui_render(editor);
 }
 
-void s64_ui_render_append(const S64Editor* editor, unsigned char value)
+#if defined(S64_MANAGED_OVERLAY) && defined(S64_INDEPENDENT_EDITOR)
+/* Appending should leave the model overlay loaded for the next keystroke. */
+#pragma code-name (push, "CODE")
+#endif
+unsigned char s64_ui_render_append(const S64Editor* editor, unsigned char value)
 {
-    unsigned char col = cursor_col;
-    unsigned char row = cursor_row;
-    unsigned char visible_rows;
-
-    if (!cursor_position_valid) {
-        s64_ui_render(editor);
-        return;
-    }
+    if (!cursor_position_valid) return 0u;
 
     hide_editor_cursor();
-    revers(0);
-    /* The fast append path must not depend on whatever conio call last moved
-     * its own cursor. The editor cursor is tracked independently in screen RAM. */
-    gotoxy(col, row);
-    if (value == '\n') {
-        col = 0u;
-        ++row;
-    } else {
+    if (value != '\n') {
+        revers(0);
+        gotoxy(cursor_col, cursor_row);
         cputc(value);
-        ++col;
-        if (col >= SCREEN_COLUMNS) {
-            col = 0u;
-            ++row;
-        }
     }
 
-    if (row >= STATUS_ROW) {
-        s64_ui_render(editor);
-        return;
+    if (value == '\n' || ++cursor_col == SCREEN_COLUMNS) {
+        cursor_col = 0u;
+        if (++cursor_row == STATUS_ROW) return 0u;
+        if (cursor_row > body_rows) body_rows = cursor_row;
+        gotoxy(0u, cursor_row);
     }
-
-    visible_rows = (unsigned char)(row - EDITOR_FIRST_ROW + 1u);
-    if (visible_rows > body_rows) {
-        body_rows = visible_rows;
-    }
-
     s64_ui_status_column_fast(editor->column);
-    if (value == '\n') {
-        s64_ui_status_line_fast(editor->line);
-        gotoxy(col, row);
-    }
-    if (editor->dirty) {
-        s64_ui_status_dirty_fast();
-    }
+    if (value == '\n') s64_ui_status_line_fast(editor->line);
+    if (editor->dirty) s64_ui_status_dirty_fast();
 
-    cursor_col = col;
-    cursor_row = row;
     toggle_editor_cursor();
     cursor_visible = 1u;
+    return 1u;
 }
+#if defined(S64_MANAGED_OVERLAY) && defined(S64_INDEPENDENT_EDITOR)
+#pragma code-name (pop)
+#endif
 
 void s64_ui_render_cursor(const S64Editor* editor)
 {
