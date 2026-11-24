@@ -68,6 +68,9 @@ int main(void)
 {
     S64Buffer buffer;
     unsigned char readback[4];
+    static unsigned char window_source[300];
+    unsigned int window_loads_before;
+    unsigned int window_seen;
     unsigned int i;
 
     memset(fake_reu, 0, sizeof(fake_reu));
@@ -191,6 +194,30 @@ int main(void)
     fail_load = reu_loads + 2u;
     require(s64_buffer_read(&buffer, 0u, readback, 4u) == 0u
         && s64_buffer_read_error(&buffer), "second half of split read latches failure");
+    /* Cached character windows sit on a whole-size boundary, so a scan that
+     * steps through neighbouring characters needs one transfer per window
+     * rather than one per character, while returning identical source bytes. */
+    s64_buffer_init(&buffer);
+    fail_load = 0u;
+    for (i = 0u; i < 300u; ++i) {
+        window_source[i] = (unsigned char)('a' + (i % 26u));
+    }
+    require(s64_buffer_append(&buffer, window_source, 300u), "window scan fixture");
+    for (i = 0u; i < 300u; ++i) {
+        require(s64_buffer_char_at(&buffer, i) == window_source[i],
+                "forward window scan keeps source bytes");
+    }
+    window_loads_before = reu_loads;
+    window_seen = 0u;
+    for (i = 300u; i > 0u; --i) {
+        if (s64_buffer_char_at(&buffer, i - 1u) == window_source[i - 1u]) {
+            ++window_seen;
+        }
+    }
+    require(window_seen == 300u, "backward window scan keeps source bytes");
+    require(reu_loads - window_loads_before <= 8u,
+            "backward window scan transfers one window per 64 characters");
+
     puts("REU buffer tests passed");
     return 0;
 }

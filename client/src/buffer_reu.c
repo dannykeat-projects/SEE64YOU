@@ -118,19 +118,24 @@ static unsigned char load_window(
 )
 {
     unsigned int count;
+    unsigned int start;
 
     if (physical >= S64_BUFFER_CAPACITY) {
         return 0u;
     }
 
-    count = S64_BUFFER_CAPACITY - physical;
+    /* Keep the window on a whole-size boundary so scans that step through
+     * neighbouring characters reuse one transfer instead of reloading a
+     * window per character. */
+    start = physical & ~(S64_REU_WINDOW_SIZE - 1u);
+    count = S64_BUFFER_CAPACITY - start;
     if (count > S64_REU_WINDOW_SIZE) {
         count = S64_REU_WINDOW_SIZE;
     }
 
     if (!s64_reu_load(
             S64_REU_DOCUMENT_BANK,
-            (uint16_t)physical,
+            (uint16_t)start,
             reu_window,
             (uint16_t)count
         )) {
@@ -141,7 +146,7 @@ static unsigned char load_window(
     }
 
     reu_window_owner = buffer;
-    reu_window_start = physical;
+    reu_window_start = start;
     reu_window_length = (unsigned char)count;
     return 1u;
 }
