@@ -88,6 +88,9 @@ uint8_t s64_document_wire_reader_write(
 );
 S64DocumentResult s64_document_wire_reader_finish(S64DocumentWireReader* reader);
 
+#if defined(S64_DOCUMENT_8TML) && !defined(S64_STORAGE_READ_ONLY)
+S64DocumentResult s64_document_check_source(const S64Document* document);
+#endif
 S64DocumentResult s64_document_write_wire(
     const S64Document* document,
     S64DocumentSink sink,

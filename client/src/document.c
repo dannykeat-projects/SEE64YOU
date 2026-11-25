@@ -578,6 +578,7 @@ static uint8_t source_valid(const S64Document* document)
     unsigned int position;
     unsigned int colon;
     uint8_t byte;
+    uint8_t version_key;
     uint8_t version_seen = 0u;
     uint8_t header_closed = 0u;
 
@@ -604,17 +605,12 @@ static uint8_t source_valid(const S64Document* document)
             colon = start;
             while (colon < end && source_byte(body, colon) != 58u) ++colon;
             if (colon == start || colon == end) return 0u;
-            if (!version_seen || (colon - start == 4u
-                    && source_byte(body, start) == 56u
-                    && (source_byte(body, start + 1u) | 32u) == 116u
-                    && (source_byte(body, start + 2u) | 32u) == 109u
-                    && (source_byte(body, start + 3u) | 32u) == 108u)) {
-                /* A later version key must not contradict the first one.
-                 * Match the PHP producer validator before any disk write. */
-                if (colon - start != 4u || source_byte(body, start) != 56u
-                    || (source_byte(body, start + 1u) | 32u) != 116u
-                    || (source_byte(body, start + 2u) | 32u) != 109u
-                    || (source_byte(body, start + 3u) | 32u) != 108u) return 0u;
+            version_key = colon - start == 4u && source_byte(body, start) == 56u
+                && (source_byte(body, start + 1u) | 32u) == 116u
+                && (source_byte(body, start + 2u) | 32u) == 109u
+                && (source_byte(body, start + 3u) | 32u) == 108u;
+            if (!version_key && !version_seen) return 0u;
+            if (version_key) {
                 position = colon + 1u;
                 while (position < end && (source_byte(body, position) == 32u
                     || source_byte(body, position) == 9u)) ++position;
@@ -703,6 +699,13 @@ S64DocumentResult s64_document_wire_reader_finish(S64DocumentWireReader* reader)
     (void)s64_buffer_move_cursor(reader->document->body, 0u);
     return reader->result;
 }
+
+#ifndef S64_STORAGE_READ_ONLY
+S64DocumentResult s64_document_check_source(const S64Document* document)
+{
+    return source_valid(document) ? S64_DOCUMENT_OK : S64_DOCUMENT_INVALID_METADATA;
+}
+#endif
 
 S64DocumentResult s64_document_write_wire(
     const S64Document* document, S64DocumentSink sink, void* context)

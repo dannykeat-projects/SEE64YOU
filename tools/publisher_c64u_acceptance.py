@@ -14,7 +14,7 @@ import urllib.parse
 import urllib.request
 
 
-FIXTURE_NAMES = {"P8STYLE.8ss", "P8STYLE2.8ss", "P8NOTES.txt", "P8NOTES2.txt", "P8LIMIT.txt"}
+FIXTURE_NAMES = {"P8PAGE.8tml", "P8PAGE2.8tml", "P8STYLE.8ss", "P8STYLE2.8ss", "P8NOTES.txt", "P8NOTES2.txt", "P8LIMIT.txt"}
 
 
 def run(*, folder, docs_dir, fetch, put, keys, native, wait, launch,
@@ -114,11 +114,15 @@ def run(*, folder, docs_dir, fetch, put, keys, native, wait, launch,
         assert status.get("status") == "ok" and status.get("api") == "1"
         receipt["server_max_size"] = int(status["max-size"])
         save()
-        fixtures = (("8ss", "P8STYLE.8ss", "P8STYLE2.8ss", b"# C64U stylesheet\ntext: lightgrey\nbg: black\n"),
+        fixtures = (("8tml", "P8PAGE.8tml", "P8PAGE2.8tml",
+                     b"---\n8tml: 1\ntitle: C64 Publisher test\n---\n" + b"Publisher body line.\n" * 8),
+                    ("8ss", "P8STYLE.8ss", "P8STYLE2.8ss", b"# C64U stylesheet\ntext: lightgrey\nbg: black\n"),
                     ("txt", "P8NOTES.txt", "P8NOTES2.txt", b"Plain text from the C64U Publisher.\n"))
         for extension, initial_name, replacement_name, source in fixtures:
             put(docs_dir + "/" + initial_name, source)
             put(docs_dir + "/" + replacement_name, source + b"# Replacement source\n")
+            assert fetch(docs_dir + "/" + initial_name) == source, "Local fixture readback differs"
+            assert fetch(docs_dir + "/" + replacement_name) == source + b"# Replacement source\n"
         launch("S64PUB.PRG", "[0] EXIT TO BASIC")
         keys(b"4")
         wait("Endpoint ready", "publisher-network-status", timeout=180)

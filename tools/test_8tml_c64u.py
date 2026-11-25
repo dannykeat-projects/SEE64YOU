@@ -556,7 +556,7 @@ def main():
             (out / "editor-created.8tml").write_bytes(saved)
             mark("shipping-editor-create-body-save-basename-exact-source")
             put(folder + "/SEE64YOU.REC", saved)
-            launch("SEE64YOU.PRG", "Recover snapshot? Y/N")
+            launch("SEE64YOU.PRG", "Recovery: Y open")
             keys(b"Y")
             wait("Recovered snapshot", "editor-recovered")
             keys(b"\x11" * 4 + native("Updated "))
@@ -575,7 +575,7 @@ def main():
                     (RECOVERY_NAMES[2], TEXT, "M8UIMD.md", "TEXT"),
                     (RECOVERY_NAMES[2], b"", "M8UIZERO", "TEXT")):
                 put(folder + "/" + snapshot, source)
-                launch("SEE64YOU.PRG", "Recover snapshot? Y/N")
+                launch("SEE64YOU.PRG", "Recovery: Y open")
                 keys(b"Y")
                 recovered = wait("Recovered snapshot", basename + "-recovered")
                 assert kind in recovered.splitlines()[0], recovered

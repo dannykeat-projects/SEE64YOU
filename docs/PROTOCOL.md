@@ -35,6 +35,6 @@ Local sources may be `.8tml`, `.8ss` or `.txt`, case-insensitively. They use the
 
 Publisher checks the advertised size cap and requests the existing-name list before asking to publish or replace. An observed existing name requires affirmative replacement confirmation. The draft has no conditional write operation: another writer can change the destination between list and put. The UI discloses this limitation.
 
-Each signed operation requests a new challenge. Uncertain writes are never retried automatically. A disconnect after transmission can mean the server committed the file; inspect the remote result before another attempt. Local source is never modified by publication.
+The receive loop allows 45 seconds without progress and 180 seconds total per response. Each signed operation requests a new challenge. Uncertain writes are never retried automatically. A disconnect after transmission can mean the server committed the file; inspect the remote result before another attempt. Local source is never modified by publication.
 
 Legacy CMS, WordPress, relay and custom JSON handlers remain in the repository pending replacement acceptance and caller tracing. They are not the independent Publisher's protocol. Prior release assets retain their original behavior.

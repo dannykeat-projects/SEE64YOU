@@ -238,11 +238,13 @@ static void launch_publisher(void)
 #endif
 #endif
 
-static void clear_recovery_snapshot(void)
+static unsigned char keep_snapshot;
+
+static S64LocalResult clear_recovery_snapshot(void)
 {
-    if (uci_capabilities.dos_target) {
-        (void)s64_local_delete_recovery(&local_document);
-    }
+    if (!keep_snapshot && uci_capabilities.dos_target)
+        return s64_local_delete_recovery(&local_document);
+    return S64_LOCAL_OK;
 }
 
 static void offer_recovery(void)
@@ -254,18 +256,26 @@ static void offer_recovery(void)
         return;
     }
 
+    keep_snapshot = 1u;
     result = s64_local_recovery_exists(&local_document, &exists);
     if (result != S64_LOCAL_OK) {
         show_local_result(result);
         return;
     }
-    if (!exists) return;
+    if (!exists) { keep_snapshot = 0u; return; }
 
-    if (!s64_ui_prompt_yes_no("Recover snapshot? Y/N")) {
-        (void)s64_local_delete_recovery(&local_document);
-        s64_ui_render(&editor);
-        s64_ui_message("Recovery discarded");
-        return;
+    switch (s64_ui_recovery_choice()) {
+        case CH_STOP:
+            s64_ui_message("Snapshot kept");
+            return;
+        case 'd':
+            result = s64_local_delete_recovery(&local_document);
+            if (result != S64_LOCAL_OK) show_local_result(result);
+            else {
+                keep_snapshot = 0u;
+                s64_ui_message("Recovery discarded");
+            }
+            return;
     }
 
     result = s64_local_open_recovery(&local_document);
@@ -275,9 +285,20 @@ static void offer_recovery(void)
     }
 
     s64_editor_document_loaded(&editor);
+    keep_snapshot = 0u;
     editor.dirty = 1u;
     s64_ui_render(&editor);
     s64_ui_message("Recovered snapshot");
+}
+
+static void finish_load(const char* message)
+{
+    S64LocalResult result;
+    s64_editor_document_loaded(&editor);
+    result = clear_recovery_snapshot();
+    s64_ui_render(&editor);
+    if (result == S64_LOCAL_OK) s64_ui_message(message);
+    else show_local_result(result);
 }
 
 static void new_document(void)
@@ -299,10 +320,7 @@ static void new_document(void)
         return;
     }
 
-    s64_editor_document_loaded(&editor);
-    clear_recovery_snapshot();
-    s64_ui_render(&editor);
-    s64_ui_message("New document");
+    finish_load("New document");
 }
 
 static void open_document(void)
@@ -331,21 +349,32 @@ static void open_document(void)
         return;
     }
 
-    s64_editor_document_loaded(&editor);
-    clear_recovery_snapshot();
-    s64_ui_render(&editor);
-    s64_ui_message("File opened");
+    finish_load("File opened");
 }
 
-static void save_as_document(void)
+static unsigned char finish_save(S64LocalResult result)
+{
+    if (result != S64_LOCAL_OK && result != S64_LOCAL_SAVED_BACKUP) {
+        show_local_result(result);
+        return 0u;
+    }
+    s64_editor_mark_saved(&editor);
+    s64_ui_render(&editor);
+    if (result == S64_LOCAL_OK) result = clear_recovery_snapshot();
+    if (result == S64_LOCAL_OK) s64_ui_message("File saved");
+    else show_local_result(result);
+    return result == S64_LOCAL_OK;
+}
+
+static unsigned char save_as_document(void)
 {
     char filename[S64_LOCAL_FILENAME_CAPACITY];
     S64LocalResult result;
 
-    if (!local_storage_ready()) return;
+    if (!local_storage_ready()) return 0u;
     if (!s64_ui_prompt_text("Save as: ", filename, sizeof(filename))) {
         s64_ui_render(&editor);
-        return;
+        return 0u;
     }
 
     s64_ui_message("Saving...");
@@ -353,44 +382,27 @@ static void save_as_document(void)
     if (result == S64_LOCAL_EXISTS) {
         if (!s64_ui_prompt_yes_no("Overwrite file? Y/N")) {
             s64_ui_render(&editor);
-            return;
+            return 0u;
         }
         s64_ui_message("Saving...");
         result = s64_local_save_as(&local_document, filename, 1u);
     }
 
-    if (result != S64_LOCAL_OK) {
-        show_local_result(result);
-        return;
-    }
-
-    s64_editor_mark_saved(&editor);
-    clear_recovery_snapshot();
-    s64_ui_render(&editor);
-    s64_ui_message("File saved");
+    return finish_save(result);
 }
 
-static void save_document(void)
+static unsigned char save_document(void)
 {
     S64LocalResult result;
 
-    if (!local_storage_ready()) return;
+    if (!local_storage_ready()) return 0u;
     if (!s64_local_has_filename(&local_document)) {
-        save_as_document();
-        return;
+        return save_as_document();
     }
 
     s64_ui_message("Saving...");
     result = s64_local_save(&local_document);
-    if (result != S64_LOCAL_OK) {
-        show_local_result(result);
-        return;
-    }
-
-    s64_editor_mark_saved(&editor);
-    clear_recovery_snapshot();
-    s64_ui_render(&editor);
-    s64_ui_message("File saved");
+    return finish_save(result);
 }
 
 static unsigned char confirm_exit(void)
@@ -410,12 +422,13 @@ static unsigned char confirm_exit(void)
     s64_ui_message("S SAVE  D DISCARD  STOP CANCEL");
     key = s64_ui_prompt_exit();
     if (key == 's') {
-        save_document();
-        return editor.dirty ? 0u : 1u;
+        return save_document();
     }
     if (key == 'd') {
-        clear_recovery_snapshot();
-        return 1u;
+        S64LocalResult result = clear_recovery_snapshot();
+        if (result == S64_LOCAL_OK) return 1u;
+        show_local_result(result);
+        return 0u;
     }
     s64_ui_render(&editor);
     return 0u;
@@ -984,23 +997,21 @@ int main(void)
                 prompt_replace();
                 continue;
             case S64_INPUT_UNDO:
-                if (!s64_editor_undo(&editor)) {
-                    s64_ui_render(&editor);
-                    s64_ui_message("Undo unavailable or failed");
-                    continue;
-                }
-                if (!editor.dirty) {
-                    clear_recovery_snapshot();
-                }
-                break;
             case S64_INPUT_REDO:
-                if (!s64_editor_redo(&editor)) {
+                if (!(input.type == S64_INPUT_UNDO
+                    ? s64_editor_undo(&editor) : s64_editor_redo(&editor))) {
                     s64_ui_render(&editor);
-                    s64_ui_message("Redo unavailable or failed");
+                    s64_ui_message(input.type == S64_INPUT_UNDO
+                        ? "Undo unavailable or failed" : "Redo unavailable or failed");
                     continue;
                 }
                 if (!editor.dirty) {
-                    clear_recovery_snapshot();
+                    S64LocalResult cleanup = clear_recovery_snapshot();
+                    if (cleanup != S64_LOCAL_OK) {
+                        s64_ui_render(&editor);
+                        show_local_result(cleanup);
+                        continue;
+                    }
                 }
                 break;
 

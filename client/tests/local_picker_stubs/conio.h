@@ -1,6 +1,7 @@
 #ifndef SEE64YOU_LOCAL_PICKER_CONIO_TEST_H
 #define SEE64YOU_LOCAL_PICKER_CONIO_TEST_H
 #define CH_STOP 3u
+unsigned char kbhit(void);
 unsigned char cgetc(void);
 void clrscr(void);
 void cputs(const char* text);

@@ -10,7 +10,7 @@
 
 /* Static to avoid the small C64 software stack. One page only. */
 static char names[PICKER_ROWS][S64_DOS_DIR_NAME_CAPACITY];
-static uint8_t count, more, page;
+static uint8_t count, more, page, cancelled;
 
 static uint8_t is_source(const char* name)
 {
@@ -26,6 +26,7 @@ static uint8_t on_directory_entry(const S64DosDirEntry* entry, void* context)
 {
     PickerScan* scan = (PickerScan*)context;
 
+    if (kbhit() && cgetc() == CH_STOP) { cancelled = 1u; return 0u; }
     if (scan->scanned == PICKER_SCAN_LIMIT) return 0u;
     ++scan->scanned;
     if ((entry->attributes & 0x1Eu) != 0u
@@ -49,7 +50,7 @@ static uint8_t read_page(S64Dos* dos)
     PickerScan scan;
     S64DosResult result;
 
-    count = more = 0u;
+    count = more = cancelled = 0u;
     scan.scanned = scan.eligible = 0u;
     /* Print before the blocking directory query, including page changes. */
     clrscr(); cputs("READING LOCAL FILES...\r\nPLEASE WAIT...");
@@ -59,7 +60,7 @@ static uint8_t read_page(S64Dos* dos)
 
     result = s64_dos_dir_read(dos, s64_uci_execute_packets,
                               on_directory_entry, &scan);
-    return result == S64_DOS_OK;
+    return result == S64_DOS_OK || (cancelled && result == S64_DOS_CONSUMER_ABORTED);
 }
 
 static void show_page(void)
@@ -99,18 +100,23 @@ uint8_t s64_local_pick(S64Dos* dos, char* filename, uint8_t capacity)
 
     for (;;) {
         if (!read_page(dos)) return 3u;
+        if (cancelled) return 0u;
         show_page();
-        key = cgetc();
-        if (key == CH_STOP || key == '0') return 0u;
-        if (key == '7') return 2u;
-        if (key == '8' && page) {
-            --page;
-        } else if (key == '9' && more) {
-            if (page >= (PICKER_SCAN_LIMIT / PICKER_ROWS)) return 3u;
-            ++page;
-        } else if (key >= '1' && key < (unsigned char)('1' + count)) {
-            strcpy(filename, names[(uint8_t)(key - '1')]);
-            return 1u;
+        for (;;) {
+            key = cgetc();
+            if (key == CH_STOP || key == '0') return 0u;
+            if (key == '7') return 2u;
+            if (key == '8' && page) {
+                --page;
+                break;
+            } else if (key == '9' && more) {
+                if (page >= (PICKER_SCAN_LIMIT / PICKER_ROWS)) return 3u;
+                ++page;
+                break;
+            } else if (key >= '1' && key < (unsigned char)('1' + count)) {
+                strcpy(filename, names[(uint8_t)(key - '1')]);
+                return 1u;
+            }
         }
     }
 }

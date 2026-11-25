@@ -15,6 +15,8 @@ typedef struct {
  uint32_t max_size, size;
  uint8_t exists, warning;
  char name[65], url[193], message[81];
+ char http_code[4], error_code[24];
+ uint8_t operation;
 } S64StandardReply;
 /* Writer emits exact source bytes once. Never retries an ambiguous write.
    Caller lists and confirms replacement before put; API 1 has no atomic

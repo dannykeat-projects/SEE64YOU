@@ -333,10 +333,11 @@ int s64_buffer_insert(S64Buffer* buffer, unsigned char value)
     return 1;
 }
 
-int s64_buffer_append(S64Buffer* buffer, const unsigned char* data, unsigned int length)
+/* The retained managed Publisher streams imports with single-byte insert.
+ * Its linked object map has no callers of the Editor range mutations. */
+#ifndef S64_CODE_ASSET_PUBLISHER
+static int store_at_gap(S64Buffer* buffer, const unsigned char* data, unsigned int length)
 {
-    if (s64_buffer_read_error(buffer) || buffer == 0 || buffer->gap_end != S64_BUFFER_CAPACITY
-        || buffer->cursor != buffer->gap_start) return 0;
     if (length == 0u) return 1;
     if (data == 0 || length > s64_buffer_free(buffer)) return 0;
     invalidate_window(buffer);
@@ -346,6 +347,22 @@ int s64_buffer_append(S64Buffer* buffer, const unsigned char* data, unsigned int
     buffer->cursor = buffer->gap_start;
     return 1;
 }
+
+int s64_buffer_append(S64Buffer* buffer, const unsigned char* data, unsigned int length)
+{
+    if (s64_buffer_read_error(buffer) || buffer == 0 || buffer->gap_end != S64_BUFFER_CAPACITY
+        || buffer->cursor != buffer->gap_start) return 0;
+    return store_at_gap(buffer, data, length);
+}
+
+#ifndef S64_STORAGE_READ_ONLY
+int s64_buffer_insert_bytes(S64Buffer* buffer, const unsigned char* data, unsigned int length)
+{
+    if (s64_buffer_read_error(buffer) || length > s64_buffer_free(buffer)) return 0;
+    if (buffer->gap_start != buffer->cursor && !move_gap(buffer, buffer->cursor)) return 0;
+    return store_at_gap(buffer, data, length);
+}
+#endif
 
 int s64_buffer_backspace(S64Buffer* buffer)
 {
@@ -404,3 +421,4 @@ int s64_buffer_delete_range(
     buffer->cursor = start;
     return 1;
 }
+#endif

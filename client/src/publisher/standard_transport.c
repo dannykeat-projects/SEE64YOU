@@ -5,9 +5,13 @@
 #include "publisher/direct_auth.h"
 #include "charset.h"
 #include <string.h>
+#include <time.h>
 
 /* Private scratch for a single synchronous operation, never source memory. */
-static char host[96], endpoint[193], uri[384], header[256];
+static char host[96];
+static const char* endpoint;
+/* The URI is sent before Content-Length formatting and response parsing. */
+static union { char uri[384]; char header[256]; } request_scratch;
 static char challenge[33], signature[65], target[65];
 static uint8_t raw_key[32];
 static S64PublishSigner signer;
@@ -36,8 +40,8 @@ static void number(uint32_t value)
 {
  char digits[10]; uint8_t count=0u,i=0u;
  do { digits[count++]=(char)('0'+value%10u); value/=10u; } while(value);
- while(count) header[i++]=digits[--count];
- header[i]=0;
+ while(count) request_scratch.header[i++]=digits[--count];
+ request_scratch.header[i]=0;
 }
 static int copy(char* dest,uint16_t capacity,const char* source)
 {
@@ -109,7 +113,8 @@ static S64StandardResult prepare(S64StandardClient* client,S64StandardReply* rep
  authority=client->url+7; path=strchr(authority,'/');
  if(!path || path==authority || strpbrk(authority,"@?# \r\n\t")) return S64_STANDARD_INVALID;
  length=(uint16_t)(path-authority);
- if(length>=sizeof(host) || !copy(endpoint,sizeof(endpoint),path)) return S64_STANDARD_INVALID;
+ if(length>=sizeof(host)) return S64_STANDARD_INVALID;
+ endpoint=path;
  memcpy(host,authority,length); host[length]=0; port=80u;
  colon=strchr(host,':');
  if(colon) {
@@ -127,7 +132,10 @@ static int reply_line(const char* key,const char* value,void* context)
 {
  const char* space; uint32_t size;
  (void)context;
- if(!strcmp(key,"message") || !strcmp(key,"error")) {
+ if(!strcmp(key,"error")) {
+  strncpy(output->error_code,value,sizeof(output->error_code)-1u); return 1;
+ }
+ if(!strcmp(key,"message")) {
   strncpy(output->message,value,sizeof(output->message)-1u); return 1;
  }
  if(!strcmp(key,"warning")) {
@@ -174,20 +182,21 @@ static uint8_t receive(const uint8_t* bytes,uint16_t length,void* context)
   if(++header_total>4096u) goto invalid;
   if(bytes[i]==13u) { ++i; continue; }
   if(bytes[i]!=10u) {
-   if(header_length>=sizeof(header)-1u || bytes[i]<32u || bytes[i]>126u || !s64_charset_ascii_to_native(bytes[i++],&native)) goto invalid;
-   header[header_length++]=(char)native; continue;
+   if(header_length>=sizeof(request_scratch.header)-1u || bytes[i]<32u || bytes[i]>126u || !s64_charset_ascii_to_native(bytes[i++],&native)) goto invalid;
+   request_scratch.header[header_length++]=(char)native; continue;
   }
-  ++i; header[header_length]=0;
+  ++i; request_scratch.header[header_length]=0;
   if(!have_status) {
-   if(header_length<12u || (!equal_ci(header,"HTTP/1.0 ",9u) && !equal_ci(header,"HTTP/1.1 ",9u))) goto invalid;
-   if(header[9]<'1' || header[9]>'5' || header[10]<'0' || header[10]>'9' || header[11]<'0' || header[11]>'9') goto invalid;
-   http_status=(uint16_t)((header[9]-'0')*100u+(header[10]-'0')*10u+header[11]-'0'); have_status=1u;
+   if(header_length<12u || (!equal_ci(request_scratch.header,"HTTP/1.0 ",9u) && !equal_ci(request_scratch.header,"HTTP/1.1 ",9u))) goto invalid;
+   if(request_scratch.header[9]<'1' || request_scratch.header[9]>'5' || request_scratch.header[10]<'0' || request_scratch.header[10]>'9' || request_scratch.header[11]<'0' || request_scratch.header[11]>'9') goto invalid;
+   http_status=(uint16_t)((request_scratch.header[9]-'0')*100u+(request_scratch.header[10]-'0')*10u+request_scratch.header[11]-'0'); have_status=1u;
+   memcpy(output->http_code,request_scratch.header+9,3u);
   } else if(!header_length) headers_done=1u;
-  else if(equal_ci(header,"Content-Length:",15u)) {
-   value=header+15; while(*value==' ') ++value;
+  else if(equal_ci(request_scratch.header,"Content-Length:",15u)) {
+   value=request_scratch.header+15; while(*value==' ') ++value;
    if(have_length || !decimal(value,&remaining) || remaining>65535u) goto invalid;
    have_length=1u;
-  } else if(equal_ci(header,"Transfer-Encoding:",18u)) goto invalid;
+  } else if(equal_ci(request_scratch.header,"Transfer-Encoding:",18u)) goto invalid;
   header_length=0u;
  }
  amount=length-i;
@@ -211,9 +220,13 @@ static uint8_t send_source(const uint8_t* data,uint16_t length,void* context)
 static S64StandardResult exchange(S64PublishRequestKind kind,uint32_t size,S64StandardWriter writer,void* context)
 {
  S64NetResult net; S64StandardResult result=S64_STANDARD_NETWORK;
- uint16_t idle=0u,received,polls=0u; char* colon;
+ uint16_t received; char* colon;
+ unsigned long started, last_data, now;
  operation=kind;
- if(!s64_publish_request_path(uri,sizeof(uri),endpoint,kind,active->id,target,size,challenge)) return S64_STANDARD_INVALID;
+ output->operation=(uint8_t)kind;
+ output->http_code[0]=output->error_code[0]=output->message[0]=0;
+ output->warning=0u;
+ if(!s64_publish_request_path(request_scratch.uri,sizeof(request_scratch.uri),endpoint,kind,active->id,target,size,challenge)) return S64_STANDARD_INVALID;
  if(kind==S64_PUBLISH_REQUEST_LIST || kind==S64_PUBLISH_REQUEST_PUT) {
   if(!active->key || !s64_direct_key_parse(active->key,raw_key) || !s64_publish_sign_begin(&signer,raw_key,kind==S64_PUBLISH_REQUEST_LIST?"list":"put",active->id,challenge,kind==S64_PUBLISH_REQUEST_LIST?"":target,size)) {
    memset(raw_key,0,sizeof(raw_key)); return S64_STANDARD_INVALID;
@@ -227,10 +240,10 @@ static S64StandardResult exchange(S64PublishRequestKind kind,uint32_t size,S64St
  headers_done=have_status=have_length=failed=body_sent=fields=0u;
  header_length=header_total=http_status=0u; remaining=0u;
  s64_publish_reply_init(&reader);
- if(!send_text(kind==S64_PUBLISH_REQUEST_STATUS?"GET ":"POST ") || !send_text(uri) || !send_text(" HTTP/1.0\r\nHost: ") || !send_text(host) || !send_text("\r\nConnection: close\r\n")) goto done;
+ if(!send_text(kind==S64_PUBLISH_REQUEST_STATUS?"GET ":"POST ") || !send_text(request_scratch.uri) || !send_text(" HTTP/1.0\r\nHost: ") || !send_text(host) || !send_text("\r\nConnection: close\r\n")) goto done;
  if(kind!=S64_PUBLISH_REQUEST_STATUS) {
   number(kind==S64_PUBLISH_REQUEST_CHALLENGE?0u:size+64u);
-  if(!send_text("Content-Length: ") || !send_text(header) || !send_text("\r\nContent-Type: application/octet-stream\r\n")) goto done;
+  if(!send_text("Content-Length: ") || !send_text(request_scratch.header) || !send_text("\r\nContent-Type: application/octet-stream\r\n")) goto done;
  }
  if(!send_text("\r\n")) goto done;
  if(kind==S64_PUBLISH_REQUEST_PUT || kind==S64_PUBLISH_REQUEST_LIST) {
@@ -238,15 +251,20 @@ static S64StandardResult exchange(S64PublishRequestKind kind,uint32_t size,S64St
   /* A complete signature may reach the server even if acknowledgement fails. */
   body_sent=1u; if(!send_text(signature)) goto done;
  }
- while(idle<512u && polls++<4096u) {
+ started=last_data=(unsigned long)clock();
+ for (;;) {
   received=0u;
   net=s64_net_read(&active->network,socket_handle,S64_NET_READ_MAX,receive,0,&received);
   if(failed) { result=S64_STANDARD_PROTOCOL; goto done; }
   if(net!=S64_NET_OK && net!=S64_NET_NO_DATA && net!=S64_NET_CLOSED) goto done;
-  if(received) idle=0u; else ++idle;
+  now=(unsigned long)clock();
+  if(now-started >= 180UL*CLOCKS_PER_SEC || now-last_data >= 45UL*CLOCKS_PER_SEC) {
+   result=S64_STANDARD_PROTOCOL; goto done;
+  }
+  if(received) last_data=now;
   if((headers_done && have_length && !remaining) || net==S64_NET_CLOSED) break;
  }
- if(idle>=512u || polls>=4096u || !headers_done || (have_length && remaining) || !s64_publish_reply_finish(&reader)) { result=S64_STANDARD_PROTOCOL; goto done; }
+ if(!headers_done || (have_length && remaining) || !s64_publish_reply_finish(&reader)) { result=S64_STANDARD_PROTOCOL; goto done; }
  if(reader.is_error || http_status<200u || http_status>=300u) { result=S64_STANDARD_SERVER; goto done; }
  if((kind==S64_PUBLISH_REQUEST_STATUS && fields!=7u) || (kind==S64_PUBLISH_REQUEST_CHALLENGE && fields!=1u) || (kind==S64_PUBLISH_REQUEST_PUT && fields!=7u)) { result=S64_STANDARD_PROTOCOL; goto done; }
  result=S64_STANDARD_OK;

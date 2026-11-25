@@ -59,6 +59,11 @@ $HostCc = @("cc", "gcc", "clang") |
     Select-Object -First 1
 
 if ($HostCc) {
+    if (!$Python) { throw "Python is required for the shared Editor and Publisher regressions" }
+    Invoke-Checked "REU window and standard Publisher regressions" {
+        & $Python.Path tools/tests/editor_publisher_regressions.py --cc $HostCc.Path
+    }
+
     $TestDir = Join-Path ([System.IO.Path]::GetTempPath()) ("see64you-tests-" + [guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Force $TestDir | Out-Null
 

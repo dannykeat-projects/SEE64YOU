@@ -198,6 +198,10 @@ static S64UciResult execute_internal(
     uint16_t i;
     uint16_t stream_length;
     S64UciResult validation;
+#ifdef S64_INDEPENDENT_PUBLISHER
+    clock_t packet_started = 0;
+    if (packet_sink) packet_started = clock();
+#endif
 
     s64_uci_reset_reply(reply);
 
@@ -241,9 +245,9 @@ static S64UciResult execute_internal(
             if (stream_length == S64_UCI_STREAM_BUFFER) {
 #ifdef S64_INDEPENDENT_PUBLISHER
                 if (packet_sink != 0) {
-                    if (!consumer_failed
-                        && !packet_sink(stream_buffer, stream_length, 0u,
-                                        packet_context)) consumer_failed = 1u;
+                    if (s64_uci_wait_expired(packet_started)) goto packet_timeout;
+                    if (!packet_sink(stream_buffer, stream_length, 0u, packet_context))
+                        goto packet_cancel;
                 } else
 #endif
                 (void)s64_uci_flush_data(reply, stream_length, &consumer_failed);
@@ -252,9 +256,9 @@ static S64UciResult execute_internal(
         }
 #ifdef S64_INDEPENDENT_PUBLISHER
         if (packet_sink != 0) {
-            if (!consumer_failed
-                && !packet_sink(stream_buffer, stream_length, 1u,
-                                packet_context)) consumer_failed = 1u;
+            if (s64_uci_wait_expired(packet_started)) goto packet_timeout;
+            if (!packet_sink(stream_buffer, stream_length, 1u, packet_context))
+                goto packet_cancel;
         } else
 #endif
         (void)s64_uci_flush_data(reply, stream_length, &consumer_failed);
@@ -274,6 +278,14 @@ static S64UciResult execute_internal(
 
     if (status_invalid) return S64_UCI_PROTOCOL_ERROR;
     return consumer_failed ? S64_UCI_CONSUMER_ABORTED : S64_UCI_OK;
+#ifdef S64_INDEPENDENT_PUBLISHER
+packet_cancel:
+    S64_UCI_CONTROL = S64_UCI_ABORT;
+    return s64_uci_wait_until_idle() ? S64_UCI_CONSUMER_ABORTED : S64_UCI_TIMEOUT;
+packet_timeout:
+    S64_UCI_CONTROL = S64_UCI_ABORT;
+    return S64_UCI_TIMEOUT;
+#endif
 }
 
 S64UciResult s64_uci_execute(

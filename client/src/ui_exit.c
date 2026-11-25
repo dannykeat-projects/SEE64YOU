@@ -16,3 +16,16 @@ unsigned char s64_ui_prompt_exit(void)
         }
     }
 }
+
+unsigned char s64_ui_recovery_choice(void)
+{
+    unsigned char key;
+    gotoxy(0u, 24u);
+    cputs("Recovery: Y open  D discard  STOP keep ");
+    for (;;) {
+        key = cgetc();
+        if (key == 'y' || key == 'Y') return 'y';
+        if (key == 'd' || key == 'D') return 'd';
+        if (key == CH_STOP || key == 'n' || key == 'N') return CH_STOP;
+    }
+}
