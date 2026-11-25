@@ -60,8 +60,4 @@ http://192.168.1.10:6464
 
 Do not append /api.php; the publisher constructs backend paths.
 
-The C64U setup/settings UX should hide relay details from users who do not need this path. Relay configuration belongs in Advanced Settings.
-
-## Scope
-
-The relay is optional and not required for offline editing or the default direct Publisher transport. Keep its access key distinct from the upstream site key. Configuration remains in Advanced Settings and is saved under the selected C64U application root with verified readback.
+Keep the relay access key distinct from the upstream site key. For the current independent Publisher, use the [installation guide](../docs/INSTALL.md).

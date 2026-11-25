@@ -29,7 +29,7 @@ Remote selection uses the authenticated standard list and changes only the targe
 
 Press **3** to check limits and existing names. Review local source, endpoint and remote target, then **1** confirms create/replacement or **0** cancels. API 1 cannot prevent competing writes between checking existence and replacement. HTTP uploads are public and unencrypted.
 
-A confirmed upload displays `PUBLISHED` and the URL returned by the server. A return to the home screen with an error is not confirmation. The current home status is limited to 39 characters; use **2 Browse remote** to inspect the destination after a failure and preserve the local file. Inspect remote content before retrying an uncertain upload; writes are never automatically retried. Publisher has no page/post categories, draft visibility, deletion or remote editing.
+A confirmed upload displays `PUBLISHED` and the URL returned by the server. A return to the home screen with an error is not confirmation. On the experiment branch, the home screen displays up to 80 characters of status across its bottom three rows. Use **2 Browse remote** to check the target name after a failure. The local source stays on disk. Inspect remote content before retrying an uncertain upload; writes are never automatically retried. Publisher has no page/post categories, draft visibility, deletion or remote editing.
 
 ## Validation limits
 
