@@ -33,6 +33,6 @@ A confirmed upload displays `PUBLISHED` and the URL returned by the server. A re
 
 ## Validation limits
 
-The client accepts `.8tml`, `.8ss` and `.txt` for upload, subject to server validation. Recent independent-server hardware coverage includes 8SS and TXT; equivalent 8TML coverage and the reported upload failure remain open. See [todo](../todo.md) for current acceptance evidence and remaining gates.
+The client accepts `.8tml`, `.8ss` and `.txt` for upload, subject to server validation. Recent independent-server hardware coverage includes 8SS and TXT, and one ordinary 8TML document published through the installed release package on 25 Nov 2026; 8TML replace and cancel on the candidate package and the reported upload failure remain open. See [todo](../todo.md) for current acceptance evidence and remaining gates.
 
 Download-to-edit is deferred: API 1 supplies neither source GET nor guaranteed raw-source URLs. Future download requires independent source-access verification, supported transport and collision-safe new-file storage. See [Product scope](PRODUCT.md).
