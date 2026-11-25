@@ -1,5 +1,5 @@
-# SEE64YOU C64 Ultimate package
+# Historical C64 Ultimate package
 
-Use the canonical [installation guide](../../docs/INSTALL.md) for requirements, matching package layout, upgrades and first use. Release ZIPs embed that guide with checksums; follow the guide supplied with the exact release.
+The checked-in `SEE64YOU/` directory is an eleven-file, flat-layout candidate from `c67f19f`. Its [build record](BUILD.json) and [checksums](SHA256SUMS) describe those exact binaries.
 
-Launch `SEE64YOU.PRG` for offline editing, `S64CFG.PRG` for optional setup, or `S64PUB.PRG` for publishing. Save explicitly and back up existing data before upgrading.
+For a current installation, obtain a [release package](https://github.com/dannykeat-projects/SEE64YOU/releases) for your storage mount, or build this branch with `make -B -C client STORAGE_ROOT=/sd/ independent-package`. The build produces the complete ten-file tree under `client/build/independent-package/SEE64YOU/`. Follow the [installation and upgrade guide](../../docs/INSTALL.md) and keep each package together.
