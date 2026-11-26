@@ -266,6 +266,7 @@ static void clear_document(S64LocalDocument* local)
 
 /* Publisher only reads source; keep Editor write/recovery code out of its link. */
 #ifndef S64_STORAGE_READ_ONLY
+#ifndef S64_DOCUMENT_8TML
 static uint8_t discard_sink(const uint8_t* data, uint16_t length, void* context)
 {
     (void)data;
@@ -273,6 +274,8 @@ static uint8_t discard_sink(const uint8_t* data, uint16_t length, void* context)
     (void)context;
     return 1u;
 }
+
+#endif
 
 static uint8_t write_sink(const uint8_t* data, uint16_t length, void* context)
 {
@@ -374,7 +377,11 @@ static S64LocalResult write_document_file(
     /* Either file may be the only recoverable copy from an interrupted save. */
     if (collision) return S64_LOCAL_RECOVERY_CONFLICT;
 
+#ifdef S64_DOCUMENT_8TML
+    document_result = s64_document_check_source(document);
+#else
     document_result = s64_document_write_wire(document, discard_sink, 0);
+#endif
     if (document_result != S64_DOCUMENT_OK) {
         return S64_LOCAL_INVALID_DOCUMENT;
     }
@@ -412,7 +419,8 @@ static S64LocalResult write_document_file(
         local->dos_result = result;
         /* Keep the completed source even if restoring the original also fails.
          * In that case the old source remains at <filename>.bak. */
-        if (exists) (void)s64_dos_rename_file(local->dos, backup, filename);
+        if (exists && s64_dos_rename_file(local->dos, backup, filename) != S64_DOS_OK)
+            return S64_LOCAL_RESTORE_FAILED;
         return S64_LOCAL_IO_ERROR;
     }
 
@@ -420,7 +428,7 @@ static S64LocalResult write_document_file(
         result = s64_dos_delete_file(local->dos, backup);
         if (result != S64_DOS_OK) {
             local->dos_result = result;
-            return S64_LOCAL_IO_ERROR;
+            return S64_LOCAL_SAVED_BACKUP;
         }
     }
 
@@ -444,6 +452,10 @@ const char* s64_local_result_message(const S64LocalDocument* local, S64LocalResu
     switch (result) {
         case S64_LOCAL_OK: return "OK";
         case S64_LOCAL_INVALID_ARGUMENT: return "Invalid file request";
+#ifndef S64_STORAGE_READ_ONLY
+        case S64_LOCAL_SAVED_BACKUP: return "Saved; previous file in .bak";
+        case S64_LOCAL_RESTORE_FAILED: return "Restore .bak or open new .tmp";
+#endif
         case S64_LOCAL_DIRTY: return "Unsaved changes";
         case S64_LOCAL_NO_FILENAME: return "Use Save As first";
         case S64_LOCAL_EXISTS: return "File already exists";
@@ -667,7 +679,7 @@ static S64LocalResult save_named(
     local->document->kind = filename_kind(checked_filename);
 #endif
     result = write_document_file(local, local->document, checked_filename, overwrite);
-    if (result == S64_LOCAL_OK) {
+    if (result == S64_LOCAL_OK || result == S64_LOCAL_SAVED_BACKUP) {
         strcpy(local->filename, checked_filename);
 #ifdef S64_DOCUMENT_8TML
     } else {
@@ -734,7 +746,9 @@ S64LocalResult s64_local_recovery_exists(
 
 S64LocalResult s64_local_save_recovery(S64LocalDocument* local)
 {
+#ifndef S64_DOCUMENT_8TML
     S64Document recovery;
+#endif
     const char* name = S64_LOCAL_RECOVERY_FILENAME;
 #ifdef S64_DOCUMENT_8TML
     const char* existing;
@@ -746,6 +760,7 @@ S64LocalResult s64_local_save_recovery(S64LocalDocument* local)
         return S64_LOCAL_INVALID_ARGUMENT;
     }
 
+#ifndef S64_DOCUMENT_8TML
     recovery = *local->document;
     if (!s64_document_slug_valid(recovery.slug)) {
         strcpy(recovery.slug, "recovered-draft");
@@ -753,6 +768,7 @@ S64LocalResult s64_local_save_recovery(S64LocalDocument* local)
     if (recovery.title[0] == '\0') {
         strcpy(recovery.title, "Recovered Draft");
     }
+#endif
 
 #ifdef S64_DOCUMENT_8TML
     {
@@ -762,13 +778,15 @@ S64LocalResult s64_local_save_recovery(S64LocalDocument* local)
             return S64_LOCAL_IO_ERROR;
         }
     }
-    name = recovery_filename(recovery.kind);
+    name = recovery_filename(local->document->kind);
     found = find_recovery(local, &existing);
     if (found != S64_LOCAL_OK) return found;
     if (existing != 0 && strcmp(existing, name) != 0)
         return S64_LOCAL_RECOVERY_CONFLICT;
-#endif
+    return write_document_file(local, local->document, name, 1u);
+#else
     return write_document_file(local, &recovery, name, 1u);
+#endif
 }
 
 S64LocalResult s64_local_open_recovery(S64LocalDocument* local)

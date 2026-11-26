@@ -41,12 +41,6 @@ static uint8_t count_output(const uint8_t* data, uint16_t length, void* context)
     return 1;
 }
 
-static uint8_t discard_output(const uint8_t* data, uint16_t length, void* context)
-{
-    (void)data; (void)length; (void)context;
-    return 1;
-}
-
 uint8_t s64_reu_probe(void) { return 1; }
 uint16_t s64_reu_probe_banks(void) { return 2; }
 uint8_t s64_reu_load(uint8_t bank, uint16_t address, void* target, uint16_t length)
@@ -89,7 +83,7 @@ int main(void)
         "insert_midpoint", "backspace_midpoint", "move_right_midpoint",
         "end_of_line_midpoint", "goto_last_line", "copy_all",
         "paste_64_midpoint", "undo_insert_midpoint", "paste_256_midpoint",
-        "undo_paste_256_midpoint", "paste_1024_midpoint", "save_codec_two_writes"
+        "undo_paste_256_midpoint", "paste_1024_midpoint", "save_preflight_and_write"
     };
     unsigned int n, lines, operation;
     for (n = 0; n < 3u; ++n) for (lines = 0; lines < 2u; ++lines)
@@ -137,7 +131,7 @@ int main(void)
             case 9: ok = s64_editor_undo(&editor); break;
             case 11:
                 /* Match local.c preflight plus serialization, excluding DOS. */
-                ok = s64_document_write_wire(&document, discard_output, 0) == S64_DOCUMENT_OK
+                ok = s64_document_check_source(&document) == S64_DOCUMENT_OK
                     && s64_document_write_wire(&document, count_output, 0) == S64_DOCUMENT_OK;
                 break;
         }

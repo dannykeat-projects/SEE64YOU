@@ -32,6 +32,6 @@ An interrupted REU paste or undo/redo can leave partial changes. The Editor repo
 
 If a document REU read reports failure, `REU ERR Y=exit` blocks further editing and saving. Press Y to return to BASIC through normal machine-state restoration; N or RUN/STOP leaves the error prompt active. Existing source and recovery files are retained. Relaunch and reopen a known-good disk copy; unsaved REU changes are not automatically recovered. The error remains latched even if a later transfer succeeds. This handles reported transfer failures; it does not detect silent REU corruption or prove hardware fault detection.
 
-At startup, **Recover snapshot? Y/N** treats RUN/STOP like **N** and attempts to delete the snapshot. Press **Y** to recover it and save the recovered source explicitly.
+At startup press **Y** to open the recovery snapshot, **D** to discard it, or **RUN/STOP** to keep it on disk for the next session. Save recovered source explicitly. If a save reports a retained `.bak`, the new file was installed. Resolve the backup before saving to the same name again. If rollback fails, the prior source is in `.bak` and the completed replacement is in `.tmp`.
 
 For setup and a full first-document example see [installation](INSTALL.md).

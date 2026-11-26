@@ -251,6 +251,23 @@ class RelayHandlerIntegrationTests(unittest.TestCase):
         self.thread.join(timeout=2)
         self.temp.cleanup()
 
+    def test_stalled_and_short_uploads_are_not_forwarded(self):
+        import socket
+        from dataclasses import replace
+        self.server.RequestHandlerClass.config = replace(self.config, timeout_seconds=0.2)
+        for short, status in ((False, 408), (True, 400)):
+            connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=2)
+            try:
+                connection.request("POST", "/api.php", body=b"x", headers={
+                    "Content-Length": "4", "X-See64You-Relay-Key": VALID_KEY,
+                })
+                if short:
+                    connection.sock.shutdown(socket.SHUT_WR)
+                self.assertEqual(connection.getresponse().status, status)
+            finally:
+                connection.close()
+        self.assertEqual(self.opener.requests, [])
+
     def request(self, method, target, *, key=VALID_KEY, body=b"", headers=None):
         connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=2)
         outgoing = dict(headers or {})

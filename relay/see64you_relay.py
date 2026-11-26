@@ -15,6 +15,7 @@ import json
 import secrets
 import ssl
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -311,11 +312,25 @@ class RelayHandler(BaseHTTPRequestHandler):
         if length < 0 or length > self.config.max_request_bytes:
             self._reject(413, "Request body too large")
             return None
-        body = self.rfile.read(length)
-        if len(body) != length:
-            self._reject(400, "Incomplete request body")
+        body = bytearray()
+        deadline = time.monotonic() + self.config.timeout_seconds
+        try:
+            while len(body) < length:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError
+                self.connection.settimeout(remaining)
+                chunk = self.rfile.read1(min(length - len(body), 16384))
+                if not chunk:
+                    self._reject(400, "Incomplete request body")
+                    return None
+                body.extend(chunk)
+        except TimeoutError:
+            self._reject(408, "Request body timed out")
             return None
-        return body
+        finally:
+            self.connection.settimeout(self.config.timeout_seconds)
+        return bytes(body)
 
     def _relay(self) -> None:
         if self.command not in SUPPORTED_METHODS:

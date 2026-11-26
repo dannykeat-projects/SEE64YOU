@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <conio.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -11,7 +12,7 @@ static const char* files[] = {
     "FILE05.8TML", "FILE06.8TML", "FILE07.8TML",
     "FILE08.8TML", "FILE09.8TML", "STYLE.8SS", "NOTES.TXT"
 };
-static unsigned char key_pos;
+static unsigned char key_pos, opens;
 static const char* keys;
 static unsigned char unreadable;
 static unsigned char working_displayed;
@@ -26,6 +27,7 @@ static S64UciResult fake_open(const S64UciCommandPart* parts,
     /* The user must see pending feedback BEFORE the synchronous DOS call. */
     assert(working_displayed);
     working_displayed = 0u;
+    ++opens;
     status = unreadable ? "86,CAN'T READ DIRECTORY" : "00,OK";
     strcpy(reply->status, status);
     reply->status_length = (uint16_t)strlen(status);
@@ -59,6 +61,8 @@ S64UciResult s64_uci_execute_packets(const S64UciCommandPart* parts,
     return S64_UCI_OK;
 }
 
+unsigned char kbhit(void) { return keys[key_pos] == CH_STOP; }
+
 unsigned char cgetc(void)
 {
     unsigned char key = (unsigned char)keys[key_pos];
@@ -87,9 +91,10 @@ int main(void)
     char filename[65];
     s64_dos_init(&dos, fake_open, S64_DOS_TARGET_PRIMARY);
 
-    set_keys("91");
+    set_keys("8x891");
     assert(s64_local_pick(&dos, filename, sizeof(filename)) == 1u);
     assert(!strcmp(filename, "FILE07.8TML"));
+    assert(opens == 2u);
 
     set_keys("94");
     assert(s64_local_pick(&dos, filename, sizeof(filename)) == 1u);
@@ -110,6 +115,9 @@ int main(void)
     assert(!strcmp(filename, "UNCHANGED"));
     set_keys("7");
     assert(s64_local_pick(&dos, filename, sizeof(filename)) == 2u);
+    assert(!strcmp(filename, "UNCHANGED"));
+    set_keys("\003");
+    assert(s64_local_pick(&dos, filename, sizeof(filename)) == 0u);
     assert(!strcmp(filename, "UNCHANGED"));
     unreadable = 1u;
     assert(s64_local_pick(&dos, filename, sizeof(filename)) == 3u);

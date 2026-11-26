@@ -714,9 +714,19 @@ void s64_editor_ensure_cursor_visible(S64Editor* editor)
             }
         }
 
-        editor->view_start = cursor_row_start;
+        /* Walk this logical line forward with two row pointers. Repeated
+         * backward lookups would rewrap its entire prefix for each row. */
+        row_start = cursor_start;
+        editor->view_start = cursor_start;
         editor->view_cursor_row = 0u;
-        for (row = 1u; row < VIEW_ROWS; ++row) {
+        while (row_start < cursor_row_start
+            && next_wrapped_row_start(&editor->buffer, row_start, &row_start)) {
+            if (editor->view_cursor_row < VIEW_ROWS - 1u)
+                ++editor->view_cursor_row;
+            else if (!next_wrapped_row_start(&editor->buffer, editor->view_start, &editor->view_start))
+                break;
+        }
+        for (row = editor->view_cursor_row + 1u; row < VIEW_ROWS; ++row) {
             previous = previous_wrapped_row_start(
                 &editor->buffer,
                 editor->view_start
@@ -1710,7 +1720,6 @@ int s64_editor_paste(S64Editor* editor, const S64Clipboard* clipboard)
 #ifdef S64_REU_BUFFER
     i = 0u;
     while (i < clipboard->length) {
-        unsigned int j;
         unsigned int count = clipboard->length - i;
 
         if (count > S64_CLIPBOARD_TRANSFER_SIZE) {
@@ -1725,11 +1734,8 @@ int s64_editor_paste(S64Editor* editor, const S64Clipboard* clipboard)
             goto paste_failed;
         }
 
-        for (j = 0u; j < count; ++j) {
-            if (!s64_buffer_insert(&editor->buffer, editor_scan[j])) {
-                goto paste_failed;
-            }
-        }
+        if (!s64_buffer_insert_bytes(&editor->buffer, editor_scan, count))
+            goto paste_failed;
         i += count;
     }
 #else

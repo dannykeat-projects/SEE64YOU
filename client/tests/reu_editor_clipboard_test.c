@@ -150,11 +150,11 @@ int main(void)
     require(!s64_editor_undo(&editor), "partial paste discards unreliable history");
 
     s64_editor_init(&editor);
-    fail_document_store = 8u;
+    fail_document_store = 2u;
     require(!s64_editor_paste(&editor, &clipboard), "midpaste document write fails");
     require(editor.dirty, "partial failed write is dirty");
-    require_document(&editor, 7u);
-    require(editor.column == 8u, "failed write cursor is recalculated");
+    require_document(&editor, 64u);
+    require(editor.column == 65u, "failed write cursor is recalculated");
     require(!s64_editor_undo(&editor), "failed write discards unreliable history");
 
     s64_editor_init(&editor);

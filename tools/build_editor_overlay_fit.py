@@ -577,6 +577,9 @@ def compile_editor_overlay_fit(
         groups = {name: tuple(source for source in items
                               if source not in retired and source != "src/editor_format.c")
                   for name, items in GROUPS.items()}
+        # Clipboard transfers are called by MODEL editing operations. Startup also initializes the
+        # clipboard after the overlay registry is ready.
+        groups["MODEL"] += ("src/clipboard.c",)
         # Use the existing PREP slot for formatting, retaining the four-asset
         # manifest and existing checked overlay entry/return mechanism.
         # These entry/session helpers run after overlay bootstrap, outside the

@@ -21,7 +21,7 @@ Both selectors show six rows per page: **1-6** select, **7** types a name, **8/9
 
 Publisher lists `.8tml`, `.8ss` and `.txt` source in `SEE64YOU/docs/`, case-insensitively. Type the complete filename for 8SS or text; an extensionless name retains the `.8tml` convenience. 8SS and text load as literal source without an 8TML header. Other safe Editor suffixes, such as `.md` and `.ini`, remain local; use Save As `.txt` to publish their literal text. Server acceptance of remote types is endpoint-specific.
 
-Publisher never creates the document folder. Follow [upgrade instructions](INSTALL.md) before moving sources from alpha.6's root layout. Settings/program/recovery files are filtered out. Scan limits do not yet bound directory transport/drain time or allow cancellation during enumeration.
+Publisher never creates the document folder. Follow [upgrade instructions](INSTALL.md) before moving sources from alpha.6's root layout. Settings/program/recovery files are filtered out. Press RUN/STOP during enumeration to cancel. A page change starts a fresh scan. Other keys leave the displayed page in place.
 
 Remote selection uses the authenticated standard list and changes only the target. Manual entry remains available if listing fails. Paging repeats a bounded list request and can reflect concurrent server changes.
 
@@ -29,7 +29,7 @@ Remote selection uses the authenticated standard list and changes only the targe
 
 Press **3** to check limits and existing names. Review local source, endpoint and remote target, then **1** confirms create/replacement or **0** cancels. API 1 cannot prevent competing writes between checking existence and replacement. HTTP uploads are public and unencrypted.
 
-A confirmed upload displays `PUBLISHED` and the URL returned by the server. A return to the home screen with an error is not confirmation. On the experiment branch, the home screen displays up to 80 characters of status across its bottom three rows. Use **2 Browse remote** to check the target name after a failure. The local source stays on disk. Inspect remote content before retrying an uncertain upload; writes are never automatically retried. Publisher has no page/post categories, draft visibility, deletion or remote editing.
+A confirmed upload displays `PUBLISHED` and the URL returned by the server. A return to the home screen with an error is not confirmation. On the experiment branch, the home screen displays up to 80 characters of status across its bottom three rows. On a server, network or protocol failure, read the operation and any HTTP status, server error code and explanation. Press a key to return. Use **2 Browse remote** to check the target name after a failure. The local source stays on disk. Inspect remote content before retrying an uncertain upload; writes are never automatically retried. Publisher has no page/post categories, draft visibility, deletion or remote editing.
 
 ## Validation limits
 

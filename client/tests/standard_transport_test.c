@@ -3,6 +3,10 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include <limits.h>
+static unsigned long ticks;
+clock_t clock(void) { return (clock_t)ticks; }
 
 static char request[4096], response[8192], challenges[2][33];
 static unsigned request_length, response_offset, opens, closes, writes, put_count;
@@ -56,6 +60,8 @@ S64NetResult s64_net_read(S64NetTransport* t,uint8_t handle,uint16_t maximum,S64
 {
  unsigned amount, i;
  (void)t; assert(handle==1u); (void)maximum;
+ if (scenario==19) ticks+=10UL*CLOCKS_PER_SEC;
+ if (scenario==20 && !response[0]) ticks+=35UL*CLOCKS_PER_SEC;
  if(!response[0]) {
   assert(strstr(request,"Host: example.test:8080\r\n"));
   if(strstr(request,"?op=status ")) {
@@ -84,7 +90,8 @@ S64NetResult s64_net_read(S64NetTransport* t,uint8_t handle,uint16_t maximum,S64
    assert(strstr(request,"Content-Length: 88\r\n"));
    signed_request("put","index.8tml",24u);
    if(scenario==4) return S64_NET_TRANSPORT_ERROR;
-   if(scenario==5) reply("status: error\nerror: quota\nmessage: Storage full\n",403u);
+   if(scenario==21) reply("status: error\nmessage: Storage full\nerror: quota\n",403u);
+   else if(scenario==5) reply("status: error\nerror: quota\nmessage: Storage full\n",403u);
    else if(scenario==6) reply("status: ok\nname: index.8tml\nsize: 25\nurl: http://example.test/index.8tml\nwarning: Converted\n",200u);
    else if(scenario==18) reply("status: ok\nname: index.8tml\nsize: 24\nurl: http://example.test/@keato/index.8tml\n",200u);
    else if(scenario==15) reply("status: ok\nname: index.8tml\nsize: 24\nurl: http://user@example.test/index.8tml\n",200u);
@@ -92,8 +99,9 @@ S64NetResult s64_net_read(S64NetTransport* t,uint8_t handle,uint16_t maximum,S64
    else reply("status: ok\nname: index.8tml\nsize: 24\nurl: http://example.test/index.8tml\n",200u);
   }
  }
- if(scenario==11) { *received=0u; return S64_NET_NO_DATA; }
+ if(scenario==11) { ticks+=CLOCKS_PER_SEC; *received=0u; return S64_NET_NO_DATA; }
  amount=(unsigned)strlen(response)-response_offset;
+ if(scenario==19 && amount>1u) amount=1u;
  if(amount>7u) amount=7u; /* Fragment headers and body across arbitrary bytes. */
  *received=(uint16_t)amount;
  if(!amount) return S64_NET_CLOSED;
@@ -106,7 +114,7 @@ static int writer(S64UciDataSink sink,void* sink_context,void* context)
  return sink(source,7u,sink_context) && sink(source+7u,sizeof(source)-1u-7u,sink_context);
 }
 static void reset(int value)
-{ scenario=value; opens=closes=writes=put_count=0u; challenge_count=0; }
+{ ticks=ULONG_MAX-5UL*CLOCKS_PER_SEC; scenario=value; opens=closes=writes=put_count=0u; challenge_count=0; }
 int main(void)
 {
  S64StandardClient client; S64StandardReply result; unsigned count;
@@ -123,6 +131,11 @@ int main(void)
  reset(0); count=0u; assert(s64_standard_list(&client,"index.8tml",&result)==S64_STANDARD_OK); assert(s64_standard_put(&client,"index.8tml",24u,writer,&count,&result)==S64_STANDARD_OK); assert(challenge_count==2 && count==1u && put_count==1u); assert(opens==closes);
  reset(4); count=0u; assert(s64_standard_put(&client,"index.8tml",24u,writer,&count,&result)==S64_STANDARD_UNCERTAIN); assert(put_count==1u && count==1u); assert(opens==closes);
  reset(5); count=0u; assert(s64_standard_put(&client,"index.8tml",24u,writer,&count,&result)==S64_STANDARD_SERVER); assert(!strcmp(result.message,"Storage full")); assert(opens==closes);
+ assert(!strcmp(result.http_code,"403") && !strcmp(result.error_code,"quota"));
+ reset(21); count=0u; assert(s64_standard_put(&client,"index.8tml",24u,writer,&count,&result)==S64_STANDARD_SERVER);
+ assert(!strcmp(result.message,"Storage full") && !strcmp(result.error_code,"quota"));
+ reset(19); assert(s64_standard_status(&client,&result)==S64_STANDARD_PROTOCOL && opens==closes);
+ reset(20); assert(s64_standard_status(&client,&result)==S64_STANDARD_OK && opens==closes);
  reset(6); count=0u; assert(s64_standard_put(&client,"index.8tml",24u,writer,&count,&result)==S64_STANDARD_OK); assert(result.warning && result.size==25u && !strcmp(result.message,"Converted"));
  reset(7); count=0u; assert(s64_standard_put(&client,"index.8tml",24u,writer,&count,&result)==S64_STANDARD_UNCERTAIN); assert(opens==closes);
  reset(8); assert(s64_standard_status(&client,&result)==S64_STANDARD_OK); assert(opens==closes);

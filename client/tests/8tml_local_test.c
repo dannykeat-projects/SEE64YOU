@@ -399,7 +399,7 @@ int main(void)
     temporary_exists = 0u;
     fail_restore = 1u;
     fail_rename = 1u;
-    require(s64_local_save(&local) == S64_LOCAL_IO_ERROR, "rollback failure reported");
+    require(s64_local_save(&local) == S64_LOCAL_RESTORE_FAILED, "rollback failure reported");
     require(!file_exists && backup_exists && temporary_exists && backup_length == saved_length
         && !memcmp(backup_data, file_data, saved_length)
         && temporary_length == saved_length + 8u
@@ -412,7 +412,7 @@ int main(void)
     temporary_exists = 0u;
     file_exists = 1u;
     fail_cleanup = 1u;
-    require(s64_local_save(&local) == S64_LOCAL_IO_ERROR, "backup cleanup failure reported");
+    require(s64_local_save(&local) == S64_LOCAL_SAVED_BACKUP, "backup cleanup failure reported");
     require(file_exists && backup_exists && !temporary_exists && file_length == saved_length + 8u
         && backup_length == saved_length && !memcmp(file_data + saved_length, "Unsaved\n", 8u),
         "cleanup failure retains installed source and original backup");

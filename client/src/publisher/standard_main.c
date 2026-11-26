@@ -129,6 +129,17 @@ static void show_result(S64StandardResult result)
     else if (result == S64_STANDARD_TOO_LARGE) s64_publish_message("Source exceeds server limit");
     else if (reply.message[0]) s64_publish_message(reply.message);
     else s64_publish_message("Publishing failed; check endpoint/key");
+    if (result == S64_STANDARD_SERVER || result == S64_STANDARD_PROTOCOL
+        || result == S64_STANDARD_UNCERTAIN || result == S64_STANDARD_NETWORK) {
+        static const char* const stages[] = {"STATUS", "CHALLENGE", "LIST", "PUT"};
+        clrscr();
+        cputs(stages[reply.operation]);
+        if (reply.http_code[0]) { cputs(" HTTP "); cputs(reply.http_code); }
+        s64_publish_put(2u, reply.error_code, 39u);
+        s64_publish_draw(4u);
+        s64_publish_put(10u, "Press a key to return", 39u);
+        cgetc();
+    }
 }
 
 static uint16_t remote_start, remote_seen;

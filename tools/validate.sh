@@ -128,13 +128,6 @@ cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
     client/src/clipboard.c client/src/history_reu.c client/src/editor.c -o "$TMP_BIN"
 "$TMP_BIN"
 
-echo "== Host REU read-window reuse tests =="
-cc -std=c99 -Wall -Wextra -DS64_REU_BUFFER=1 -Iclient/src \
-    client/tests/reu_window_scan_test.c client/src/buffer_reu.c \
-    client/src/clipboard.c client/src/history_reu.c client/src/editor.c \
-    -o "$TMP_BIN"
-"$TMP_BIN"
-
 echo "== Host persistent open preservation tests =="
 cc -std=c99 -Wall -Wextra -Werror -DS64_REU_BUFFER=1 -Iclient/src \
     client/tests/persistent_open_preservation_test.c client/src/buffer_reu.c \
@@ -249,52 +242,7 @@ cc -std=c99 -Wall -Wextra -Werror -Iclient/src \
 "$TMP_BIN"
 python3 tools/tests/standard_publish_fixture_test.py
 
-echo "== Standard Publisher end-to-end put round-trip fixtures =="
-cc -std=c99 -Wall -Wextra -DS64_INDEPENDENT_PUBLISHER=1 -DS64_STORAGE_READ_ONLY=1 -Iclient/src \
-    client/tests/standard_publisher_roundtrip_test.c client/src/buffer.c \
-    client/src/document.c client/src/charset.c client/src/platform/dos.c \
-    client/src/storage/local.c client/src/publisher/standard_publish_names.c \
-    client/src/publisher/standard_transport.c client/src/publisher/standard_request.c \
-    client/src/publisher/standard_reply.c client/src/publisher/standard_publish.c \
-    client/src/publisher/direct_auth.c client/src/publisher/direct_key.c \
-    client/src/crypto/sha256.c -o "$TMP_BIN"
-"$TMP_BIN"
-
-echo "== Standard Publisher put round-trip with the REU-backed buffer =="
-cc -std=c99 -Wall -Wextra -DS64_INDEPENDENT_PUBLISHER=1 -DS64_STORAGE_READ_ONLY=1 -DS64_REU_BUFFER=1 -Iclient/src \
-    client/tests/standard_publisher_roundtrip_test.c client/src/buffer_reu.c \
-    client/src/document.c client/src/charset.c client/src/platform/dos.c \
-    client/src/storage/local.c client/src/publisher/standard_publish_names.c \
-    client/src/publisher/standard_transport.c client/src/publisher/standard_request.c \
-    client/src/publisher/standard_reply.c client/src/publisher/standard_publish.c \
-    client/src/publisher/direct_auth.c client/src/publisher/direct_key.c \
-    client/src/crypto/sha256.c -o "$TMP_BIN"
-"$TMP_BIN"
-
-echo "== Standard Publisher round-trip under address/undefined sanitizers =="
-cc -std=c99 -Wall -Wextra -fsanitize=address,undefined \
-    -DS64_INDEPENDENT_PUBLISHER=1 -DS64_STORAGE_READ_ONLY=1 -Iclient/src \
-    client/tests/standard_publisher_roundtrip_test.c client/src/buffer.c \
-    client/src/document.c client/src/charset.c client/src/platform/dos.c \
-    client/src/storage/local.c client/src/publisher/standard_publish_names.c \
-    client/src/publisher/standard_transport.c client/src/publisher/standard_request.c \
-    client/src/publisher/standard_reply.c client/src/publisher/standard_publish.c \
-    client/src/publisher/direct_auth.c client/src/publisher/direct_key.c \
-    client/src/crypto/sha256.c -o "$TMP_BIN"
-"$TMP_BIN"
-
-echo "== Standard Publisher result screen renders in the 40x25 grid =="
-cc -std=c99 -Wall -Wextra -Werror -Iclient/tests/ui_prompt_stubs -Iclient/src \
-    client/tests/standard_result_screen_test.c client/src/publisher/standard_display.c \
-    -o "$TMP_BIN"
-"$TMP_BIN"
-
-echo "== Standard Publisher result screen under address/undefined sanitizers =="
-cc -std=c99 -Wall -Wextra -fsanitize=address,undefined \
-    -Iclient/tests/ui_prompt_stubs -Iclient/src \
-    client/tests/standard_result_screen_test.c client/src/publisher/standard_display.c \
-    -o "$TMP_BIN"
-"$TMP_BIN"
+python3 tools/tests/editor_publisher_regressions.py --cc cc --sanitizers
 
 echo "== Host C64U platform requirement tests =="
 cc -std=c99 -Wall -Wextra -Iclient/src \
